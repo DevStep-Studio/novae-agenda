@@ -267,6 +267,19 @@ kbd { display: flex; align-items: center; gap: 2px; border: 1px solid var(--bord
 .input-eye { position: absolute; right: 10px; border: 0; background: none; color: var(--text-muted); display: grid; place-items: center; padding: 2px; }
 .auth-footer { color: var(--text-muted); font-size: 11px; }
 
+/* Role selector (Usuário / Admin) */
+.auth-role-selector { display: flex; gap: 8px; }
+.auth-role-chip { display: flex; align-items: center; gap: 6px; padding: 8px 18px; border: 1.5px solid var(--border); border-radius: 99px; background: var(--surface); color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s; }
+.auth-role-chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.auth-role-chip.active { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.auth-role-chip.active.admin { border-color: #7c3aed; background: #f5f3ff; color: #7c3aed; }
+.auth-admin-badge { display: inline-flex; align-items: center; gap: 5px; margin-bottom: 12px; padding: 4px 10px; border-radius: 99px; background: #f5f3ff; color: #7c3aed; font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+.auth-card--admin { border-color: #c4b5fd; box-shadow: 0 0 0 3px #ede9fe, var(--shadow-sm); }
+.auth-card--admin .auth-submit { background: #7c3aed; }
+.auth-card--admin .auth-submit:hover { background: #6d28d9; }
+.auth-card--admin .auth-tabs button.active { color: #7c3aed; }
+
+
 .onboarding-card { width: min(680px, 100%); padding: 40px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); max-height: calc(100vh - 150px); overflow-y: auto; }
 .onboarding-intro { margin-bottom: 28px; }
 .onboarding-intro h1 { margin: 0; font: 600 24px/1.2 "Plus Jakarta Sans", sans-serif; letter-spacing: -0.6px; }

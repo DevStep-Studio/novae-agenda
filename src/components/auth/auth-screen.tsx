@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User, Shield, UserRound } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 
 type Mode = "login" | "register";
+type Role = "user" | "admin";
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboarding: boolean) => void }) {
+  const [role, setRole] = useState<Role>("user");
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,13 +19,20 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const handleRoleChange = (newRole: Role) => {
+    setRole(newRole);
+    setMode("login");
+    setError(null);
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
     try {
       if (mode === "login") {
-        await api("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
+        const loginEndpoint = role === "admin" ? "/api/auth/admin/login" : "/api/auth/login";
+        await api(loginEndpoint, { method: "POST", body: JSON.stringify({ email, password }) });
         const session = await api<{ data: { userId: string } }>("/api/auth/session");
         void session;
         onAuthenticated(false);
@@ -47,16 +56,49 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
         <div className="auth-brand-mark"><Sparkles size={18} strokeWidth={2.4} /></div>
         <span className="auth-brand-name">agenda<span>.</span></span>
       </div>
-      <div className="auth-card">
-        <h1>{mode === "login" ? "Bem-vindo de volta" : "Crie sua conta"}</h1>
+
+      {/* Role selector */}
+      <div className="auth-role-selector">
+        <button
+          id="btn-role-user"
+          className={`auth-role-chip ${role === "user" ? "active" : ""}`}
+          onClick={() => handleRoleChange("user")}
+        >
+          <UserRound size={14} />
+          Usuário
+        </button>
+        <button
+          id="btn-role-admin"
+          className={`auth-role-chip ${role === "admin" ? "active admin" : ""}`}
+          onClick={() => handleRoleChange("admin")}
+        >
+          <Shield size={14} />
+          Admin
+        </button>
+      </div>
+
+      <div className={`auth-card ${role === "admin" ? "auth-card--admin" : ""}`}>
+        {role === "admin" && (
+          <div className="auth-admin-badge">
+            <Shield size={12} />
+            Acesso Administrativo
+          </div>
+        )}
+        <h1>{mode === "login" ? (role === "admin" ? "Painel Admin" : "Bem-vindo de volta") : "Crie sua conta"}</h1>
         <p className="auth-subtitle">
-          {mode === "login" ? "Entre para acessar sua agenda e seus clientes." : "Organize seu negócio em poucos segundos."}
+          {mode === "login"
+            ? role === "admin"
+              ? "Entre com suas credenciais de administrador."
+              : "Entre para acessar sua agenda e seus clientes."
+            : "Organize seu negócio em poucos segundos."}
         </p>
 
-        <div className="auth-tabs">
-          <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
-          <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Criar conta</button>
-        </div>
+        {role === "user" && (
+          <div className="auth-tabs">
+            <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
+            <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Criar conta</button>
+          </div>
+        )}
 
         {error && <div className="auth-error"><span>{error}</span></div>}
 
