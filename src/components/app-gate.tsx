@@ -7,7 +7,7 @@ import { OnboardingScreen } from "@/components/auth/onboarding-screen";
 import { AppShell } from "@/components/app-shell";
 
 export function AppGate() {
-  const { session, loading } = useStore();
+  const { session, loading, reloadSession } = useStore();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   if (loading) {
@@ -18,8 +18,8 @@ export function AppGate() {
     return <AuthScreen onAuthenticated={(needs) => setNeedsOnboarding(needs)} />;
   }
 
-  if (needsOnboarding || !session.company.onboarded) {
-    return <OnboardingScreen onComplete={() => { setNeedsOnboarding(false); window.location.reload(); }} />;
+  if (needsOnboarding || !session.company?.onboarded) {
+    return <OnboardingScreen onComplete={async () => { await reloadSession(); setNeedsOnboarding(false); }} />;
   }
 
   return <AppShell />;

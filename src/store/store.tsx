@@ -32,6 +32,7 @@ type DataState = {
 };
 
 type Store = DataState & {
+  reloadSession: () => Promise<SessionInfo | null>;
   reloadClients: () => Promise<void>;
   reloadServices: () => Promise<void>;
   reloadEmployees: () => Promise<void>;
@@ -175,6 +176,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     window.location.reload();
   }, []);
 
+  const reloadSession = useCallback(async () => {
+    try {
+      const data = await api<SessionInfo>("/api/auth/session");
+      setSession(data);
+      if (data) {
+        await refreshAll();
+      }
+      return data;
+    } catch {
+      setSession(null);
+      return null;
+    }
+  }, [refreshAll]);
+
   // Bootstrap session + data
   const booted = useRef(false);
   useEffect(() => {
@@ -182,18 +197,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     booted.current = true;
     (async () => {
       try {
-        const data = await api<SessionInfo>("/api/auth/session");
-        setSession(data);
-        if (data) {
-          await refreshAll();
-        }
-      } catch {
-        setSession(null);
+        await reloadSession();
       } finally {
         setBooting(false);
       }
     })();
-  }, [refreshAll]);
+  }, [reloadSession]);
 
   const value = useMemo<Store>(() => ({
     session,
@@ -206,6 +215,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     blocks,
     stats,
     toasts,
+    reloadSession,
     reloadClients,
     reloadServices,
     reloadEmployees,
@@ -229,7 +239,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     logout,
   }), [
     session, booting, clients, services, categories, employees, appointments, blocks, stats, toasts,
-    reloadClients, reloadServices, reloadEmployees, reloadAppointments, reloadBlocks, reloadStats, refreshAll,
+    reloadSession, reloadClients, reloadServices, reloadEmployees, reloadAppointments, reloadBlocks, reloadStats, refreshAll,
     createClient, updateClient, createService, toggleService, createEmployee, createAppointment,
     updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, notify, dismissToast, logout,
   ]);

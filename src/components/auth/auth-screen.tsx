@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { Sparkles, ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, User, Shield, UserRound } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
+import { useStore } from "@/store/store";
 
 type Mode = "login" | "register";
 type Role = "user" | "admin";
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboarding: boolean) => void }) {
+  const { reloadSession } = useStore();
   const [role, setRole] = useState<Role>("user");
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("usuario@studioprime.com.br");
+  const [password, setPassword] = useState("senha123");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -23,6 +25,30 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     setRole(newRole);
     setMode("login");
     setError(null);
+    if (newRole === "admin") {
+      setEmail("admin@studioprime.com.br");
+      setPassword("senha123");
+    } else {
+      setEmail("usuario@studioprime.com.br");
+      setPassword("senha123");
+    }
+  };
+
+  const handleModeChange = (newMode: Mode) => {
+    setMode(newMode);
+    setError(null);
+    if (newMode === "register") {
+      setEmail("");
+      setPassword("");
+    } else {
+      if (role === "admin") {
+        setEmail("admin@studioprime.com.br");
+        setPassword("senha123");
+      } else {
+        setEmail("usuario@studioprime.com.br");
+        setPassword("senha123");
+      }
+    }
   };
 
   const submit = async (event: React.FormEvent) => {
@@ -33,15 +59,15 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
       if (mode === "login") {
         const loginEndpoint = role === "admin" ? "/api/auth/admin/login" : "/api/auth/login";
         await api(loginEndpoint, { method: "POST", body: JSON.stringify({ email, password }) });
-        const session = await api<{ data: { userId: string } }>("/api/auth/session");
-        void session;
-        onAuthenticated(false);
+        const updatedSession = await reloadSession();
+        onAuthenticated(!updatedSession?.company?.onboarded);
       } else {
         await api("/api/auth/register", {
           method: "POST",
           body: JSON.stringify({ name, email, password, confirmPassword }),
         });
-        onAuthenticated(true);
+        const updatedSession = await reloadSession();
+        onAuthenticated(!updatedSession?.company?.onboarded);
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível concluir. Tente novamente.");
@@ -95,8 +121,8 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
 
         {role === "user" && (
           <div className="auth-tabs">
-            <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
-            <button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Criar conta</button>
+            <button className={mode === "login" ? "active" : ""} onClick={() => handleModeChange("login")}>Entrar</button>
+            <button className={mode === "register" ? "active" : ""} onClick={() => handleModeChange("register")}>Criar conta</button>
           </div>
         )}
 
@@ -135,7 +161,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
           <button type="submit" className="auth-submit" disabled={loading}>{loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"} {!loading && <ArrowRight size={16} />}</button>
         </form>
 
-        <button type="button" className="auth-back" onClick={() => setMode((m) => (m === "login" ? "register" : "login"))}>
+        <button type="button" className="auth-back" onClick={() => handleModeChange(mode === "login" ? "register" : "login")}>
           <ArrowLeft size={14} /> {mode === "login" ? "Ainda não tenho conta" : "Já tenho uma conta"}
         </button>
       </div>
