@@ -32,8 +32,8 @@ export const companies = pgTable("companies", {
   website: text("website"),
   timezone: text("timezone").default("America/Sao_Paulo").notNull(),
   currency: text("currency").default("BRL").notNull(),
-  primaryColor: text("primary_color").default("#1f6f66").notNull(),
-  secondaryColor: text("secondary_color").default("#eaf4f1").notNull(),
+  primaryColor: text("primary_color").default("#dcff4c").notNull(),
+  secondaryColor: text("secondary_color").default("#162a22").notNull(),
   onboarded: boolean("onboarded").default(false).notNull(),
   ...timestamps,
 });

@@ -43,8 +43,8 @@ async function seed() {
         instagram: "studioprime",
         timezone: "America/Sao_Paulo",
         currency: "BRL",
-        primaryColor: "#1f6f66",
-        secondaryColor: "#eaf4f1",
+        primaryColor: "#dcff4c",
+        secondaryColor: "#162a22",
         onboarded: true,
       })
       .returning();

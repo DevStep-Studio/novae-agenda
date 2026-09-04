@@ -63,16 +63,16 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
   return { ok: true, transport: "console" };
 }
 
-/* ---------- Templates (Nova(e) identity: teal #1f6f66, white, soft borders) ---------- */
+/* ---------- Templates (Novae identity: dark forest #12231b, electric lime #dcff4c) ---------- */
 
 function layout(heading: string, bodyHtml: string, cta?: { label: string; href: string }): string {
   const button = cta
-    ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 22px;background:#1f6f66;color:#ffffff;border-radius:8px;font-weight:600;text-decoration:none">${cta.label}</a>`
+    ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 24px;background:#dcff4c;color:#12231b;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>`
     : "";
-  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f5f8f7;font-family:Arial,Helvetica,sans-serif;color:#172522">
+  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#0f1f18;font-family:Arial,Helvetica,sans-serif;color:#f2f7f4">
 <div style="max-width:520px;margin:0 auto;padding:32px 16px">
-  <div style="font-weight:700;font-size:20px;letter-spacing:-0.5px;color:#1f6f66;margin-bottom:24px">Nova(e)</div>
-  <div style="background:#ffffff;border:1px solid #e3ebe8;border-radius:16px;padding:28px">
+  <div style="font-weight:700;font-size:22px;letter-spacing:-0.5px;color:#dcff4c;margin-bottom:24px">Nova(e)</div>
+  <div style="background:#162a22;border:1px solid rgba(220,255,76,0.2);border-radius:16px;padding:28px">
     <h1 style="margin:0 0 12px;font-size:18px">${heading}</h1>
     ${bodyHtml}
     ${button}

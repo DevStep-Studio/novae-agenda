@@ -248,15 +248,37 @@ function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => vo
 function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO; onClick: () => void }) {
   const { clients } = useStore();
   const photo = appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl;
+  const accentColor = appointment.serviceColor && appointment.serviceColor !== "#1f6f66"
+    ? appointment.serviceColor
+    : "var(--primary)";
 
   return (
-    <button className="appointment-card" onClick={onClick} style={{ "--appointment-color": appointment.serviceColor ?? "#1f6f66" } as React.CSSProperties}>
-      <div className="appointment-card-top"><span className="appointment-time">{normalizeTime(appointment.startTime)}</span><StatusBadge status={appointment.status} /></div>
-      <div className="appointment-main">
-        <Avatar name={appointment.clientName} photoUrl={photo} color={avatarColor(appointment.clientName)} size="sm" />
-        <span className="appointment-client"><strong>{appointment.clientName}</strong><small>{appointment.serviceName}</small></span>
+    <button
+      className="appointment-card"
+      onClick={onClick}
+      style={{ "--appointment-color": accentColor } as React.CSSProperties}
+    >
+      <div className="appointment-card-top">
+        <span className="appointment-time">{normalizeTime(appointment.startTime)}</span>
+        <StatusBadge status={appointment.status} />
       </div>
-      <div className="appointment-meta"><span><Clock3 size={13} /> {appointment.durationMinutes} min</span><span><UserRound size={13} /> {appointment.employeeName}</span><strong>{formatCurrency(appointment.total)}</strong></div>
+      <div className="appointment-main">
+        <Avatar
+          name={appointment.clientName}
+          photoUrl={photo}
+          color={avatarColor(appointment.clientName)}
+          size="md"
+        />
+        <span className="appointment-client">
+          <strong>{appointment.clientName}</strong>
+          <small>{appointment.serviceName}</small>
+        </span>
+      </div>
+      <div className="appointment-meta">
+        <span><Clock3 size={13} /> {appointment.durationMinutes} min</span>
+        <span><UserRound size={13} /> {appointment.employeeName}</span>
+        <strong>{formatCurrency(appointment.total)}</strong>
+      </div>
     </button>
   );
 }
@@ -391,7 +413,7 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
       <div className="service-grid">
         {visible.map((service) => (
           <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
-            <div className="service-card-head"><span className="service-color" style={{ backgroundColor: service.color ?? "#1f6f66" }}><Tag size={16} /></span></div>
+            <div className="service-card-head"><span className="service-color" style={{ backgroundColor: service.color ?? "var(--primary)" }}><Tag size={16} /></span></div>
             <div className="service-card-body"><h3>{service.name}</h3><span className="service-category">{service.categoryName ?? "Sem categoria"}</span>{service.description && <p>{service.description}</p>}</div>
             <div className="service-card-footer"><div><strong>{formatCurrency(service.price)}</strong><span><Clock3 size={13} /> {service.durationMinutes} min</span></div><label className="toggle"><input type="checkbox" checked={service.active} onChange={() => toggleService(service.id, !service.active)} /><span /></label></div>
           </article>
@@ -1693,7 +1715,8 @@ function DayCalendar({ appointments, onAppointment }: { appointments: Appointmen
           {appointments.map((apt) => {
             const top = ((timeToMinutes(normalizeTime(apt.startTime)) - 480) / 60) * hourHeight;
             const height = Math.max((apt.durationMinutes / 60) * hourHeight - 6, 40);
-            return <button key={apt.id} className="timeline-appointment" style={{ top, height, "--appointment-color": apt.serviceColor ?? "#1f6f66" } as React.CSSProperties} onClick={() => onAppointment(apt)}><span className="timeline-time">{normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}</span><strong>{apt.clientName}</strong><small>{apt.serviceName}</small><em>{apt.employeeName}</em></button>;
+            const accentColor = apt.serviceColor && apt.serviceColor !== "#1f6f66" ? apt.serviceColor : "var(--primary)";
+            return <button key={apt.id} className="timeline-appointment" style={{ top, height, "--appointment-color": accentColor } as React.CSSProperties} onClick={() => onAppointment(apt)}><span className="timeline-time">{normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}</span><strong>{apt.clientName}</strong><small>{apt.serviceName}</small><em>{apt.employeeName}</em></button>;
           })}
         </div>
       </div>
