@@ -4,6 +4,11 @@ import { z } from "zod";
 import { db } from "@/db";
 import { companies, users } from "@/db/schema";
 import { createSession, hashPassword, normalizeEmail } from "@/lib/auth";
+import { devTokenField } from "@/lib/dev";
+import { appUrl, sendMail, verificationEmail } from "@/lib/mailer";
+import { AUTH_RULES, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request";
+import { issueToken } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +20,9 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limit = await consumeRateLimit(`register:ip:${clientIp(request)}`, AUTH_RULES.register);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -37,10 +45,26 @@ export async function POST(request: Request) {
   const [company] = await db.insert(companies).values({ name: name.trim(), onboarded: false }).returning();
   const [user] = await db
     .insert(users)
-    .values({ companyId: company.id, name: name.trim(), email: normalizedEmail, passwordHash, role: "owner", active: true })
+    .values({
+      companyId: company.id,
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      role: "owner",
+      active: true,
+      emailVerified: false,
+    })
     .returning();
 
   await createSession(user.id);
 
-  return NextResponse.json({ data: { userId: user.id, onboarded: false } }, { status: 201 });
+  const token = await issueToken(user.id, "email_verification");
+  const link = `${appUrl()}/?verify=${token}`;
+  const mail = verificationEmail(user.name, link);
+  await sendMail({ ...mail, to: normalizedEmail });
+
+  return NextResponse.json(
+    { data: { userId: user.id, onboarded: false, emailVerified: false, ...devTokenField(token) } },
+    { status: 201 },
+  );
 }

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { companies } from "@/db/schema";
+import { companies, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import type { SessionInfo } from "@/shared/types";
 
@@ -18,11 +18,20 @@ export async function GET() {
     .where(eq(companies.id, user.companyId))
     .limit(1);
 
+  const [row] = await db
+    .select({ createdAt: users.createdAt })
+    .from(users)
+    .where(eq(users.id, user.userId))
+    .limit(1);
+
   const session: SessionInfo = {
     userId: user.userId,
     companyId: user.companyId,
     role: user.role,
     name: user.name,
+    email: user.email,
+    emailVerified: user.emailVerified,
+    createdAt: (row?.createdAt ?? new Date()).toISOString(),
     employeeId: user.employeeId,
     company: company
       ? {
@@ -41,7 +50,7 @@ export async function GET() {
           secondaryColor: company.secondaryColor,
           onboarded: company.onboarded,
         }
-      : null as unknown as SessionInfo["company"],
+      : (null as unknown as SessionInfo["company"]),
   };
 
   return Response.json({ data: session });

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
-import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, STATUS_LABELS } from "@/lib/client-utils";
+import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ServiceCategoryDTO, ServiceDTO,
@@ -250,7 +250,7 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
         <div className="profile-hero">
           <Avatar name={client.name} color={avatarColor(client.name)} size="lg" />
           <h2>{client.name}</h2>
-          <p>Cliente desde {new Date(detail?.createdAt ?? Date.now()).toLocaleDateString("pt-BR")}</p>
+          {detail?.createdAt && <p>Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}</p>}
           <div className="profile-actions">
             {phone && <a className="whatsapp-button" href={`https://wa.me/${formatPhoneForWhatsApp(phone)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> WhatsApp</a>}
             <Button onClick={() => onNewAppointment(client)}><CalendarPlus size={15} /> Agendar</Button>
@@ -457,7 +457,7 @@ function SettingsPage({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) 
 
               <section className="settings-section">
                 <SectionHeading title="Sessão" />
-                <div className="profile-note"><UserRound size={14} /><span>Você está conectado(a) como <strong>{session?.name}</strong> ({session?.role === "owner" ? "Proprietário" : session?.role === "admin" ? "Administrador" : "Profissional"}).</span></div>
+                <div className="profile-note"><UserRound size={14} /><span>Você está conectado(a) como <strong>{session?.name}</strong> ({roleLabel(session?.role)}).</span></div>
               </section>
             </>
           )}
@@ -890,16 +890,16 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
 }
 
 /* ---------- Profile drawer ---------- */
-function ProfileDrawer({ onClose, session, onSettings, onLogout }: { onClose: () => void; session: any; onSettings: () => void; onLogout: () => void }) {
+function ProfileDrawer({ onClose, session, onSettings, onLogout }: { onClose: () => void; session: import("@/shared/types").SessionInfo; onSettings: () => void; onLogout: () => void }) {
   return (
     <div className="drawer-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <aside className="profile-drawer">
         <div className="drawer-header"><span className="eyebrow">Sua conta</span><IconButton label="Fechar perfil" onClick={onClose}><X size={19} /></IconButton></div>
-        
+
         <div className="profile-hero">
           <span className="profile-avatar-large">{initials(session?.name ?? "U")}</span>
           <h2>{session?.name}</h2>
-          <p className="profile-role">{session?.role === "owner" ? "Proprietário" : session?.role === "admin" ? "Administrador" : "Profissional"}</p>
+          <p className="profile-role">{roleLabel(session?.role)}</p>
           <p className="profile-company">{session?.company.name}</p>
         </div>
 
@@ -910,7 +910,7 @@ function ProfileDrawer({ onClose, session, onSettings, onLogout }: { onClose: ()
           </div>
           <div className="info-item">
             <span className="info-label">Acesso desde</span>
-            <strong>{new Date(session?.createdAt || Date.now()).toLocaleDateString("pt-BR")}</strong>
+            <strong>{session?.createdAt ? new Date(session.createdAt).toLocaleDateString("pt-BR") : "—"}</strong>
           </div>
         </div>
 
@@ -1018,7 +1018,7 @@ export function AppShell() {
         <div className="workspace-switcher"><span className="workspace-logo">{initials(session?.company.name ?? "A")}</span>{!collapsed && <div><strong>{session?.company.name}</strong><small>Unidade principal</small></div>}</div>
         <nav className="sidebar-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}><Icon size={18} /><span>{label}</span>{id === "agenda" && !collapsed && <em>{appointments.filter((a) => a.date === todayKey() && !["cancelled", "no_show"].includes(a.status)).length}</em>}</button>)}</nav>
         <div className="sidebar-bottom">
-          <button className="profile-nav" onClick={() => setProfileDrawerOpen(true)}><span className="profile-avatar">{initials(session?.name ?? "U")}</span>{!collapsed && <span><strong>{session?.name}</strong><small>{session?.role === "owner" ? "Proprietário" : session?.role === "admin" ? "Administrador" : "Profissional"}</small></span>}<MoreHorizontal size={17} /></button>
+          <button className="profile-nav" onClick={() => setProfileDrawerOpen(true)}><span className="profile-avatar">{initials(session?.name ?? "U")}</span>{!collapsed && <span><strong>{session?.name}</strong><small>{roleLabel(session?.role)}</small></span>}<MoreHorizontal size={17} /></button>
           <button className="logout-button" onClick={logout}><LogOut size={17} /><span>{!collapsed ? "Sair da conta" : "Sair"}</span></button>
         </div>
       </aside>
@@ -1051,7 +1051,7 @@ export function AppShell() {
       {blockOpen && <BlockModal onClose={() => setBlockOpen(false)} defaultDate={selectedDate} />}
       {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} onClose={() => setDetailAppointment(null)} />}
       {clientDrawer && <ClientDrawer clientId={clientDrawer.id} onClose={() => setClientDrawer(null)} onNewAppointment={(client) => { setClientDrawer(null); setSelectedDate(todayKey()); setNewAppointmentOpen(true); }} />}
-      {profileDrawerOpen && <ProfileDrawer onClose={() => setProfileDrawerOpen(false)} session={session} onSettings={() => navigate("configuracoes")} onLogout={logout} />}
+      {profileDrawerOpen && session && <ProfileDrawer onClose={() => setProfileDrawerOpen(false)} session={session} onSettings={() => navigate("configuracoes")} onLogout={logout} />}
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
     </div>

@@ -5,7 +5,18 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, employees, users } from "@/db/schema";
 
-export type Role = "owner" | "admin" | "employee";
+export type Role = "owner" | "admin" | "manager" | "employee";
+
+/** Higher number = more privilege. Used for hierarchical permission checks. */
+export const ROLE_RANK: Record<Role, number> = { owner: 4, admin: 3, manager: 2, employee: 1 };
+
+export function isRole(value: string): value is Role {
+  return value === "owner" || value === "admin" || value === "manager" || value === "employee";
+}
+
+export function hasMinRole(role: Role, min: Role): boolean {
+  return ROLE_RANK[role] >= ROLE_RANK[min];
+}
 
 export type SessionUser = {
   userId: string;
@@ -13,11 +24,18 @@ export type SessionUser = {
   locationId: string | null;
   role: Role;
   name: string;
+  email: string;
+  emailVerified: boolean;
   employeeId: string | null;
 };
 
 const SESSION_COOKIE = "agenda_session";
-const SESSION_SECRET = process.env.SESSION_SECRET ?? "dev-insecure-secret-change-me";
+const isProd = process.env.NODE_ENV === "production";
+const rawSecret = process.env.SESSION_SECRET;
+if (isProd && (!rawSecret || rawSecret.length < 16)) {
+  throw new Error("SESSION_SECRET must be set to a strong value in production");
+}
+const SESSION_SECRET = rawSecret ?? "dev-insecure-secret-change-me";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 const secretKey = new TextEncoder().encode(SESSION_SECRET);
@@ -80,7 +98,9 @@ export async function getSession(): Promise<SessionUser | null> {
         companyId: users.companyId,
         role: users.role,
         name: users.name,
+        email: users.email,
         active: users.active,
+        emailVerified: users.emailVerified,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -118,8 +138,10 @@ export async function getSession(): Promise<SessionUser | null> {
       userId: user.id,
       companyId: user.companyId,
       locationId: null,
-      role: (user.role as Role) ?? "employee",
+      role: isRole(user.role) ? user.role : "employee",
       name: user.name,
+      email: user.email,
+      emailVerified: user.emailVerified,
       employeeId,
     };
   } catch {
@@ -157,11 +179,28 @@ export function unauthorized() {
   });
 }
 
-export function forbidden() {
-  return new Response(JSON.stringify({ error: "Você não tem permissão para realizar essa ação." }), {
+export function forbidden(message = "Você não tem permissão para realizar essa ação.") {
+  return new Response(JSON.stringify({ error: message }), {
     status: 403,
     headers: { "content-type": "application/json" },
   });
+}
+
+/**
+ * Route guard: returns an { auth } context when the session meets `minRole`,
+ * or a ready-to-return Response (401/403) otherwise.
+ *
+ *   const gate = await requireRole("manager");
+ *   if (gate.response) return gate.response;
+ *   const { auth } = gate;
+ */
+export async function requireRole(
+  minRole: Role,
+): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth) return { auth: null, response: unauthorized() };
+  if (!hasMinRole(auth.user.role, minRole)) return { auth: null, response: forbidden() };
+  return { auth, response: null };
 }
 
 export { formatTime as normalizeTimeString };

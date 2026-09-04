@@ -24,7 +24,7 @@ import { useStore } from "@/store/store";
 
 type Mode = "login" | "register" | "forgot-password";
 type Role = "user" | "admin";
-type RecoveryStep = "request_email" | "email_sent" | "reset_password";
+type RecoveryStep = "request_email" | "email_sent";
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboarding: boolean) => void }) {
   const { reloadSession } = useStore();
@@ -42,9 +42,6 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
 
   // Recovery states
   const [recoveryEmail, setRecoveryEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Feedback states
@@ -169,41 +166,6 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
       setTimeout(() => setSuccessBanner(null), 4000);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Erro ao reenviar e-mail.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset password submit (Google-style Step 3)
-  const submitResetPassword = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (newPassword.length < 8) {
-      setError("A nova senha deve ter no mínimo 8 caracteres.");
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setError("As senhas não coincidem.");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-    try {
-      await api<{ success: boolean; message: string }>("/api/auth/reset-password", {
-        method: "POST",
-        body: JSON.stringify({
-          email: recoveryEmail.trim(),
-          newPassword,
-          confirmPassword: confirmNewPassword,
-        }),
-      });
-
-      // Populate login with updated password and return to login screen
-      setEmail(recoveryEmail.trim());
-      setPassword(newPassword);
-      setMode("login");
-      setSuccessBanner("Senha redefinida com sucesso! Você já pode entrar com sua nova senha.");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Não foi possível redefinir a senha. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -343,27 +305,17 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
                     <span>{recoveryEmail}</span>
                   </div>
                   <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "12px", lineHeight: 1.5, maxWidth: "320px" }}>
-                    Abra sua caixa de entrada e clique no link de recuperação ou utilize o botão abaixo para definir sua nova senha.
+                    Abra sua caixa de entrada e clique no link de recuperação. O link expira em 1 hora.
                   </p>
                 </div>
 
                 <div className="auth-actions-split">
                   <button
                     type="button"
-                    className="auth-dark-btn"
+                    className="auth-submit"
                     onClick={() => handleModeChange("login")}
                   >
                     <ArrowLeft size={14} /> Voltar ao login
-                  </button>
-                  <button
-                    type="button"
-                    className="auth-submit"
-                    onClick={() => {
-                      setError(null);
-                      setRecoveryStep("reset_password");
-                    }}
-                  >
-                    Nova senha {!loading && <ArrowRight size={16} />}
                   </button>
                 </div>
 
@@ -380,85 +332,6 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
                     {resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar e-mail"}
                   </button>
                 </div>
-              </>
-            )}
-
-            {recoveryStep === "reset_password" && (
-              <>
-                <div className="auth-recovery-header">
-                  <div className={`auth-recovery-badge ${role === "admin" ? "admin" : ""}`}>
-                    <KeyRound size={13} />
-                    Nova senha
-                  </div>
-                  <h1>Definir nova senha</h1>
-                  <p className="auth-subtitle">
-                    Crie uma nova senha segura para a conta <strong>{recoveryEmail}</strong>.
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="auth-error">
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <form onSubmit={submitResetPassword} className="auth-form">
-                  <label className="field">
-                    <span className="field-label">Nova senha</span>
-                    <div className="input-with-icon">
-                      <Lock size={15} />
-                      <input
-                        className="input"
-                        type={showNewPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Mínimo de 8 caracteres"
-                        autoComplete="new-password"
-                        required
-                        minLength={8}
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        className="input-eye"
-                        onClick={() => setShowNewPassword((v) => !v)}
-                        aria-label="Mostrar senha"
-                      >
-                        {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-                  </label>
-
-                  <label className="field">
-                    <span className="field-label">Confirmar nova senha</span>
-                    <div className="input-with-icon">
-                      <Lock size={15} />
-                      <input
-                        className="input"
-                        type={showNewPassword ? "text" : "password"}
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        placeholder="Repita a nova senha"
-                        autoComplete="new-password"
-                        required
-                        minLength={8}
-                      />
-                    </div>
-                  </label>
-
-                  <div className="auth-actions-split">
-                    <button
-                      type="button"
-                      className="auth-dark-btn"
-                      onClick={() => setRecoveryStep("email_sent")}
-                    >
-                      <ArrowLeft size={14} /> Voltar
-                    </button>
-                    <button type="submit" className="auth-submit" disabled={loading}>
-                      {loading ? "Salvando..." : "Salvar senha"} {!loading && <Check size={16} />}
-                    </button>
-                  </div>
-                </form>
               </>
             )}
           </div>

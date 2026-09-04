@@ -9,7 +9,7 @@ export type AppointmentStatus =
 
 export type CommissionType = "none" | "percentage" | "fixed";
 export type PaymentMethod = "pix" | "cash" | "debit" | "credit" | "other";
-export type Role = "owner" | "admin" | "employee";
+export type Role = "owner" | "admin" | "manager" | "employee";
 
 export type Company = {
   id: string;
@@ -33,6 +33,9 @@ export type SessionInfo = {
   companyId: string;
   role: Role;
   name: string;
+  email: string;
+  emailVerified: boolean;
+  createdAt: string;
   employeeId: string | null;
   company: Company;
 };

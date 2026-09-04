@@ -1,4 +1,15 @@
-import type { AppointmentStatus, PaymentMethod } from "@/shared/types";
+import type { AppointmentStatus, PaymentMethod, Role } from "@/shared/types";
+
+export const ROLE_LABELS: Record<Role, string> = {
+  owner: "Proprietário",
+  admin: "Administrador",
+  manager: "Gerente",
+  employee: "Profissional",
+};
+
+export function roleLabel(role: string | null | undefined): string {
+  return role && role in ROLE_LABELS ? ROLE_LABELS[role as Role] : "Profissional";
+}
 
 export function formatCurrency(value: number, currency = "BRL"): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);

@@ -43,6 +43,8 @@ async function seed() {
 
   const defaultPasswordHash = await hashPassword("senha123");
 
+  const verified = { emailVerified: true, emailVerifiedAt: new Date() };
+
   // Admin / Owner
   const [adminUser] = await db
     .insert(users)
@@ -53,10 +55,11 @@ async function seed() {
       passwordHash: defaultPasswordHash,
       role: "owner",
       active: true,
+      ...verified,
     })
     .onConflictDoUpdate({
       target: [users.companyId, users.email],
-      set: { role: "owner", passwordHash: defaultPasswordHash, active: true },
+      set: { role: "owner", passwordHash: defaultPasswordHash, active: true, ...verified },
     })
     .returning();
 
@@ -70,10 +73,11 @@ async function seed() {
       passwordHash: defaultPasswordHash,
       role: "owner",
       active: true,
+      ...verified,
     })
     .onConflictDoUpdate({
       target: [users.companyId, users.email],
-      set: { role: "owner", passwordHash: defaultPasswordHash, active: true },
+      set: { role: "owner", passwordHash: defaultPasswordHash, active: true, ...verified },
     });
 
   // Standard User / Employee
@@ -86,10 +90,11 @@ async function seed() {
       passwordHash: defaultPasswordHash,
       role: "employee",
       active: true,
+      ...verified,
     })
     .onConflictDoUpdate({
       target: [users.companyId, users.email],
-      set: { role: "employee", passwordHash: defaultPasswordHash, active: true },
+      set: { role: "employee", passwordHash: defaultPasswordHash, active: true, ...verified },
     })
     .returning();
 
