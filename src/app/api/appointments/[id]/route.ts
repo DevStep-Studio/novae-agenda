@@ -1,16 +1,36 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointmentServices, appointments, clients, employees, payments, services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { appointmentServices, appointments, clients, employees, notifications, payments, services } from "@/db/schema";
+import { requireRole } from "@/lib/auth";
+import { assertBookable } from "@/lib/availability";
+import { recordAudit } from "@/lib/audit";
 import { addMinutesToTime, centsToNumber, isUuid, isValidDateKey, isValidTime, normalizeTime, timeToMinutes } from "@/lib/domain";
+import { getCompanySettings } from "@/lib/settings";
 import type { AppointmentDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
 
+function initials(name: string): string {
+  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+}
+
+/** Loads an appointment scoped to the company, enforcing employee-only ownership. */
+async function loadOwned(id: string, companyId: string, role: string, employeeId: string | null) {
+  const [apt] = await db
+    .select({ id: appointments.id, employeeId: appointments.employeeId, status: appointments.status, total: appointments.total, appointmentDate: appointments.appointmentDate })
+    .from(appointments)
+    .where(and(eq(appointments.id, id), eq(appointments.companyId, companyId)))
+    .limit(1);
+  if (!apt) return { apt: null, forbidden: false };
+  if (role === "employee" && apt.employeeId !== employeeId) return { apt: null, forbidden: true };
+  return { apt, forbidden: false };
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
 
@@ -36,6 +56,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .limit(1);
 
   if (!apt) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
+  if (auth.user.role === "employee" && apt.employeeId !== auth.user.employeeId) {
+    return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
+  }
 
   const serviceRows = await db
     .select({ serviceId: appointmentServices.serviceId, name: services.name, color: services.color, durationMinutes: appointmentServices.durationMinutes, price: appointmentServices.price })
@@ -74,11 +97,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 const statusSchema = z.object({
   status: z.enum(["scheduled", "confirmed", "waiting", "in_progress", "cancelled", "no_show"]),
+  reason: z.string().max(300).optional(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
 
@@ -88,18 +113,45 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Status inválido." }, { status: 400 });
   }
 
-  const patch: Record<string, unknown> = { status: parsed.data.status };
-  if (parsed.data.status === "cancelled") patch.cancelledAt = new Date();
+  const { apt, forbidden } = await loadOwned(id, auth.user.companyId, auth.user.role, auth.user.employeeId);
+  if (forbidden) return Response.json({ error: "Você não pode alterar este atendimento." }, { status: 403 });
+  if (!apt) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
+  if (apt.status === "completed") {
+    return Response.json({ error: "Este atendimento já foi finalizado." }, { status: 409 });
+  }
 
-  const [updated] = await db
+  const { status, reason } = parsed.data;
+  const patch: Record<string, unknown> = { status };
+  if (status === "cancelled" || status === "no_show") {
+    patch.cancelledAt = new Date();
+    patch.cancelReason = reason?.trim() || null;
+  }
+
+  await db
     .update(appointments)
     .set(patch)
-    .where(and(eq(appointments.id, id), eq(appointments.companyId, auth.user.companyId)))
-    .returning({ id: appointments.id });
+    .where(and(eq(appointments.id, id), eq(appointments.companyId, auth.user.companyId)));
 
-  if (!updated) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
+  if (status === "cancelled" || status === "no_show") {
+    await recordAudit({
+      companyId: auth.user.companyId,
+      userId: auth.user.userId,
+      action: `appointment.${status}`,
+      entity: "appointment",
+      entityId: id,
+      metadata: { reason: reason?.trim() || null, previousStatus: apt.status },
+    });
+    await db.insert(notifications).values({
+      companyId: auth.user.companyId,
+      type: status === "cancelled" ? "appointment_cancelled" : "appointment_no_show",
+      title: status === "cancelled" ? "Atendimento cancelado" : "Cliente não compareceu",
+      body: reason?.trim() || null,
+      entityType: "appointment",
+      entityId: id,
+    });
+  }
 
-  return Response.json({ data: { id: updated.id, status: parsed.data.status } });
+  return Response.json({ data: { id, status } });
 }
 
 const rescheduleSchema = z.object({
@@ -109,8 +161,9 @@ const rescheduleSchema = z.object({
 });
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
 
@@ -124,15 +177,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return Response.json({ error: "Data ou horário inválido." }, { status: 400 });
   }
 
-  const [apt] = await db
-    .select({ id: appointments.id, employeeId: appointments.employeeId })
-    .from(appointments)
-    .where(and(eq(appointments.id, id), eq(appointments.companyId, auth.user.companyId)))
-    .limit(1);
+  const { apt, forbidden } = await loadOwned(id, auth.user.companyId, auth.user.role, auth.user.employeeId);
+  if (forbidden) return Response.json({ error: "Você não pode reagendar este atendimento." }, { status: 403 });
   if (!apt) return Response.json({ error: "Atendimento não encontrado." }, { status: 404 });
+  if (apt.status === "completed" || apt.status === "cancelled") {
+    return Response.json({ error: "Este atendimento não pode ser reagendado." }, { status: 409 });
+  }
 
   const employeeId = parsed.data.employeeId ?? apt.employeeId;
   if (parsed.data.employeeId) {
+    if (auth.user.role === "employee" && employeeId !== auth.user.employeeId) {
+      return Response.json({ error: "Você só pode reagendar para a sua própria agenda." }, { status: 403 });
+    }
     const [employee] = await db
       .select({ id: employees.id })
       .from(employees)
@@ -141,76 +197,40 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!employee) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
   }
 
-  const duration = await db
-    .select({ durationMinutes: appointmentServices.durationMinutes, serviceId: appointmentServices.serviceId })
+  const durationRows = await db
+    .select({ durationMinutes: appointmentServices.durationMinutes })
     .from(appointmentServices)
     .where(eq(appointmentServices.appointmentId, id));
-  const totalDuration = duration.reduce((sum, row) => sum + row.durationMinutes, 0);
+  const totalDuration = durationRows.reduce((sum, row) => sum + row.durationMinutes, 0);
   const endTime = addMinutesToTime(startTime, totalDuration);
 
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-
-  const overlapping = await db
-    .select({ id: appointments.id, startTime: appointments.startTime, endTime: appointments.endTime, status: appointments.status })
-    .from(appointments)
-    .where(
-      and(
-        eq(appointments.companyId, auth.user.companyId),
-        eq(appointments.employeeId, employeeId),
-        eq(appointments.appointmentDate, date),
-      ),
-    );
-
-  for (const existing of overlapping) {
-    if (existing.id === id) continue;
-    if (existing.status === "cancelled" || existing.status === "no_show") continue;
-    const existingStart = timeToMinutes(normalizeTime(existing.startTime));
-    const existingEnd = timeToMinutes(normalizeTime(existing.endTime));
-    if (startMinutes < existingEnd && endMinutes > existingStart) {
-      return Response.json({ error: "Este profissional já possui um atendimento nesse horário." }, { status: 409 });
-    }
-  }
-
-  const [updated] = await db
-    .update(appointments)
-    .set({ employeeId, appointmentDate: date, startTime: `${startTime}:00`, endTime: `${endTime}:00` })
-    .where(and(eq(appointments.id, id), eq(appointments.companyId, auth.user.companyId)))
-    .returning({ id: appointments.id });
-
-  return Response.json({ data: { id: updated.id, date, startTime, endTime } });
-}
-
-const finishSchema = z.object({
-  amount: z.number().min(0, "O valor não pode ser negativo."),
-  method: z.enum(["pix", "cash", "debit", "credit", "other"]),
-  idempotencyKey: z.string().optional(),
-});
-
-export async function finishAppointment(id: string, companyId: string, amount: number, method: string) {
-  const [apt] = await db
-    .select({ id: appointments.id, clientId: appointments.clientId, employeeId: appointments.employeeId, total: appointments.total })
-    .from(appointments)
-    .where(and(eq(appointments.id, id), eq(appointments.companyId, companyId)))
-    .limit(1);
-  if (!apt) return null;
-
-  const [existingPayment] = await db.select({ id: payments.id }).from(payments).where(eq(payments.appointmentId, id)).limit(1);
-  if (existingPayment) return existingPayment;
+  const { bufferMinutes } = await getCompanySettings(auth.user.companyId);
+  const check = await assertBookable({
+    companyId: auth.user.companyId,
+    employeeId,
+    date,
+    timezone: auth.companyTimezone,
+    durationMinutes: totalDuration,
+    bufferMinutes,
+    excludeAppointmentId: id,
+    startMinutes: timeToMinutes(startTime),
+    endMinutes: timeToMinutes(endTime),
+  });
+  if (!check.ok) return Response.json({ error: check.error }, { status: check.status });
 
   await db
     .update(appointments)
-    .set({ status: "completed", total: amount.toFixed(2) })
-    .where(and(eq(appointments.id, id), eq(appointments.companyId, companyId)));
+    .set({ employeeId, appointmentDate: date, startTime: `${startTime}:00`, endTime: `${endTime}:00` })
+    .where(and(eq(appointments.id, id), eq(appointments.companyId, auth.user.companyId)));
 
-  const [payment] = await db
-    .insert(payments)
-    .values({ companyId, appointmentId: id, amount: amount.toFixed(2), method, status: "paid", paidAt: new Date() })
-    .returning();
+  await recordAudit({
+    companyId: auth.user.companyId,
+    userId: auth.user.userId,
+    action: "appointment.rescheduled",
+    entity: "appointment",
+    entityId: id,
+    metadata: { from: { date: apt.appointmentDate }, to: { date, startTime, endTime, employeeId } },
+  });
 
-  return payment;
-}
-
-function initials(name: string): string {
-  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+  return Response.json({ data: { id, date, startTime, endTime } });
 }

@@ -18,43 +18,71 @@ export async function GET(request: Request) {
   const today = todayKey(timezone);
   const weekStart = shiftDate(today, -7);
   const monthStart = today.slice(0, 8) + "01";
-
   const from = range === "today" ? today : range === "week" ? weekStart : monthStart;
 
+  const companyId = auth.user.companyId;
+
+  /* ---- appointments in scope (for counts + forecast) ---- */
   const todayApts = await db
-    .select({
-      id: appointments.id,
-      status: appointments.status,
-      total: appointments.total,
-      clientId: appointments.clientId,
-      employeeId: appointments.employeeId,
-    })
+    .select({ id: appointments.id, status: appointments.status, total: appointments.total, clientId: appointments.clientId })
     .from(appointments)
-    .where(and(eq(appointments.companyId, auth.user.companyId), eq(appointments.appointmentDate, today)));
+    .where(and(eq(appointments.companyId, companyId), eq(appointments.appointmentDate, today)));
 
   const completedToday = todayApts.filter((apt) => apt.status === "completed");
   const forecast = todayApts
     .filter((apt) => !["cancelled", "no_show", "completed"].includes(apt.status))
     .reduce((sum, apt) => sum + centsToNumber(apt.total), 0);
-  const realizedToday = completedToday.reduce((sum, apt) => sum + centsToNumber(apt.total), 0);
-  const uniqueClientsToday = new Set(completedToday.map((apt) => apt.clientId)).size;
 
   const rangeApts = await db
-    .select({ id: appointments.id, status: appointments.status, total: appointments.total, employeeId: appointments.employeeId, appointmentDate: appointments.appointmentDate })
+    .select({ id: appointments.id, status: appointments.status, appointmentDate: appointments.appointmentDate })
     .from(appointments)
-    .where(and(eq(appointments.companyId, auth.user.companyId), gte(appointments.appointmentDate, from), lte(appointments.appointmentDate, today)));
+    .where(and(eq(appointments.companyId, companyId), gte(appointments.appointmentDate, from), lte(appointments.appointmentDate, today)));
+  const completedInRange = rangeApts.filter((apt) => apt.status === "completed");
 
-  const completed = rangeApts.filter((apt) => apt.status === "completed");
+  /* ---- realized revenue: ALWAYS from the payments table, bucketed by when it was RECEIVED ---- */
+  const rawPayments = await db
+    .select({
+      method: payments.method,
+      amount: payments.amount,
+      paidAt: payments.paidAt,
+      createdAt: payments.createdAt,
+      employeeId: appointments.employeeId,
+    })
+    .from(payments)
+    .innerJoin(appointments, eq(payments.appointmentId, appointments.id))
+    .where(and(eq(payments.companyId, companyId), eq(payments.status, "paid")));
 
-  const employeeRows = await db.select({ id: employees.id, name: employees.name }).from(employees).where(eq(employees.companyId, auth.user.companyId));
+  const dateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+  const paymentRows = rawPayments.map((p) => ({
+    method: p.method,
+    amount: p.amount,
+    employeeId: p.employeeId,
+    paidDate: dateFmt.format(p.paidAt ?? p.createdAt),
+  }));
+
+  const realizedToday = paymentRows
+    .filter((p) => p.paidDate === today)
+    .reduce((sum, p) => sum + centsToNumber(p.amount), 0);
+  const realizedWeek = paymentRows
+    .filter((p) => p.paidDate >= weekStart)
+    .reduce((sum, p) => sum + centsToNumber(p.amount), 0);
+  const realizedMonth = paymentRows
+    .filter((p) => p.paidDate >= monthStart)
+    .reduce((sum, p) => sum + centsToNumber(p.amount), 0);
+
+  const uniqueClientsToday = new Set(completedToday.map((apt) => apt.clientId)).size;
+
+  /* ---- by employee (revenue from payments, commission from snapshot) ---- */
+  const employeeRows = await db.select({ id: employees.id, name: employees.name }).from(employees).where(eq(employees.companyId, companyId));
   const employeeName = new Map(employeeRows.map((row) => [row.id, row.name]));
 
   const byEmployeeMap = new Map<string, { appointments: number; revenue: number; commission: number }>();
-  for (const apt of completed) {
-    const entry = byEmployeeMap.get(apt.employeeId) ?? { appointments: 0, revenue: 0, commission: 0 };
+  for (const p of paymentRows) {
+    if (p.paidDate < from) continue;
+    const entry = byEmployeeMap.get(p.employeeId) ?? { appointments: 0, revenue: 0, commission: 0 };
     entry.appointments += 1;
-    entry.revenue += centsToNumber(apt.total);
-    byEmployeeMap.set(apt.employeeId, entry);
+    entry.revenue += centsToNumber(p.amount);
+    byEmployeeMap.set(p.employeeId, entry);
   }
 
   const commissions = await db
@@ -63,7 +91,7 @@ export async function GET(request: Request) {
     .innerJoin(appointments, eq(appointmentServices.appointmentId, appointments.id))
     .where(
       and(
-        eq(appointments.companyId, auth.user.companyId),
+        eq(appointments.companyId, companyId),
         eq(appointments.status, "completed"),
         gte(appointments.appointmentDate, from),
         lte(appointments.appointmentDate, today),
@@ -74,76 +102,46 @@ export async function GET(request: Request) {
     if (entry) entry.commission += centsToNumber(row.commissionAmount);
   }
 
-  const byEmployee = [...byEmployeeMap.entries()].map(([employeeId, value]) => ({
-    employeeId,
-    employeeName: employeeName.get(employeeId) ?? "Profissional",
-    appointments: value.appointments,
-    revenue: value.revenue,
-    commission: value.commission,
-  })).sort((a, b) => b.revenue - a.revenue);
+  const byEmployee = [...byEmployeeMap.entries()]
+    .map(([employeeId, value]) => ({
+      employeeId,
+      employeeName: employeeName.get(employeeId) ?? "Profissional",
+      appointments: value.appointments,
+      revenue: value.revenue,
+      commission: value.commission,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
 
-  const paymentsRows = await db
-    .select({ method: payments.method, amount: payments.amount })
-    .from(payments)
-    .innerJoin(appointments, eq(payments.appointmentId, appointments.id))
-    .where(
-      and(
-        eq(payments.companyId, auth.user.companyId),
-        eq(payments.status, "paid"),
-        gte(appointments.appointmentDate, from),
-        lte(appointments.appointmentDate, today),
-      ),
-    );
-
+  /* ---- by payment method ---- */
   const byMethodMap = new Map<string, number>();
-  for (const row of paymentsRows) {
-    byMethodMap.set(row.method, (byMethodMap.get(row.method) ?? 0) + centsToNumber(row.amount));
+  for (const p of paymentRows) {
+    if (p.paidDate < from) continue;
+    byMethodMap.set(p.method, (byMethodMap.get(p.method) ?? 0) + centsToNumber(p.amount));
   }
   const byMethod = [...byMethodMap.entries()].map(([method, total]) => ({ method: method as PaymentMethod, total }));
 
-  const byServiceRows = await db
-    .select({ serviceId: appointmentServices.serviceId, serviceName: services.name, count: appointmentServices.serviceId })
+  /* ---- by service (count + revenue from the price snapshot) ---- */
+  const serviceRows = await db
+    .select({ serviceId: appointmentServices.serviceId, serviceName: services.name, price: appointmentServices.price })
     .from(appointmentServices)
     .innerJoin(appointments, eq(appointmentServices.appointmentId, appointments.id))
     .innerJoin(services, eq(appointmentServices.serviceId, services.id))
     .where(
       and(
-        eq(appointments.companyId, auth.user.companyId),
+        eq(appointments.companyId, companyId),
         eq(appointments.status, "completed"),
         gte(appointments.appointmentDate, from),
         lte(appointments.appointmentDate, today),
       ),
     );
-
   const byServiceMap = new Map<string, { serviceId: string; serviceName: string; count: number; revenue: number }>();
-  for (const row of byServiceRows) {
+  for (const row of serviceRows) {
     const entry = byServiceMap.get(row.serviceId) ?? { serviceId: row.serviceId, serviceName: row.serviceName, count: 0, revenue: 0 };
     entry.count += 1;
-    entry.revenue += centsToNumber(row.count); // placeholder; real revenue below
+    entry.revenue += centsToNumber(row.price);
     byServiceMap.set(row.serviceId, entry);
   }
-
-  const serviceRevenue = await db
-    .select({ serviceId: appointmentServices.serviceId, price: appointmentServices.price })
-    .from(appointmentServices)
-    .innerJoin(appointments, eq(appointmentServices.appointmentId, appointments.id))
-    .where(
-      and(
-        eq(appointments.companyId, auth.user.companyId),
-        eq(appointments.status, "completed"),
-        gte(appointments.appointmentDate, from),
-        lte(appointments.appointmentDate, today),
-      ),
-    );
-  for (const row of serviceRevenue) {
-    const entry = byServiceMap.get(row.serviceId);
-    if (entry) entry.revenue += centsToNumber(row.price);
-  }
-
   const byService = [...byServiceMap.values()].sort((a, b) => b.count - a.count);
-
-  const monthCompleted = completed.filter((apt) => apt.appointmentDate >= monthStart);
-  const weekCompleted = completed.filter((apt) => apt.appointmentDate >= weekStart);
 
   const response: StatsResponse = {
     today: {
@@ -156,12 +154,12 @@ export async function GET(request: Request) {
       averageTicket: completedToday.length ? realizedToday / completedToday.length : 0,
     },
     week: {
-      appointments: weekCompleted.length,
-      revenue: weekCompleted.reduce((sum, apt) => sum + centsToNumber(apt.total), 0),
+      appointments: completedInRange.filter((a) => a.appointmentDate >= weekStart).length,
+      revenue: realizedWeek,
     },
     month: {
-      appointments: monthCompleted.length,
-      revenue: monthCompleted.reduce((sum, apt) => sum + centsToNumber(apt.total), 0),
+      appointments: completedInRange.filter((a) => a.appointmentDate >= monthStart).length,
+      revenue: realizedMonth,
     },
     byEmployee,
     byMethod,

@@ -1,8 +1,9 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { employeeServices, employees, services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
 import type { EmployeeDTO } from "@/shared/types";
 
@@ -58,8 +59,9 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -82,10 +84,25 @@ export async function POST(request: Request) {
     .returning();
 
   if (serviceIds && serviceIds.length > 0) {
-    await db
-      .insert(employeeServices)
-      .values(serviceIds.map((serviceId) => ({ employeeId: created.id, serviceId })));
+    const owned = await db
+      .select({ id: services.id })
+      .from(services)
+      .where(and(inArray(services.id, serviceIds), eq(services.companyId, auth.user.companyId)));
+    const ownedIds = new Set(owned.map((s) => s.id));
+    const linkIds = serviceIds.filter((sid) => ownedIds.has(sid));
+    if (linkIds.length > 0) {
+      await db.insert(employeeServices).values(linkIds.map((serviceId) => ({ employeeId: created.id, serviceId })));
+    }
   }
+
+  await recordAudit({
+    companyId: auth.user.companyId,
+    userId: auth.user.userId,
+    action: "employee.created",
+    entity: "employee",
+    entityId: created.id,
+    metadata: { name: created.name },
+  });
 
   const dto: EmployeeDTO = {
     id: created.id,

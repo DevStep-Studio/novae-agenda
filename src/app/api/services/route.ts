@@ -1,8 +1,9 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { serviceCategories, services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
 import type { ServiceDTO } from "@/shared/types";
 
@@ -54,8 +55,9 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
     const [category] = await db
       .select({ id: serviceCategories.id })
       .from(serviceCategories)
-      .where(eq(serviceCategories.id, categoryId))
+      .where(and(eq(serviceCategories.id, categoryId), eq(serviceCategories.companyId, auth.user.companyId)))
       .limit(1);
     if (category) validCategoryId = category.id;
   }
@@ -87,6 +89,15 @@ export async function POST(request: Request) {
       active: true,
     })
     .returning();
+
+  await recordAudit({
+    companyId: auth.user.companyId,
+    userId: auth.user.userId,
+    action: "service.created",
+    entity: "service",
+    entityId: created.id,
+    metadata: { name: created.name, price: centsToNumber(created.price) },
+  });
 
   const dto: ServiceDTO = {
     id: created.id,

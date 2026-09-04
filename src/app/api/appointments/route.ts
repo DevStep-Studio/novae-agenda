@@ -1,9 +1,12 @@
-import { and, asc, between, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, between, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointmentServices, appointments, clients, employeeServices, employees, services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { appointmentServices, appointments, clients, employeeServices, employees, notifications, services } from "@/db/schema";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { assertBookable } from "@/lib/availability";
+import { recordAudit } from "@/lib/audit";
 import { addMinutesToTime, centsToNumber, isUuid, isValidDateKey, isValidTime, normalizeTime, timeToMinutes } from "@/lib/domain";
+import { getCompanySettings } from "@/lib/settings";
 import type { AppointmentDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -131,8 +134,9 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -148,6 +152,11 @@ export async function POST(request: Request) {
     return Response.json({ error: "Data ou horário inválido." }, { status: 400 });
   }
 
+  // An employee may only create appointments on their own agenda.
+  if (auth.user.role === "employee" && auth.user.employeeId !== employeeId) {
+    return Response.json({ error: "Você só pode criar atendimentos na sua própria agenda." }, { status: 403 });
+  }
+
   const [client] = await db
     .select({ id: clients.id })
     .from(clients)
@@ -156,7 +165,7 @@ export async function POST(request: Request) {
   if (!client) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
   const [employee] = await db
-    .select({ id: employees.id })
+    .select({ id: employees.id, name: employees.name })
     .from(employees)
     .where(and(eq(employees.id, employeeId), eq(employees.companyId, auth.user.companyId)))
     .limit(1);
@@ -165,17 +174,17 @@ export async function POST(request: Request) {
   const serviceRows = await db
     .select({ id: services.id, price: services.price, durationMinutes: services.durationMinutes })
     .from(services)
-    .where(and(inArray(services.id, serviceIds), eq(services.companyId, auth.user.companyId)));
+    .where(and(inArray(services.id, serviceIds), eq(services.companyId, auth.user.companyId), eq(services.active, true)));
 
   if (serviceRows.length !== serviceIds.length) {
-    return Response.json({ error: "Um ou mais serviços não pertencem à sua empresa." }, { status: 400 });
+    return Response.json({ error: "Um ou mais serviços são inválidos ou estão inativos." }, { status: 400 });
   }
 
-  // Ensure the employee is linked to all requested services
+  // Ensure THIS employee is linked to every requested service.
   const links = await db
     .select({ serviceId: employeeServices.serviceId })
     .from(employeeServices)
-    .where(inArray(employeeServices.serviceId, serviceIds));
+    .where(and(eq(employeeServices.employeeId, employeeId), inArray(employeeServices.serviceId, serviceIds)));
   const linkedIds = new Set(links.map((link) => link.serviceId));
   if (serviceIds.some((id) => !linkedIds.has(id))) {
     return Response.json({ error: "Este profissional não realiza um dos serviços selecionados." }, { status: 400 });
@@ -185,28 +194,19 @@ export async function POST(request: Request) {
   const total = serviceRows.reduce((sum, service) => sum + centsToNumber(service.price), 0);
   const endTime = addMinutesToTime(startTime, durationMinutes);
 
-  const startMinutes = timeToMinutes(startTime);
-  const endMinutes = timeToMinutes(endTime);
-
-  const existing = await db
-    .select({ id: appointments.id, startTime: appointments.startTime, endTime: appointments.endTime })
-    .from(appointments)
-    .where(
-      and(
-        eq(appointments.companyId, auth.user.companyId),
-        eq(appointments.employeeId, employeeId),
-        eq(appointments.appointmentDate, date),
-        ne(appointments.status, "cancelled"),
-        ne(appointments.status, "no_show"),
-      ),
-    );
-
-  for (const apt of existing) {
-    const aptStart = timeToMinutes(normalizeTime(apt.startTime));
-    const aptEnd = timeToMinutes(normalizeTime(apt.endTime));
-    if (startMinutes < aptEnd && endMinutes > aptStart) {
-      return Response.json({ error: "Este profissional já possui um atendimento nesse horário." }, { status: 409 });
-    }
+  const { bufferMinutes } = await getCompanySettings(auth.user.companyId);
+  const check = await assertBookable({
+    companyId: auth.user.companyId,
+    employeeId,
+    date,
+    timezone: auth.companyTimezone,
+    durationMinutes,
+    bufferMinutes,
+    startMinutes: timeToMinutes(startTime),
+    endMinutes: timeToMinutes(endTime),
+  });
+  if (!check.ok) {
+    return Response.json({ error: check.error }, { status: check.status });
   }
 
   const [created] = await db
@@ -256,6 +256,24 @@ export async function POST(request: Request) {
       commissionAmount: commissionAmount.toFixed(2),
     });
   }
+
+  await recordAudit({
+    companyId: auth.user.companyId,
+    userId: auth.user.userId,
+    action: "appointment.created",
+    entity: "appointment",
+    entityId: created.id,
+    metadata: { date, startTime, endTime, employeeId, clientId, total },
+  });
+
+  await db.insert(notifications).values({
+    companyId: auth.user.companyId,
+    type: "appointment_created",
+    title: "Novo atendimento criado",
+    body: `${normalizeTime(startTime)} · ${employee.name}`,
+    entityType: "appointment",
+    entityId: created.id,
+  });
 
   return Response.json({ data: { id: created.id } }, { status: 201 });
 }

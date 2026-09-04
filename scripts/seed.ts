@@ -2,15 +2,24 @@ import "dotenv/config";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db";
 import {
+  appointmentServices,
   appointments,
   clients,
   companies,
+  employeeSchedules,
   employeeServices,
   employees,
+  payments,
   services,
   users,
 } from "../src/db/schema";
 import { hashPassword } from "../src/lib/auth";
+
+function dateKey(offsetDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+}
 
 async function seed() {
   console.log("Seeding database...");
@@ -168,6 +177,105 @@ async function seed() {
       .insert(services)
       .values({ companyId: company.id, name: "Corte + Barba", price: "75.00", durationMinutes: 60, active: true })
       .returning();
+  }
+
+  // Second client
+  let [mariana] = await db.select().from(clients).where(eq(clients.email, "mariana.souza@email.com")).limit(1);
+  if (!mariana) {
+    [mariana] = await db
+      .insert(clients)
+      .values({ companyId: company.id, name: "Mariana Souza", phone: "(11) 98888-1122", email: "mariana.souza@email.com", active: true })
+      .returning();
+  }
+
+  // Employee ↔ service links, with commissions
+  const links: Array<{ employeeId: string; serviceId: string; commissionType: string; commissionValue: string }> = [
+    { employeeId: joao.id, serviceId: corte.id, commissionType: "percentage", commissionValue: "40" },
+    { employeeId: joao.id, serviceId: barba.id, commissionType: "percentage", commissionValue: "40" },
+    { employeeId: joao.id, serviceId: corteBarba.id, commissionType: "percentage", commissionValue: "40" },
+    { employeeId: ana.id, serviceId: corte.id, commissionType: "percentage", commissionValue: "50" },
+    { employeeId: ana.id, serviceId: corteBarba.id, commissionType: "percentage", commissionValue: "50" },
+  ];
+  for (const link of links) {
+    await db
+      .insert(employeeServices)
+      .values(link)
+      .onConflictDoUpdate({
+        target: [employeeServices.employeeId, employeeServices.serviceId],
+        set: { commissionType: link.commissionType, commissionValue: link.commissionValue },
+      });
+  }
+
+  // Weekday schedules (Mon–Sat 09:00–18:00, lunch 12:00–13:00) for both professionals
+  for (const emp of [ana, joao]) {
+    await db.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, emp.id));
+    for (const dow of [1, 2, 3, 4, 5, 6]) {
+      await db.insert(employeeSchedules).values({
+        employeeId: emp.id,
+        dayOfWeek: dow,
+        startTime: "09:00:00",
+        endTime: "18:00:00",
+        breakStart: "12:00:00",
+        breakEnd: "13:00:00",
+        active: true,
+      });
+    }
+  }
+
+  // Demo appointments — only when the company has none yet, so re-seeding stays clean.
+  const [existingApt] = await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.companyId, company.id)).limit(1);
+  if (!existingApt) {
+    type Demo = {
+      client: string; employee: string; service: string; price: number; duration: number;
+      commission: number; date: string; start: string; status: string; paid: boolean; method?: string;
+    };
+    const demos: Demo[] = [
+      { client: client.id, employee: ana.id, service: corte.id, price: 50, duration: 30, commission: 25, date: dateKey(0), start: "09:00:00", status: "confirmed", paid: false },
+      { client: mariana.id, employee: joao.id, service: corteBarba.id, price: 75, duration: 60, commission: 30, date: dateKey(0), start: "10:30:00", status: "scheduled", paid: false },
+      { client: client.id, employee: joao.id, service: barba.id, price: 35, duration: 30, commission: 14, date: dateKey(0), start: "14:00:00", status: "in_progress", paid: false },
+      { client: mariana.id, employee: ana.id, service: corteBarba.id, price: 75, duration: 60, commission: 37.5, date: dateKey(-1), start: "11:00:00", status: "completed", paid: true, method: "pix" },
+      { client: client.id, employee: joao.id, service: corte.id, price: 50, duration: 30, commission: 20, date: dateKey(-2), start: "15:00:00", status: "completed", paid: true, method: "credit" },
+      { client: mariana.id, employee: joao.id, service: corteBarba.id, price: 75, duration: 60, commission: 30, date: dateKey(-4), start: "16:00:00", status: "completed", paid: true, method: "cash" },
+      { client: client.id, employee: ana.id, service: corte.id, price: 50, duration: 30, commission: 25, date: dateKey(-6), start: "10:00:00", status: "completed", paid: true, method: "debit" },
+    ];
+
+    for (const d of demos) {
+      const endMin = Number(d.start.slice(0, 2)) * 60 + Number(d.start.slice(3, 5)) + d.duration;
+      const end = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}:00`;
+      const [apt] = await db
+        .insert(appointments)
+        .values({
+          companyId: company.id,
+          clientId: d.client,
+          employeeId: d.employee,
+          appointmentDate: d.date,
+          startTime: d.start,
+          endTime: end,
+          status: d.status,
+          total: d.price.toFixed(2),
+        })
+        .returning();
+      await db.insert(appointmentServices).values({
+        appointmentId: apt.id,
+        serviceId: d.service,
+        price: d.price.toFixed(2),
+        durationMinutes: d.duration,
+        commissionType: "percentage",
+        commissionValue: "40",
+        commissionAmount: d.commission.toFixed(2),
+      });
+      if (d.paid) {
+        await db.insert(payments).values({
+          companyId: company.id,
+          appointmentId: apt.id,
+          amount: d.price.toFixed(2),
+          method: d.method ?? "pix",
+          status: "paid",
+          paidAt: new Date(`${d.date}T${d.start}`),
+        });
+      }
+    }
+    console.log(`  ${demos.length} atendimentos de demonstração criados.`);
   }
 
   console.log("Seed executado com sucesso!");

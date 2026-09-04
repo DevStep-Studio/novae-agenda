@@ -1,7 +1,7 @@
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, clients } from "@/db/schema";
+import { appointments, clients, payments } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
 import type { ClientDTO } from "@/shared/types";
@@ -20,35 +20,52 @@ export async function GET(request: Request) {
     : eq(clients.companyId, auth.user.companyId);
 
   const rows = await db.select().from(clients).where(where).orderBy(desc(clients.createdAt)).limit(200);
+  const ids = rows.map((r) => r.id);
 
-  const dto: ClientDTO[] = await Promise.all(
-    rows.map(async (client) => {
-      const [stats] = await db
+  // Visits + last visit from completed appointments; spent from received payments. Two grouped
+  // queries instead of one-per-client (avoids N+1).
+  const visitRows = ids.length
+    ? await db
         .select({
+          clientId: appointments.clientId,
           visits: sql<number>`count(*)`.as("visits"),
-          spent: sql<number>`coalesce(sum(${appointments.total}), 0)`.as("spent"),
           last: sql<string | null>`max(${appointments.appointmentDate})`.as("last"),
         })
         .from(appointments)
-        .where(and(eq(appointments.clientId, client.id), eq(appointments.status, "completed")));
+        .where(and(inArray(appointments.clientId, ids), eq(appointments.status, "completed")))
+        .groupBy(appointments.clientId)
+    : [];
 
-      return {
-        id: client.id,
-        name: client.name,
-        phone: client.phone ?? "",
-        email: client.email,
-        notes: client.notes,
-        active: client.active,
-        initials: initials(client.name),
-        color: avatarColor(client.name),
-        visits: Number(stats?.visits ?? 0),
-        spent: centsToNumber(stats?.spent),
-        lastVisit: stats?.last ?? null,
-        nextVisit: null,
-        createdAt: client.createdAt.toISOString(),
-      };
-    }),
-  );
+  const spentRows = ids.length
+    ? await db
+        .select({
+          clientId: appointments.clientId,
+          spent: sql<number>`coalesce(sum(${payments.amount}), 0)`.as("spent"),
+        })
+        .from(payments)
+        .innerJoin(appointments, eq(payments.appointmentId, appointments.id))
+        .where(and(inArray(appointments.clientId, ids), eq(payments.status, "paid")))
+        .groupBy(appointments.clientId)
+    : [];
+
+  const visitsBy = new Map(visitRows.map((r) => [r.clientId, r]));
+  const spentBy = new Map(spentRows.map((r) => [r.clientId, centsToNumber(r.spent)]));
+
+  const dto: ClientDTO[] = rows.map((client) => ({
+    id: client.id,
+    name: client.name,
+    phone: client.phone ?? "",
+    email: client.email,
+    notes: client.notes,
+    active: client.active,
+    initials: initials(client.name),
+    color: avatarColor(client.name),
+    visits: Number(visitsBy.get(client.id)?.visits ?? 0),
+    spent: spentBy.get(client.id) ?? 0,
+    lastVisit: visitsBy.get(client.id)?.last ?? null,
+    nextVisit: null,
+    createdAt: client.createdAt.toISOString(),
+  }));
 
   return Response.json({ data: dto });
 }

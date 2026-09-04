@@ -2,7 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { serviceCategories, services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import type { ServiceCategoryDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +30,9 @@ export async function GET() {
 const schema = z.object({ name: z.string().min(2, "Informe o nome da categoria.").max(80) });
 
 export async function POST(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);

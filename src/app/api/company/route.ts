@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { companies } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import type { Company } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -48,11 +49,9 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
-  if (auth.user.role === "employee") {
-    return Response.json({ error: "Você não tem permissão para alterar as configurações." }, { status: 403 });
-  }
+  const gate = await requireRole("admin");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
@@ -74,6 +73,14 @@ export async function PATCH(request: Request) {
   if (data.secondaryColor !== undefined) patch.secondaryColor = data.secondaryColor;
 
   await db.update(companies).set(patch).where(eq(companies.id, auth.user.companyId));
+  await recordAudit({
+    companyId: auth.user.companyId,
+    userId: auth.user.userId,
+    action: "company.updated",
+    entity: "company",
+    entityId: auth.user.companyId,
+    metadata: { fields: Object.keys(patch) },
+  });
 
   return Response.json({ data: { ok: true } });
 }

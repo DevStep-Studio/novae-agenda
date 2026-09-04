@@ -1,8 +1,8 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, clients, employees, services, appointmentServices } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { appointments, clients, employees, services, appointmentServices, payments } from "@/db/schema";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import type { ClientDetailDTO, HistoryItemDTO } from "@/shared/types";
 
@@ -51,8 +51,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     status: row.status as HistoryItemDTO["status"],
   }));
 
-  const completed = history.filter((item) => item.status === "completed");
+  const completedAppointmentIds = new Set(
+    historyRows.filter((row) => row.status === "completed").map((row) => row.id),
+  );
 
+  const [spentRow] = await db
+    .select({ spent: sql<number>`coalesce(sum(${payments.amount}), 0)` })
+    .from(payments)
+    .innerJoin(appointments, eq(payments.appointmentId, appointments.id))
+    .where(and(eq(appointments.clientId, id), eq(payments.status, "paid")));
+
+  const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: auth.companyTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const [next] = await db
     .select({ date: appointments.appointmentDate, startTime: appointments.startTime })
     .from(appointments)
@@ -61,11 +70,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         eq(appointments.clientId, id),
         eq(appointments.companyId, auth.user.companyId),
         isNull(appointments.cancelledAt),
-        eq(appointments.status, "confirmed"),
+        inArray(appointments.status, ["scheduled", "confirmed", "waiting"]),
+        gte(appointments.appointmentDate, todayKey),
       ),
     )
-    .orderBy(appointments.appointmentDate)
+    .orderBy(appointments.appointmentDate, appointments.startTime)
     .limit(1);
+
+  const completedRow = historyRows.find((row) => row.status === "completed");
 
   const detail: ClientDetailDTO = {
     id: client.id,
@@ -76,9 +88,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     active: client.active,
     initials: client.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
     color: "#d8e5f0",
-    visits: completed.length,
-    spent: completed.reduce((sum, item) => sum + item.total, 0),
-    lastVisit: completed[0]?.date ?? null,
+    visits: completedAppointmentIds.size,
+    spent: centsToNumber(spentRow?.spent),
+    lastVisit: completedRow?.date ?? null,
     nextVisit: next ? `${next.date} ${normalizeTime(next.startTime)}` : null,
     createdAt: client.createdAt.toISOString(),
     history,
@@ -124,8 +136,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 

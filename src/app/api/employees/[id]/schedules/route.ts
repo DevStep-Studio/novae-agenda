@@ -2,7 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { employeeSchedules, employees } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { recordAudit } from "@/lib/audit";
+import { requireRole } from "@/lib/auth";
 import { isUuid, isValidTime } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +24,9 @@ const scheduleSchema = z.object({
 });
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
 
@@ -64,6 +66,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       active: window.active,
     })),
   );
+
+  await recordAudit({
+    companyId: auth.user.companyId,
+    userId: auth.user.userId,
+    action: "employee.schedule_updated",
+    entity: "employee",
+    entityId: id,
+    metadata: { days: parsed.data.schedules.map((w) => w.dayOfWeek) },
+  });
 
   return Response.json({ data: { ok: true } });
 }

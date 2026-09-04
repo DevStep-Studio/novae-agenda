@@ -1,23 +1,28 @@
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { isUuid, isValidTime } from "@/lib/domain";
 import { z } from "zod";
 import { db } from "@/db";
-import { scheduleBlocks } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { employees, scheduleBlocks } from "@/db/schema";
+import { hasMinRole, requireRole } from "@/lib/auth";
 import type { ScheduleBlockDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const { searchParams } = new URL(request.url);
   const employeeId = searchParams.get("employeeId");
   const date = searchParams.get("date");
 
   const conditions = [eq(scheduleBlocks.companyId, auth.user.companyId)];
-  if (employeeId && isUuid(employeeId)) conditions.push(eq(scheduleBlocks.employeeId, employeeId));
+  if (auth.user.role === "employee" && auth.user.employeeId) {
+    conditions.push(eq(scheduleBlocks.employeeId, auth.user.employeeId));
+  } else if (employeeId && isUuid(employeeId)) {
+    conditions.push(eq(scheduleBlocks.employeeId, employeeId));
+  }
 
   const rows = await db.select().from(scheduleBlocks).where(and(...conditions)).orderBy(scheduleBlocks.startsAt);
 
@@ -50,8 +55,9 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const body = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
@@ -62,6 +68,19 @@ export async function POST(request: Request) {
 
   if (!isUuid(employeeId)) {
     return Response.json({ error: "Profissional inválido." }, { status: 400 });
+  }
+
+  // An employee may only block their own agenda; managers+ may block anyone in the company.
+  if (!hasMinRole(auth.user.role, "manager") && auth.user.employeeId !== employeeId) {
+    return Response.json({ error: "Você só pode bloquear a sua própria agenda." }, { status: 403 });
+  }
+  const [targetEmployee] = await db
+    .select({ id: employees.id })
+    .from(employees)
+    .where(and(eq(employees.id, employeeId), eq(employees.companyId, auth.user.companyId)))
+    .limit(1);
+  if (!targetEmployee) {
+    return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
   }
   if (allDay) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {

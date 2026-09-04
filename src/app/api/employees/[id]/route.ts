@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { employeeSchedules, employees } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import type { EmployeeDTO, EmployeeScheduleDTO } from "@/shared/types";
 
@@ -64,8 +64,9 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
 
@@ -96,8 +97,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
 

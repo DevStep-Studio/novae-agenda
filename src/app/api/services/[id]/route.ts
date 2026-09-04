@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { centsToNumber, isUuid } from "@/lib/domain";
 import type { ServiceDTO } from "@/shared/types";
 
@@ -19,8 +19,9 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Serviço não encontrado." }, { status: 404 });
 

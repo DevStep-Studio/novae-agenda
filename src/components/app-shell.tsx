@@ -809,6 +809,13 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
     if (!window.confirm("Cancelar este atendimento?")) return;
     try { await updateAppointmentStatus(appointment.id, "cancelled"); notify("Atendimento cancelado."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
   };
+  const arrived = async () => {
+    try { await updateAppointmentStatus(appointment.id, "waiting"); notify("Cliente marcado como aguardando."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
+  };
+  const noShow = async () => {
+    if (!window.confirm("Marcar como não compareceu?")) return;
+    try { await updateAppointmentStatus(appointment.id, "no_show"); notify("Registrado como não compareceu."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
+  };
 
   const [finishing, setFinishing] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("pix");
@@ -861,8 +868,10 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
         <>
           <div className="detail-actions-inline">
             {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={15} /> Confirmar</Button>}
+            {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={15} /> Cliente chegou</Button>}
             {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={15} /> Iniciar</Button>}
             <Button variant="danger" onClick={cancel}><X size={15} /> Cancelar</Button>
+            {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={15} /> Não compareceu</Button>}
             {appointment.clientPhone && <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}
           </div>
 
@@ -984,7 +993,8 @@ export function AppShell() {
   };
 
   function CalendarPage() {
-    const displayed = appointments.filter((a) => a.date === selectedDate && (employeeFilter === "all" || a.employeeId === employeeFilter));
+    const byEmployee = appointments.filter((a) => employeeFilter === "all" || a.employeeId === employeeFilter);
+    const displayed = byEmployee.filter((a) => a.date === selectedDate);
     const changeDate = (days: number) => {
       const d = new Date(`${selectedDate}T12:00:00Z`);
       d.setUTCDate(d.getUTCDate() + days);
@@ -1005,8 +1015,8 @@ export function AppShell() {
           <div className="employee-filter-label"><Users size={15} /><span>Profissional:</span><SelectField value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}><option value="all">Todos os profissionais</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</SelectField></div>
         </div>
         {calMode === "day" && <DayCalendar appointments={displayed} onAppointment={setDetailAppointment} />}
-        {calMode === "week" && <WeekCalendar appointments={appointments} onAppointment={setDetailAppointment} setDate={setSelectedDate} />}
-        {calMode === "month" && <MonthCalendar appointments={appointments} onAppointment={setDetailAppointment} setDate={setSelectedDate} />}
+        {calMode === "week" && <WeekCalendar appointments={byEmployee} anchorDate={selectedDate} onAppointment={setDetailAppointment} setDate={(d) => { setSelectedDate(d); setCalMode("day"); }} />}
+        {calMode === "month" && <MonthCalendar appointments={byEmployee} anchorDate={selectedDate} onAppointment={setDetailAppointment} setDate={(d) => { setSelectedDate(d); setCalMode("day"); }} />}
       </div>
     );
   }
@@ -1079,15 +1089,15 @@ function DayCalendar({ appointments, onAppointment }: { appointments: Appointmen
   );
 }
 
-function WeekCalendar({ appointments, onAppointment, setDate }: { appointments: AppointmentDTO[]; onAppointment: (a: AppointmentDTO) => void; setDate: (d: string) => void }) {
+function WeekCalendar({ appointments, anchorDate, onAppointment, setDate }: { appointments: AppointmentDTO[]; anchorDate: string; onAppointment: (a: AppointmentDTO) => void; setDate: (d: string) => void }) {
   const today = todayKey();
-  const start = new Date(`${today}T12:00:00Z`);
+  const start = new Date(`${anchorDate}T12:00:00Z`);
   const monday = new Date(start);
   monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setUTCDate(monday.getUTCDate() + i); return d.toISOString().slice(0, 10); });
   return (
     <section className="panel week-calendar">
-      <div className="week-head"><div className="week-time-space" />{days.map((day) => <button key={day} className={day === today ? "week-day today" : "week-day"} onClick={() => setDate(day)}><span>{["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][days.indexOf(day)]}</span><strong>{day.slice(8, 10)}</strong></button>)}</div>
+      <div className="week-head"><div className="week-time-space" />{days.map((day) => <button key={day} className={day === today ? "week-day today" : day === anchorDate ? "week-day selected" : "week-day"} onClick={() => setDate(day)}><span>{["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][days.indexOf(day)]}</span><strong>{day.slice(8, 10)}</strong></button>)}</div>
       <div className="week-grid">
         <div className="week-time-column">{["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"].map((t) => <span key={t}>{t}</span>)}</div>
         {days.map((day) => <div className="week-day-column" key={day}>{appointments.filter((a) => a.date === day).map((apt) => <button key={apt.id} className="week-appointment" onClick={() => onAppointment(apt)}><b>{normalizeTime(apt.startTime)}</b><strong>{apt.clientName}</strong><small>{apt.serviceName}</small><i>{apt.employeeName.split(" ")[0]}</i></button>)}</div>)}
@@ -1096,10 +1106,10 @@ function WeekCalendar({ appointments, onAppointment, setDate }: { appointments: 
   );
 }
 
-function MonthCalendar({ appointments, onAppointment, setDate }: { appointments: AppointmentDTO[]; onAppointment: (a: AppointmentDTO) => void; setDate: (d: string) => void }) {
+function MonthCalendar({ appointments, anchorDate, onAppointment, setDate }: { appointments: AppointmentDTO[]; anchorDate: string; onAppointment: (a: AppointmentDTO) => void; setDate: (d: string) => void }) {
   const today = todayKey();
-  const year = Number(today.slice(0, 4));
-  const month = Number(today.slice(5, 7)) - 1;
+  const year = Number(anchorDate.slice(0, 4));
+  const month = Number(anchorDate.slice(5, 7)) - 1;
   const first = new Date(Date.UTC(year, month, 1));
   const startOffset = (first.getUTCDay() + 6) % 7;
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -1111,7 +1121,7 @@ function MonthCalendar({ appointments, onAppointment, setDate }: { appointments:
       <div className="month-weekdays">{["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => <span key={d}>{d}</span>)}</div>
       <div className="month-grid">
         {cells.map((cell, i) => cell ? (
-          <button key={cell.date} className={`month-cell ${cell.date === today ? "current" : ""}`} onClick={() => setDate(cell.date)}>
+          <button key={cell.date} className={`month-cell ${cell.date === today ? "current" : ""} ${cell.date === anchorDate ? "selected" : ""}`} onClick={() => setDate(cell.date)}>
             <span className="month-number">{cell.day}</span>
             {appointments.filter((a) => a.date === cell.date).slice(0, 3).map((apt) => <span key={apt.id} className="month-event" onClick={(e) => { e.stopPropagation(); onAppointment(apt); }}><i />{normalizeTime(apt.startTime)} {apt.clientName.split(" ")[0]}</span>)}
             {appointments.filter((a) => a.date === cell.date).length > 3 && <em>+{appointments.filter((a) => a.date === cell.date).length - 3} mais</em>}
