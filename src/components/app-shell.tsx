@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, BarChart3, Bell, Building2, CalendarDays, CalendarPlus,
+  ArrowRight, Ban, BarChart3, Bell, Building2, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleHelp,
-  Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
+  Clock, Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
   Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search,
   Settings2, ShieldCheck, Sparkles, Sun, Tag, TrendingUp, UserPlus,
   UserRound, Users, WalletCards, X, XCircle, Zap,
@@ -15,7 +15,7 @@ import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import type {
-  AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod,
+  AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
 } from "@/shared/types";
 import { NovaeLogo } from "@/components/brand/novae-logo";
@@ -765,14 +765,24 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 }
 
 /* ---------- Modals ---------- */
-function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; defaultDate: string }) {
+function NewAppointmentModal({
+  onClose,
+  defaultDate,
+  defaultEmployeeId,
+  defaultStartTime,
+}: {
+  onClose: () => void;
+  defaultDate: string;
+  defaultEmployeeId?: string;
+  defaultStartTime?: string;
+}) {
   const { clients, services, employees, locations, activeLocationId, createAppointment, notify } = useStore();
   const [clientId, setClientId] = useState("");
   const [locationId, setLocationId] = useState(activeLocationId || locations[0]?.id || "");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
-  const [employeeId, setEmployeeId] = useState("");
+  const [employeeId, setEmployeeId] = useState(defaultEmployeeId || "");
   const [date, setDate] = useState(defaultDate);
-  const [startTime, setStartTime] = useState("09:00");
+  const [startTime, setStartTime] = useState(defaultStartTime || "09:00");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
@@ -1357,6 +1367,7 @@ function SuperadminModal({ onClose }: { onClose: () => void }) {
 export function AppShell() {
   const {
     session, appointments, employees, locations, activeLocationId, setActiveLocationId,
+    blocks, deleteBlock,
     notifications, unreadCount, markAllNotificationsRead, markNotificationRead, logout, toasts, dismissToast,
   } = useStore();
 
@@ -1384,6 +1395,11 @@ export function AppShell() {
 
   // Modals
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
+  const [newAppointmentPrefill, setNewAppointmentPrefill] = useState<{
+    employeeId?: string;
+    startTime?: string;
+    date?: string;
+  } | null>(null);
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newServiceOpen, setNewServiceOpen] = useState(false);
   const [newEmployeeOpen, setNewEmployeeOpen] = useState(false);
@@ -1448,28 +1464,185 @@ export function AppShell() {
   function CalendarPage() {
     const byEmployee = appointments.filter((a) => employeeFilter === "all" || a.employeeId === employeeFilter);
     const displayed = byEmployee.filter((a) => a.date === selectedDate);
-    const changeDate = (days: number) => {
+
+    const changeDate = (direction: number) => {
       const d = new Date(`${selectedDate}T12:00:00Z`);
-      d.setUTCDate(d.getUTCDate() + days);
+      if (calMode === "day") {
+        d.setUTCDate(d.getUTCDate() + direction);
+      } else if (calMode === "week") {
+        d.setUTCDate(d.getUTCDate() + direction * 7);
+      } else if (calMode === "month") {
+        d.setUTCMonth(d.getUTCMonth() + direction);
+      }
       setSelectedDate(d.toISOString().slice(0, 10));
     };
+
+    // Calculate dynamic title for the view
+    const calendarTitle = useMemo(() => {
+      if (calMode === "month") {
+        const d = new Date(`${selectedDate}T12:00:00`);
+        const formatted = monthFormatter.format(d);
+        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+      }
+      if (calMode === "week") {
+        const start = new Date(`${selectedDate}T12:00:00Z`);
+        const monday = new Date(start);
+        monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+        const sunday = new Date(monday);
+        sunday.setUTCDate(monday.getUTCDate() + 6);
+
+        const monDay = String(monday.getUTCDate()).padStart(2, "0");
+        const sunDay = String(sunday.getUTCDate()).padStart(2, "0");
+        const monMonth = monday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+        const sunMonth = sunday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+        const year = sunday.getUTCFullYear();
+
+        if (monMonth === sunMonth) {
+          return `${monDay} a ${sunDay} de ${monMonth}, ${year}`;
+        }
+        return `${monDay} de ${monMonth} a ${sunDay} de ${sunMonth}, ${year}`;
+      }
+      return dateLabel(selectedDate);
+    }, [calMode, selectedDate]);
+
+    // View-specific appointment collections
+    const weekDays = useMemo(() => {
+      const start = new Date(`${selectedDate}T12:00:00Z`);
+      const monday = new Date(start);
+      monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday);
+        d.setUTCDate(monday.getUTCDate() + i);
+        return d.toISOString().slice(0, 10);
+      });
+    }, [selectedDate]);
+
+    const weekAppointments = useMemo(() => {
+      return byEmployee.filter((a) => weekDays.includes(a.date));
+    }, [byEmployee, weekDays]);
+
+    const monthAppointments = useMemo(() => {
+      const ym = selectedDate.slice(0, 7);
+      return byEmployee.filter((a) => a.date.startsWith(ym));
+    }, [byEmployee, selectedDate]);
+
+    const currentApts = calMode === "day" ? displayed : calMode === "week" ? weekAppointments : monthAppointments;
+    const projectedRevenue = currentApts.reduce((sum, a) => sum + (a.status !== "cancelled" ? a.total : 0), 0);
+    const activeCount = currentApts.filter((a) => a.status !== "cancelled").length;
+
     return (
       <div className="page-content calendar-page">
-        <div className="page-intro compact-intro"><div><p className="eyebrow">Agenda do estabelecimento</p><h1>{calMode === "month" ? monthFormatter.format(new Date(`${selectedDate}T12:00:00`)) : dateLabel(selectedDate)}</h1><p className="intro-copy">{displayed.length} atendimentos · {formatCurrency(displayed.reduce((sum, a) => sum + a.total, 0))} previsto</p></div></div>
-        <div className="calendar-toolbar">
-          <div className="calendar-date-controls"><button className="today-button" onClick={() => setSelectedDate(todayKey())}>Hoje</button><IconButton label="Anterior" onClick={() => changeDate(-1)}><ChevronLeft size={18} /></IconButton><IconButton label="Próxima" onClick={() => changeDate(1)}><ChevronRight size={18} /></IconButton><strong>{calMode === "month" ? monthFormatter.format(new Date(`${selectedDate}T12:00:00`)) : dateLabel(selectedDate)}</strong></div>
-          <div className="toolbar-actions">
-            <div className="view-switcher">{(["day", "week", "month"] as CalendarMode[]).map((m) => <button key={m} className={calMode === m ? "active" : ""} onClick={() => setCalMode(m)}>{m === "day" ? "Dia" : m === "week" ? "Semana" : "Mês"}</button>)}</div>
-            <Button variant="secondary" onClick={() => setBlockOpen(true)}><Clock3 size={16} /> Bloquear horário</Button>
-            <Button onClick={() => setNewAppointmentOpen(true)}><Plus size={16} /> Novo agendamento</Button>
+        <div className="page-intro compact-intro">
+          <div>
+            <p className="eyebrow">Agenda do estabelecimento</p>
+            <h1>{calendarTitle}</h1>
+            <p className="intro-copy">
+              {activeCount} {activeCount === 1 ? "atendimento" : "atendimentos"} · {formatCurrency(projectedRevenue)} previsto
+            </p>
           </div>
         </div>
-        <div className="calendar-filter-row">
-          <div className="employee-filter-label"><Users size={15} /><span>Profissional:</span><SelectField value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}><option value="all">Todos os profissionais</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</SelectField></div>
+
+        <div className="calendar-toolbar">
+          <div className="calendar-date-controls">
+            <button className="today-button" onClick={() => setSelectedDate(todayKey())}>
+              Hoje
+            </button>
+            <IconButton label="Anterior" onClick={() => changeDate(-1)}>
+              <ChevronLeft size={18} />
+            </IconButton>
+            <IconButton label="Próxima" onClick={() => changeDate(1)}>
+              <ChevronRight size={18} />
+            </IconButton>
+            <strong className="calendar-title-display">{calendarTitle}</strong>
+          </div>
+          <div className="toolbar-actions">
+            <div className="view-switcher">
+              {(["day", "week", "month"] as CalendarMode[]).map((m) => (
+                <button
+                  key={m}
+                  className={calMode === m ? "active" : ""}
+                  onClick={() => setCalMode(m)}
+                >
+                  {m === "day" ? "Dia" : m === "week" ? "Semana" : "Mês"}
+                </button>
+              ))}
+            </div>
+            <Button variant="secondary" onClick={() => setBlockOpen(true)}>
+              <Clock3 size={16} /> Bloquear horário
+            </Button>
+            <Button onClick={() => { setNewAppointmentPrefill(null); setNewAppointmentOpen(true); }}>
+              <Plus size={16} /> Novo agendamento
+            </Button>
+          </div>
         </div>
-        {calMode === "day" && <DayCalendar appointments={displayed} onAppointment={setDetailAppointment} />}
-        {calMode === "week" && <WeekCalendar appointments={byEmployee} anchorDate={selectedDate} onAppointment={setDetailAppointment} setDate={(d) => { setSelectedDate(d); setCalMode("day"); }} />}
-        {calMode === "month" && <MonthCalendar appointments={byEmployee} anchorDate={selectedDate} onAppointment={setDetailAppointment} setDate={(d) => { setSelectedDate(d); setCalMode("day"); }} />}
+
+        <div className="calendar-filter-row">
+          <div className="employee-filter-label">
+            <Users size={15} />
+            <span>Profissional:</span>
+            <SelectField value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}>
+              <option value="all">Todos os profissionais ({employees.filter((e) => e.active).length})</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name} {!e.active ? "(Inativo)" : ""}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+          <div className="calendar-legend">
+            {employees.filter((e) => e.active).slice(0, 5).map((e) => (
+              <span key={e.id} className="legend-chip">
+                <i style={{ backgroundColor: e.color || "var(--primary)" }} />
+                {e.name.split(" ")[0]}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {calMode === "day" && (
+          <DayCalendar
+            appointments={displayed}
+            employees={employees}
+            employeeFilter={employeeFilter}
+            selectedDate={selectedDate}
+            blocks={blocks}
+            deleteBlock={deleteBlock}
+            onAppointment={setDetailAppointment}
+            onNewAt={(empId, time) => {
+              setNewAppointmentPrefill({ employeeId: empId, startTime: time, date: selectedDate });
+              setNewAppointmentOpen(true);
+            }}
+          />
+        )}
+        {calMode === "week" && (
+          <WeekCalendar
+            appointments={byEmployee}
+            employees={employees}
+            anchorDate={selectedDate}
+            weekDays={weekDays}
+            blocks={blocks}
+            onAppointment={setDetailAppointment}
+            setDate={(d) => {
+              setSelectedDate(d);
+              setCalMode("day");
+            }}
+            onNewAt={(date, time) => {
+              setNewAppointmentPrefill({ date, startTime: time });
+              setNewAppointmentOpen(true);
+            }}
+          />
+        )}
+        {calMode === "month" && (
+          <MonthCalendar
+            appointments={byEmployee}
+            anchorDate={selectedDate}
+            onAppointment={setDetailAppointment}
+            setDate={(d) => {
+              setSelectedDate(d);
+              setCalMode("day");
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1672,7 +1845,17 @@ export function AppShell() {
 
       <button className="floating-add" onClick={() => setNewAppointmentOpen(true)} aria-label="Novo agendamento"><Plus size={23} /></button>
 
-      {newAppointmentOpen && <NewAppointmentModal onClose={() => setNewAppointmentOpen(false)} defaultDate={selectedDate} />}
+      {newAppointmentOpen && (
+        <NewAppointmentModal
+          onClose={() => {
+            setNewAppointmentOpen(false);
+            setNewAppointmentPrefill(null);
+          }}
+          defaultDate={newAppointmentPrefill?.date || selectedDate}
+          defaultEmployeeId={newAppointmentPrefill?.employeeId}
+          defaultStartTime={newAppointmentPrefill?.startTime}
+        />
+      )}
       {newClientOpen && <NewClientModal onClose={() => setNewClientOpen(false)} />}
       {newServiceOpen && <NewServiceModal onClose={() => setNewServiceOpen(false)} />}
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} />}
@@ -1730,46 +1913,503 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
   );
 }
 
-function DayCalendar({ appointments, onAppointment }: { appointments: AppointmentDTO[]; onAppointment: (a: AppointmentDTO) => void }) {
+function computeOverlapLayout(apts: AppointmentDTO[]) {
+  const valid = apts.filter((a) => a.status !== "cancelled");
+  if (valid.length === 0) return new Map<string, { col: number; totalCols: number }>();
+
+  const sorted = [...valid].sort((a, b) => {
+    const aStart = timeToMinutes(normalizeTime(a.startTime));
+    const bStart = timeToMinutes(normalizeTime(b.startTime));
+    if (aStart !== bStart) return aStart - bStart;
+    return b.durationMinutes - a.durationMinutes;
+  });
+
+  const layoutMap = new Map<string, { col: number; totalCols: number }>();
+  const tracks: Array<{ end: number; id: string }[]> = [];
+
+  for (const apt of sorted) {
+    const start = timeToMinutes(normalizeTime(apt.startTime));
+    const end = start + apt.durationMinutes;
+
+    let placed = false;
+    for (let t = 0; t < tracks.length; t++) {
+      const track = tracks[t];
+      const lastInTrack = track[track.length - 1];
+      if (lastInTrack.end <= start) {
+        track.push({ end, id: apt.id });
+        layoutMap.set(apt.id, { col: t, totalCols: tracks.length });
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      tracks.push([{ end, id: apt.id }]);
+      layoutMap.set(apt.id, { col: tracks.length - 1, totalCols: tracks.length });
+    }
+  }
+
+  // Update totalCols for overlapping clusters
+  for (const apt of sorted) {
+    const start = timeToMinutes(normalizeTime(apt.startTime));
+    const end = start + apt.durationMinutes;
+    const overlapping = sorted.filter((other) => {
+      const oStart = timeToMinutes(normalizeTime(other.startTime));
+      const oEnd = oStart + other.durationMinutes;
+      return start < oEnd && end > oStart;
+    });
+    const maxCol = Math.max(...overlapping.map((o) => layoutMap.get(o.id)?.col ?? 0)) + 1;
+    for (const o of overlapping) {
+      const cur = layoutMap.get(o.id);
+      if (cur && cur.totalCols < maxCol) {
+        cur.totalCols = maxCol;
+      }
+    }
+  }
+
+  return layoutMap;
+}
+
+function DayCalendar({
+  appointments,
+  employees,
+  employeeFilter,
+  selectedDate,
+  blocks,
+  deleteBlock,
+  onAppointment,
+  onNewAt,
+}: {
+  appointments: AppointmentDTO[];
+  employees: EmployeeDTO[];
+  employeeFilter: string;
+  selectedDate: string;
+  blocks: ScheduleBlockDTO[];
+  deleteBlock: (id: string) => Promise<void>;
+  onAppointment: (a: AppointmentDTO) => void;
+  onNewAt: (employeeId: string, time: string) => void;
+}) {
+  const START_HOUR = 8;
+  const END_HOUR = 20;
   const hourHeight = 74;
-  const slots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+  const slots = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
+    const h = START_HOUR + i;
+    return `${String(h).padStart(2, "0")}:00`;
+  });
+
+  const visibleEmployees = useMemo(() => {
+    if (employeeFilter !== "all") {
+      const found = employees.filter((e) => e.id === employeeFilter);
+      if (found.length > 0) return found;
+    }
+    const active = employees.filter((e) => e.active);
+    return active.length > 0 ? active : employees;
+  }, [employees, employeeFilter]);
+
+  const isToday = selectedDate === todayKey();
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowTop = ((currentMinutes - START_HOUR * 60) / 60) * hourHeight;
+  const nowVisible = isToday && nowTop >= 0 && nowTop <= slots.length * hourHeight;
+
+  if (visibleEmployees.length === 0) {
+    return (
+      <section className="panel day-calendar-panel">
+        <div className="day-empty" style={{ padding: "64px 20px", textAlign: "center" }}>
+          <Users size={36} style={{ color: "var(--primary)", margin: "0 auto 14px", opacity: 0.8 }} />
+          <h3>Nenhum profissional disponível</h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "6px" }}>
+            Cadastre membros da equipe para visualizar e gerenciar a grade de horários.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  const columnWidthStyle = {
+    gridTemplateColumns: `repeat(${visibleEmployees.length}, minmax(200px, 1fr))`,
+  };
+
   return (
     <section className="panel day-calendar-panel">
-      <div className="day-calendar-body">
-        <div className="time-column">{slots.map((time) => <span key={time} style={{ height: `${hourHeight}px` }}>{time}</span>)}</div>
-        <div className="timeline-canvas" style={{ height: `${slots.length * hourHeight}px` }}>
-          <div className="hour-lines">{slots.map((time) => <span key={time} style={{ height: `${hourHeight}px` }} />)}</div>
-          {appointments.map((apt) => {
-            const top = ((timeToMinutes(normalizeTime(apt.startTime)) - 480) / 60) * hourHeight;
-            const height = Math.max((apt.durationMinutes / 60) * hourHeight - 6, 40);
-            const accentColor = apt.serviceColor && apt.serviceColor !== "#1f6f66" ? apt.serviceColor : "var(--primary)";
-            return <button key={apt.id} className="timeline-appointment" style={{ top, height, "--appointment-color": accentColor } as React.CSSProperties} onClick={() => onAppointment(apt)}><span className="timeline-time">{normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}</span><strong>{apt.clientName}</strong><small>{apt.serviceName}</small><em>{apt.employeeName}</em></button>;
+      {/* Calendar Header with Employee Columns */}
+      <div className="day-calendar-head">
+        <div className="time-head">
+          <Clock size={13} />
+          <span>Horário</span>
+        </div>
+        <div className="employee-head-track" style={columnWidthStyle}>
+          {visibleEmployees.map((emp) => {
+            const empApts = appointments.filter((a) => a.employeeId === emp.id && a.status !== "cancelled");
+            const empAllDayBlock = blocks.find(
+              (b) => b.date === selectedDate && b.allDay && (!b.employeeId || b.employeeId === emp.id)
+            );
+            return (
+              <div key={emp.id} className="employee-column-header">
+                <div
+                  className="employee-column-avatar"
+                  style={{ backgroundColor: emp.color || "var(--primary)" }}
+                >
+                  {emp.photoUrl ? (
+                    <img src={emp.photoUrl} alt={emp.name} className="employee-column-img" />
+                  ) : (
+                    <span>{emp.initials || emp.name.slice(0, 2).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="employee-column-info">
+                  <strong className="employee-column-name" title={emp.name}>
+                    {emp.name}
+                  </strong>
+                  <span className="employee-column-sub">
+                    {empAllDayBlock ? (
+                      <em className="emp-blocked-tag">Indisponível</em>
+                    ) : (
+                      `${empApts.length} ${empApts.length === 1 ? "atendimento" : "atendimentos"}`
+                    )}
+                  </span>
+                </div>
+              </div>
+            );
           })}
         </div>
       </div>
-      {appointments.length === 0 && <div className="day-empty"><CalendarDays size={18} /> Nenhum atendimento nesta data.</div>}
+
+      {/* Calendar Body: Times + Columns */}
+      <div className="day-calendar-body">
+        <div className="time-column">
+          {slots.map((time) => (
+            <div key={time} className="time-slot-label" style={{ height: `${hourHeight}px` }}>
+              <span>{time}</span>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="day-columns-track"
+          style={{
+            ...columnWidthStyle,
+            height: `${slots.length * hourHeight}px`,
+          }}
+        >
+          {visibleEmployees.map((emp) => {
+            const empApts = appointments.filter((a) => a.employeeId === emp.id);
+            const empBlocks = blocks.filter(
+              (b) => b.date === selectedDate && (!b.employeeId || b.employeeId === emp.id)
+            );
+            const overlapMap = computeOverlapLayout(empApts);
+
+            return (
+              <div key={emp.id} className="timeline-employee-column">
+                {/* Background hour cells */}
+                <div className="column-grid-lines">
+                  {slots.map((time) => (
+                    <div
+                      key={time}
+                      className="column-hour-cell"
+                      style={{ height: `${hourHeight}px` }}
+                      onClick={() => onNewAt(emp.id, time)}
+                      title={`Clique para agendar com ${emp.name} às ${time}`}
+                    >
+                      <div className="column-half-hour-line" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Scheduled Blocks */}
+                {empBlocks.map((b) => {
+                  if (b.allDay) {
+                    return (
+                      <div
+                        key={b.id}
+                        className="timeline-block all-day-block"
+                        style={{
+                          top: 0,
+                          height: `${slots.length * hourHeight}px`,
+                          left: "4px",
+                          right: "4px",
+                        }}
+                        title={`Dia todo bloqueado: ${b.reason}. Clique para remover.`}
+                        onClick={() => {
+                          if (window.confirm(`Deseja remover o bloqueio "${b.reason || "Dia bloqueado"}"?`)) {
+                            deleteBlock(b.id);
+                          }
+                        }}
+                      >
+                        <div className="timeline-block-inner">
+                          <Ban size={14} />
+                          <strong>Dia Bloqueado</strong>
+                          <span>{b.reason}</span>
+                          <small>Clique para remover</small>
+                        </div>
+                      </div>
+                    );
+                  }
+                  const bStart = timeToMinutes(normalizeTime(b.startsAt));
+                  const bEnd = timeToMinutes(normalizeTime(b.endsAt));
+                  const bTop = ((bStart - START_HOUR * 60) / 60) * hourHeight;
+                  const bHeight = Math.max(((bEnd - bStart) / 60) * hourHeight, 28);
+                  return (
+                    <div
+                      key={b.id}
+                      className="timeline-block"
+                      style={{
+                        top: `${bTop}px`,
+                        height: `${bHeight}px`,
+                        left: "4px",
+                        right: "4px",
+                      }}
+                      title={`Bloqueio: ${b.reason} (${normalizeTime(b.startsAt)} – ${normalizeTime(b.endsAt)}). Clique para remover.`}
+                      onClick={() => {
+                        if (window.confirm(`Deseja remover o bloqueio "${b.reason || "Horário bloqueado"}"?`)) {
+                          deleteBlock(b.id);
+                        }
+                      }}
+                    >
+                      <div className="timeline-block-inner">
+                        <Clock size={12} />
+                        <strong>{b.reason || "Bloqueado"}</strong>
+                        <small>{normalizeTime(b.startsAt)} – {normalizeTime(b.endsAt)}</small>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Appointments */}
+                {empApts.map((apt) => {
+                  const startMins = timeToMinutes(normalizeTime(apt.startTime));
+                  const top = ((startMins - START_HOUR * 60) / 60) * hourHeight;
+                  const height = Math.max((apt.durationMinutes / 60) * hourHeight - 6, 36);
+                  const isCancelled = apt.status === "cancelled";
+                  const accentColor =
+                    apt.serviceColor && apt.serviceColor !== "#1f6f66"
+                      ? apt.serviceColor
+                      : emp.color || "var(--primary)";
+
+                  const overlap = overlapMap.get(apt.id) || { col: 0, totalCols: 1 };
+                  const widthPct = 100 / overlap.totalCols;
+                  const leftPct = overlap.col * widthPct;
+                  const isCompact = height < 50;
+
+                  return (
+                    <button
+                      key={apt.id}
+                      className={`timeline-appointment ${isCancelled ? "cancelled" : ""} ${isCompact ? "compact" : ""}`}
+                      style={
+                        {
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          left: `calc(${leftPct}% + 4px)`,
+                          width: `calc(${widthPct}% - 8px)`,
+                          "--appointment-color": accentColor,
+                        } as React.CSSProperties
+                      }
+                      onClick={() => onAppointment(apt)}
+                      title={`${apt.clientName} · ${apt.serviceName} (${normalizeTime(apt.startTime)} – ${normalizeTime(apt.endTime)})`}
+                    >
+                      <div className="timeline-apt-header">
+                        <span className="timeline-time">
+                          <Clock size={10} />
+                          {normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}
+                        </span>
+                        <span
+                          className={`timeline-status-dot status-${apt.status}`}
+                          title={STATUS_LABELS[apt.status]}
+                        />
+                      </div>
+
+                      <strong className="timeline-client">{apt.clientName}</strong>
+
+                      {!isCompact && (
+                        <>
+                          <span className="timeline-service">{apt.serviceName}</span>
+                          {height >= 68 && (
+                            <div className="timeline-apt-footer">
+                              <span className="timeline-price">{formatCurrency(apt.total)}</span>
+                              {apt.durationMinutes && (
+                                <span className="timeline-duration">{apt.durationMinutes} min</span>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          {/* Current time indicator line across all columns */}
+          {nowVisible && (
+            <div className="timeline-now-line" style={{ top: `${nowTop}px` }}>
+              <div className="timeline-now-badge">
+                <span className="timeline-now-dot" />
+                <span>
+                  {String(now.getHours()).padStart(2, "0")}:{String(now.getMinutes()).padStart(2, "0")}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {appointments.length === 0 && (
+        <div className="day-empty-banner">
+          <CalendarDays size={16} />
+          <span>Nenhum atendimento agendado para este dia. Clique em qualquer horário para criar.</span>
+        </div>
+      )}
     </section>
   );
 }
 
-function WeekCalendar({ appointments, anchorDate, onAppointment, setDate }: { appointments: AppointmentDTO[]; anchorDate: string; onAppointment: (a: AppointmentDTO) => void; setDate: (d: string) => void }) {
+function WeekCalendar({
+  appointments,
+  employees,
+  anchorDate,
+  weekDays,
+  blocks,
+  onAppointment,
+  setDate,
+  onNewAt,
+}: {
+  appointments: AppointmentDTO[];
+  employees: EmployeeDTO[];
+  anchorDate: string;
+  weekDays: string[];
+  blocks: ScheduleBlockDTO[];
+  onAppointment: (a: AppointmentDTO) => void;
+  setDate: (d: string) => void;
+  onNewAt: (date: string, time: string) => void;
+}) {
   const today = todayKey();
-  const start = new Date(`${anchorDate}T12:00:00Z`);
-  const monday = new Date(start);
-  monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
-  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setUTCDate(monday.getUTCDate() + i); return d.toISOString().slice(0, 10); });
+  const START_HOUR = 8;
+  const END_HOUR = 20;
+  const hourHeight = 64;
+  const slots = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
+    const h = START_HOUR + i;
+    return `${String(h).padStart(2, "0")}:00`;
+  });
+
+  const dayLabels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
   return (
-    <section className="panel week-calendar">
-      <div className="week-head"><div className="week-time-space" />{days.map((day) => <button key={day} className={day === today ? "week-day today" : day === anchorDate ? "week-day selected" : "week-day"} onClick={() => setDate(day)}><span>{["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][days.indexOf(day)]}</span><strong>{day.slice(8, 10)}</strong></button>)}</div>
-      <div className="week-grid">
-        <div className="week-time-column">{["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"].map((t) => <span key={t}>{t}</span>)}</div>
-        {days.map((day) => <div className="week-day-column" key={day}>{appointments.filter((a) => a.date === day).map((apt) => <button key={apt.id} className="week-appointment" onClick={() => onAppointment(apt)}><b>{normalizeTime(apt.startTime)}</b><strong>{apt.clientName}</strong><small>{apt.serviceName}</small><i>{apt.employeeName.split(" ")[0]}</i></button>)}</div>)}
+    <section className="panel week-calendar-panel">
+      {/* Week Header */}
+      <div className="week-calendar-head">
+        <div className="week-time-head">
+          <Clock size={13} />
+        </div>
+        <div className="week-days-track">
+          {weekDays.map((day, idx) => {
+            const isToday = day === today;
+            const isSelected = day === anchorDate;
+            const dayApts = appointments.filter((a) => a.date === day && a.status !== "cancelled");
+            return (
+              <button
+                key={day}
+                className={`week-day-header-btn ${isToday ? "today" : ""} ${isSelected ? "selected" : ""}`}
+                onClick={() => setDate(day)}
+                title={`Ver detalhes de ${day}`}
+              >
+                <span className="week-day-name">{dayLabels[idx]}</span>
+                <strong className="week-day-num">{day.slice(8, 10)}</strong>
+                <span className="week-day-count">{dayApts.length} atend.</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Week Body */}
+      <div className="week-calendar-body">
+        <div className="week-time-column">
+          {slots.map((time) => (
+            <div key={time} className="week-time-slot-label" style={{ height: `${hourHeight}px` }}>
+              <span>{time}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="week-days-columns-track" style={{ height: `${slots.length * hourHeight}px` }}>
+          {weekDays.map((day) => {
+            const dayApts = appointments.filter((a) => a.date === day);
+            const overlapMap = computeOverlapLayout(dayApts);
+
+            return (
+              <div key={day} className="week-day-col">
+                {/* Background hours */}
+                <div className="column-grid-lines">
+                  {slots.map((time) => (
+                    <div
+                      key={time}
+                      className="column-hour-cell week-hour-cell"
+                      style={{ height: `${hourHeight}px` }}
+                      onClick={() => onNewAt(day, time)}
+                      title={`Agendar em ${day} às ${time}`}
+                    >
+                      <div className="column-half-hour-line" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Day Appointments */}
+                {dayApts.map((apt) => {
+                  const startMins = timeToMinutes(normalizeTime(apt.startTime));
+                  const top = ((startMins - START_HOUR * 60) / 60) * hourHeight;
+                  const height = Math.max((apt.durationMinutes / 60) * hourHeight - 4, 30);
+                  const isCancelled = apt.status === "cancelled";
+                  const emp = employees.find((e) => e.id === apt.employeeId);
+                  const accentColor =
+                    apt.serviceColor && apt.serviceColor !== "#1f6f66"
+                      ? apt.serviceColor
+                      : emp?.color || "var(--primary)";
+
+                  const overlap = overlapMap.get(apt.id) || { col: 0, totalCols: 1 };
+                  const widthPct = 100 / overlap.totalCols;
+                  const leftPct = overlap.col * widthPct;
+
+                  return (
+                    <button
+                      key={apt.id}
+                      className={`week-appointment ${isCancelled ? "cancelled" : ""}`}
+                      style={
+                        {
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          left: `calc(${leftPct}% + 2px)`,
+                          width: `calc(${widthPct}% - 4px)`,
+                          "--appointment-color": accentColor,
+                        } as React.CSSProperties
+                      }
+                      onClick={() => onAppointment(apt)}
+                      title={`${normalizeTime(apt.startTime)}: ${apt.clientName} (${apt.serviceName})`}
+                    >
+                      <span className="week-apt-time">{normalizeTime(apt.startTime)}</span>
+                      <strong className="week-apt-client">{apt.clientName}</strong>
+                      {height >= 48 && <span className="week-apt-service">{apt.serviceName}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-function MonthCalendar({ appointments, anchorDate, onAppointment, setDate }: { appointments: AppointmentDTO[]; anchorDate: string; onAppointment: (a: AppointmentDTO) => void; setDate: (d: string) => void }) {
+function MonthCalendar({
+  appointments,
+  anchorDate,
+  onAppointment,
+  setDate,
+}: {
+  appointments: AppointmentDTO[];
+  anchorDate: string;
+  onAppointment: (a: AppointmentDTO) => void;
+  setDate: (d: string) => void;
+}) {
   const today = todayKey();
   const year = Number(anchorDate.slice(0, 4));
   const month = Number(anchorDate.slice(5, 7)) - 1;
@@ -1778,18 +2418,62 @@ function MonthCalendar({ appointments, anchorDate, onAppointment, setDate }: { a
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const cells: Array<{ day: number; date: string } | null> = [];
   for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}` });
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({
+      day: d,
+      date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+    });
+  }
+
   return (
-    <section className="panel month-calendar">
-      <div className="month-weekdays">{["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => <span key={d}>{d}</span>)}</div>
+    <section className="panel month-calendar-panel">
+      <div className="month-weekdays">
+        {["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"].map((d) => (
+          <span key={d}>{d}</span>
+        ))}
+      </div>
       <div className="month-grid">
-        {cells.map((cell, i) => cell ? (
-          <button key={cell.date} className={`month-cell ${cell.date === today ? "current" : ""} ${cell.date === anchorDate ? "selected" : ""}`} onClick={() => setDate(cell.date)}>
-            <span className="month-number">{cell.day}</span>
-            {appointments.filter((a) => a.date === cell.date).slice(0, 3).map((apt) => <span key={apt.id} className="month-event" onClick={(e) => { e.stopPropagation(); onAppointment(apt); }}><i />{normalizeTime(apt.startTime)} {apt.clientName.split(" ")[0]}</span>)}
-            {appointments.filter((a) => a.date === cell.date).length > 3 && <em>+{appointments.filter((a) => a.date === cell.date).length - 3} mais</em>}
-          </button>
-        ) : <div key={`empty-${i}`} className="month-cell muted" />)}
+        {cells.map((cell, i) =>
+          cell ? (
+            <button
+              key={cell.date}
+              className={`month-cell ${cell.date === today ? "current" : ""} ${cell.date === anchorDate ? "selected" : ""}`}
+              onClick={() => setDate(cell.date)}
+            >
+              <div className="month-cell-header">
+                <span className="month-number">{cell.day}</span>
+                {cell.date === today && <span className="month-today-pill">Hoje</span>}
+              </div>
+              <div className="month-events-list">
+                {appointments
+                  .filter((a) => a.date === cell.date && a.status !== "cancelled")
+                  .slice(0, 3)
+                  .map((apt) => (
+                    <span
+                      key={apt.id}
+                      className="month-event-chip"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAppointment(apt);
+                      }}
+                      title={`${normalizeTime(apt.startTime)}: ${apt.clientName}`}
+                    >
+                      <i style={{ backgroundColor: apt.serviceColor || "var(--primary)" }} />
+                      <b>{normalizeTime(apt.startTime)}</b>
+                      <span>{apt.clientName.split(" ")[0]}</span>
+                    </span>
+                  ))}
+                {appointments.filter((a) => a.date === cell.date && a.status !== "cancelled").length > 3 && (
+                  <em className="month-more-chip">
+                    +{appointments.filter((a) => a.date === cell.date && a.status !== "cancelled").length - 3} mais
+                  </em>
+                )}
+              </div>
+            </button>
+          ) : (
+            <div key={`empty-${i}`} className="month-cell muted" />
+          )
+        )}
       </div>
     </section>
   );
