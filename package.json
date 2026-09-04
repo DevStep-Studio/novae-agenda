@@ -6,7 +6,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "commit": "node scripts/auto-commit.mjs",
+    "commit:watch": "node scripts/auto-commit.mjs --watch"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
