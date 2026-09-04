@@ -146,11 +146,31 @@ function SelectField(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 function SectionHeading({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return <div className="section-heading"><div><h2>{title}</h2>{description && <p>{description}</p>}</div>{action}</div>;
 }
-function Modal({ title, eyebrow, onClose, children, wide = false }: { title: string; eyebrow?: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
+function Modal({
+  title,
+  eyebrow,
+  onClose,
+  children,
+  wide = false,
+  headerVariant = "default",
+}: {
+  title: string;
+  eyebrow?: string;
+  onClose: () => void;
+  children: ReactNode;
+  wide?: boolean;
+  headerVariant?: "default" | "primary";
+}) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className={`modal ${wide ? "modal-wide" : ""}`} role="dialog" aria-modal="true">
-        <div className="modal-header"><div>{eyebrow && <p className="modal-eyebrow">{eyebrow}</p>}<h2>{title}</h2></div><IconButton label="Fechar" onClick={onClose}><X size={19} /></IconButton></div>
+      <section className={`modal ${wide ? "modal-wide" : ""} ${headerVariant === "primary" ? "modal-has-primary-header" : ""}`} role="dialog" aria-modal="true">
+        <div className={`modal-header ${headerVariant === "primary" ? "modal-header-primary" : ""}`}>
+          <div>
+            {eyebrow && <p className="modal-eyebrow">{eyebrow}</p>}
+            <h2>{title}</h2>
+          </div>
+          <IconButton label="Fechar" onClick={onClose}><X size={19} /></IconButton>
+        </div>
         {children}
       </section>
     </div>
@@ -827,7 +847,7 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
   };
 
   return (
-    <Modal title="Novo agendamento" eyebrow="Motor em tempo real" onClose={onClose} wide>
+    <Modal title="Novo agendamento" eyebrow="Motor em tempo real" onClose={onClose} wide headerVariant="primary">
       <form onSubmit={submit}>
         <div className="modal-form-grid">
           <Field label="Cliente"><SelectField value={clientId} onChange={(e) => setClientId(e.target.value)} required><option value="">Selecione...</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</SelectField></Field>
@@ -839,7 +859,7 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
           <Field label="Profissional"><SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required><option value="">Selecione...</option>{eligibleEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
           <Field label="Data"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
 
-          <Field label="Serviços" hint={`${duration} min · ${formatCurrency(total)}`}>
+          <Field label="Serviços">
             <div className="service-multi-select">
               {services.filter((s) => s.active).map((service) => (
                 <button type="button" key={service.id} className={serviceIds.includes(service.id) ? "service-option active" : "service-option"} onClick={() => toggleService(service.id)}>
@@ -848,6 +868,13 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
               ))}
               {services.filter((s) => s.active).length === 0 && <span className="field-hint">Cadastre serviços primeiro.</span>}
             </div>
+            {selectedServices.length > 0 && (
+              <div className="selected-services-summary">
+                <span className="summary-pill">{selectedServices.length} {selectedServices.length === 1 ? "serviço" : "serviços"}</span>
+                <span className="summary-pill highlight"><Clock3 size={12} /> {duration} min</span>
+                <span className="summary-pill highlight-price">{formatCurrency(total)}</span>
+              </div>
+            )}
           </Field>
 
           <Field label="Horário">
