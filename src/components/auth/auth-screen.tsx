@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useStore } from "@/store/store";
+import { NovaeLogo } from "@/components/brand/novae-logo";
 
 type Mode = "login" | "register" | "forgot-password";
 type Role = "user" | "admin";
@@ -174,12 +175,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        <div className="auth-brand-mark">
-          <Sparkles size={18} strokeWidth={2.4} />
-        </div>
-        <span className="auth-brand-name">
-          agenda<span>.</span>
-        </span>
+        <NovaeLogo size={40} />
       </div>
 
       {/* Role selector */}
@@ -506,7 +502,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
           </div>
         )}
       </div>
-      <p className="auth-footer">Agenda · gestão simples para o seu negócio</p>
+      <p className="auth-footer">novae · gestão e agendamento comercial</p>
     </div>
   );
 }

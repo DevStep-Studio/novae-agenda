@@ -18,6 +18,7 @@ import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
 } from "@/shared/types";
+import { NovaeLogo } from "@/components/brand/novae-logo";
 
 type ViewKey = "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "configuracoes";
 type CalendarMode = "day" | "week" | "month";
@@ -82,7 +83,15 @@ function Avatar({ name, color, size = "md" }: { name: string; color: string; siz
   return <span className={`avatar avatar-${size}`} style={{ backgroundColor: color }}>{initials(name)}</span>;
 }
 function Logo({ collapsed = false }: { collapsed?: boolean }) {
-  return <div className="brand-lockup"><span className="brand-mark"><Sparkles size={17} strokeWidth={2.4} /></span>{!collapsed && <span className="brand-name">agenda<span>.</span></span>}</div>;
+  return (
+    <div className={`brand-lockup ${collapsed ? "brand-lockup--collapsed" : ""}`}>
+      {collapsed ? (
+        <NovaeLogo variant="symbol" size={28} />
+      ) : (
+        <NovaeLogo variant="full" size={28} />
+      )}
+    </div>
+  );
 }
 function Button({ variant = "primary", className = "", children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) {
   return <button className={`button button-${variant} ${className}`} {...props}>{children}</button>;

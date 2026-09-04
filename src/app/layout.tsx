@@ -3,8 +3,13 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Agenda | Gestão simples para o seu negócio",
-  description: "Agenda, clientes e financeiro em um só lugar.",
+  title: "Novae | Gestão e Agendamento Comercial",
+  description: "Sistema comercial completo de agenda, multiunidade, financeiro e clientes.",
+  icons: {
+    icon: "/brand/favicon-32.png",
+    shortcut: "/brand/favicon-64.png",
+    apple: "/brand/favicon-64.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
