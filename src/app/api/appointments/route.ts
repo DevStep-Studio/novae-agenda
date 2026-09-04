@@ -47,6 +47,7 @@ export async function GET(request: Request) {
       clientId: appointments.clientId,
       clientName: clients.name,
       clientPhone: clients.phone,
+      clientPhotoUrl: clients.photoUrl,
       employeeId: appointments.employeeId,
       employeeName: employees.name,
       total: appointments.total,
@@ -83,41 +84,44 @@ export async function GET(request: Request) {
   }
   for (const row of serviceRows) {
     const meta = serviceMeta.get(row.serviceId);
-    const current = serviceByAppointment.get(row.appointmentId);
-    const accumulated = current?.durationMinutes ?? 0;
-    const name = current ? `${current.serviceName} + ${meta?.name ?? "Serviço"}` : meta?.name ?? "Serviço";
-    serviceByAppointment.set(row.appointmentId, {
-      serviceId: row.serviceId,
-      serviceName: name,
-      serviceColor: meta?.color ?? null,
-      durationMinutes: accumulated + row.durationMinutes,
-    });
+    if (!meta) continue;
+    const existing = serviceByAppointment.get(row.appointmentId);
+    if (existing) {
+      existing.serviceName = `${existing.serviceName} + ${meta.name}`;
+      existing.durationMinutes += row.durationMinutes;
+    } else {
+      serviceByAppointment.set(row.appointmentId, {
+        serviceId: row.serviceId,
+        serviceName: meta.name,
+        serviceColor: meta.color,
+        durationMinutes: row.durationMinutes,
+      });
+    }
   }
 
   const paymentRows = appointmentIds.length
     ? await db
-        .select({ appointmentId: payments.appointmentId, method: payments.method })
+        .select({ appointmentId: payments.appointmentId, method: payments.method, status: payments.status })
         .from(payments)
-        .where(inArray(payments.appointmentId, appointmentIds))
+        .where(and(inArray(payments.appointmentId, appointmentIds), eq(payments.status, "paid")))
     : [];
-  const paymentByApt = new Map(paymentRows.map((p) => [p.appointmentId, p.method]));
+  const paymentByApt = new Map<string, string>();
+  for (const p of paymentRows) paymentByApt.set(p.appointmentId, p.method);
 
   const dto: AppointmentDTO[] = rows.map((row) => {
     const svc = serviceByAppointment.get(row.id);
-    const start = normalizeTime(row.startTime);
-    const end = normalizeTime(row.endTime);
-    const duration = svc?.durationMinutes ?? Math.max(timeToMinutes(end) - timeToMinutes(start), 0);
     return {
       id: row.id,
       locationId: row.locationId,
       locationName: row.locationName,
       date: row.appointmentDate,
-      startTime: start,
-      endTime: end,
-      durationMinutes: duration,
+      startTime: normalizeTime(row.startTime),
+      endTime: normalizeTime(row.endTime),
+      durationMinutes: svc?.durationMinutes ?? 30,
       clientId: row.clientId,
       clientName: row.clientName,
       clientPhone: row.clientPhone ?? "",
+      clientPhotoUrl: row.clientPhotoUrl ?? null,
       clientInitials: initials(row.clientName),
       clientColor: "#d8e5f0",
       employeeId: row.employeeId,

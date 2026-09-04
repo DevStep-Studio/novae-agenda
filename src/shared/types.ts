@@ -58,6 +58,7 @@ export type EmployeeDTO = {
   name: string;
   jobTitle: string | null;
   phone: string | null;
+  photoUrl?: string | null;
   active: boolean;
   color: string;
   initials: string;
@@ -91,6 +92,7 @@ export type ClientDTO = {
   name: string;
   phone: string;
   email: string | null;
+  photoUrl?: string | null;
   notes: string | null;
   active: boolean;
   initials: string;
@@ -154,6 +156,7 @@ export type AppointmentDTO = {
   clientId: string;
   clientName: string;
   clientPhone: string;
+  clientPhotoUrl?: string | null;
   clientInitials: string;
   clientColor: string;
   employeeId: string;

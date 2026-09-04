@@ -56,6 +56,7 @@ export async function GET(request: Request) {
     name: client.name,
     phone: client.phone ?? "",
     email: client.email,
+    photoUrl: client.photoUrl ?? null,
     notes: client.notes,
     active: client.active,
     initials: initials(client.name),

@@ -149,6 +149,7 @@ async function seed() {
         name: "Carlos Silva",
         phone: "(11) 99999-9999",
         email: "carlos.silva@email.com",
+        photoUrl: "/avatars/carlos.jpg",
         active: true,
       })
       .returning();
@@ -184,7 +185,14 @@ async function seed() {
   if (!mariana) {
     [mariana] = await db
       .insert(clients)
-      .values({ companyId: company.id, name: "Mariana Souza", phone: "(11) 98888-1122", email: "mariana.souza@email.com", active: true })
+      .values({
+        companyId: company.id,
+        name: "Mariana Souza",
+        phone: "(11) 98888-1122",
+        email: "mariana.souza@email.com",
+        photoUrl: "/avatars/mariana.jpg",
+        active: true,
+      })
       .returning();
   }
 

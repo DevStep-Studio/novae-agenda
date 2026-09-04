@@ -79,8 +79,43 @@ function shortDate(date: string): string {
 }
 
 /* ---------- Small UI primitives ---------- */
-function Avatar({ name, color, size = "md" }: { name: string; color: string; size?: "sm" | "md" | "lg" }) {
-  return <span className={`avatar avatar-${size}`} style={{ backgroundColor: color }}>{initials(name)}</span>;
+function Avatar({
+  name,
+  photoUrl,
+  color,
+  size = "md",
+  className = "",
+}: {
+  name: string;
+  photoUrl?: string | null;
+  color?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  className?: string;
+}) {
+  const [error, setError] = useState(false);
+  const bg = color || avatarColor(name);
+  const hasPhoto = Boolean(photoUrl) && !error;
+
+  return (
+    <span
+      key={photoUrl ?? name}
+      className={`avatar avatar-${size} ${hasPhoto ? "avatar--photo" : ""} ${className}`}
+      style={{ backgroundColor: hasPhoto ? "transparent" : bg }}
+      title={name}
+    >
+      {hasPhoto ? (
+        <img
+          src={photoUrl!}
+          alt={name}
+          onError={() => setError(true)}
+          className="avatar-img"
+          loading="lazy"
+        />
+      ) : (
+        <span className="avatar-initials">{initials(name)}</span>
+      )}
+    </span>
+  );
 }
 function Logo({ collapsed = false }: { collapsed?: boolean }) {
   return (
@@ -130,7 +165,7 @@ function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string
 
 /* ---------- Pages ---------- */
 function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => void; onAppointment: (apt: AppointmentDTO) => void; onGoToAgenda: () => void }) {
-  const { stats, appointments, services } = useStore();
+  const { stats, appointments, services, clients } = useStore();
   const today = todayKey();
   const todayApts = appointments.filter((apt) => apt.date === today).filter((apt) => !["cancelled", "no_show"].includes(apt.status));
   const pending = todayApts.filter((apt) => apt.status !== "completed");
@@ -153,10 +188,36 @@ function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => vo
         <section className="panel next-panel">
           <SectionHeading title="Próximo atendimento" action={next ? <button className="link-button" onClick={() => onAppointment(next)}>Ver detalhes <ArrowRight size={14} /></button> : undefined} />
           {next ? (
-            <div className="next-appointment">
-              <div className="next-time"><span>Próximo</span><strong>{normalizeTime(next.startTime)}</strong><small>{next.clientName.split(" ")[0]}</small></div>
-              <div className="next-person"><Avatar name={next.clientName} color={avatarColor(next.clientName)} size="lg" /><div><h3>{next.clientName}</h3><p>{next.serviceName}</p><span><UserRound size={13} /> com {next.employeeName}</span></div></div>
-              <div className="next-price"><span>Valor</span><strong>{formatCurrency(next.total)}</strong><StatusBadge status={next.status} /></div>
+            <div className="next-appointment" onClick={() => onAppointment(next)}>
+              <div className="next-time">
+                <span className="next-time-badge">Próximo</span>
+                <strong>{normalizeTime(next.startTime)}</strong>
+                <small>{timeToMinutes(next.endTime) - timeToMinutes(next.startTime)} min</small>
+              </div>
+              <div className="next-person">
+                <div className="next-avatar-wrap">
+                  <Avatar
+                    name={next.clientName}
+                    photoUrl={next.clientPhotoUrl || clients.find((c) => c.id === next.clientId)?.photoUrl}
+                    color={avatarColor(next.clientName)}
+                    size="lg"
+                    className="next-client-avatar"
+                  />
+                  <span className="next-avatar-status" title={STATUS_LABELS[next.status]} />
+                </div>
+                <div className="next-person-details">
+                  <h3 className="next-client-name">{next.clientName}</h3>
+                  <p className="next-service-name">{next.serviceName}</p>
+                  <span className="next-professional"><UserRound size={13} /> com {next.employeeName}</span>
+                </div>
+              </div>
+              <div className="next-price">
+                <div className="next-price-val">
+                  <span>Valor</span>
+                  <strong>{formatCurrency(next.total)}</strong>
+                </div>
+                <StatusBadge status={next.status} />
+              </div>
             </div>
           ) : (
             <EmptyState title="Agenda livre hoje" description="Você ainda não tem atendimentos para hoje." action={<Button onClick={onNew}><Plus size={16} /> Criar atendimento</Button>} />
@@ -185,10 +246,16 @@ function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => vo
 }
 
 function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO; onClick: () => void }) {
+  const { clients } = useStore();
+  const photo = appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl;
+
   return (
     <button className="appointment-card" onClick={onClick} style={{ "--appointment-color": appointment.serviceColor ?? "#1f6f66" } as React.CSSProperties}>
       <div className="appointment-card-top"><span className="appointment-time">{normalizeTime(appointment.startTime)}</span><StatusBadge status={appointment.status} /></div>
-      <div className="appointment-main"><Avatar name={appointment.clientName} color={avatarColor(appointment.clientName)} size="sm" /><span className="appointment-client"><strong>{appointment.clientName}</strong><small>{appointment.serviceName}</small></span></div>
+      <div className="appointment-main">
+        <Avatar name={appointment.clientName} photoUrl={photo} color={avatarColor(appointment.clientName)} size="sm" />
+        <span className="appointment-client"><strong>{appointment.clientName}</strong><small>{appointment.serviceName}</small></span>
+      </div>
       <div className="appointment-meta"><span><Clock3 size={13} /> {appointment.durationMinutes} min</span><span><UserRound size={13} /> {appointment.employeeName}</span><strong>{formatCurrency(appointment.total)}</strong></div>
     </button>
   );
@@ -214,7 +281,7 @@ function ClientsPage({ onSelect, onNew }: { onSelect: (client: ClientDTO) => voi
               <tbody>
                 {filtered.map((client) => (
                   <tr key={client.id} onClick={() => onSelect(client)}>
-                    <td><div className="table-person"><Avatar name={client.name} color={avatarColor(client.name)} /><strong>{client.name}</strong></div></td>
+                    <td><div className="table-person"><Avatar name={client.name} photoUrl={client.photoUrl} color={avatarColor(client.name)} /><strong>{client.name}</strong></div></td>
                     <td><span className="muted-text">{client.phone}</span>{client.email && <small>{client.email}</small>}</td>
                     <td>{client.lastVisit ? shortDate(client.lastVisit) : "—"}</td>
                     <td><span className="visit-count">{client.visits}</span></td>
@@ -255,7 +322,7 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
       <aside className="profile-drawer">
         <div className="drawer-header"><span className="eyebrow">Perfil do cliente</span><IconButton label="Fechar perfil" onClick={onClose}><X size={19} /></IconButton></div>
         <div className="profile-hero">
-          <Avatar name={client.name} color={avatarColor(client.name)} size="lg" />
+          <Avatar name={client.name} photoUrl={detail?.photoUrl ?? client.photoUrl} color={avatarColor(client.name)} size="lg" />
           <h2>{client.name}</h2>
           {detail?.createdAt && <p>Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}</p>}
           <div className="profile-actions">
@@ -344,7 +411,7 @@ function TeamPage({ onNew }: { onNew: () => void }) {
       <div className="team-grid">
         {employees.map((employee) => (
           <article className="team-card" key={employee.id}>
-            <div className="team-card-top"><Avatar name={employee.name} color={avatarColor(employee.name)} size="lg" /><span className="active-dot" /></div>
+            <div className="team-card-top"><Avatar name={employee.name} photoUrl={employee.photoUrl} color={avatarColor(employee.name)} size="lg" /><span className="active-dot" /></div>
             <h3>{employee.name}</h3>
             <span className="team-role">{employee.jobTitle ?? "Profissional"}</span>
             <div className="team-services">{employee.services.map((service) => <span key={service}>{service}</span>)}{employee.services.length === 0 && <span className="team-no-services">Sem serviços vinculados</span>}</div>
@@ -390,7 +457,7 @@ function FinancialPage() {
                 const emp = employees.find((e) => e.id === row.employeeId);
                 return (
                   <div key={row.employeeId}>
-                    <div className="revenue-person"><span className="rank">{index + 1}</span>{emp ? <Avatar name={row.employeeName} color={avatarColor(row.employeeName)} size="sm" /> : <span className="rank" />}<strong>{row.employeeName}</strong></div>
+                    <div className="revenue-person"><span className="rank">{index + 1}</span>{emp ? <Avatar name={row.employeeName} photoUrl={emp.photoUrl} color={avatarColor(row.employeeName)} size="sm" /> : <span className="rank" />}<strong>{row.employeeName}</strong></div>
                     <div className="revenue-bar"><span style={{ width: `${(row.revenue / max) * 100}%` }} /></div>
                     <span className="revenue-visits">{row.appointments} atendimentos · Comis: {formatCurrency(row.commission)}</span>
                     <strong className="revenue-total">{formatCurrency(row.revenue)}</strong>
@@ -1046,7 +1113,7 @@ function BlockModal({ onClose, defaultDate }: { onClose: () => void; defaultDate
 }
 
 function AppointmentDetailModal({ appointment, onClose }: { appointment: AppointmentDTO; onClose: () => void }) {
-  const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, services } = useStore();
+  const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, services, clients } = useStore();
   const shareUrl = `https://wa.me/${formatPhoneForWhatsApp(appointment.clientPhone)}?text=${encodeURIComponent(`Olá, ${appointment.clientName}! Seu atendimento de ${appointment.serviceName} com ${appointment.employeeName} está confirmado para ${shortDate(appointment.date)} às ${normalizeTime(appointment.startTime)}.`)}`;
 
   const confirm = async () => {
@@ -1124,7 +1191,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
 
   return (
     <Modal title="Detalhes do atendimento" eyebrow={`${shortDate(appointment.date)} · ${normalizeTime(appointment.startTime)}`} onClose={onClose} wide>
-      <div className="detail-person"><Avatar name={appointment.clientName} color={avatarColor(appointment.clientName)} size="lg" /><div><h3>{appointment.clientName}</h3><p>{appointment.clientPhone}</p></div><StatusBadge status={appointment.status} /></div>
+      <div className="detail-person"><Avatar name={appointment.clientName} photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl} color={avatarColor(appointment.clientName)} size="lg" /><div><h3>{appointment.clientName}</h3><p>{appointment.clientPhone}</p></div><StatusBadge status={appointment.status} /></div>
       <div className="detail-grid">
         <div><span>Serviço</span><strong>{appointment.serviceName}</strong></div>
         <div><span>Profissional</span><strong>{appointment.employeeName}</strong></div>

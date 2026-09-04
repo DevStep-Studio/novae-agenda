@@ -118,6 +118,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     name: client.name,
     phone: client.phone ?? "",
     email: client.email,
+    photoUrl: client.photoUrl ?? null,
     notes: client.notes,
     active: client.active,
     initials: client.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),

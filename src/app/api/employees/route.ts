@@ -36,6 +36,7 @@ export async function GET() {
       name: row.name,
       jobTitle: row.jobTitle,
       phone: row.phone,
+      photoUrl: row.photoUrl ?? null,
       active: row.active,
       color: avatarColor(row.name),
       initials: initials(row.name),
