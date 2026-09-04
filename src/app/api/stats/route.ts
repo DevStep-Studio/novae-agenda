@@ -148,6 +148,8 @@ export async function GET(request: Request) {
       date: today,
       appointments: todayApts.filter((apt) => !["cancelled", "no_show"].includes(apt.status)).length,
       completed: completedToday.length,
+      cancelled: todayApts.filter((apt) => apt.status === "cancelled").length,
+      noShow: todayApts.filter((apt) => apt.status === "no_show").length,
       forecast,
       realized: realizedToday,
       clientsServed: uniqueClientsToday,

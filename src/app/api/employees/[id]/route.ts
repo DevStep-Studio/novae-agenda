@@ -30,11 +30,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const scheduleDto: EmployeeScheduleDTO[] = schedules.map((schedule) => ({
     id: schedule.id,
+    employeeId: schedule.employeeId,
+    locationId: schedule.locationId,
     dayOfWeek: schedule.dayOfWeek,
     startTime: normalizeTime(schedule.startTime),
     endTime: normalizeTime(schedule.endTime),
     breakStart: schedule.breakStart ? normalizeTime(schedule.breakStart) : null,
     breakEnd: schedule.breakEnd ? normalizeTime(schedule.breakEnd) : null,
+    active: schedule.active,
   }));
 
   const dto: EmployeeDTO = {

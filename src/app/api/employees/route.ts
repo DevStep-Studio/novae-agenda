@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { employeeServices, employees, services } from "@/db/schema";
+import { employeeLocations, employeeSchedules, employeeServices, employees, locations, services } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
@@ -93,6 +93,35 @@ export async function POST(request: Request) {
     if (linkIds.length > 0) {
       await db.insert(employeeServices).values(linkIds.map((serviceId) => ({ employeeId: created.id, serviceId })));
     }
+  }
+
+  // Link to company's primary location
+  const [primaryLoc] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(and(eq(locations.companyId, auth.user.companyId), eq(locations.active, true)))
+    .limit(1);
+
+  if (primaryLoc) {
+    await db.insert(employeeLocations).values({
+      employeeId: created.id,
+      locationId: primaryLoc.id,
+      isPrimary: true,
+    });
+  }
+
+  // Create default schedules for working days (Seg-Sáb, 08:00-19:00 com almoço 12:00-13:00)
+  for (const day of [1, 2, 3, 4, 5, 6]) {
+    await db.insert(employeeSchedules).values({
+      employeeId: created.id,
+      locationId: primaryLoc?.id ?? null,
+      dayOfWeek: day,
+      startTime: "08:00:00",
+      endTime: "19:00:00",
+      breakStart: "12:00:00",
+      breakEnd: "13:00:00",
+      active: true,
+    });
   }
 
   await recordAudit({

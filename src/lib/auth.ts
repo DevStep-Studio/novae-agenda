@@ -23,6 +23,7 @@ export type SessionUser = {
   companyId: string;
   locationId: string | null;
   role: Role;
+  isSuperadmin: boolean;
   name: string;
   email: string;
   emailVerified: boolean;
@@ -97,6 +98,7 @@ export async function getSession(): Promise<SessionUser | null> {
         id: users.id,
         companyId: users.companyId,
         role: users.role,
+        isSuperadmin: users.isSuperadmin,
         name: users.name,
         email: users.email,
         active: users.active,
@@ -139,6 +141,7 @@ export async function getSession(): Promise<SessionUser | null> {
       companyId: user.companyId,
       locationId: null,
       role: isRole(user.role) ? user.role : "employee",
+      isSuperadmin: Boolean(user.isSuperadmin),
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
@@ -200,6 +203,13 @@ export async function requireRole(
   const auth = await requireAuth();
   if (!auth) return { auth: null, response: unauthorized() };
   if (!hasMinRole(auth.user.role, minRole)) return { auth: null, response: forbidden() };
+  return { auth, response: null };
+}
+
+export async function requireSuperadmin(): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth) return { auth: null, response: unauthorized() };
+  if (!auth.user.isSuperadmin) return { auth: null, response: forbidden("Acesso restrito ao Superadmin da plataforma.") };
   return { auth, response: null };
 }
 

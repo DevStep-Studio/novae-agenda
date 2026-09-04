@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
-import { isUuid, isValidTime } from "@/lib/domain";
+import { isUuid, isValidDateKey, isValidTime } from "@/lib/domain";
 import { z } from "zod";
 import { db } from "@/db";
-import { employees, scheduleBlocks } from "@/db/schema";
+import { employees, locations, scheduleBlocks } from "@/db/schema";
 import { hasMinRole, requireRole } from "@/lib/auth";
 import type { ScheduleBlockDTO } from "@/shared/types";
 
@@ -29,12 +29,14 @@ export async function GET(request: Request) {
   const dto: ScheduleBlockDTO[] = rows
     .filter((block) => {
       if (!date) return true;
-      const blockDate = block.startsAt.toISOString().slice(0, 10);
-      return blockDate === date;
+      const blockStartDate = block.startsAt.toISOString().slice(0, 10);
+      const blockEndDate = block.endsAt.toISOString().slice(0, 10);
+      return blockStartDate <= date && blockEndDate >= date;
     })
     .map((block) => ({
       id: block.id,
       employeeId: block.employeeId,
+      locationId: block.locationId,
       date: block.startsAt.toISOString().slice(0, 10),
       startsAt: block.startsAt.toISOString().slice(11, 16),
       endsAt: block.endsAt.toISOString().slice(11, 16),
@@ -46,10 +48,12 @@ export async function GET(request: Request) {
 }
 
 const createSchema = z.object({
-  employeeId: z.string(),
+  employeeId: z.string().optional().nullable(),
+  locationId: z.string().optional().nullable(),
   date: z.string(),
-  startsAt: z.string(),
-  endsAt: z.string(),
+  endDate: z.string().optional(),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional(),
   allDay: z.boolean().optional(),
   reason: z.string().min(1, "Informe o motivo do bloqueio.").max(200),
 });
@@ -64,44 +68,72 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
-  const { employeeId, date, startsAt, endsAt, allDay, reason } = parsed.data;
+  const { employeeId, locationId, date, endDate, startsAt, endsAt, allDay, reason } = parsed.data;
 
-  if (!isUuid(employeeId)) {
-    return Response.json({ error: "Profissional inválido." }, { status: 400 });
-  }
+  const targetEmpId = employeeId && employeeId !== "all" && isUuid(employeeId) ? employeeId : null;
+  const targetLocId = locationId && isUuid(locationId) ? locationId : null;
 
-  // An employee may only block their own agenda; managers+ may block anyone in the company.
-  if (!hasMinRole(auth.user.role, "manager") && auth.user.employeeId !== employeeId) {
-    return Response.json({ error: "Você só pode bloquear a sua própria agenda." }, { status: 403 });
-  }
-  const [targetEmployee] = await db
-    .select({ id: employees.id })
-    .from(employees)
-    .where(and(eq(employees.id, employeeId), eq(employees.companyId, auth.user.companyId)))
-    .limit(1);
-  if (!targetEmployee) {
-    return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
-  }
-  if (allDay) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return Response.json({ error: "Data inválida." }, { status: 400 });
+  // An employee may only block their own agenda; managers+ may block anyone or company-wide.
+  if (targetEmpId) {
+    if (!hasMinRole(auth.user.role, "manager") && auth.user.employeeId !== targetEmpId) {
+      return Response.json({ error: "Você só pode bloquear a sua própria agenda." }, { status: 403 });
     }
-  } else if (!isValidTime(startsAt) || !isValidTime(endsAt) || startsAt >= endsAt) {
-    return Response.json({ error: "Informe um período válido." }, { status: 400 });
+    const [targetEmployee] = await db
+      .select({ id: employees.id })
+      .from(employees)
+      .where(and(eq(employees.id, targetEmpId), eq(employees.companyId, auth.user.companyId)))
+      .limit(1);
+    if (!targetEmployee) {
+      return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+    }
+  } else if (!hasMinRole(auth.user.role, "manager")) {
+    return Response.json({ error: "Apenas administradores podem criar bloqueios gerais." }, { status: 403 });
   }
 
-  const startsAtDate = allDay ? new Date(`${date}T00:00:00-03:00`) : new Date(`${date}T${startsAt}:00-03:00`);
-  const endsAtDate = allDay ? new Date(`${date}T23:59:59-03:00`) : new Date(`${date}T${endsAt}:00-03:00`);
+  if (targetLocId) {
+    const [targetLoc] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.id, targetLocId), eq(locations.companyId, auth.user.companyId)))
+      .limit(1);
+    if (!targetLoc) return Response.json({ error: "Unidade não encontrada." }, { status: 404 });
+  }
+
+  if (!isValidDateKey(date)) {
+    return Response.json({ error: "Data inicial inválida." }, { status: 400 });
+  }
+
+  const finalEndDate = endDate && isValidDateKey(endDate) ? endDate : date;
+  if (finalEndDate < date) {
+    return Response.json({ error: "A data final deve ser igual ou posterior à data inicial." }, { status: 400 });
+  }
+
+  let startsAtDate: Date;
+  let endsAtDate: Date;
+
+  if (allDay || finalEndDate !== date) {
+    startsAtDate = new Date(`${date}T00:00:00Z`);
+    endsAtDate = new Date(`${finalEndDate}T23:59:59Z`);
+  } else {
+    const sTime = startsAt && isValidTime(startsAt) ? startsAt : "00:00";
+    const eTime = endsAt && isValidTime(endsAt) ? endsAt : "23:59";
+    if (sTime >= eTime) {
+      return Response.json({ error: "O horário final deve ser depois do inicial." }, { status: 400 });
+    }
+    startsAtDate = new Date(`${date}T${sTime}:00Z`);
+    endsAtDate = new Date(`${date}T${eTime}:00Z`);
+  }
 
   const [created] = await db
     .insert(scheduleBlocks)
     .values({
       companyId: auth.user.companyId,
-      employeeId,
+      employeeId: targetEmpId,
+      locationId: targetLocId,
       startsAt: startsAtDate,
       endsAt: endsAtDate,
       reason: reason.trim(),
-      allDay: allDay ?? false,
+      allDay: allDay ?? (finalEndDate !== date),
     })
     .returning();
 
@@ -110,6 +142,7 @@ export async function POST(request: Request) {
       data: {
         id: created.id,
         employeeId: created.employeeId,
+        locationId: created.locationId,
         date: created.startsAt.toISOString().slice(0, 10),
         startsAt: created.startsAt.toISOString().slice(11, 16),
         endsAt: created.endsAt.toISOString().slice(11, 16),

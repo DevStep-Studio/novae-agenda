@@ -4,6 +4,7 @@ import { employees, services } from "@/db/schema";
 import { getAvailabilitySlots } from "@/lib/availability";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { isUuid, isValidDateKey } from "@/lib/domain";
+import { getCompanySettings } from "@/lib/settings";
 import type { AvailabilityResponse } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -43,13 +44,19 @@ export async function GET(request: Request) {
     .limit(1);
   if (!employee) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
 
-  const slots = await getAvailabilitySlots({
-    companyId: auth.user.companyId,
-    employeeId,
-    date,
-    durationMinutes,
-    timezone: auth.companyTimezone,
-  });
+  const { bufferMinutes, slotIntervalMinutes } = await getCompanySettings(auth.user.companyId);
+
+  const slots = await getAvailabilitySlots(
+    {
+      companyId: auth.user.companyId,
+      employeeId,
+      date,
+      durationMinutes,
+      timezone: auth.companyTimezone,
+      bufferMinutes,
+    },
+    slotIntervalMinutes,
+  );
 
   const response: AvailabilityResponse = { date, employeeId, durationMinutes, slots };
   return Response.json({ data: response });

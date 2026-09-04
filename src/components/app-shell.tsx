@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, BarChart3, Bell, CalendarDays, CalendarPlus,
+  ArrowRight, BarChart3, Bell, Building2, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleHelp,
-  Clock3, FileText, Home, LogOut, Mail, MapPin,
+  Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
   Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search,
   Settings2, ShieldCheck, Sparkles, Sun, Tag, TrendingUp, UserPlus,
   UserRound, Users, WalletCards, X, XCircle, Zap,
@@ -15,7 +15,8 @@ import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
 import type {
-  AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ServiceCategoryDTO, ServiceDTO,
+  AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod,
+  SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
 } from "@/shared/types";
 
 type ViewKey = "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "configuracoes";
@@ -47,9 +48,6 @@ function timeToMinutes(time: string): number {
 }
 function minutesToTime(minutes: number): string {
   return `${String(Math.floor(minutes / 60) % 24).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-}
-function addMinutes(time: string, minutes: number): string {
-  return minutesToTime(timeToMinutes(time) + minutes);
 }
 function normalizeTime(time: string): string {
   return time.length > 5 ? time.slice(0, 5) : time;
@@ -252,7 +250,16 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
           <h2>{client.name}</h2>
           {detail?.createdAt && <p>Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}</p>}
           <div className="profile-actions">
-            {phone && <a className="whatsapp-button" href={`https://wa.me/${formatPhoneForWhatsApp(phone)}`} target="_blank" rel="noreferrer"><MessageCircle size={15} /> WhatsApp</a>}
+            {phone && (
+              <a
+                className="whatsapp-button"
+                href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(`Olá, ${client.name}! Agradecemos a sua preferência na Agenda.`)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageCircle size={15} /> WhatsApp
+              </a>
+            )}
             <Button onClick={() => onNewAppointment(client)}><CalendarPlus size={15} /> Agendar</Button>
           </div>
         </div>
@@ -260,6 +267,7 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
         <div className="profile-stats">
           <div><strong>{formatCurrency(detail?.spent ?? client.spent)}</strong><span>Total gasto</span></div>
           <div><strong>{detail?.visits ?? client.visits}</strong><span>Atendimentos</span></div>
+          <div><strong>{formatCurrency(detail?.averageTicket ?? 0)}</strong><span>Ticket médio</span></div>
           <div><strong>{detail?.lastVisit ? shortDate(detail.lastVisit) : "—"}</strong><span>Última visita</span></div>
         </div>
         {detail?.nextVisit && <div className="profile-next"><CalendarDays size={14} /> Próximo: {detail.nextVisit}</div>}
@@ -267,7 +275,23 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
           <SectionHeading title="Histórico de atendimentos" />
           {error && <p className="profile-error">{error}</p>}
           {detail && !detail.history.length && <p className="profile-empty">Nenhum atendimento registrado ainda.</p>}
-          {detail?.history && detail.history.length > 0 && <div className="history-list">{detail.history.slice(0, 12).map((item) => <div key={item.id}><span className="history-date">{shortDate(item.date)}</span><div><strong>{item.service}</strong><span>{item.employee}</span></div><b>{formatCurrency(item.total)}</b></div>)}</div>}
+          {detail?.history && detail.history.length > 0 && (
+            <div className="history-list">
+              {detail.history.slice(0, 15).map((item) => (
+                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                  <div>
+                    <span className="history-date">{shortDate(item.date)} às {item.time}</span>
+                    <div><strong>{item.service}</strong> · <small>{item.employee}</small></div>
+                    {item.locationName && <small className="muted-text"><MapPin size={11} /> {item.locationName}</small>}
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <b>{formatCurrency(item.total)}</b>
+                    <div><small className="muted-text">{item.paymentMethod ? PAYMENT_LABELS[item.paymentMethod] : "Pendente"}</small></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
         <section className="profile-section">
           <SectionHeading title="Observações" />
@@ -315,7 +339,7 @@ function TeamPage({ onNew }: { onNew: () => void }) {
             <h3>{employee.name}</h3>
             <span className="team-role">{employee.jobTitle ?? "Profissional"}</span>
             <div className="team-services">{employee.services.map((service) => <span key={service}>{service}</span>)}{employee.services.length === 0 && <span className="team-no-services">Sem serviços vinculados</span>}</div>
-            <div className="team-schedule-static"><Clock3 size={13} /> {employee.active ? "Ativo" : "Inativo"}</div>
+            <div className="team-schedule-static"><Clock3 size={13} /> {employee.active ? "Ativo" : "Inativo"} · Comissão: {employee.commissionType === "percentage" ? `${employee.commissionValue}%` : employee.commissionType === "fixed" ? formatCurrency(employee.commissionValue) : "Sem comissão"}</div>
           </article>
         ))}
         {employees.length === 0 && <EmptyState icon={UserRound} title="Nenhum profissional" description="Adicione profissionais para atribuir atendimentos." action={<Button onClick={onNew}><UserPlus size={16} /> Adicionar profissional</Button>} />}
@@ -327,41 +351,69 @@ function TeamPage({ onNew }: { onNew: () => void }) {
 function FinancialPage() {
   const { stats, employees } = useStore();
   const byEmployee = stats?.byEmployee ?? [];
+  const byService = stats?.byService ?? [];
+  const today = stats?.today;
+
   return (
     <div className="page-content">
-      <div className="page-intro"><div><p className="eyebrow">Visão financeira</p><h1>Financeiro</h1><p className="intro-copy">Faturamento real, calculado a partir dos atendimentos finalizados.</p></div></div>
-      <div className="metrics-grid finance-metrics">
-        <div className="metric-card"><div className="metric-icon metric-teal"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita hoje</p><strong>{formatCurrency(stats?.today.realized ?? 0)}</strong><span className="metric-detail">{stats?.today.completed ?? 0} atendimentos finalizados</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-lilac"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita na semana</p><strong>{formatCurrency(stats?.week.revenue ?? 0)}</strong><span className="metric-detail">{stats?.week.appointments ?? 0} atendimentos</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-amber"><BarChart3 size={18} /></div><div className="metric-copy"><p>Receita no mês</p><strong>{formatCurrency(stats?.month.revenue ?? 0)}</strong><span className="metric-detail">{stats?.month.appointments ?? 0} atendimentos</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-rose"><ReceiptText size={18} /></div><div className="metric-copy"><p>Ticket médio</p><strong>{formatCurrency(stats?.today.averageTicket ?? 0)}</strong><span className="metric-detail">por atendimento hoje</span></div></div>
+      <div className="page-intro">
+        <div>
+          <p className="eyebrow">Visão financeira</p>
+          <h1>Financeiro</h1>
+          <p className="intro-copy">Faturamento real calculado a partir dos atendimentos finalizados.</p>
+        </div>
       </div>
 
-      <section className="panel revenue-team-panel">
-        <SectionHeading title="Faturamento por profissional" description="Atendimentos finalizados no período" />
-        {byEmployee.length ? (
-          <div className="revenue-table">
-            {byEmployee.map((row, index) => {
-              const max = byEmployee[0]?.revenue || 1;
-              const emp = employees.find((e) => e.id === row.employeeId);
-              return (
-                <div key={row.employeeId}>
-                  <div className="revenue-person"><span className="rank">{index + 1}</span>{emp ? <Avatar name={row.employeeName} color={avatarColor(row.employeeName)} size="sm" /> : <span className="rank" />}<strong>{row.employeeName}</strong></div>
-                  <div className="revenue-bar"><span style={{ width: `${(row.revenue / max) * 100}%` }} /></div>
-                  <span className="revenue-visits">{row.appointments} atendimentos</span>
-                  <strong className="revenue-total">{formatCurrency(row.revenue)}</strong>
+      <div className="metrics-grid finance-metrics">
+        <div className="metric-card"><div className="metric-icon metric-teal"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita hoje (realizada)</p><strong>{formatCurrency(today?.realized ?? 0)}</strong><span className="metric-detail">{today?.completed ?? 0} finalizados hoje</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-lilac"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista (hoje)</p><strong>{formatCurrency(today?.forecast ?? 0)}</strong><span className="metric-detail">{today?.appointments ?? 0} agendados</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-amber"><BarChart3 size={18} /></div><div className="metric-copy"><p>Receita no mês</p><strong>{formatCurrency(stats?.month.revenue ?? 0)}</strong><span className="metric-detail">{stats?.month.appointments ?? 0} atendimentos</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-rose"><ReceiptText size={18} /></div><div className="metric-copy"><p>Ticket médio</p><strong>{formatCurrency(today?.averageTicket ?? 0)}</strong><span className="metric-detail">por atendimento</span></div></div>
+      </div>
+
+      <div className="dashboard-grid" style={{ marginTop: 18 }}>
+        <section className="panel revenue-team-panel">
+          <SectionHeading title="Faturamento por profissional" description="Receita realizada e comissões calculadas" />
+          {byEmployee.length ? (
+            <div className="revenue-table">
+              {byEmployee.map((row, index) => {
+                const max = byEmployee[0]?.revenue || 1;
+                const emp = employees.find((e) => e.id === row.employeeId);
+                return (
+                  <div key={row.employeeId}>
+                    <div className="revenue-person"><span className="rank">{index + 1}</span>{emp ? <Avatar name={row.employeeName} color={avatarColor(row.employeeName)} size="sm" /> : <span className="rank" />}<strong>{row.employeeName}</strong></div>
+                    <div className="revenue-bar"><span style={{ width: `${(row.revenue / max) * 100}%` }} /></div>
+                    <span className="revenue-visits">{row.appointments} atendimentos · Comis: {formatCurrency(row.commission)}</span>
+                    <strong className="revenue-total">{formatCurrency(row.revenue)}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState icon={WalletCards} title="Sem faturamento ainda" description="Finalize atendimentos para ver a receita por profissional." />
+          )}
+        </section>
+
+        <section className="panel">
+          <SectionHeading title="Serviços mais realizados" description="Volume e faturamento por serviço" />
+          {byService.length ? (
+            <div className="revenue-table">
+              {byService.map((row) => (
+                <div key={row.serviceId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
+                  <div><strong>{row.serviceName}</strong><small style={{ display: "block", color: "var(--text-muted)" }}>{row.count} atendimentos</small></div>
+                  <strong>{formatCurrency(row.revenue)}</strong>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState icon={WalletCards} title="Sem faturamento ainda" description="Finalize atendimentos para ver a receita por profissional." />
-        )}
-      </section>
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon={Tag} title="Sem serviços realizados" description="Nenhum atendimento finalizado no período." />
+          )}
+        </section>
+      </div>
 
       {stats?.byMethod && stats.byMethod.length > 0 && (
         <section className="panel payment-panel" style={{ marginTop: 18 }}>
-          <SectionHeading title="Por forma de pagamento" />
+          <SectionHeading title="Por forma de pagamento" description="Distribuição dos valores recebidos" />
           <div className="payment-legend">
             {stats.byMethod.map((row) => <div key={row.method}><i className="legend-teal" /><span>{PAYMENT_LABELS[row.method]}</span><strong>{formatCurrency(row.total)}</strong></div>)}
           </div>
@@ -371,54 +423,94 @@ function FinancialPage() {
   );
 }
 
-function SettingsPage({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
-  const { session, notify } = useStore();
+function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setTheme: (t: Theme) => void; onNewLocation: () => void }) {
+  const { session, notify, locations, settings, updateSettings } = useStore();
   const company = session?.company;
-  const defaultPhone = "(21)99999-9999";
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 2) return digits ? `(${digits}` : "";
-    if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
-  const [activeTab, setActiveTab] = useState<"empresa" | "funcionamento" | "ajuda">(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("agenda-settings-tab");
-      return (saved as "empresa" | "funcionamento" | "ajuda") || "empresa";
-    }
-    return "empresa";
-  });
+  const [activeTab, setActiveTab] = useState<"empresa" | "unidades" | "funcionamento" | "seguranca" | "ajuda">("empresa");
+
+  // Company profile fields
   const [name, setName] = useState(company?.name ?? "");
-  const [phone, setPhone] = useState(company?.phone ?? defaultPhone);
-  const [whatsapp, setWhatsapp] = useState(company?.whatsapp ?? defaultPhone);
+  const [phone, setPhone] = useState(company?.phone ?? "");
+  const [whatsapp, setWhatsapp] = useState(company?.whatsapp ?? "");
   const [email, setEmail] = useState(company?.email ?? "");
   const [address, setAddress] = useState(company?.address ?? "");
   const [instagram, setInstagram] = useState(company?.instagram ?? "");
-  const [saving, setSaving] = useState(false);
+  const [savingCompany, setSavingCompany] = useState(false);
 
-  const save = async () => {
-    setSaving(true);
+  // Operational settings fields
+  const [openTime, setOpenTime] = useState(settings?.openTime ?? "08:00");
+  const [closeTime, setCloseTime] = useState(settings?.closeTime ?? "19:00");
+  const [workingDays, setWorkingDays] = useState<number[]>(settings?.workingDays ?? [1, 2, 3, 4, 5, 6]);
+  const [slotInterval, setSlotInterval] = useState(settings?.slotIntervalMinutes ?? 30);
+  const [bufferMinutes, setBufferMinutes] = useState(settings?.bufferMinutes ?? 0);
+  const [timezone, setTimezone] = useState(settings?.timezone ?? "America/Sao_Paulo");
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setOpenTime(settings.openTime);
+      setCloseTime(settings.closeTime);
+      setWorkingDays(settings.workingDays);
+      setSlotInterval(settings.slotIntervalMinutes);
+      setBufferMinutes(settings.bufferMinutes);
+      setTimezone(settings.timezone);
+    }
+  }, [settings]);
+
+  const saveCompany = async () => {
+    setSavingCompany(true);
     try {
       await api("/api/company", { method: "PATCH", body: JSON.stringify({ name, phone, whatsapp, email, address, instagram }) });
-      notify("Configurações salvas com sucesso.");
+      notify("Informações da empresa salvas.");
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Erro ao salvar.", "error");
     } finally {
-      setSaving(false);
+      setSavingCompany(false);
     }
   };
 
-  useEffect(() => {
-    localStorage.setItem("agenda-settings-tab", activeTab);
-  }, [activeTab]);
+  const saveOperational = async () => {
+    setSavingSettings(true);
+    try {
+      await updateSettings({
+        openTime,
+        closeTime,
+        workingDays,
+        slotIntervalMinutes: slotInterval,
+        bufferMinutes,
+        timezone,
+      });
+      notify("Configurações da agenda salvas.");
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao salvar funcionamento.", "error");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const toggleDay = (day: number) => {
+    setWorkingDays((prev) => prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort());
+  };
+
+  const daysOfWeekLabels = [
+    { day: 0, label: "Dom" },
+    { day: 1, label: "Seg" },
+    { day: 2, label: "Ter" },
+    { day: 3, label: "Qua" },
+    { day: 4, label: "Qui" },
+    { day: 5, label: "Sex" },
+    { day: 6, label: "Sáb" },
+  ];
 
   return (
     <div className="page-content settings-page">
-      <div className="page-intro"><div><p className="eyebrow">Preferências do espaço</p><h1>Configurações</h1><p className="intro-copy">Personalize a experiência do seu estabelecimento.</p></div><Button onClick={save}>{saving ? "Salvando..." : <><Check size={16} /> Salvar alterações</>}</Button></div>
+      <div className="page-intro"><div><p className="eyebrow">Preferências do espaço</p><h1>Configurações</h1><p className="intro-copy">Personalize a experiência do seu estabelecimento.</p></div></div>
       <div className="settings-layout">
         <aside className="settings-nav">
           <button className={activeTab === "empresa" ? "active" : ""} onClick={() => setActiveTab("empresa")}><Settings2 size={16} /> Empresa</button>
+          <button className={activeTab === "unidades" ? "active" : ""} onClick={() => setActiveTab("unidades")}><Building2 size={16} /> Unidades</button>
           <button className={activeTab === "funcionamento" ? "active" : ""} onClick={() => setActiveTab("funcionamento")}><Clock3 size={16} /> Funcionamento</button>
+          <button className={activeTab === "seguranca" ? "active" : ""} onClick={() => setActiveTab("seguranca")}><ShieldCheck size={16} /> Segurança</button>
           <button className={activeTab === "ajuda" ? "active" : ""} onClick={() => setActiveTab("ajuda")}><CircleHelp size={16} /> Ajuda</button>
         </aside>
 
@@ -426,14 +518,12 @@ function SettingsPage({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) 
           {activeTab === "empresa" && (
             <>
               <section className="settings-section">
-                <SectionHeading title="Informações da empresa" description="Esses dados aparecem nos seus agendamentos e comunicações." />
+                <SectionHeading title="Informações da empresa" description="Esses dados aparecem nos seus agendamentos e comunicações." action={<Button onClick={saveCompany} disabled={savingCompany}>{savingCompany ? "Salvando..." : "Salvar empresa"}</Button>} />
                 <div className="settings-form">
                   <Field label="Nome da empresa"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
-                  <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(21)99999-9999" inputMode="numeric" pattern="[0-9]*" /></Field>
-                  <Field label="WhatsApp"><input className="input" value={whatsapp} onChange={(e) => setWhatsapp(formatPhone(e.target.value))} placeholder="(21)99999-9999" inputMode="numeric" pattern="[0-9]*" /></Field>
-                  <Field label="E-mail">
-                    <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@dominio.com" />
-                  </Field>
+                  <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></Field>
+                  <Field label="WhatsApp"><input className="input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></Field>
+                  <Field label="E-mail"><input className="input" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
                   <Field label="Endereço"><div className="input-with-icon"><MapPin size={16} /><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} /></div></Field>
                   <Field label="Instagram"><div className="input-with-icon"><span className="at-symbol">@</span><input className="input" value={instagram} onChange={(e) => setInstagram(e.target.value)} /></div></Field>
                 </div>
@@ -454,80 +544,99 @@ function SettingsPage({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) 
                   </button>
                 </div>
               </section>
-
-              <section className="settings-section">
-                <SectionHeading title="Sessão" />
-                <div className="profile-note"><UserRound size={14} /><span>Você está conectado(a) como <strong>{session?.name}</strong> ({roleLabel(session?.role)}).</span></div>
-              </section>
             </>
+          )}
+
+          {activeTab === "unidades" && (
+            <section className="settings-section">
+              <SectionHeading title="Unidades do estabelecimento" description="Gerencie as lojas e filiais onde seus clientes são atendidos." action={<Button onClick={onNewLocation}><Plus size={16} /> Nova unidade</Button>} />
+              <div className="service-grid">
+                {locations.map((loc) => (
+                  <article className="service-card" key={loc.id}>
+                    <div className="service-card-head"><span className="service-color" style={{ backgroundColor: "var(--primary)" }}><Building2 size={16} /></span></div>
+                    <div className="service-card-body">
+                      <h3>{loc.name}</h3>
+                      {loc.address && <p><MapPin size={12} /> {loc.address}</p>}
+                      <p><Clock3 size={12} /> {loc.openTime} às {loc.closeTime}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           )}
 
           {activeTab === "funcionamento" && (
             <section className="settings-section">
-              <SectionHeading title="Funcionamento" description="Configure os horários e regras do seu estabelecimento." />
+              <SectionHeading title="Regras de funcionamento e agenda" description="Configure os horários, dias e intervalos calculados pelo motor de disponibilidade." action={<Button onClick={saveOperational} disabled={savingSettings}>{savingSettings ? "Salvando..." : "Salvar funcionamento"}</Button>} />
               <div className="settings-form">
-                <div className="settings-tab-list">
-                  <button className="settings-tab active">Horários</button>
-                  <button className="settings-tab">Pausas</button>
-                  <button className="settings-tab">Disponibilidade</button>
+                <Field label="Dias de atendimento">
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
+                    {daysOfWeekLabels.map(({ day, label }) => (
+                      <button
+                        type="button"
+                        key={day}
+                        className={`slot-chip ${workingDays.includes(day) ? "active" : ""}`}
+                        onClick={() => toggleDay(day)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <Field label="Horário de abertura"><input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} /></Field>
+                  <Field label="Horário de fechamento"><input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} /></Field>
                 </div>
 
-                <div className="settings-feature-grid">
-                  <div className="settings-feature-card">
-                    <span className="feature-pill">Horário de abertura</span>
-                    <strong>08:00</strong>
-                    <small>Primeira entrada do dia</small>
-                  </div>
-                  <div className="settings-feature-card">
-                    <span className="feature-pill">Horário de fechamento</span>
-                    <strong>18:00</strong>
-                    <small>Últimos atendimentos</small>
-                  </div>
-                  <div className="settings-feature-card">
-                    <span className="feature-pill">Dias ativos</span>
-                    <strong>Seg - Sáb</strong>
-                    <small>Funcionamento padrão</small>
-                  </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <Field label="Intervalo entre slots">
+                    <SelectField value={slotInterval} onChange={(e) => setSlotInterval(Number(e.target.value))}>
+                      <option value={15}>15 minutos</option>
+                      <option value={30}>30 minutos</option>
+                      <option value={60}>60 minutos</option>
+                    </SelectField>
+                  </Field>
+                  <Field label="Intervalo entre atendimentos (buffer)">
+                    <SelectField value={bufferMinutes} onChange={(e) => setBufferMinutes(Number(e.target.value))}>
+                      <option value={0}>0 minutos</option>
+                      <option value={5}>5 minutos</option>
+                      <option value={10}>10 minutos</option>
+                      <option value={15}>15 minutos</option>
+                      <option value={30}>30 minutos</option>
+                    </SelectField>
+                  </Field>
                 </div>
 
-                <Field label="Abertura"><input className="input" value="08:00" readOnly /></Field>
-                <Field label="Fechamento"><input className="input" value="18:00" readOnly /></Field>
-                <Field label="Dias de atendimento"><input className="input" value="Segunda a Sábado" readOnly /></Field>
+                <Field label="Fuso horário (Timezone)">
+                  <SelectField value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                    <option value="America/Sao_Paulo">Horário de Brasília (America/Sao_Paulo)</option>
+                    <option value="America/Manaus">Manaus (America/Manaus)</option>
+                    <option value="America/Fortaleza">Fortaleza (America/Fortaleza)</option>
+                    <option value="America/Bahia">Salvador (America/Bahia)</option>
+                    <option value="UTC">UTC Universal</option>
+                  </SelectField>
+                </Field>
               </div>
+            </section>
+          )}
+
+          {activeTab === "seguranca" && (
+            <section className="settings-section">
+              <SectionHeading title="Segurança e acesso" description="Status de proteção e permissões da sua conta." />
+              <div className="profile-note"><UserRound size={15} /><span>Conectado como <strong>{session?.name}</strong> ({session?.email}) · Papel: <strong>{roleLabel(session?.role)}</strong></span></div>
+              <div className="profile-note"><ShieldCheck size={15} /><span>Verificação de e-mail: <strong>{session?.emailVerified ? "Confirmado" : "Pendente"}</strong></span></div>
+              {session?.isSuperadmin && <div className="profile-note" style={{ background: "#e0e7ff", color: "#3730a3" }}><Sparkles size={15} /><span>Você possui privilégios de <strong>Superadmin Nova(e)</strong></span></div>}
             </section>
           )}
 
           {activeTab === "ajuda" && (
             <section className="settings-section">
-              <SectionHeading title="Ajuda" description="Acesse informações rápidas e suporte do sistema." />
-              <div className="settings-form">
-                <div className="settings-tab-list">
-                  <button className="settings-tab active">Perguntas</button>
-                  <button className="settings-tab">Contato</button>
-                  <button className="settings-tab">Guia</button>
-                </div>
-
-                <div className="settings-feature-grid">
-                  <div className="settings-feature-card">
-                    <span className="feature-pill">Pergunta rápida</span>
-                    <strong>Como criar um agendamento?</strong>
-                    <small>Fluxo inicial</small>
-                  </div>
-                  <div className="settings-feature-card">
-                    <span className="feature-pill">Suporte</span>
-                    <strong>Chat ou e-mail</strong>
-                    <small>Resposta rápida</small>
-                  </div>
-                  <div className="settings-feature-card">
-                    <span className="feature-pill">Guia</span>
-                    <strong>Serviços + equipe</strong>
-                    <small>Configuração inicial</small>
-                  </div>
-                </div>
-
-                <Field label="Dúvida frequente"><input className="input" value="Como criar um agendamento?" readOnly /></Field>
-                <Field label="Suporte"><input className="input" value="Atendimento via chat ou e-mail" readOnly /></Field>
-                <Field label="Guia rápido"><input className="input" value="Cadastre serviços, equipe e horários" readOnly /></Field>
+              <SectionHeading title="Ajuda e Suporte" description="Acesse guias e tire dúvidas com o time Nova(e)." />
+              <div className="settings-feature-grid">
+                <div className="settings-feature-card"><span className="feature-pill">Agendamentos</span><strong>Motor em tempo real</strong><small>Cálculo automático de horários livres</small></div>
+                <div className="settings-feature-card"><span className="feature-pill">Financeiro</span><strong>Receita realizada</strong><small>Derivada de atendimentos pagos</small></div>
+                <div className="settings-feature-card"><span className="feature-pill">Suporte</span><strong>WhatsApp e E-mail</strong><small>Atendimento direto ao cliente</small></div>
               </div>
             </section>
           )}
@@ -539,20 +648,22 @@ function SettingsPage({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) 
 
 /* ---------- Modals ---------- */
 function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; defaultDate: string }) {
-  const { clients, services, employees, createAppointment, notify } = useStore();
+  const { clients, services, employees, locations, activeLocationId, createAppointment, notify } = useStore();
   const [clientId, setClientId] = useState("");
+  const [locationId, setLocationId] = useState(activeLocationId || locations[0]?.id || "");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [date, setDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState("09:00");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   const selectedServices = services.filter((s) => serviceIds.includes(s.id));
   const duration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
   const total = selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-  // employees that can perform all selected services
   const eligibleEmployees = employees.filter((employee) => {
     if (serviceIds.length === 0) return employee.active;
     return serviceIds.every((sid) => employee.serviceIds.includes(sid));
@@ -562,6 +673,35 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
     setServiceIds((current) => (current.includes(id) ? current.filter((s) => s !== id) : [...current, id]));
   };
 
+  // Availability calculation hook
+  useEffect(() => {
+    if (!employeeId || !date || duration <= 0) {
+      setAvailableSlots([]);
+      return;
+    }
+    let active = true;
+    setLoadingSlots(true);
+    api<{ slots: Array<{ startTime: string; endTime: string }> }>(
+      `/api/availability?employeeId=${employeeId}&date=${date}&duration=${duration}`
+    )
+      .then((res) => {
+        if (active) {
+          const slots = res.slots || [];
+          setAvailableSlots(slots);
+          if (slots.length > 0 && !slots.some((s) => s.startTime === startTime)) {
+            setStartTime(slots[0].startTime);
+          }
+        }
+      })
+      .catch(() => {
+        if (active) setAvailableSlots([]);
+      })
+      .finally(() => {
+        if (active) setLoadingSlots(false);
+      });
+    return () => { active = false; };
+  }, [employeeId, date, duration]);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!clientId || serviceIds.length === 0 || !employeeId) {
@@ -570,7 +710,15 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
     }
     setSubmitting(true);
     try {
-      await createAppointment({ clientId, employeeId, serviceIds, date, startTime, notes: notes || undefined });
+      await createAppointment({
+        clientId,
+        employeeId,
+        locationId: locationId || undefined,
+        serviceIds,
+        date,
+        startTime,
+        notes: notes || undefined,
+      });
       notify("Agendamento criado com sucesso.");
       onClose();
     } catch (e) {
@@ -581,13 +729,18 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
   };
 
   return (
-    <Modal title="Novo agendamento" eyebrow="Agendamento rápido" onClose={onClose} wide>
+    <Modal title="Novo agendamento" eyebrow="Motor em tempo real" onClose={onClose} wide>
       <form onSubmit={submit}>
         <div className="modal-form-grid">
           <Field label="Cliente"><SelectField value={clientId} onChange={(e) => setClientId(e.target.value)} required><option value="">Selecione...</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</SelectField></Field>
+          <Field label="Unidade">
+            <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+              {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+            </SelectField>
+          </Field>
           <Field label="Profissional"><SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required><option value="">Selecione...</option>{eligibleEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
           <Field label="Data"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
-          <Field label="Horário"><input className="input" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required /></Field>
+
           <Field label="Serviços" hint={`${duration} min · ${formatCurrency(total)}`}>
             <div className="service-multi-select">
               {services.filter((s) => s.active).map((service) => (
@@ -598,10 +751,38 @@ function NewAppointmentModal({ onClose, defaultDate }: { onClose: () => void; de
               {services.filter((s) => s.active).length === 0 && <span className="field-hint">Cadastre serviços primeiro.</span>}
             </div>
           </Field>
+
+          <Field label="Horário">
+            <input className="input" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            {loadingSlots && <span className="field-hint">Calculando horários livres...</span>}
+            {!loadingSlots && availableSlots.length > 0 && (
+              <div className="slot-chips-wrap">
+                <span className="slot-chips-label">Horários livres sugeridos ({availableSlots.length}):</span>
+                <div className="slot-chips-grid">
+                  {availableSlots.map((slot) => (
+                    <button
+                      type="button"
+                      key={slot.startTime}
+                      className={`slot-chip ${startTime === slot.startTime ? "active" : ""}`}
+                      onClick={() => setStartTime(slot.startTime)}
+                    >
+                      {slot.startTime}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!loadingSlots && employeeId && date && duration > 0 && availableSlots.length === 0 && (
+              <span className="field-hint" style={{ color: "var(--warning)" }}>
+                Nenhum horário livre para este profissional nesta data.
+              </span>
+            )}
+          </Field>
+
           <Field label="Observações"><textarea className="input textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Alguma informação importante?" /></Field>
         </div>
         {serviceIds.length > 0 && eligibleEmployees.length === 0 && <div className="form-note" style={{ color: "var(--warning)", marginTop: 10 }}><CircleAlert size={14} /> Nenhum profissional selecionável realiza os serviços escolhidos.</div>}
-        <div className="modal-footer"><span className="form-note"><ShieldCheck size={14} /> Conflitos são verificados automaticamente</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : <><Check size={16} /> Confirmar agendamento</>}</Button></div></div>
+        <div className="modal-footer"><span className="form-note"><ShieldCheck size={14} /> Conflitos são validados pelo motor</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : <><Check size={16} /> Confirmar agendamento</>}</Button></div></div>
       </form>
     </Modal>
   );
@@ -631,7 +812,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     event.preventDefault();
     const nextPhone = formatPhone(phone);
     if (!isValidPhone(nextPhone)) {
-      notify("Digite um telefone celular válido no formato (21)99999-9999.", "error");
+      notify("Digite um telefone celular válido.", "error");
       return;
     }
 
@@ -652,8 +833,8 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       <form onSubmit={submit} noValidate>
         <div className="modal-form-grid single">
           <Field label="Nome completo"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Fernanda Almeida" required minLength={2} /></Field>
-          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(21)99999-9999" inputMode="numeric" pattern="[0-9]*" required minLength={14} maxLength={15} /></Field>
-          <Field label="E-mail (opcional)"><input className="input" type="text" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@dominio.com" /></Field>
+          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" inputMode="numeric" required /></Field>
+          <Field label="E-mail (opcional)"><input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@dominio.com" /></Field>
           <Field label="Observações (opcional)"><textarea className="input textarea" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
         </div>
         <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Cadastrar cliente</>}</Button></div></div>
@@ -708,19 +889,12 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 2) return digits ? `(${digits}` : "";
-    if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
-
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
     try {
       await createEmployee({ name, jobTitle, phone: phone || undefined, serviceIds });
-      notify("Profissional adicionado com sucesso.");
+      notify("Profissional adicionado e horários configurados.");
       onClose();
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Não foi possível adicionar o profissional.", "error");
@@ -730,12 +904,12 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Adicionar profissional" eyebrow="Pessoas e permissões" onClose={onClose} wide>
+    <Modal title="Adicionar profissional" eyebrow="Pessoas e horários" onClose={onClose} wide>
       <form onSubmit={submit}>
         <div className="modal-form-grid">
           <Field label="Nome completo"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Beatriz Ramos" required minLength={2} /></Field>
           <Field label="Cargo ou especialidade"><input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} /></Field>
-          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(21)99999-9999" inputMode="numeric" maxLength={15} /></Field>
+          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></Field>
           <Field label="Serviços que realiza">
             <div className="service-multi-select">
               {services.map((service) => (
@@ -753,11 +927,52 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function NewLocationModal({ onClose }: { onClose: () => void }) {
+  const { createLocation, notify } = useStore();
+  const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [openTime, setOpenTime] = useState("08:00");
+  const [closeTime, setCloseTime] = useState("19:00");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      await createLocation({ name, address: address || undefined, phone: phone || undefined, openTime, closeTime });
+      notify("Unidade criada com sucesso.");
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao criar unidade.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal title="Nova unidade" eyebrow="Multiunidade" onClose={onClose}>
+      <form onSubmit={submit}>
+        <div className="modal-form-grid">
+          <Field label="Nome da unidade"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Unidade Centro" required minLength={2} /></Field>
+          <Field label="Endereço"><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Av. Principal, 100" /></Field>
+          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3333-4444" /></Field>
+          <Field label="Abertura"><input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} required /></Field>
+          <Field label="Fechamento"><input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} required /></Field>
+        </div>
+        <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : "Criar unidade"}</Button></div></div>
+      </form>
+    </Modal>
+  );
+}
+
 function BlockModal({ onClose, defaultDate }: { onClose: () => void; defaultDate: string }) {
-  const { employees, createBlock, notify } = useStore();
-  const [employeeId, setEmployeeId] = useState("");
+  const { employees, locations, createBlock, notify } = useStore();
+  const [employeeId, setEmployeeId] = useState("all");
+  const [locationId, setLocationId] = useState("");
   const [date, setDate] = useState(defaultDate);
-  const [allDay, setAllDay] = useState(false);
+  const [endDate, setEndDate] = useState(defaultDate);
+  const [blockType, setBlockType] = useState<"hours" | "allDay" | "period">("hours");
   const [startsAt, setStartsAt] = useState("12:00");
   const [endsAt, setEndsAt] = useState("13:00");
   const [reason, setReason] = useState("");
@@ -765,39 +980,65 @@ function BlockModal({ onClose, defaultDate }: { onClose: () => void; defaultDate
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!employeeId) { notify("Selecione um profissional.", "error"); return; }
     setSubmitting(true);
     try {
-      await createBlock({ employeeId, date, startsAt, endsAt, allDay, reason: reason || (allDay ? "Folga" : "Bloqueio") });
-      notify("Horário bloqueado com sucesso.");
+      await createBlock({
+        employeeId: employeeId === "all" ? null : employeeId,
+        locationId: locationId || null,
+        date,
+        endDate: blockType === "period" ? endDate : date,
+        startsAt: blockType === "hours" ? startsAt : undefined,
+        endsAt: blockType === "hours" ? endsAt : undefined,
+        allDay: blockType !== "hours",
+        reason: reason || (blockType === "period" ? "Férias" : blockType === "allDay" ? "Feriado" : "Bloqueio"),
+      });
+      notify("Período bloqueado com sucesso.");
       onClose();
     } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Não foi possível bloquear o horário.", "error");
+      notify(e instanceof ApiError ? e.message : "Não foi possível bloquear.", "error");
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <Modal title="Bloquear horário" eyebrow="Reserve um período da agenda" onClose={onClose}>
+    <Modal title="Bloquear horário ou período" eyebrow="Reserve horários na agenda" onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-form-grid">
-          <Field label="Profissional"><SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required><option value="">Selecione...</option>{employees.filter((e) => e.active).map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
-          <Field label="Data"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
-          <Field label="Tipo"><SelectField value={allDay ? "day" : "period"} onChange={(e) => setAllDay(e.target.value === "day")}><option value="period">Período</option><option value="day">Dia inteiro</option></SelectField></Field>
-          <Field label="Motivo"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: almoço, feriado..." required /></Field>
-          {!allDay && <Field label="Início"><input className="input" type="time" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required /></Field>}
-          {!allDay && <Field label="Fim"><input className="input" type="time" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required /></Field>}
+          <Field label="Profissional">
+            <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+              <option value="all">Toda a equipe (Geral da empresa)</option>
+              {employees.filter((e) => e.active).map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+            </SelectField>
+          </Field>
+          <Field label="Unidade">
+            <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+              <option value="">Todas as unidades</option>
+              {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+            </SelectField>
+          </Field>
+          <Field label="Tipo de bloqueio">
+            <SelectField value={blockType} onChange={(e) => setBlockType(e.target.value as "hours" | "allDay" | "period")}>
+              <option value="hours">Parcial (Horário específico)</option>
+              <option value="allDay">Dia inteiro (Feriado/Folga)</option>
+              <option value="period">Período de múltiplos dias (Férias)</option>
+            </SelectField>
+          </Field>
+          <Field label="Motivo"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: Almoço, Reforma, Férias..." required /></Field>
+          <Field label="Data inicial"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
+          {blockType === "period" && <Field label="Data final"><input className="input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></Field>}
+          {blockType === "hours" && <Field label="Horário início"><input className="input" type="time" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required /></Field>}
+          {blockType === "hours" && <Field label="Horário fim"><input className="input" type="time" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required /></Field>}
         </div>
-        <div className="modal-footer"><span className="form-note"><CircleAlert size={14} /> Novos atendimentos não poderão ocupar este período</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Bloqueando..." : <><Clock3 size={16} /> Bloquear</>}</Button></div></div>
+        <div className="modal-footer"><span className="form-note"><CircleAlert size={14} /> O motor impedirá agendamentos neste intervalo</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Bloqueando..." : "Bloquear"}</Button></div></div>
       </form>
     </Modal>
   );
 }
 
 function AppointmentDetailModal({ appointment, onClose }: { appointment: AppointmentDTO; onClose: () => void }) {
-  const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, clients } = useStore();
-  const shareUrl = `https://wa.me/${formatPhoneForWhatsApp(appointment.clientPhone)}?text=${encodeURIComponent(`Olá, ${appointment.clientName}! Seu atendimento de ${appointment.serviceName} está marcado para ${shortDate(appointment.date)} às ${normalizeTime(appointment.startTime)}.`)}`;
+  const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, services } = useStore();
+  const shareUrl = `https://wa.me/${formatPhoneForWhatsApp(appointment.clientPhone)}?text=${encodeURIComponent(`Olá, ${appointment.clientName}! Seu atendimento de ${appointment.serviceName} com ${appointment.employeeName} está confirmado para ${shortDate(appointment.date)} às ${normalizeTime(appointment.startTime)}.`)}`;
 
   const confirm = async () => {
     try { await updateAppointmentStatus(appointment.id, "confirmed"); notify("Atendimento confirmado."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
@@ -820,16 +1061,37 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   const [finishing, setFinishing] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("pix");
   const [amount, setAmount] = useState(appointment.total);
+  const [discount, setDiscount] = useState(0);
+
   const [rescheduling, setRescheduling] = useState(false);
   const [newDate, setNewDate] = useState(appointment.date);
   const [newTime, setNewTime] = useState(normalizeTime(appointment.startTime));
   const [newEmployee, setNewEmployee] = useState(appointment.employeeId);
+  const [rescheduleSlots, setRescheduleSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
+
+  const finalCharge = Math.max(0, amount - discount);
+
+  // Availability calculation for rescheduling
+  useEffect(() => {
+    if (!newEmployee || !newDate) return;
+    let active = true;
+    api<{ slots: Array<{ startTime: string; endTime: string }> }>(
+      `/api/availability?employeeId=${newEmployee}&date=${newDate}&duration=${appointment.durationMinutes}`
+    )
+      .then((res) => {
+        if (active) setRescheduleSlots(res.slots || []);
+      })
+      .catch(() => {
+        if (active) setRescheduleSlots([]);
+      });
+    return () => { active = false; };
+  }, [newEmployee, newDate, appointment.durationMinutes]);
 
   const doFinish = async () => {
     setFinishing(true);
     try {
-      await finishAppointment(appointment.id, amount, method);
-      notify("Atendimento finalizado e pagamento registrado.");
+      await finishAppointment(appointment.id, finalCharge, method, discount);
+      notify("Atendimento finalizado e pagamento registrado com sucesso.");
       onClose();
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Erro ao finalizar.", "error");
@@ -842,7 +1104,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
     setRescheduling(true);
     try {
       await rescheduleAppointment(appointment.id, { date: newDate, startTime: newTime, employeeId: newEmployee });
-      notify("Atendimento reagendado.");
+      notify("Atendimento reagendado com sucesso.");
       onClose();
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Não foi possível reagendar.", "error");
@@ -857,10 +1119,11 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
       <div className="detail-grid">
         <div><span>Serviço</span><strong>{appointment.serviceName}</strong></div>
         <div><span>Profissional</span><strong>{appointment.employeeName}</strong></div>
+        <div><span>Unidade</span><strong>{appointment.locationName ?? "Unidade Principal"}</strong></div>
         <div><span>Horário</span><strong>{normalizeTime(appointment.startTime)} – {normalizeTime(appointment.endTime)}</strong></div>
         <div><span>Duração</span><strong>{appointment.durationMinutes} minutos</strong></div>
-        <div><span>Valor</span><strong>{formatCurrency(appointment.total)}</strong></div>
-        <div><span>Pagamento</span><strong>{appointment.paid ? "Recebido" : "Pendente"}</strong></div>
+        <div><span>Valor previsto</span><strong>{formatCurrency(appointment.total)}</strong></div>
+        <div><span>Pagamento</span><strong>{appointment.paid ? `Recebido (${appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "OK"})` : "Pendente"}</strong></div>
       </div>
       {appointment.notes && <div className="detail-note"><FileText size={15} /><span>{appointment.notes}</span></div>}
 
@@ -876,9 +1139,11 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
           </div>
 
           <div className="detail-section">
-            <div className="detail-section-head"><h3>Finalizar atendimento</h3><Button onClick={doFinish} disabled={finishing}>{finishing ? "Finalizando..." : <><CheckCheck size={16} /> Finalizar e receber</>}</Button></div>
+            <div className="detail-section-head"><h3>Finalizar atendimento e receber</h3><Button onClick={doFinish} disabled={finishing}>{finishing ? "Processando..." : <><CheckCheck size={16} /> Finalizar e registrar {formatCurrency(finalCharge)}</>}</Button></div>
             <div className="finish-fields">
-              <Field label="Valor recebido"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div></Field>
+              <Field label="Valor original"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div></Field>
+              <Field label="Desconto opcional"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} /></div></Field>
+              <Field label="Total final cobrado"><input className="input" value={formatCurrency(finalCharge)} readOnly style={{ fontWeight: 700 }} /></Field>
               <Field label="Forma de pagamento"><SelectField value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>{(["pix", "cash", "debit", "credit", "other"] as PaymentMethod[]).map((m) => <option key={m} value={m}>{PAYMENT_LABELS[m]}</option>)}</SelectField></Field>
             </div>
           </div>
@@ -887,8 +1152,22 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             <div className="detail-section-head"><h3>Reagendar</h3><Button variant="secondary" onClick={doReschedule} disabled={rescheduling}>{rescheduling ? "Reagendando..." : <><CalendarDays size={15} /> Reagendar</>}</Button></div>
             <div className="finish-fields">
               <Field label="Nova data"><input className="input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} /></Field>
-              <Field label="Novo horário"><input className="input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} /></Field>
               <Field label="Profissional"><SelectField value={newEmployee} onChange={(e) => setNewEmployee(e.target.value)}>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
+              <Field label="Novo horário">
+                <input className="input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                {rescheduleSlots.length > 0 && (
+                  <div className="slot-chips-wrap">
+                    <span className="slot-chips-label">Horários livres:</span>
+                    <div className="slot-chips-grid">
+                      {rescheduleSlots.slice(0, 10).map((s) => (
+                        <button type="button" key={s.startTime} className={`slot-chip ${newTime === s.startTime ? "active" : ""}`} onClick={() => setNewTime(s.startTime)}>
+                          {s.startTime}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Field>
             </div>
           </div>
         </>
@@ -898,47 +1177,64 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   );
 }
 
-/* ---------- Profile drawer ---------- */
-function ProfileDrawer({ onClose, session, onSettings, onLogout }: { onClose: () => void; session: import("@/shared/types").SessionInfo; onSettings: () => void; onLogout: () => void }) {
+function SuperadminModal({ onClose }: { onClose: () => void }) {
+  const [stats, setStats] = useState<SuperadminStatsDTO | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api<SuperadminStatsDTO>("/api/superadmin")
+      .then((data) => setStats(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
-    <div className="drawer-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <aside className="profile-drawer">
-        <div className="drawer-header"><span className="eyebrow">Sua conta</span><IconButton label="Fechar perfil" onClick={onClose}><X size={19} /></IconButton></div>
-
-        <div className="profile-hero">
-          <span className="profile-avatar-large">{initials(session?.name ?? "U")}</span>
-          <h2>{session?.name}</h2>
-          <p className="profile-role">{roleLabel(session?.role)}</p>
-          <p className="profile-company">{session?.company.name}</p>
-        </div>
-
-        <div className="profile-info">
-          <div className="info-item">
-            <span className="info-label">E-mail</span>
-            <strong>{session?.email || "não informado"}</strong>
+    <Modal title="Painel Superadmin Nova(e)" eyebrow="Administração da Plataforma" onClose={onClose} wide>
+      {loading && <div className="popover-empty">Carregando dados da plataforma...</div>}
+      {stats && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div className="metrics-grid">
+            <div className="metric-card"><div className="metric-icon metric-teal"><Building2 size={18} /></div><div className="metric-copy"><p>Empresas</p><strong>{stats.totalCompanies}</strong></div></div>
+            <div className="metric-card"><div className="metric-icon metric-lilac"><Users size={18} /></div><div className="metric-copy"><p>Usuários totais</p><strong>{stats.totalUsers}</strong></div></div>
+            <div className="metric-card"><div className="metric-icon metric-amber"><UserRound size={18} /></div><div className="metric-copy"><p>Profissionais</p><strong>{stats.totalEmployees}</strong></div></div>
+            <div className="metric-card"><div className="metric-icon metric-rose"><CalendarDays size={18} /></div><div className="metric-copy"><p>Agendamentos totais</p><strong>{stats.totalAppointments}</strong></div></div>
           </div>
-          <div className="info-item">
-            <span className="info-label">Acesso desde</span>
-            <strong>{session?.createdAt ? new Date(session.createdAt).toLocaleDateString("pt-BR") : "—"}</strong>
-          </div>
-        </div>
 
-        <div className="profile-actions-drawer">
-          <Button onClick={() => { onSettings(); onClose(); }} className="full-width"><Settings2 size={16} /> Configurações da conta</Button>
-          <Button variant="secondary" onClick={() => { onLogout(); onClose(); }} className="full-width"><LogOut size={16} /> Sair da conta</Button>
+          <section>
+            <SectionHeading title="Empresas cadastradas no Nova(e)" description="Visão global dos clientes da plataforma" />
+            <div className="data-table-wrap">
+              <table className="data-table">
+                <thead><tr><th>Empresa</th><th>Ramo</th><th>Usuários</th><th>Profissionais</th><th>Unidades</th><th>Agendamentos</th><th>Cadastro</th></tr></thead>
+                <tbody>
+                  {stats.recentCompanies.map((c) => (
+                    <tr key={c.id}>
+                      <td><strong>{c.name}</strong><br /><small className="muted-text">{c.email ?? "—"}</small></td>
+                      <td>{c.businessType ?? "Geral"}</td>
+                      <td>{c.usersCount}</td>
+                      <td>{c.employeesCount}</td>
+                      <td>{c.locationsCount}</td>
+                      <td><strong>{c.appointmentsCount}</strong></td>
+                      <td><small>{shortDate(c.createdAt.slice(0, 10))}</small></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
-
-        <div className="profile-footer">
-          <span className="profile-version">agenda. v1.0</span>
-        </div>
-      </aside>
-    </div>
+      )}
+      <div className="modal-footer"><Button variant="ghost" onClick={onClose}>Fechar</Button></div>
+    </Modal>
   );
 }
 
 /* ---------- Main shell ---------- */
 export function AppShell() {
-  const { session, appointments, employees, blocks, logout, toasts, dismissToast } = useStore();
+  const {
+    session, appointments, employees, locations, activeLocationId, setActiveLocationId,
+    notifications, unreadCount, markAllNotificationsRead, markNotificationRead, logout, toasts, dismissToast,
+  } = useStore();
+
   const [view, setView] = useState<ViewKey>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("agenda-view");
@@ -953,13 +1249,22 @@ export function AppShell() {
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [calMode, setCalMode] = useState<CalendarMode>("day");
   const [employeeFilter, setEmployeeFilter] = useState("all");
-  const [globalSearch, setGlobalSearch] = useState("");
 
+  // Interactive header widgets
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResultDTO | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+
+  // Modals
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newServiceOpen, setNewServiceOpen] = useState(false);
   const [newEmployeeOpen, setNewEmployeeOpen] = useState(false);
+  const [newLocationOpen, setNewLocationOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [superadminOpen, setSuperadminOpen] = useState(false);
   const [detailAppointment, setDetailAppointment] = useState<AppointmentDTO | null>(null);
   const [clientDrawer, setClientDrawer] = useState<ClientDTO | null>(null);
 
@@ -971,7 +1276,30 @@ export function AppShell() {
     localStorage.setItem("agenda-view", view);
   }, [view]);
 
+  // Global search hook
+  useEffect(() => {
+    if (!globalSearch.trim() || globalSearch.trim().length < 2) {
+      setSearchResults(null);
+      setSearchOpen(false);
+      return;
+    }
+    let active = true;
+    const timer = setTimeout(() => {
+      api<SearchResultDTO>(`/api/search?q=${encodeURIComponent(globalSearch.trim())}`)
+        .then((res) => {
+          if (active) {
+            setSearchResults(res);
+            setSearchOpen(true);
+          }
+        })
+        .catch(() => {});
+    }, 200);
+    return () => { active = false; clearTimeout(timer); };
+  }, [globalSearch]);
+
   const navigate = (v: ViewKey) => { setView(v); setMobileMenu(false); };
+
+  const activeLoc = locations.find((l) => l.id === activeLocationId) ?? locations[0];
 
   const render = () => {
     switch (view) {
@@ -986,7 +1314,7 @@ export function AppShell() {
       case "financeiro":
         return <FinancialPage />;
       case "configuracoes":
-        return <SettingsPage theme={theme} setTheme={setTheme} />;
+        return <SettingsPage theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} />;
       case "agenda":
         return <CalendarPage />;
     }
@@ -1022,31 +1350,196 @@ export function AppShell() {
   }
 
   return (
-    <div className="app-shell">
-      <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""} ${mobileMenu ? "mobile-open" : ""}`}>
+    <div className="app-shell" onClick={() => { setSearchOpen(false); setNotificationsOpen(false); setWorkspaceOpen(false); }}>
+      <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""} ${mobileMenu ? "mobile-open" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="sidebar-top"><Logo collapsed={collapsed} /><IconButton label="Recolher menu" onClick={() => setCollapsed((v) => !v)}>{collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</IconButton></div>
-        <div className="workspace-switcher"><span className="workspace-logo">{initials(session?.company.name ?? "A")}</span>{!collapsed && <div><strong>{session?.company.name}</strong><small>Unidade principal</small></div>}</div>
-        <nav className="sidebar-nav">{navItems.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}><Icon size={18} /><span>{label}</span>{id === "agenda" && !collapsed && <em>{appointments.filter((a) => a.date === todayKey() && !["cancelled", "no_show"].includes(a.status)).length}</em>}</button>)}</nav>
+        
+        {/* Workspace Switcher */}
+        <div className="popover-container">
+          <div className="workspace-switcher" onClick={() => setWorkspaceOpen((v) => !v)} style={{ cursor: "pointer" }}>
+            <span className="workspace-logo">{initials(session?.company.name ?? "A")}</span>
+            {!collapsed && (
+              <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div><strong>{session?.company.name}</strong><small>{activeLoc?.name ?? "Unidade principal"}</small></div>
+                <ChevronDown size={14} className="muted-text" />
+              </div>
+            )}
+          </div>
+          {workspaceOpen && (
+            <div className="workspace-dropdown">
+              <div style={{ padding: "6px 12px", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", color: "var(--text-muted)" }}>Suas unidades</div>
+              {locations.map((loc) => (
+                <button
+                  key={loc.id}
+                  className={`workspace-option ${activeLocationId === loc.id ? "active" : ""}`}
+                  onClick={() => { setActiveLocationId(loc.id); setWorkspaceOpen(false); }}
+                >
+                  <span>{loc.name}</span>
+                  {activeLocationId === loc.id && <Check size={14} />}
+                </button>
+              ))}
+              <button
+                className="workspace-option"
+                style={{ borderTop: "1px solid var(--border)", color: "var(--primary)" }}
+                onClick={() => { setNewLocationOpen(true); setWorkspaceOpen(false); }}
+              >
+                <span>+ Nova unidade</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        <nav className="sidebar-nav">
+          {navItems.map(({ id, label, icon: Icon }) => (
+            <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>
+              <Icon size={18} />
+              <span>{label}</span>
+              {id === "agenda" && !collapsed && <em>{appointments.filter((a) => a.date === todayKey() && !["cancelled", "no_show"].includes(a.status)).length}</em>}
+            </button>
+          ))}
+          {session?.isSuperadmin && !collapsed && (
+            <button className="superadmin-button" onClick={() => setSuperadminOpen(true)} style={{ marginTop: 12, border: "1px dashed var(--primary)", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, background: "transparent", color: "var(--primary)", cursor: "pointer", width: "100%" }}>
+              <Sparkles size={16} /><span>Superadmin</span>
+            </button>
+          )}
+        </nav>
+
         <div className="sidebar-bottom">
-          <button className="profile-nav" onClick={() => setProfileDrawerOpen(true)}><span className="profile-avatar">{initials(session?.name ?? "U")}</span>{!collapsed && <span><strong>{session?.name}</strong><small>{roleLabel(session?.role)}</small></span>}<MoreHorizontal size={17} /></button>
+          <button className="profile-nav" onClick={() => setProfileDrawerOpen(true)}>
+            <span className="profile-avatar">{initials(session?.name ?? "U")}</span>
+            {!collapsed && <span><strong>{session?.name}</strong><small>{roleLabel(session?.role)}</small></span>}
+            <MoreHorizontal size={17} />
+          </button>
           <button className="logout-button" onClick={logout}><LogOut size={17} /><span>{!collapsed ? "Sair da conta" : "Sair"}</span></button>
         </div>
       </aside>
 
       <main className={`main-content ${collapsed ? "main-expanded" : ""}`}>
-        <header className="topbar">
-          <div className="topbar-left"><IconButton label="Menu" className="mobile-menu-button" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></IconButton><div className="breadcrumb"><span>{session?.company.name}</span><ChevronRight size={14} /><strong>{pageTitles[view].title}</strong></div></div>
+        <header className="topbar" onClick={(e) => e.stopPropagation()}>
+          <div className="topbar-left">
+            <IconButton label="Menu" className="mobile-menu-button" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></IconButton>
+            <div className="breadcrumb"><span>{session?.company.name}</span><ChevronRight size={14} /><strong>{pageTitles[view].title}</strong></div>
+          </div>
+          
           <div className="topbar-actions">
-            <div className="global-search"><Search size={17} /><input value={globalSearch} onChange={(e) => setGlobalSearch(e.target.value)} placeholder="Buscar na Agenda" onKeyDown={(e) => { if (e.key === "Enter" && globalSearch) navigate("clientes"); }} /></div>
+            {/* Global Search */}
+            <div className="popover-container" style={{ flex: 1, maxWidth: 320 }}>
+              <div className="global-search">
+                <Search size={17} />
+                <input
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  placeholder="Buscar clientes, serviços, equipe..."
+                  onFocus={() => { if (searchResults) setSearchOpen(true); }}
+                />
+                {globalSearch && <button onClick={() => { setGlobalSearch(""); setSearchOpen(false); }} style={{ background: "none", border: 0, cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>}
+              </div>
+
+              {searchOpen && searchResults && (
+                <div className="search-dropdown">
+                  {searchResults.clients.length > 0 && (
+                    <div className="search-section">
+                      <div className="search-section-title">Clientes</div>
+                      {searchResults.clients.map((c) => (
+                        <button key={c.id} className="search-item" onClick={() => { setClientDrawer(c as ClientDTO); setSearchOpen(false); }}>
+                          <div className="search-item-main"><strong>{c.name}</strong><span>{c.phone}</span></div>
+                          <span className="search-item-badge">Cliente</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchResults.employees.length > 0 && (
+                    <div className="search-section">
+                      <div className="search-section-title">Profissionais</div>
+                      {searchResults.employees.map((e) => (
+                        <button key={e.id} className="search-item" onClick={() => { navigate("equipe"); setSearchOpen(false); }}>
+                          <div className="search-item-main"><strong>{e.name}</strong><span>{e.jobTitle ?? "Profissional"}</span></div>
+                          <span className="search-item-badge">Equipe</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchResults.services.length > 0 && (
+                    <div className="search-section">
+                      <div className="search-section-title">Serviços</div>
+                      {searchResults.services.map((s) => (
+                        <button key={s.id} className="search-item" onClick={() => { navigate("servicos"); setSearchOpen(false); }}>
+                          <div className="search-item-main"><strong>{s.name}</strong><span>{s.durationMinutes} min</span></div>
+                          <span className="search-item-badge">{formatCurrency(s.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchResults.appointments.length > 0 && (
+                    <div className="search-section">
+                      <div className="search-section-title">Agendamentos</div>
+                      {searchResults.appointments.map((a) => (
+                        <button key={a.id} className="search-item" onClick={() => { navigate("agenda"); setSearchOpen(false); }}>
+                          <div className="search-item-main"><strong>{a.clientName} ({a.time})</strong><span>com {a.employeeName} em {shortDate(a.date)}</span></div>
+                          <span className="search-item-badge">{STATUS_LABELS[a.status]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {!searchResults.clients.length && !searchResults.employees.length && !searchResults.services.length && !searchResults.appointments.length && (
+                    <div className="popover-empty">Nenhum resultado encontrado para &quot;{globalSearch}&quot;.</div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <IconButton label="Alternar tema" onClick={() => setTheme((t) => {
               const next = t === "light" ? "dark" : "light";
               applyTheme(next);
               return next;
             })}>{theme === "light" ? <Moon size={18} /> : <Sun size={18} />}</IconButton>
-            <button className="notification-button" aria-label="Notificações"><Bell size={18} />{appointments.some((a) => a.date === todayKey() && a.status === "confirmed") && <i />}</button>
-            <button className="topbar-profile-button" onClick={() => setProfileDrawerOpen(true)} aria-label="Perfil"><span className="topbar-avatar">{initials(session?.name ?? "U")}</span></button>
+
+            {/* Notifications Popover */}
+            <div className="popover-container">
+              <button
+                className="notification-button"
+                aria-label="Notificações"
+                onClick={() => setNotificationsOpen((v) => !v)}
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && <i />}
+              </button>
+
+              {notificationsOpen && (
+                <div className="popover-dropdown">
+                  <div className="popover-header">
+                    <h3>Notificações ({unreadCount} novas)</h3>
+                    {unreadCount > 0 && <button onClick={() => markAllNotificationsRead()}>Marcar lidas</button>}
+                  </div>
+                  <div className="popover-body">
+                    {notifications.length > 0 ? (
+                      notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          className={`notification-item ${!n.readAt ? "unread" : ""}`}
+                          onClick={() => markNotificationRead(n.id)}
+                        >
+                          <div className="notification-item-top">
+                            <span className="notification-item-title">{n.title}</span>
+                            <span className="notification-item-time">{shortDate(n.createdAt.slice(0, 10))}</span>
+                          </div>
+                          {n.body && <p className="notification-item-body">{n.body}</p>}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="popover-empty">Nenhuma notificação no momento.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button className="topbar-profile-button" onClick={() => setProfileDrawerOpen(true)} aria-label="Perfil">
+              <span className="topbar-avatar">{initials(session?.name ?? "U")}</span>
+            </button>
           </div>
         </header>
+
         {render()}
       </main>
 
@@ -1058,12 +1551,56 @@ export function AppShell() {
       {newClientOpen && <NewClientModal onClose={() => setNewClientOpen(false)} />}
       {newServiceOpen && <NewServiceModal onClose={() => setNewServiceOpen(false)} />}
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} />}
+      {newLocationOpen && <NewLocationModal onClose={() => setNewLocationOpen(false)} />}
       {blockOpen && <BlockModal onClose={() => setBlockOpen(false)} defaultDate={selectedDate} />}
+      {superadminOpen && <SuperadminModal onClose={() => setSuperadminOpen(false)} />}
       {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} onClose={() => setDetailAppointment(null)} />}
       {clientDrawer && <ClientDrawer clientId={clientDrawer.id} onClose={() => setClientDrawer(null)} onNewAppointment={(client) => { setClientDrawer(null); setSelectedDate(todayKey()); setNewAppointmentOpen(true); }} />}
-      {profileDrawerOpen && session && <ProfileDrawer onClose={() => setProfileDrawerOpen(false)} session={session} onSettings={() => navigate("configuracoes")} onLogout={logout} />}
+      {profileDrawerOpen && session && (
+        <ProfileDrawer
+          onClose={() => setProfileDrawerOpen(false)}
+          session={session}
+          onSettings={() => navigate("configuracoes")}
+          onSuperadmin={session.isSuperadmin ? () => setSuperadminOpen(true) : undefined}
+          onLogout={logout}
+        />
+      )}
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
+    </div>
+  );
+}
+
+function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }: { onClose: () => void; session: import("@/shared/types").SessionInfo; onSettings: () => void; onSuperadmin?: () => void; onLogout: () => void }) {
+  return (
+    <div className="drawer-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <aside className="profile-drawer">
+        <div className="drawer-header"><span className="eyebrow">Sua conta</span><IconButton label="Fechar perfil" onClick={onClose}><X size={19} /></IconButton></div>
+
+        <div className="profile-hero">
+          <span className="profile-avatar-large">{initials(session?.name ?? "U")}</span>
+          <h2>{session?.name}</h2>
+          <p className="profile-role">{roleLabel(session?.role)}</p>
+          <p className="profile-company">{session?.company.name}</p>
+        </div>
+
+        <div className="profile-info">
+          <div className="info-item"><span className="info-label">E-mail</span><strong>{session?.email || "não informado"}</strong></div>
+          <div className="info-item"><span className="info-label">Acesso desde</span><strong>{session?.createdAt ? new Date(session.createdAt).toLocaleDateString("pt-BR") : "—"}</strong></div>
+        </div>
+
+        <div className="profile-actions-drawer">
+          {onSuperadmin && (
+            <Button onClick={() => { onSuperadmin(); onClose(); }} className="full-width" variant="secondary">
+              <Sparkles size={16} /> Painel Superadmin Nova(e)
+            </Button>
+          )}
+          <Button onClick={() => { onSettings(); onClose(); }} className="full-width"><Settings2 size={16} /> Configurações da conta</Button>
+          <Button variant="secondary" onClick={() => { onLogout(); onClose(); }} className="full-width"><LogOut size={16} /> Sair da conta</Button>
+        </div>
+
+        <div className="profile-footer"><span className="profile-version">Nova(e) Agenda v2.0 · Comercial</span></div>
+      </aside>
     </div>
   );
 }

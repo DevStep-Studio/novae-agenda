@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { companies, users } from "@/db/schema";
+import { companies, locations, users } from "@/db/schema";
 import { createSession, hashPassword, normalizeEmail } from "@/lib/auth";
 import { devTokenField } from "@/lib/dev";
 import { appUrl, sendMail, verificationEmail } from "@/lib/mailer";
@@ -43,6 +43,13 @@ export async function POST(request: Request) {
   const passwordHash = await hashPassword(password);
 
   const [company] = await db.insert(companies).values({ name: name.trim(), onboarded: false }).returning();
+  await db.insert(locations).values({
+    companyId: company.id,
+    name: "Unidade Principal",
+    openTime: "08:00",
+    closeTime: "19:00",
+    active: true,
+  });
   const [user] = await db
     .insert(users)
     .values({

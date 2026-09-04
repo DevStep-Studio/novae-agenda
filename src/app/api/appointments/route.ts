@@ -1,7 +1,7 @@
 import { and, asc, between, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointmentServices, appointments, clients, employeeServices, employees, notifications, services } from "@/db/schema";
+import { appointmentServices, appointments, clients, employeeServices, employees, locations, notifications, payments, services } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { assertBookable } from "@/lib/availability";
 import { recordAudit } from "@/lib/audit";
@@ -39,6 +39,8 @@ export async function GET(request: Request) {
   const rows = await db
     .select({
       id: appointments.id,
+      locationId: appointments.locationId,
+      locationName: locations.name,
       appointmentDate: appointments.appointmentDate,
       startTime: appointments.startTime,
       endTime: appointments.endTime,
@@ -54,6 +56,7 @@ export async function GET(request: Request) {
     .from(appointments)
     .innerJoin(clients, eq(appointments.clientId, clients.id))
     .innerJoin(employees, eq(appointments.employeeId, employees.id))
+    .leftJoin(locations, eq(appointments.locationId, locations.id))
     .where(and(...conditions))
     .orderBy(asc(appointments.appointmentDate), asc(appointments.startTime))
     .limit(1000);
@@ -91,6 +94,14 @@ export async function GET(request: Request) {
     });
   }
 
+  const paymentRows = appointmentIds.length
+    ? await db
+        .select({ appointmentId: payments.appointmentId, method: payments.method })
+        .from(payments)
+        .where(inArray(payments.appointmentId, appointmentIds))
+    : [];
+  const paymentByApt = new Map(paymentRows.map((p) => [p.appointmentId, p.method]));
+
   const dto: AppointmentDTO[] = rows.map((row) => {
     const svc = serviceByAppointment.get(row.id);
     const start = normalizeTime(row.startTime);
@@ -98,6 +109,8 @@ export async function GET(request: Request) {
     const duration = svc?.durationMinutes ?? Math.max(timeToMinutes(end) - timeToMinutes(start), 0);
     return {
       id: row.id,
+      locationId: row.locationId,
+      locationName: row.locationName,
       date: row.appointmentDate,
       startTime: start,
       endTime: end,
@@ -116,7 +129,8 @@ export async function GET(request: Request) {
       total: centsToNumber(row.total),
       status: row.status as AppointmentDTO["status"],
       notes: row.notes,
-      paid: false,
+      paid: paymentByApt.has(row.id) || row.status === "completed",
+      paymentMethod: (paymentByApt.get(row.id) as AppointmentDTO["paymentMethod"]) ?? null,
     };
   });
 
@@ -124,6 +138,7 @@ export async function GET(request: Request) {
 }
 
 const createSchema = z.object({
+  locationId: z.string().optional(),
   clientId: z.string(),
   employeeId: z.string(),
   serviceIds: z.array(z.string()).min(1, "Selecione ao menos um serviço."),
@@ -143,7 +158,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
-  const { clientId, employeeId, serviceIds, date, startTime, status, notes } = parsed.data;
+  const { locationId, clientId, employeeId, serviceIds, date, startTime, status, notes } = parsed.data;
 
   if (!isUuid(clientId) || !isUuid(employeeId)) {
     return Response.json({ error: "Cliente ou profissional inválido." }, { status: 400 });
@@ -209,10 +224,21 @@ export async function POST(request: Request) {
     return Response.json({ error: check.error }, { status: check.status });
   }
 
+  let targetLocationId = locationId && isUuid(locationId) ? locationId : null;
+  if (!targetLocationId) {
+    const [defaultLoc] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.companyId, auth.user.companyId), eq(locations.active, true)))
+      .limit(1);
+    targetLocationId = defaultLoc?.id ?? null;
+  }
+
   const [created] = await db
     .insert(appointments)
     .values({
       companyId: auth.user.companyId,
+      locationId: targetLocationId,
       clientId,
       employeeId,
       appointmentDate: date,

@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 const finishSchema = z.object({
   amount: z.number().min(0, "O valor não pode ser negativo.").max(1_000_000),
+  discount: z.number().min(0).max(1_000_000).optional(),
   method: z.enum(["pix", "cash", "debit", "credit", "other"]),
 });
 
@@ -26,7 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
-  const { amount, method } = parsed.data;
+  const { amount, discount, method } = parsed.data;
 
   const [apt] = await db
     .select({ id: appointments.id, status: appointments.status, total: appointments.total, employeeId: appointments.employeeId })
@@ -47,10 +48,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   // Changing the charged amount away from the scheduled price requires a manager+.
   const scheduledTotal = centsToNumber(apt.total);
-  const valueChanged = Math.abs(amount - scheduledTotal) > 0.001;
+  const totalWithDiscount = scheduledTotal - (discount ?? 0);
+  const valueChanged = Math.abs(amount - totalWithDiscount) > 0.001 || (discount && discount > 0);
   if (valueChanged && !hasMinRole(auth.user.role, "manager")) {
     return Response.json(
-      { error: "Você não tem permissão para alterar o valor do atendimento." },
+      { error: "Você não tem permissão para alterar o valor ou conceder desconto no atendimento." },
       { status: 403 },
     );
   }
@@ -60,8 +62,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return Response.json({ error: "Este atendimento já possui pagamento registrado." }, { status: 409 });
   }
 
-  // Transaction: mark completed + register the payment. `appointments.total` stays the
-  // scheduled forecast — realized revenue is derived from the payments table.
+  // Atomic transaction: mark completed + register payment with discount.
   await db.transaction(async (tx) => {
     await tx
       .update(appointments)
@@ -72,6 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       companyId: auth.user.companyId,
       appointmentId: id,
       amount: amount.toFixed(2),
+      discount: (discount ?? 0).toFixed(2),
       method: method as PaymentMethod,
       status: "paid",
       paidAt: new Date(),
@@ -84,7 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     action: valueChanged ? "appointment.finished_value_changed" : "appointment.finished",
     entity: "appointment",
     entityId: id,
-    metadata: { method, amount, scheduledTotal, valueChanged },
+    metadata: { method, amount, discount: discount ?? 0, scheduledTotal, valueChanged },
   });
 
   await db.insert(notifications).values({
@@ -96,5 +98,5 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     entityId: id,
   });
 
-  return Response.json({ data: { id, status: "completed", amount, method } });
+  return Response.json({ data: { id, status: "completed", amount, discount: discount ?? 0, method } });
 }

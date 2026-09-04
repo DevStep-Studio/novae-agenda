@@ -28,6 +28,17 @@ export type Company = {
   onboarded: boolean;
 };
 
+export type LocationDTO = {
+  id: string;
+  companyId: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  openTime: string;
+  closeTime: string;
+  active: boolean;
+};
+
 export type SessionInfo = {
   userId: string;
   companyId: string;
@@ -35,9 +46,11 @@ export type SessionInfo = {
   name: string;
   email: string;
   emailVerified: boolean;
+  isSuperadmin: boolean;
   createdAt: string;
   employeeId: string | null;
   company: Company;
+  locations: LocationDTO[];
 };
 
 export type EmployeeDTO = {
@@ -52,6 +65,7 @@ export type EmployeeDTO = {
   commissionValue: number;
   services: string[];
   serviceIds: string[];
+  locationIds?: string[];
 };
 
 export type ServiceDTO = {
@@ -83,13 +97,11 @@ export type ClientDTO = {
   color: string;
   visits: number;
   spent: number;
+  firstVisit?: string | null;
   lastVisit: string | null;
   nextVisit: string | null;
+  averageTicket?: number;
   createdAt: string;
-};
-
-export type ClientDetailDTO = ClientDTO & {
-  history: HistoryItemDTO[];
 };
 
 export type HistoryItemDTO = {
@@ -98,22 +110,32 @@ export type HistoryItemDTO = {
   time: string;
   service: string;
   employee: string;
+  locationName: string | null;
   total: number;
+  paymentMethod: PaymentMethod | null;
   status: AppointmentStatus;
+};
+
+export type ClientDetailDTO = ClientDTO & {
+  history: HistoryItemDTO[];
 };
 
 export type EmployeeScheduleDTO = {
   id: string;
+  employeeId: string;
+  locationId: string | null;
   dayOfWeek: number;
   startTime: string;
   endTime: string;
   breakStart: string | null;
   breakEnd: string | null;
+  active: boolean;
 };
 
 export type ScheduleBlockDTO = {
   id: string;
   employeeId: string | null;
+  locationId: string | null;
   date: string;
   startsAt: string;
   endsAt: string;
@@ -123,6 +145,8 @@ export type ScheduleBlockDTO = {
 
 export type AppointmentDTO = {
   id: string;
+  locationId: string | null;
+  locationName: string | null;
   date: string;
   startTime: string;
   endTime: string;
@@ -142,6 +166,7 @@ export type AppointmentDTO = {
   status: AppointmentStatus;
   notes: string | null;
   paid: boolean;
+  paymentMethod?: PaymentMethod | null;
 };
 
 export type AvailabilitySlot = {
@@ -156,11 +181,65 @@ export type AvailabilityResponse = {
   slots: AvailabilitySlot[];
 };
 
+export type NotificationDTO = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type SearchResultDTO = {
+  clients: Array<{ id: string; name: string; phone: string; email: string | null }>;
+  employees: Array<{ id: string; name: string; jobTitle: string | null }>;
+  services: Array<{ id: string; name: string; price: number; durationMinutes: number }>;
+  appointments: Array<{ id: string; clientName: string; serviceName: string; employeeName: string; date: string; time: string; status: AppointmentStatus }>;
+};
+
+export type CompanySettingsDTO = {
+  openTime: string;
+  closeTime: string;
+  workingDays: number[];
+  slotIntervalMinutes: number;
+  defaultDurationMinutes: number;
+  bufferMinutes: number;
+  maxLeadDays: number;
+  timezone: string;
+};
+
+export type SuperadminCompanyDTO = {
+  id: string;
+  name: string;
+  businessType: string | null;
+  email: string | null;
+  phone: string | null;
+  usersCount: number;
+  employeesCount: number;
+  locationsCount: number;
+  appointmentsCount: number;
+  createdAt: string;
+  active: boolean;
+};
+
+export type SuperadminStatsDTO = {
+  totalCompanies: number;
+  totalUsers: number;
+  totalEmployees: number;
+  totalLocations: number;
+  totalAppointments: number;
+  recentCompanies: SuperadminCompanyDTO[];
+};
+
 export type StatsResponse = {
   today: {
     date: string;
     appointments: number;
     completed: number;
+    cancelled: number;
+    noShow: number;
     forecast: number;
     realized: number;
     clientsServed: number;

@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { db } from "@/db";
 import { appointments, employeeSchedules, scheduleBlocks } from "@/db/schema";
 import { addMinutesToTime, dayOfWeek, minutesToTime, normalizeTime, timeToMinutes } from "@/lib/domain";
@@ -14,7 +14,7 @@ export type AvailabilityParams = {
   durationMinutes: number;
   timezone: string;
   excludeAppointmentId?: string;
-  /** Minimum gap (minutes) kept before and after every existing appointment. */
+  /** Minimum gap (minutes) kept after each appointment before next can start. */
   bufferMinutes?: number;
 };
 
@@ -50,6 +50,16 @@ function subtractIntervals(working: Interval[], busy: Interval[]): Interval[] {
   return working;
 }
 
+function getCurrentTimeInTz(timezone: string): { today: string; currentMinutes: number } {
+  const now = new Date();
+  const dateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+  const timeFmt = new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hour12: false });
+  const today = dateFmt.format(now);
+  const parts = timeFmt.format(now).split(":");
+  const currentMinutes = Number(parts[0]) * 60 + Number(parts[1]);
+  return { today, currentMinutes };
+}
+
 /** The professional's working windows for the given weekday (schedule minus lunch break). */
 export async function getEmployeeDayWindows(
   employeeId: string,
@@ -81,7 +91,7 @@ export async function getEmployeeDayWindows(
   return { hasSchedule: true, windows };
 }
 
-/** Busy intervals from other appointments on that day, optionally padded by a buffer. */
+/** Busy intervals from other appointments on that day, padded by configured buffer. */
 export async function getAppointmentBusyIntervals(
   companyId: string,
   employeeId: string,
@@ -94,6 +104,7 @@ export async function getAppointmentBusyIntervals(
     .from(appointments)
     .where(
       and(
+        eq(appointments.companyId, companyId),
         eq(appointments.employeeId, employeeId),
         eq(appointments.appointmentDate, date),
         ne(appointments.status, "cancelled"),
@@ -103,17 +114,25 @@ export async function getAppointmentBusyIntervals(
     );
 
   return rows.map((apt) => ({
-    start: timeToMinutes(normalizeTime(apt.startTime)) - buffer,
+    start: timeToMinutes(normalizeTime(apt.startTime)),
     end: timeToMinutes(normalizeTime(apt.endTime)) + buffer,
   }));
 }
 
-/** Busy intervals from schedule blocks (day-off, holidays, custom blocks) on that day. */
+/** Busy intervals from schedule blocks (employee blocks, holidays, vacations, or company-wide blocks). */
 export async function getBlockBusyIntervals(companyId: string, employeeId: string, date: string): Promise<Interval[]> {
   const blocks = (await db
     .select({ startsAt: scheduleBlocks.startsAt, endsAt: scheduleBlocks.endsAt, allDay: scheduleBlocks.allDay })
     .from(scheduleBlocks)
-    .where(and(eq(scheduleBlocks.employeeId, employeeId), eq(scheduleBlocks.companyId, companyId)))) as BlockRow[];
+    .where(
+      and(
+        eq(scheduleBlocks.companyId, companyId),
+        or(
+          eq(scheduleBlocks.employeeId, employeeId),
+          isNull(scheduleBlocks.employeeId),
+        ),
+      ),
+    )) as BlockRow[];
 
   const startOfDay = new Date(`${date}T00:00:00Z`);
   const endOfDay = new Date(`${date}T23:59:59Z`);
@@ -121,13 +140,19 @@ export async function getBlockBusyIntervals(companyId: string, employeeId: strin
 
   for (const block of blocks) {
     if (block.allDay) {
-      busy.push({ start: 0, end: 24 * 60 });
-      continue;
+      // If block starts on or before this day and ends on or after this day
+      if (block.startsAt <= endOfDay && block.endsAt >= startOfDay) {
+        busy.push({ start: 0, end: 24 * 60 });
+        continue;
+      }
     }
     if (block.startsAt >= endOfDay || block.endsAt <= startOfDay) continue;
     const s = Math.max(block.startsAt.getTime(), startOfDay.getTime());
     const e = Math.min(block.endsAt.getTime(), endOfDay.getTime());
-    busy.push({ start: (s - startOfDay.getTime()) / 60000, end: (e - startOfDay.getTime()) / 60000 });
+    busy.push({
+      start: Math.max(0, Math.floor((s - startOfDay.getTime()) / 60000)),
+      end: Math.min(24 * 60, Math.ceil((e - startOfDay.getTime()) / 60000)),
+    });
   }
   return busy;
 }
@@ -153,10 +178,18 @@ export async function getAvailabilitySlots(
 ): Promise<Array<{ startTime: string; endTime: string }>> {
   const gaps = await getAvailabilitySlotGaps(params);
   const slots: Array<{ startTime: string; endTime: string }> = [];
+  const { today, currentMinutes } = getCurrentTimeInTz(params.timezone);
+  const isToday = params.date === today;
+
   for (const gap of gaps) {
     let cursor = gap.start;
     while (cursor + params.durationMinutes <= gap.end) {
-      slots.push({ startTime: minutesToTime(cursor), endTime: addMinutesToTime(minutesToTime(cursor), params.durationMinutes) });
+      if (!isToday || cursor > currentMinutes) {
+        slots.push({
+          startTime: minutesToTime(cursor),
+          endTime: addMinutesToTime(minutesToTime(cursor), params.durationMinutes),
+        });
+      }
       cursor += stepMinutes;
     }
   }
@@ -195,8 +228,13 @@ export async function assertBookable(
     return { ok: false, status: 422, error: "Há um bloqueio na agenda do profissional nesse horário." };
   }
 
+  const buffer = Math.max(0, bufferMinutes ?? 0);
   const busy = await getAppointmentBusyIntervals(companyId, employeeId, date, { excludeAppointmentId, bufferMinutes });
-  if (busy.some((b) => startMinutes < b.end && endMinutes > b.start)) {
+  
+  // Collision rule: novo_inicio < fim_existente AND novo_fim > inicio_existente
+  // with new appointment end also padded by buffer
+  const paddedEnd = endMinutes + buffer;
+  if (busy.some((b) => startMinutes < b.end && paddedEnd > b.start)) {
     return { ok: false, status: 409, error: "Este profissional já possui um atendimento nesse horário." };
   }
 

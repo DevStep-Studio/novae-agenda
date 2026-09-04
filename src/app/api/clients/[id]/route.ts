@@ -1,10 +1,10 @@
 import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, clients, employees, services, appointmentServices, payments } from "@/db/schema";
+import { appointments, clients, employees, locations, services, appointmentServices, payments } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
-import type { ClientDetailDTO, HistoryItemDTO } from "@/shared/types";
+import type { ClientDetailDTO, HistoryItemDTO, PaymentMethod } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   if (!client) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
-  const historyRows = await db
+  const aptRows = await db
     .select({
       id: appointments.id,
       date: appointments.appointmentDate,
@@ -30,36 +30,72 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       status: appointments.status,
       total: appointments.total,
       employeeName: employees.name,
-      serviceName: services.name,
-      serviceId: appointmentServices.serviceId,
+      locationName: locations.name,
     })
     .from(appointments)
     .innerJoin(employees, eq(appointments.employeeId, employees.id))
-    .innerJoin(appointmentServices, eq(appointmentServices.appointmentId, appointments.id))
-    .innerJoin(services, eq(services.id, appointmentServices.serviceId))
+    .leftJoin(locations, eq(appointments.locationId, locations.id))
     .where(and(eq(appointments.clientId, id), eq(appointments.companyId, auth.user.companyId)))
     .orderBy(desc(appointments.appointmentDate), desc(appointments.startTime))
     .limit(100);
 
-  const history: HistoryItemDTO[] = historyRows.map((row) => ({
+  const aptIds = aptRows.map((a) => a.id);
+
+  const serviceRows = aptIds.length
+    ? await db
+        .select({
+          appointmentId: appointmentServices.appointmentId,
+          serviceName: services.name,
+        })
+        .from(appointmentServices)
+        .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+        .where(inArray(appointmentServices.appointmentId, aptIds))
+    : [];
+
+  const servicesByApt = new Map<string, string[]>();
+  for (const s of serviceRows) {
+    const list = servicesByApt.get(s.appointmentId) ?? [];
+    list.push(s.serviceName);
+    servicesByApt.set(s.appointmentId, list);
+  }
+
+  const paymentRows = aptIds.length
+    ? await db
+        .select({
+          appointmentId: payments.appointmentId,
+          method: payments.method,
+        })
+        .from(payments)
+        .where(inArray(payments.appointmentId, aptIds))
+    : [];
+
+  const paymentByApt = new Map(paymentRows.map((p) => [p.appointmentId, p.method as PaymentMethod]));
+
+  const history: HistoryItemDTO[] = aptRows.map((row) => ({
     id: row.id,
     date: row.date,
     time: normalizeTime(row.startTime),
-    service: row.serviceName,
+    service: (servicesByApt.get(row.id) ?? []).join(" + ") || "Serviço",
     employee: row.employeeName,
+    locationName: row.locationName,
     total: centsToNumber(row.total),
+    paymentMethod: paymentByApt.get(row.id) ?? null,
     status: row.status as HistoryItemDTO["status"],
   }));
 
-  const completedAppointmentIds = new Set(
-    historyRows.filter((row) => row.status === "completed").map((row) => row.id),
-  );
+  const completedApts = aptRows.filter((row) => row.status === "completed");
+  const visits = completedApts.length;
 
   const [spentRow] = await db
     .select({ spent: sql<number>`coalesce(sum(${payments.amount}), 0)` })
     .from(payments)
     .innerJoin(appointments, eq(payments.appointmentId, appointments.id))
     .where(and(eq(appointments.clientId, id), eq(payments.status, "paid")));
+
+  const spent = centsToNumber(spentRow?.spent);
+  const averageTicket = visits > 0 ? spent / visits : 0;
+  const lastVisit = completedApts[0]?.date ?? null;
+  const firstVisit = completedApts[completedApts.length - 1]?.date ?? null;
 
   const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: auth.companyTimezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const [next] = await db
@@ -77,8 +113,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .orderBy(appointments.appointmentDate, appointments.startTime)
     .limit(1);
 
-  const completedRow = historyRows.find((row) => row.status === "completed");
-
   const detail: ClientDetailDTO = {
     id: client.id,
     name: client.name,
@@ -88,10 +122,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     active: client.active,
     initials: client.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
     color: "#d8e5f0",
-    visits: completedAppointmentIds.size,
-    spent: centsToNumber(spentRow?.spent),
-    lastVisit: completedRow?.date ?? null,
+    visits,
+    spent,
+    firstVisit,
+    lastVisit,
     nextVisit: next ? `${next.date} ${normalizeTime(next.startTime)}` : null,
+    averageTicket,
     createdAt: client.createdAt.toISOString(),
     history,
   };

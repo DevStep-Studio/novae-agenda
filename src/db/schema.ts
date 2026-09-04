@@ -44,6 +44,8 @@ export const locations = pgTable("locations", {
   name: text("name").notNull(),
   address: text("address"),
   phone: text("phone"),
+  openTime: time("open_time").default("08:00").notNull(),
+  closeTime: time("close_time").default("19:00").notNull(),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({ companyIdx: index("locations_company_idx").on(table.companyId) }));
@@ -55,11 +57,15 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   passwordHash: text("password_hash").notNull(),
   role: text("role").default("employee").notNull(),
+  isSuperadmin: boolean("is_superadmin").default(false).notNull(),
   active: boolean("active").default(true).notNull(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   ...timestamps,
-}, (table) => ({ emailCompanyIdx: uniqueIndex("users_company_email_idx").on(table.companyId, table.email) }));
+}, (table) => ({
+  emailCompanyIdx: uniqueIndex("users_company_email_idx").on(table.companyId, table.email),
+  emailIdx: index("users_email_idx").on(table.email),
+}));
 
 // One-time tokens for email verification and password reset.
 // Only the SHA-256 hash of the token is stored; the raw token lives only in the e-mail link.
@@ -101,6 +107,16 @@ export const employees = pgTable("employees", {
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({ companyIdx: index("employees_company_idx").on(table.companyId) }));
+
+export const employeeLocations = pgTable("employee_locations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  locationId: uuid("location_id").notNull().references(() => locations.id, { onDelete: "cascade" }),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  ...timestamps,
+}, (table) => ({
+  empLocIdx: uniqueIndex("employee_locations_emp_loc_idx").on(table.employeeId, table.locationId),
+}));
 
 export const clients = pgTable("clients", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -179,6 +195,7 @@ export const payments = pgTable("payments", {
   companyId: uuid("company_id").notNull().references(() => companies.id),
   appointmentId: uuid("appointment_id").notNull().references(() => appointments.id),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  discount: numeric("discount", { precision: 10, scale: 2 }).default("0").notNull(),
   method: text("method").notNull(),
   status: text("status").default("paid").notNull(),
   paidAt: timestamp("paid_at", { withTimezone: true }),
@@ -190,6 +207,7 @@ export const payments = pgTable("payments", {
 export const employeeSchedules = pgTable("employee_schedules", {
   id: uuid("id").defaultRandom().primaryKey(),
   employeeId: uuid("employee_id").notNull().references(() => employees.id),
+  locationId: uuid("location_id").references(() => locations.id),
   dayOfWeek: integer("day_of_week").notNull(),
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),

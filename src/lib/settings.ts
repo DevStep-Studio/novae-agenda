@@ -2,29 +2,30 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companySettings } from "@/db/schema";
 
-/**
- * Company-level operational settings, stored as key/value rows in `company_settings`.
- * Every field has a safe default so callers never deal with `undefined`.
- */
 export type CompanySettings = {
-  /** Grid granularity when suggesting slots, in minutes. */
+  openTime: string;
+  closeTime: string;
+  workingDays: number[];
   slotIntervalMinutes: number;
-  /** Fallback service duration when none is known, in minutes. */
   defaultDurationMinutes: number;
-  /** Mandatory gap kept before/after each appointment, in minutes. */
   bufferMinutes: number;
-  /** How far ahead a booking may be created, in days (0 = no limit). */
   maxLeadDays: number;
 };
 
 export const DEFAULT_SETTINGS: CompanySettings = {
+  openTime: "08:00",
+  closeTime: "19:00",
+  workingDays: [1, 2, 3, 4, 5, 6], // Seg a Sáb
   slotIntervalMinutes: 30,
   defaultDurationMinutes: 60,
   bufferMinutes: 0,
-  maxLeadDays: 0,
+  maxLeadDays: 60,
 };
 
 const KEY_MAP: Record<keyof CompanySettings, string> = {
+  openTime: "open_time",
+  closeTime: "close_time",
+  workingDays: "working_days",
   slotIntervalMinutes: "slot_interval_minutes",
   defaultDurationMinutes: "default_duration_minutes",
   bufferMinutes: "appointment_buffer_minutes",
@@ -43,7 +44,22 @@ export async function getCompanySettings(companyId: string): Promise<CompanySett
     .where(eq(companySettings.companyId, companyId));
 
   const byKey = new Map(rows.map((r) => [r.key, r.value]));
+
+  let workingDays = DEFAULT_SETTINGS.workingDays;
+  const rawDays = byKey.get(KEY_MAP.workingDays);
+  if (rawDays) {
+    try {
+      const parsed = JSON.parse(rawDays);
+      if (Array.isArray(parsed)) workingDays = parsed;
+    } catch {
+      // fallback
+    }
+  }
+
   return {
+    openTime: byKey.get(KEY_MAP.openTime) ?? DEFAULT_SETTINGS.openTime,
+    closeTime: byKey.get(KEY_MAP.closeTime) ?? DEFAULT_SETTINGS.closeTime,
+    workingDays,
     slotIntervalMinutes: toInt(byKey.get(KEY_MAP.slotIntervalMinutes), DEFAULT_SETTINGS.slotIntervalMinutes),
     defaultDurationMinutes: toInt(byKey.get(KEY_MAP.defaultDurationMinutes), DEFAULT_SETTINGS.defaultDurationMinutes),
     bufferMinutes: toInt(byKey.get(KEY_MAP.bufferMinutes), DEFAULT_SETTINGS.bufferMinutes),
@@ -51,9 +67,17 @@ export async function getCompanySettings(companyId: string): Promise<CompanySett
   };
 }
 
-export async function setCompanySetting(companyId: string, key: keyof CompanySettings, value: number): Promise<void> {
+export async function setCompanySetting(
+  companyId: string,
+  key: keyof CompanySettings,
+  value: string | number | number[],
+): Promise<void> {
+  const strVal = typeof value === "object" ? JSON.stringify(value) : String(value);
   await db
     .insert(companySettings)
-    .values({ companyId, key: KEY_MAP[key], value: String(value) })
-    .onConflictDoUpdate({ target: [companySettings.companyId, companySettings.key], set: { value: String(value), updatedAt: new Date() } });
+    .values({ companyId, key: KEY_MAP[key], value: strVal })
+    .onConflictDoUpdate({
+      target: [companySettings.companyId, companySettings.key],
+      set: { value: strVal, updatedAt: new Date() },
+    });
 }

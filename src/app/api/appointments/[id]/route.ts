@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointmentServices, appointments, clients, employees, notifications, payments, services } from "@/db/schema";
+import { appointmentServices, appointments, clients, employees, locations, notifications, payments, services } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { assertBookable } from "@/lib/availability";
 import { recordAudit } from "@/lib/audit";
@@ -37,6 +37,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const [apt] = await db
     .select({
       id: appointments.id,
+      locationId: appointments.locationId,
+      locationName: locations.name,
       appointmentDate: appointments.appointmentDate,
       startTime: appointments.startTime,
       endTime: appointments.endTime,
@@ -52,6 +54,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .from(appointments)
     .innerJoin(clients, eq(appointments.clientId, clients.id))
     .innerJoin(employees, eq(appointments.employeeId, employees.id))
+    .leftJoin(locations, eq(appointments.locationId, locations.id))
     .where(and(eq(appointments.id, id), eq(appointments.companyId, auth.user.companyId)))
     .limit(1);
 
@@ -66,11 +69,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .innerJoin(services, eq(appointmentServices.serviceId, services.id))
     .where(eq(appointmentServices.appointmentId, id));
 
-  const [payment] = await db.select({ id: payments.id }).from(payments).where(eq(payments.appointmentId, id)).limit(1);
+  const [payment] = await db
+    .select({ id: payments.id, method: payments.method })
+    .from(payments)
+    .where(eq(payments.appointmentId, id))
+    .limit(1);
 
   const names = serviceRows.map((row) => row.name);
   const dto: AppointmentDTO = {
     id: apt.id,
+    locationId: apt.locationId,
+    locationName: apt.locationName,
     date: apt.appointmentDate,
     startTime: normalizeTime(apt.startTime),
     endTime: normalizeTime(apt.endTime),
@@ -90,6 +99,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     status: apt.status as AppointmentDTO["status"],
     notes: apt.notes,
     paid: Boolean(payment),
+    paymentMethod: (payment?.method as AppointmentDTO["paymentMethod"]) ?? null,
   };
 
   return Response.json({ data: dto });
