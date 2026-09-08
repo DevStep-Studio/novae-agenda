@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, Ban, BarChart3, Bell, Building2, CalendarDays, CalendarPlus,
-  Check, CheckCheck, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleHelp,
+  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, CalendarDays, CalendarPlus,
+  Check, CheckCheck, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
   Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search,
-  Settings2, ShieldCheck, Sparkles, Sun, Tag, TrendingUp, UserPlus,
+  Settings2, ShieldCheck, Sparkles, Star, Sun, Tag, TrendingUp, UserPlus,
   UserRound, Users, WalletCards, X, XCircle, Zap,
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
@@ -303,39 +303,374 @@ function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO
   );
 }
 
-function ClientsPage({ onSelect, onNew }: { onSelect: (client: ClientDTO) => void; onNew: () => void }) {
-  const { clients } = useStore();
+type ClientTab = "all" | "vip" | "new" | "with_appointment";
+type ClientSort = "visits-desc" | "spent-desc" | "recent" | "name-asc";
+
+function ClientsPage({
+  onSelect,
+  onNew,
+  onNewAppointment,
+}: {
+  onSelect: (client: ClientDTO) => void;
+  onNew: () => void;
+  onNewAppointment: (client: ClientDTO) => void;
+}) {
+  const { clients, appointments, session } = useStore();
   const [query, setQuery] = useState("");
-  const filtered = clients.filter((client) => {
-    const q = query.toLowerCase();
-    return !q || client.name.toLowerCase().includes(q) || (client.phone ?? "").toLowerCase().includes(q) || (client.email ?? "").toLowerCase().includes(q);
-  });
+  const [activeTab, setActiveTab] = useState<ClientTab>("all");
+  const [sortBy, setSortBy] = useState<ClientSort>("visits-desc");
+
+  // Metric computations matching the Home page KPIs
+  const totalClients = clients.length;
+  const totalSpent = clients.reduce((acc, c) => acc + (c.spent || 0), 0);
+  const totalVisits = clients.reduce((acc, c) => acc + (c.visits || 0), 0);
+  const averageTicket = totalVisits > 0 ? Math.round(totalSpent / totalVisits) : 0;
+
+  const vipClients = clients.filter((c) => c.visits >= 2 || (c.spent && c.spent >= 200));
+  const retentionRate = totalClients > 0 ? Math.round((vipClients.length / totalClients) * 100) : 0;
+
+  // Tab counts
+  const thirtyDaysAgo = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d;
+  }, []);
+
+  const newClientsCount = clients.filter((c) => new Date(c.createdAt) >= thirtyDaysAgo).length;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const clientIdsWithAppointment = useMemo(() => {
+    return new Set(
+      appointments
+        .filter((a) => a.date >= todayStr && a.status !== "cancelled")
+        .map((a) => a.clientId)
+    );
+  }, [appointments, todayStr]);
+
+  const withAppointmentCount = clients.filter(
+    (c) => clientIdsWithAppointment.has(c.id) || Boolean(c.nextVisit)
+  ).length;
+
+  // Filtered by query & active tab
+  const filtered = useMemo(() => {
+    return clients.filter((client) => {
+      const q = query.trim().toLowerCase();
+      if (q) {
+        const matchName = client.name.toLowerCase().includes(q);
+        const matchPhone = (client.phone ?? "").toLowerCase().includes(q);
+        const matchEmail = (client.email ?? "").toLowerCase().includes(q);
+        if (!matchName && !matchPhone && !matchEmail) return false;
+      }
+
+      if (activeTab === "vip") {
+        return client.visits >= 2 || (client.spent && client.spent >= 200);
+      }
+      if (activeTab === "new") {
+        return new Date(client.createdAt) >= thirtyDaysAgo;
+      }
+      if (activeTab === "with_appointment") {
+        return clientIdsWithAppointment.has(client.id) || Boolean(client.nextVisit);
+      }
+      return true;
+    });
+  }, [clients, query, activeTab, thirtyDaysAgo, clientIdsWithAppointment]);
+
+  // Sorted list
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    switch (sortBy) {
+      case "visits-desc":
+        return list.sort((a, b) => (b.visits || 0) - (a.visits || 0));
+      case "spent-desc":
+        return list.sort((a, b) => (b.spent || 0) - (a.spent || 0));
+      case "recent":
+        return list.sort((a, b) => (b.lastVisit || "").localeCompare(a.lastVisit || ""));
+      case "name-asc":
+        return list.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      default:
+        return list;
+    }
+  }, [filtered, sortBy]);
+
+  const tabs: Array<{ id: ClientTab; label: string; count: number; icon?: LucideIcon }> = [
+    { id: "all", label: "Todos os clientes", count: totalClients },
+    { id: "vip", label: "Frequentes & VIPs", count: vipClients.length, icon: Sparkles },
+    { id: "new", label: "Novos no mês", count: newClientsCount, icon: UserPlus },
+    { id: "with_appointment", label: "Com agendamento", count: withAppointmentCount, icon: CalendarDays },
+  ];
 
   return (
-    <div className="page-content">
-      <div className="page-intro"><div><p className="eyebrow">Base de relacionamento</p><h1>Clientes</h1><p className="intro-copy">{clients.length} pessoas já fazem parte da sua história.</p></div><Button onClick={onNew}><UserPlus size={17} /> Novo cliente</Button></div>
+    <div className="page-content clients-page-content">
+      {/* Intro Header */}
+      <div className="page-intro">
+        <div>
+          <p className="eyebrow">Base de relacionamento</p>
+          <h1>Clientes</h1>
+          <p className="intro-copy">{totalClients} pessoas já fazem parte da sua história.</p>
+        </div>
+        <Button onClick={onNew}>
+          <UserPlus size={17} /> Novo cliente
+        </Button>
+      </div>
+
+      {/* Metrics Grid matching Home page KPIs */}
+      <div className="metrics-grid client-metrics-grid">
+        <div className="metric-card">
+          <div className="metric-icon metric-teal"><Users size={18} /></div>
+          <div className="metric-copy">
+            <p>Total de clientes</p>
+            <strong>{totalClients}</strong>
+            <span className="metric-detail">base cadastrada</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-lilac"><Sparkles size={18} /></div>
+          <div className="metric-copy">
+            <p>Clientes frequentes</p>
+            <strong>{vipClients.length}</strong>
+            <span className="metric-detail">{retentionRate}% taxa de retenção</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-amber"><CircleDollarSign size={18} /></div>
+          <div className="metric-copy">
+            <p>Ticket médio</p>
+            <strong>{formatCurrency(averageTicket)}</strong>
+            <span className="metric-detail">por atendimento</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-rose"><TrendingUp size={18} /></div>
+          <div className="metric-copy">
+            <p>LTV total acumulado</p>
+            <strong>{formatCurrency(totalSpent)}</strong>
+            <span className="metric-detail">faturamento da base</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Clients Panel */}
       <section className="panel clients-panel">
-        <div className="panel-toolbar"><div><h2>Todos os clientes</h2><p>Pesquise por nome, telefone ou e-mail</p></div><div className="table-tools"><div className="search-box small"><Search size={16} /><input placeholder="Buscar cliente..." value={query} onChange={(e) => setQuery(e.target.value)} /></div></div></div>
-        {filtered.length ? (
+        {/* Interactive Segment Tabs ("Aba acima") */}
+        <div className="client-tabs-container">
+          <div className="client-segment-tabs" role="tablist">
+            {tabs.map((tab) => {
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  className={`client-tab-btn ${activeTab === tab.id ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {TabIcon && <TabIcon size={14} />}
+                  <span>{tab.label}</span>
+                  <span className="client-tab-pill">{tab.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Toolbar: Search + Sort + Count */}
+        <div className="client-panel-toolbar">
+          <div className="client-search-wrapper">
+            <div className="search-box client-search-box">
+              <Search size={16} />
+              <input
+                placeholder="Buscar por nome, telefone ou e-mail..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="clear-search-btn"
+                  onClick={() => setQuery("")}
+                  title="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="client-toolbar-right">
+            <div className="client-sort-group">
+              <span className="sort-label"><ArrowUpDown size={13} /> Ordenar:</span>
+              <select
+                className="select-input client-sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as ClientSort)}
+              >
+                <option value="visits-desc">Mais atendimentos</option>
+                <option value="spent-desc">Maior valor total</option>
+                <option value="recent">Última visita</option>
+                <option value="name-asc">Nome (A–Z)</option>
+              </select>
+            </div>
+            <span className="client-results-count">
+              Exibindo <strong>{sorted.length}</strong> de {totalClients}
+            </span>
+          </div>
+        </div>
+
+        {/* Table Content */}
+        {sorted.length ? (
           <div className="data-table-wrap">
-            <table className="data-table">
-              <thead><tr><th>Cliente</th><th>Contato</th><th>Último atendimento</th><th>Atendimentos</th><th>Total gasto</th><th /></tr></thead>
+            <table className="data-table client-data-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Contato & WhatsApp</th>
+                  <th>Último atendimento</th>
+                  <th>Atendimentos</th>
+                  <th>Total gasto (LTV)</th>
+                  <th className="actions-header">Ações rápidas</th>
+                </tr>
+              </thead>
               <tbody>
-                {filtered.map((client) => (
-                  <tr key={client.id} onClick={() => onSelect(client)}>
-                    <td><div className="table-person"><Avatar name={client.name} photoUrl={client.photoUrl} color={avatarColor(client.name)} /><strong>{client.name}</strong></div></td>
-                    <td><span className="muted-text">{client.phone}</span>{client.email && <small>{client.email}</small>}</td>
-                    <td>{client.lastVisit ? shortDate(client.lastVisit) : "—"}</td>
-                    <td><span className="visit-count">{client.visits}</span></td>
-                    <td><strong>{formatCurrency(client.spent)}</strong></td>
-                    <td><IconButton label={`Abrir ${client.name}`}><ChevronRight size={17} /></IconButton></td>
-                  </tr>
-                ))}
+                {sorted.map((client) => {
+                  const isVip = client.visits >= 3 || (client.spent && client.spent >= 250);
+                  const isFrequent = !isVip && client.visits >= 2;
+                  const isNew = !isVip && !isFrequent;
+                  const avgClientTicket = client.visits > 0 ? Math.round((client.spent || 0) / client.visits) : 0;
+                  const hasUpcoming = clientIdsWithAppointment.has(client.id) || Boolean(client.nextVisit);
+
+                  return (
+                    <tr
+                      key={client.id}
+                      className="client-table-row"
+                      onClick={() => onSelect(client)}
+                    >
+                      <td>
+                        <div className="table-person">
+                          <div className="client-avatar-container">
+                            <Avatar
+                              name={client.name}
+                              photoUrl={client.photoUrl}
+                              color={avatarColor(client.name)}
+                            />
+                            {isVip && (
+                              <span className="client-vip-star" title="Cliente VIP">★</span>
+                            )}
+                          </div>
+                          <div className="client-identity">
+                            <div className="client-name-line">
+                              <strong className="client-name-text">{client.name}</strong>
+                              {isVip && <span className="client-badge badge-vip">VIP</span>}
+                              {isFrequent && <span className="client-badge badge-frequent">Frequente</span>}
+                              {isNew && <span className="client-badge badge-new">Novo</span>}
+                            </div>
+                            <small className="client-sub-info">
+                              {client.email || (client.phone ? "Cliente verificado" : "Sem e-mail")}
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="client-contact-col">
+                          {client.phone ? (
+                            <a
+                              href={`https://wa.me/${formatPhoneForWhatsApp(client.phone)}?text=${encodeURIComponent(`Olá, ${client.name}! Tudo bem? Falamos da ${session?.company.name || "Agenda"}.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="client-whatsapp-btn"
+                              title="Abrir WhatsApp com o cliente"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MessageCircle size={13} />
+                              <span>{client.phone}</span>
+                            </a>
+                          ) : (
+                            <span className="muted-text">—</span>
+                          )}
+                          {hasUpcoming && (
+                            <span className="client-has-upcoming" title="Possui agendamento ativo">
+                              <CalendarDays size={11} /> Agendado
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="client-visit-col">
+                          <Clock3 size={13} className="text-muted" />
+                          <span>{client.lastVisit ? shortDate(client.lastVisit) : "Nenhum ainda"}</span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="client-visits-badge-wrap">
+                          <span className={`visit-count-badge ${client.visits >= 2 ? "active" : ""}`}>
+                            {client.visits} {client.visits === 1 ? "visita" : "visitas"}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="client-spending-col">
+                          <strong className="client-total-spent">{formatCurrency(client.spent)}</strong>
+                          {client.visits > 0 && (
+                            <span className="client-spending-detail">
+                              méd. {formatCurrency(avgClientTicket)}/atend.
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td>
+                        <div className="client-actions-cell" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="client-action-btn schedule"
+                            title={`Criar novo agendamento para ${client.name}`}
+                            onClick={() => onNewAppointment(client)}
+                          >
+                            <CalendarPlus size={14} />
+                            <span>Agendar</span>
+                          </button>
+                          <IconButton
+                            label={`Abrir ficha de ${client.name}`}
+                            onClick={() => onSelect(client)}
+                            className="client-action-btn view"
+                          >
+                            <ChevronRight size={16} />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : (
-          <EmptyState icon={Users} title={query ? "Nenhum cliente encontrado" : "Você ainda não tem clientes"} description={query ? "Tente buscar por outro nome." : "Cadastre seu primeiro cliente para começar a agendar."} action={<Button onClick={onNew}><UserPlus size={16} /> Novo cliente</Button>} />
+          <EmptyState
+            icon={Users}
+            title={query || activeTab !== "all" ? "Nenhum cliente encontrado" : "Você ainda não tem clientes"}
+            description={
+              query || activeTab !== "all"
+                ? "Nenhum cliente corresponde aos filtros ou busca selecionados."
+                : "Cadastre seu primeiro cliente para começar a agendar."
+            }
+            action={
+              query || activeTab !== "all" ? (
+                <Button variant="secondary" onClick={() => { setQuery(""); setActiveTab("all"); }}>
+                  Limpar filtros
+                </Button>
+              ) : (
+                <Button onClick={onNew}>
+                  <UserPlus size={16} /> Novo cliente
+                </Button>
+              )
+            }
+          />
         )}
       </section>
     </div>
@@ -466,74 +801,452 @@ function TeamPage({ onNew }: { onNew: () => void }) {
   );
 }
 
+type FinancialPeriod = "today" | "week" | "month" | "all";
+
 function FinancialPage() {
-  const { stats, employees } = useStore();
-  const byEmployee = stats?.byEmployee ?? [];
-  const byService = stats?.byService ?? [];
-  const today = stats?.today;
+  const { stats, employees, appointments } = useStore();
+  const [period, setPeriod] = useState<FinancialPeriod>("month");
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // Filter appointments according to selected period
+  const filteredAppointments = useMemo(() => {
+    const now = new Date();
+
+    if (period === "today") {
+      return appointments.filter((a) => a.date === todayStr);
+    }
+    if (period === "week") {
+      const d = new Date(now);
+      const day = d.getDay();
+      const diffToMonday = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diffToMonday));
+      monday.setHours(0, 0, 0, 0);
+      const mondayStr = monday.toISOString().slice(0, 10);
+      return appointments.filter((a) => a.date >= mondayStr && a.date <= todayStr);
+    }
+    if (period === "month") {
+      const currentMonthPrefix = todayStr.slice(0, 7);
+      return appointments.filter((a) => a.date.startsWith(currentMonthPrefix));
+    }
+    return appointments;
+  }, [appointments, period, todayStr]);
+
+  const completedApts = useMemo(
+    () => filteredAppointments.filter((a) => a.status === "completed"),
+    [filteredAppointments]
+  );
+  const pendingApts = useMemo(
+    () => filteredAppointments.filter((a) => ["scheduled", "confirmed", "waiting", "in_progress"].includes(a.status)),
+    [filteredAppointments]
+  );
+
+  const realizedRevenue = useMemo(() => {
+    const fromApts = completedApts.reduce((acc, a) => acc + (a.total || 0), 0);
+    if (fromApts > 0) return fromApts;
+    if (period === "today") return stats?.today.realized ?? 0;
+    if (period === "week") return stats?.week.revenue ?? 0;
+    if (period === "month") return stats?.month.revenue ?? 0;
+    return fromApts;
+  }, [completedApts, period, stats]);
+
+  const forecastRevenue = useMemo(() => {
+    const fromApts = pendingApts.reduce((acc, a) => acc + (a.total || 0), 0);
+    if (fromApts > 0) return fromApts;
+    if (period === "today") return stats?.today.forecast ?? 0;
+    return fromApts;
+  }, [pendingApts, period, stats]);
+
+  // Calculate commissions per professional
+  const teamCommissions = useMemo(() => {
+    const map = new Map<string, { employeeId: string; name: string; appointments: number; revenue: number; commission: number }>();
+
+    employees.forEach((emp) => {
+      map.set(emp.id, {
+        employeeId: emp.id,
+        name: emp.name,
+        appointments: 0,
+        revenue: 0,
+        commission: 0,
+      });
+    });
+
+    completedApts.forEach((apt) => {
+      const emp = employees.find((e) => e.id === apt.employeeId);
+      const empId = apt.employeeId || emp?.id || "other";
+      let commissionVal = 0;
+      if (emp?.commissionType === "percentage") {
+        commissionVal = Math.round(((apt.total || 0) * (emp.commissionValue || 0)) / 100);
+      } else if (emp?.commissionType === "fixed") {
+        commissionVal = emp.commissionValue || 0;
+      } else {
+        commissionVal = Math.round(((apt.total || 0) * 30) / 100);
+      }
+
+      const entry = map.get(empId) || {
+        employeeId: empId,
+        name: apt.employeeName || "Profissional",
+        appointments: 0,
+        revenue: 0,
+        commission: 0,
+      };
+
+      entry.appointments += 1;
+      entry.revenue += apt.total || 0;
+      entry.commission += commissionVal;
+      map.set(empId, entry);
+    });
+
+    const list = Array.from(map.values()).filter((e) => e.appointments > 0 || e.revenue > 0);
+
+    if (list.length === 0 && stats?.byEmployee && stats.byEmployee.length > 0) {
+      return stats.byEmployee.map((s) => ({
+        employeeId: s.employeeId,
+        name: s.employeeName,
+        appointments: s.appointments,
+        revenue: s.revenue,
+        commission: s.commission,
+      }));
+    }
+
+    return list.sort((a, b) => b.revenue - a.revenue);
+  }, [employees, completedApts, stats]);
+
+  const totalCommissions = useMemo(
+    () => teamCommissions.reduce((acc, c) => acc + c.commission, 0),
+    [teamCommissions]
+  );
+
+  const netProfit = Math.max(realizedRevenue - totalCommissions, 0);
+  const netMargin = realizedRevenue > 0 ? Math.round((netProfit / realizedRevenue) * 100) : 100;
+  const averageTicket = completedApts.length > 0
+    ? Math.round(realizedRevenue / completedApts.length)
+    : (stats?.today.averageTicket ?? 0);
+
+  // Top Services Ranking
+  const topServices = useMemo(() => {
+    const map = new Map<string, { name: string; count: number; revenue: number }>();
+
+    completedApts.forEach((apt) => {
+      const name = apt.serviceName || "Serviço";
+      const entry = map.get(name) || { name, count: 0, revenue: 0 };
+      entry.count += 1;
+      entry.revenue += apt.total || 0;
+      map.set(name, entry);
+    });
+
+    const list = Array.from(map.values());
+    if (list.length === 0 && stats?.byService && stats.byService.length > 0) {
+      return stats.byService.map((s) => ({
+        name: s.serviceName,
+        count: s.count,
+        revenue: s.revenue,
+      }));
+    }
+
+    return list.sort((a, b) => b.count - a.count);
+  }, [completedApts, stats]);
+
+  // Payment Methods Breakdown
+  const paymentBreakdown = useMemo(() => {
+    const map = new Map<string, { method: string; count: number; total: number }>();
+
+    completedApts.forEach((apt) => {
+      const method = apt.paymentMethod || "pix";
+      const entry = map.get(method) || { method, count: 0, total: 0 };
+      entry.count += 1;
+      entry.total += apt.total || 0;
+      map.set(method, entry);
+    });
+
+    const list = Array.from(map.values());
+    if (list.length === 0 && stats?.byMethod && stats.byMethod.length > 0) {
+      return stats.byMethod.map((m) => ({
+        method: m.method,
+        count: 1,
+        total: m.total,
+      }));
+    }
+
+    return list.sort((a, b) => b.total - a.total);
+  }, [completedApts, stats]);
+
+  // 7-day Revenue Evolution Bar Chart
+  const last7DaysData = useMemo(() => {
+    const days: Array<{ date: string; label: string; weekday: string; revenue: number; count: number; isToday: boolean }> = [];
+    const weekdayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayName = weekdayNames[d.getDay()];
+      const dayMonth = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+      const dayCompleted = appointments.filter((a) => a.date === dateStr && a.status === "completed");
+      const dayRevenue = dayCompleted.reduce((acc, a) => acc + (a.total || 0), 0);
+
+      days.push({
+        date: dateStr,
+        label: dayMonth,
+        weekday: dayName,
+        revenue: dayRevenue || (dateStr === todayStr ? (stats?.today.realized ?? 0) : 0),
+        count: dayCompleted.length,
+        isToday: dateStr === todayStr,
+      });
+    }
+
+    const maxDayRevenue = Math.max(...days.map((d) => d.revenue), 100);
+    const total7Days = days.reduce((acc, d) => acc + d.revenue, 0);
+    const dailyAverage = Math.round(total7Days / 7);
+
+    return { days, maxDayRevenue, dailyAverage, total7Days };
+  }, [appointments, todayStr, stats]);
+
+  const periodTabs: Array<{ id: FinancialPeriod; label: string }> = [
+    { id: "today", label: "Hoje" },
+    { id: "week", label: "Esta semana" },
+    { id: "month", label: "Este mês" },
+    { id: "all", label: "Todo o histórico" },
+  ];
 
   return (
-    <div className="page-content">
+    <div className="page-content financial-page-content">
+      {/* Intro Header */}
       <div className="page-intro">
         <div>
           <p className="eyebrow">Visão financeira</p>
           <h1>Financeiro</h1>
-          <p className="intro-copy">Faturamento real calculado a partir dos atendimentos finalizados.</p>
+          <p className="intro-copy">Faturamento real calculado a partir dos atendimentos finalizados e comissões da equipe.</p>
         </div>
       </div>
 
-      <div className="metrics-grid finance-metrics">
-        <div className="metric-card"><div className="metric-icon metric-teal"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita hoje (realizada)</p><strong>{formatCurrency(today?.realized ?? 0)}</strong><span className="metric-detail">{today?.completed ?? 0} finalizados hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-lilac"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista (hoje)</p><strong>{formatCurrency(today?.forecast ?? 0)}</strong><span className="metric-detail">{today?.appointments ?? 0} agendados</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-amber"><BarChart3 size={18} /></div><div className="metric-copy"><p>Receita no mês</p><strong>{formatCurrency(stats?.month.revenue ?? 0)}</strong><span className="metric-detail">{stats?.month.appointments ?? 0} atendimentos</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-rose"><ReceiptText size={18} /></div><div className="metric-copy"><p>Ticket médio</p><strong>{formatCurrency(today?.averageTicket ?? 0)}</strong><span className="metric-detail">por atendimento</span></div></div>
+      {/* Segmented Period Tabs ("Aba acima") */}
+      <div className="financial-period-container">
+        <div className="client-segment-tabs" role="tablist">
+          {periodTabs.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={period === tab.id}
+              className={`client-tab-btn ${period === tab.id ? "active" : ""}`}
+              onClick={() => setPeriod(tab.id)}
+            >
+              <CalendarDays size={13} />
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="dashboard-grid" style={{ marginTop: 18 }}>
+      {/* Metrics Grid matching Home page KPIs */}
+      <div className="metrics-grid finance-metrics">
+        <div className="metric-card">
+          <div className="metric-icon metric-teal"><WalletCards size={18} /></div>
+          <div className="metric-copy">
+            <p>Receita realizada</p>
+            <strong>{formatCurrency(realizedRevenue)}</strong>
+            <span className="metric-detail">{completedApts.length} atendimentos recebidos</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-lilac"><TrendingUp size={18} /></div>
+          <div className="metric-copy">
+            <p>Receita prevista</p>
+            <strong>{formatCurrency(forecastRevenue)}</strong>
+            <span className="metric-detail">{pendingApts.length} atendimentos futuros</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-amber"><BarChart3 size={18} /></div>
+          <div className="metric-copy">
+            <p>Comissões a pagar</p>
+            <strong>{formatCurrency(totalCommissions)}</strong>
+            <span className="metric-detail">{teamCommissions.length} profissionais comissionados</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-rose"><ReceiptText size={18} /></div>
+          <div className="metric-copy">
+            <p>Lucro líquido</p>
+            <strong>{formatCurrency(netProfit)}</strong>
+            <span className="metric-detail">{netMargin}% margem de rentabilidade</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 7-Day Revenue Evolution Bar Chart */}
+      <section className="panel financial-chart-panel" style={{ marginTop: 20 }}>
+        <div className="chart-header">
+          <div>
+            <h2>Evolução de faturamento (últimos 7 dias)</h2>
+            <p className="intro-copy">Receita diária obtida de atendimentos concluídos</p>
+          </div>
+          <div className="chart-stat-badge">
+            <span>Média diária dos 7 dias:</span>
+            <strong>{formatCurrency(last7DaysData.dailyAverage)}</strong>
+          </div>
+        </div>
+
+        <div className="financial-bar-chart">
+          {last7DaysData.days.map((day) => {
+            const heightPct = Math.max(Math.round((day.revenue / last7DaysData.maxDayRevenue) * 100), 6);
+            return (
+              <div key={day.date} className={`financial-bar-col ${day.isToday ? "today" : ""}`}>
+                <span className="financial-bar-val">
+                  {day.revenue > 0 ? formatCurrency(day.revenue) : "R$ 0"}
+                </span>
+                <div className="financial-bar-track">
+                  <div
+                    className="financial-bar-fill"
+                    style={{ height: `${heightPct}%` }}
+                    title={`${day.weekday} (${day.label}): ${formatCurrency(day.revenue)} (${day.count} atendimentos)`}
+                  />
+                </div>
+                <strong className="financial-bar-weekday">{day.weekday}</strong>
+                <small className="financial-bar-date">{day.label}</small>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Rankings: Team & Services */}
+      <div className="dashboard-grid financial-grid-rankings" style={{ marginTop: 20 }}>
+        {/* Top Professionals */}
         <section className="panel revenue-team-panel">
-          <SectionHeading title="Faturamento por profissional" description="Receita realizada e comissões calculadas" />
-          {byEmployee.length ? (
-            <div className="revenue-table">
-              {byEmployee.map((row, index) => {
-                const max = byEmployee[0]?.revenue || 1;
+          <SectionHeading
+            title="Profissionais que mais trabalharam"
+            description="Volume de atendimentos, faturamento e comissões calculadas"
+          />
+          {teamCommissions.length ? (
+            <div className="team-ranking-list">
+              {teamCommissions.map((row, index) => {
                 const emp = employees.find((e) => e.id === row.employeeId);
+                const maxRev = teamCommissions[0]?.revenue || 1;
+                const pct = Math.min(Math.round((row.revenue / maxRev) * 100), 100);
+
                 return (
-                  <div key={row.employeeId}>
-                    <div className="revenue-person"><span className="rank">{index + 1}</span>{emp ? <Avatar name={row.employeeName} photoUrl={emp.photoUrl} color={avatarColor(row.employeeName)} size="sm" /> : <span className="rank" />}<strong>{row.employeeName}</strong></div>
-                    <div className="revenue-bar"><span style={{ width: `${(row.revenue / max) * 100}%` }} /></div>
-                    <span className="revenue-visits">{row.appointments} atendimentos · Comis: {formatCurrency(row.commission)}</span>
-                    <strong className="revenue-total">{formatCurrency(row.revenue)}</strong>
+                  <div key={row.employeeId} className="team-rank-item">
+                    <div className="team-rank-left">
+                      <span className={`rank-podium rank-${index + 1}`}>#{index + 1}</span>
+                      <Avatar
+                        name={row.name}
+                        photoUrl={emp?.photoUrl}
+                        color={avatarColor(row.name)}
+                        size="sm"
+                      />
+                      <div className="team-rank-info">
+                        <strong>{row.name}</strong>
+                        <small>{emp?.jobTitle ?? "Profissional"}</small>
+                      </div>
+                    </div>
+
+                    <div className="team-rank-center">
+                      <div className="team-rank-bar-wrap">
+                        <div className="team-rank-bar" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="team-rank-meta">
+                        {row.appointments} {row.appointments === 1 ? "atendimento" : "atendimentos"}
+                        {" · "}
+                        <span className="commission-text">
+                          Comissão: {formatCurrency(row.commission)}
+                        </span>
+                      </span>
+                    </div>
+
+                    <div className="team-rank-right">
+                      <strong className="team-rank-revenue">{formatCurrency(row.revenue)}</strong>
+                      <small className="team-rank-net">
+                        Líq: {formatCurrency(Math.max(row.revenue - row.commission, 0))}
+                      </small>
+                    </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <EmptyState icon={WalletCards} title="Sem faturamento ainda" description="Finalize atendimentos para ver a receita por profissional." />
+            <EmptyState
+              icon={Users}
+              title="Sem faturamento no período"
+              description="Conclua atendimentos para visualizar o desempenho da equipe."
+            />
           )}
         </section>
 
-        <section className="panel">
-          <SectionHeading title="Serviços mais realizados" description="Volume e faturamento por serviço" />
-          {byService.length ? (
-            <div className="revenue-table">
-              {byService.map((row) => (
-                <div key={row.serviceId} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0" }}>
-                  <div><strong>{row.serviceName}</strong><small style={{ display: "block", color: "var(--text-muted)" }}>{row.count} atendimentos</small></div>
-                  <strong>{formatCurrency(row.revenue)}</strong>
-                </div>
-              ))}
+        {/* Top Services */}
+        <section className="panel revenue-services-panel">
+          <SectionHeading
+            title="Serviços mais realizados"
+            description="Serviços com maior volume e faturamento no período"
+          />
+          {topServices.length ? (
+            <div className="service-ranking-list">
+              {topServices.map((row, index) => {
+                const maxCount = topServices[0]?.count || 1;
+                const pct = Math.min(Math.round((row.count / maxCount) * 100), 100);
+
+                return (
+                  <div key={row.name} className="service-rank-item">
+                    <div className="service-rank-left">
+                      <span className="service-rank-num">#{index + 1}</span>
+                      <div className="service-rank-info">
+                        <strong>{row.name}</strong>
+                        <small>{row.count} {row.count === 1 ? "atendimento" : "atendimentos"}</small>
+                      </div>
+                    </div>
+
+                    <div className="service-rank-center">
+                      <div className="service-rank-bar-wrap">
+                        <div className="service-rank-bar" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="service-rank-right">
+                      <strong className="service-rank-revenue">{formatCurrency(row.revenue)}</strong>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <EmptyState icon={Tag} title="Sem serviços realizados" description="Nenhum atendimento finalizado no período." />
+            <EmptyState
+              icon={Tag}
+              title="Nenhum serviço finalizado"
+              description="Nenhum atendimento foi concluído no período selecionado."
+            />
           )}
         </section>
       </div>
 
-      {stats?.byMethod && stats.byMethod.length > 0 && (
-        <section className="panel payment-panel" style={{ marginTop: 18 }}>
-          <SectionHeading title="Por forma de pagamento" description="Distribuição dos valores recebidos" />
-          <div className="payment-legend">
-            {stats.byMethod.map((row) => <div key={row.method}><i className="legend-teal" /><span>{PAYMENT_LABELS[row.method]}</span><strong>{formatCurrency(row.total)}</strong></div>)}
+      {/* Payment Methods Breakdown */}
+      {paymentBreakdown.length > 0 && (
+        <section className="panel payment-panel" style={{ marginTop: 20 }}>
+          <SectionHeading
+            title="Por forma de pagamento"
+            description="Distribuição dos valores recebidos no período"
+          />
+          <div className="payment-methods-grid">
+            {paymentBreakdown.map((row) => {
+              const totalAll = paymentBreakdown.reduce((acc, p) => acc + p.total, 0) || 1;
+              const pct = Math.round((row.total / totalAll) * 100);
+              return (
+                <div key={row.method} className="payment-method-card">
+                  <div className="payment-method-top">
+                    <span className="payment-method-name">{PAYMENT_LABELS[row.method as PaymentMethod] || row.method}</span>
+                    <span className="payment-method-pct">{pct}%</span>
+                  </div>
+                  <strong className="payment-method-val">{formatCurrency(row.total)}</strong>
+                  <div className="payment-method-track">
+                    <div className="payment-method-bar" style={{ width: `${pct}%` }} />
+                  </div>
+                  <small className="payment-method-count">{row.count} recebimentos</small>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -770,14 +1483,16 @@ function NewAppointmentModal({
   defaultDate,
   defaultEmployeeId,
   defaultStartTime,
+  defaultClientId,
 }: {
   onClose: () => void;
   defaultDate: string;
   defaultEmployeeId?: string;
   defaultStartTime?: string;
+  defaultClientId?: string;
 }) {
   const { clients, services, employees, locations, activeLocationId, createAppointment, notify } = useStore();
-  const [clientId, setClientId] = useState("");
+  const [clientId, setClientId] = useState(defaultClientId || "");
   const [locationId, setLocationId] = useState(activeLocationId || locations[0]?.id || "");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [employeeId, setEmployeeId] = useState(defaultEmployeeId || "");
@@ -1396,6 +2111,7 @@ export function AppShell() {
   // Modals
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
   const [newAppointmentPrefill, setNewAppointmentPrefill] = useState<{
+    clientId?: string;
     employeeId?: string;
     startTime?: string;
     date?: string;
@@ -1447,7 +2163,16 @@ export function AppShell() {
       case "dashboard":
         return <DashboardPage onNew={() => setNewAppointmentOpen(true)} onAppointment={setDetailAppointment} onGoToAgenda={() => navigate("agenda")} />;
       case "clientes":
-        return <ClientsPage onSelect={setClientDrawer} onNew={() => setNewClientOpen(true)} />;
+        return (
+          <ClientsPage
+            onSelect={setClientDrawer}
+            onNew={() => setNewClientOpen(true)}
+            onNewAppointment={(client) => {
+              setNewAppointmentPrefill({ clientId: client.id });
+              setNewAppointmentOpen(true);
+            }}
+          />
+        );
       case "servicos":
         return <ServicesPage onNew={() => setNewServiceOpen(true)} />;
       case "equipe":
@@ -1650,7 +2375,16 @@ export function AppShell() {
   return (
     <div className="app-shell" onClick={() => { setSearchOpen(false); setNotificationsOpen(false); setWorkspaceOpen(false); }}>
       <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""} ${mobileMenu ? "mobile-open" : ""}`} onClick={(e) => e.stopPropagation()}>
-        <div className="sidebar-top"><Logo collapsed={collapsed} /><IconButton label="Recolher menu" onClick={() => setCollapsed((v) => !v)}>{collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}</IconButton></div>
+        <div className="sidebar-top">
+          <Logo collapsed={collapsed} />
+          <IconButton
+            className="collapse-button"
+            label="Recolher menu"
+            onClick={() => setCollapsed((v) => !v)}
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </IconButton>
+        </div>
         
         {/* Workspace Switcher */}
         <div className="popover-container">
@@ -1716,21 +2450,38 @@ export function AppShell() {
         <header className="topbar" onClick={(e) => e.stopPropagation()}>
           <div className="topbar-left">
             <IconButton label="Menu" className="mobile-menu-button" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></IconButton>
-            <div className="breadcrumb"><span>{session?.company.name}</span><ChevronRight size={14} /><strong>{pageTitles[view].title}</strong></div>
+            <div className="breadcrumb">
+              <span className="breadcrumb-company">
+                <Building2 size={13} />
+                <span>{session?.company.name}</span>
+              </span>
+              <ChevronRight size={13} className="breadcrumb-arrow" />
+              <strong className="breadcrumb-page">{pageTitles[view].title}</strong>
+            </div>
           </div>
           
           <div className="topbar-actions">
             {/* Global Search */}
             <div className="popover-container" style={{ flex: 1, maxWidth: 320 }}>
               <div className="global-search">
-                <Search size={17} />
+                <Search size={16} />
                 <input
                   value={globalSearch}
                   onChange={(e) => setGlobalSearch(e.target.value)}
                   placeholder="Buscar clientes, serviços, equipe..."
                   onFocus={() => { if (searchResults) setSearchOpen(true); }}
                 />
-                {globalSearch && <button onClick={() => { setGlobalSearch(""); setSearchOpen(false); }} style={{ background: "none", border: 0, cursor: "pointer", color: "var(--text-muted)" }}><X size={14} /></button>}
+                {globalSearch ? (
+                  <button
+                    onClick={() => { setGlobalSearch(""); setSearchOpen(false); }}
+                    className="clear-search-btn"
+                    title="Limpar busca"
+                  >
+                    <X size={14} />
+                  </button>
+                ) : (
+                  <kbd className="topbar-search-kbd">⌘K</kbd>
+                )}
               </div>
 
               {searchOpen && searchResults && (
@@ -1832,8 +2583,25 @@ export function AppShell() {
               )}
             </div>
 
+            {/* Quick Agendar Button in Topbar */}
+            <button
+              type="button"
+              className="topbar-quick-add-btn"
+              onClick={() => {
+                setNewAppointmentPrefill(null);
+                setNewAppointmentOpen(true);
+              }}
+              title="Novo agendamento rápido"
+            >
+              <CalendarPlus size={14} />
+              <span>Agendar</span>
+            </button>
+
             <button className="topbar-profile-button" onClick={() => setProfileDrawerOpen(true)} aria-label="Perfil">
-              <span className="topbar-avatar">{initials(session?.name ?? "U")}</span>
+              <span className="topbar-avatar-wrap">
+                <span className="topbar-avatar">{initials(session?.name ?? "U")}</span>
+                <span className="topbar-online-dot" title="Online" />
+              </span>
             </button>
           </div>
         </header>
@@ -1854,6 +2622,7 @@ export function AppShell() {
           defaultDate={newAppointmentPrefill?.date || selectedDate}
           defaultEmployeeId={newAppointmentPrefill?.employeeId}
           defaultStartTime={newAppointmentPrefill?.startTime}
+          defaultClientId={newAppointmentPrefill?.clientId}
         />
       )}
       {newClientOpen && <NewClientModal onClose={() => setNewClientOpen(false)} />}
@@ -2205,21 +2974,33 @@ function DayCalendar({
                       onClick={() => onAppointment(apt)}
                       title={`${apt.clientName} · ${apt.serviceName} (${normalizeTime(apt.startTime)} – ${normalizeTime(apt.endTime)})`}
                     >
-                      <div className="timeline-apt-header">
-                        <span className="timeline-time">
-                          <Clock size={10} />
-                          {normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}
-                        </span>
-                        <span
-                          className={`timeline-status-dot status-${apt.status}`}
-                          title={STATUS_LABELS[apt.status]}
-                        />
-                      </div>
-
-                      <strong className="timeline-client">{apt.clientName}</strong>
-
-                      {!isCompact && (
+                      {isCompact ? (
+                        <div className="timeline-compact-row">
+                          <span className="timeline-time">
+                            <Clock size={10} />
+                            {normalizeTime(apt.startTime)}
+                          </span>
+                          <strong className="timeline-client">{apt.clientName}</strong>
+                          <span
+                            className={`timeline-status-dot status-${apt.status}`}
+                            title={STATUS_LABELS[apt.status]}
+                          />
+                        </div>
+                      ) : (
                         <>
+                          <div className="timeline-apt-header">
+                            <span className="timeline-time">
+                              <Clock size={10} />
+                              {normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}
+                            </span>
+                            <span
+                              className={`timeline-status-dot status-${apt.status}`}
+                              title={STATUS_LABELS[apt.status]}
+                            />
+                          </div>
+
+                          <strong className="timeline-client">{apt.clientName}</strong>
+
                           <span className="timeline-service">{apt.serviceName}</span>
                           {height >= 68 && (
                             <div className="timeline-apt-footer">
