@@ -780,23 +780,394 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
   );
 }
 
-function TeamPage({ onNew }: { onNew: () => void }) {
-  const { employees } = useStore();
+type TeamTab = "all" | "active" | "with_today" | "top";
+type TeamSort = "appointments-desc" | "name-asc" | "commission-desc" | "services-desc";
+
+function TeamPage({
+  onNew,
+  onNewAppointment,
+  onGoToAgenda,
+}: {
+  onNew: () => void;
+  onNewAppointment: (emp: EmployeeDTO) => void;
+  onGoToAgenda: () => void;
+}) {
+  const { employees, appointments, stats } = useStore();
+  const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<TeamTab>("all");
+  const [sortBy, setSortBy] = useState<TeamSort>("appointments-desc");
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const currentMonthPrefix = useMemo(() => todayStr.slice(0, 7), [todayStr]);
+
+  // Appointments mapping per employee
+  const employeeMetrics = useMemo(() => {
+    const map = new Map<string, { todayCount: number; monthCount: number; monthRevenue: number; commissionTotal: number }>();
+
+    employees.forEach((emp) => {
+      map.set(emp.id, { todayCount: 0, monthCount: 0, monthRevenue: 0, commissionTotal: 0 });
+    });
+
+    appointments.forEach((apt) => {
+      if (apt.status === "cancelled") return;
+      const entry = map.get(apt.employeeId);
+      if (!entry) return;
+
+      if (apt.date === todayStr) {
+        entry.todayCount += 1;
+      }
+      if (apt.date.startsWith(currentMonthPrefix) && apt.status === "completed") {
+        entry.monthCount += 1;
+        entry.monthRevenue += apt.total || 0;
+
+        const emp = employees.find((e) => e.id === apt.employeeId);
+        let com = 0;
+        if (emp?.commissionType === "percentage") {
+          com = Math.round(((apt.total || 0) * (emp.commissionValue || 0)) / 100);
+        } else if (emp?.commissionType === "fixed") {
+          com = emp.commissionValue || 0;
+        } else {
+          com = Math.round(((apt.total || 0) * 30) / 100);
+        }
+        entry.commissionTotal += com;
+      }
+    });
+
+    return map;
+  }, [employees, appointments, todayStr, currentMonthPrefix]);
+
+  // Overall KPI metrics matching Home
+  const totalEmployees = employees.length;
+  const activeEmployees = employees.filter((e) => e.active);
+  const totalMonthApts = useMemo(() => {
+    const fromApts = Array.from(employeeMetrics.values()).reduce((acc, m) => acc + m.monthCount, 0);
+    return fromApts > 0 ? fromApts : (stats?.month.appointments ?? 0);
+  }, [employeeMetrics, stats]);
+
+  const totalTeamRevenue = useMemo(() => {
+    const fromApts = Array.from(employeeMetrics.values()).reduce((acc, m) => acc + m.monthRevenue, 0);
+    return fromApts > 0 ? fromApts : (stats?.month.revenue ?? 0);
+  }, [employeeMetrics, stats]);
+
+  const totalCommissions = useMemo(() => {
+    return Array.from(employeeMetrics.values()).reduce((acc, m) => acc + m.commissionTotal, 0);
+  }, [employeeMetrics]);
+
+  const avgPerEmp = totalEmployees > 0 ? Math.round(totalMonthApts / totalEmployees) : 0;
+
+  // Filtered
+  const filtered = useMemo(() => {
+    return employees.filter((emp) => {
+      const q = query.trim().toLowerCase();
+      if (q) {
+        const matchName = emp.name.toLowerCase().includes(q);
+        const matchRole = (emp.jobTitle ?? "").toLowerCase().includes(q);
+        const matchService = emp.services.some((s) => s.toLowerCase().includes(q));
+        if (!matchName && !matchRole && !matchService) return false;
+      }
+
+      if (activeTab === "active") {
+        return emp.active;
+      }
+      if (activeTab === "with_today") {
+        const m = employeeMetrics.get(emp.id);
+        return Boolean(m && m.todayCount > 0);
+      }
+      if (activeTab === "top") {
+        const m = employeeMetrics.get(emp.id);
+        return Boolean(m && (m.monthCount >= 2 || m.monthRevenue > 0));
+      }
+      return true;
+    });
+  }, [employees, query, activeTab, employeeMetrics]);
+
+  // Sorted
+  const sorted = useMemo(() => {
+    const list = [...filtered];
+    switch (sortBy) {
+      case "appointments-desc":
+        return list.sort((a, b) => {
+          const mA = employeeMetrics.get(a.id)?.monthCount ?? 0;
+          const mB = employeeMetrics.get(b.id)?.monthCount ?? 0;
+          return mB - mA;
+        });
+      case "name-asc":
+        return list.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      case "commission-desc":
+        return list.sort((a, b) => (b.commissionValue || 0) - (a.commissionValue || 0));
+      case "services-desc":
+        return list.sort((a, b) => b.services.length - a.services.length);
+      default:
+        return list;
+    }
+  }, [filtered, sortBy, employeeMetrics]);
+
+  const tabs: Array<{ id: TeamTab; label: string; count: number; icon?: LucideIcon }> = [
+    { id: "all", label: "Todos os profissionais", count: totalEmployees },
+    { id: "active", label: "Ativos", count: activeEmployees.length, icon: CheckCircle },
+    {
+      id: "with_today",
+      label: "Com agenda hoje",
+      count: employees.filter((e) => (employeeMetrics.get(e.id)?.todayCount ?? 0) > 0).length,
+      icon: CalendarDays,
+    },
+    {
+      id: "top",
+      label: "Mais produtivos",
+      count: employees.filter((e) => (employeeMetrics.get(e.id)?.monthCount ?? 0) >= 2 || (employeeMetrics.get(e.id)?.monthRevenue ?? 0) > 0).length,
+      icon: Sparkles,
+    },
+  ];
+
   return (
-    <div className="page-content">
-      <div className="page-intro"><div><p className="eyebrow">Pessoas e permissões</p><h1>Equipe</h1><p className="intro-copy">{employees.length} profissionais ativos no seu estabelecimento.</p></div><Button onClick={onNew}><UserPlus size={17} /> Adicionar profissional</Button></div>
-      <div className="team-grid">
-        {employees.map((employee) => (
-          <article className="team-card" key={employee.id}>
-            <div className="team-card-top"><Avatar name={employee.name} photoUrl={employee.photoUrl} color={avatarColor(employee.name)} size="lg" /><span className="active-dot" /></div>
-            <h3>{employee.name}</h3>
-            <span className="team-role">{employee.jobTitle ?? "Profissional"}</span>
-            <div className="team-services">{employee.services.map((service) => <span key={service}>{service}</span>)}{employee.services.length === 0 && <span className="team-no-services">Sem serviços vinculados</span>}</div>
-            <div className="team-schedule-static"><Clock3 size={13} /> {employee.active ? "Ativo" : "Inativo"} · Comissão: {employee.commissionType === "percentage" ? `${employee.commissionValue}%` : employee.commissionType === "fixed" ? formatCurrency(employee.commissionValue) : "Sem comissão"}</div>
-          </article>
-        ))}
-        {employees.length === 0 && <EmptyState icon={UserRound} title="Nenhum profissional" description="Adicione profissionais para atribuir atendimentos." action={<Button onClick={onNew}><UserPlus size={16} /> Adicionar profissional</Button>} />}
+    <div className="page-content team-page-content">
+      {/* Intro Header */}
+      <div className="page-intro">
+        <div>
+          <p className="eyebrow">Pessoas e permissões</p>
+          <h1>Equipe</h1>
+          <p className="intro-copy">{totalEmployees} profissionais cadastrados no seu estabelecimento.</p>
+        </div>
+        <Button onClick={onNew}>
+          <UserPlus size={17} /> Adicionar profissional
+        </Button>
       </div>
+
+      {/* Metrics Grid matching Home page KPIs */}
+      <div className="metrics-grid team-metrics-grid">
+        <div className="metric-card">
+          <div className="metric-icon metric-teal"><Users size={18} /></div>
+          <div className="metric-copy">
+            <p>Total de profissionais</p>
+            <strong>{totalEmployees}</strong>
+            <span className="metric-detail">{activeEmployees.length} ativos na equipe</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-lilac"><CalendarDays size={18} /></div>
+          <div className="metric-copy">
+            <p>Atendimentos no mês</p>
+            <strong>{totalMonthApts}</strong>
+            <span className="metric-detail">méd. {avgPerEmp} por profissional</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-amber"><CircleDollarSign size={18} /></div>
+          <div className="metric-copy">
+            <p>Faturamento da equipe</p>
+            <strong>{formatCurrency(totalTeamRevenue)}</strong>
+            <span className="metric-detail">gerado este mês</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-rose"><TrendingUp size={18} /></div>
+          <div className="metric-copy">
+            <p>Comissões calculadas</p>
+            <strong>{formatCurrency(totalCommissions)}</strong>
+            <span className="metric-detail">a repassar à equipe</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Team Panel with Tabs & Search */}
+      <section className="panel team-main-panel">
+        {/* Segmented Tabs ("Aba acima") */}
+        <div className="client-tabs-container">
+          <div className="client-segment-tabs" role="tablist">
+            {tabs.map((tab) => {
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  className={`client-tab-btn ${activeTab === tab.id ? "active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {TabIcon && <TabIcon size={14} />}
+                  <span>{tab.label}</span>
+                  <span className="client-tab-pill">{tab.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Toolbar: Search + Sort + Count */}
+        <div className="client-panel-toolbar">
+          <div className="client-search-wrapper">
+            <div className="search-box client-search-box">
+              <Search size={16} />
+              <input
+                placeholder="Buscar por nome, cargo ou serviço..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="clear-search-btn"
+                  onClick={() => setQuery("")}
+                  title="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="client-toolbar-right">
+            <div className="client-sort-group">
+              <span className="sort-label"><ArrowUpDown size={13} /> Ordenar:</span>
+              <select
+                className="select-input client-sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as TeamSort)}
+              >
+                <option value="appointments-desc">Mais atendimentos</option>
+                <option value="name-asc">Nome (A–Z)</option>
+                <option value="commission-desc">Maior comissão</option>
+                <option value="services-desc">Mais serviços</option>
+              </select>
+            </div>
+            <span className="client-results-count">
+              Exibindo <strong>{sorted.length}</strong> de {totalEmployees}
+            </span>
+          </div>
+        </div>
+
+        {/* Cards Grid */}
+        <div className="team-cards-container">
+          {sorted.length ? (
+            <div className="team-grid-modern">
+              {sorted.map((employee) => {
+                const metrics = employeeMetrics.get(employee.id) || { todayCount: 0, monthCount: 0, monthRevenue: 0, commissionTotal: 0 };
+                const isCommissionPercent = employee.commissionType === "percentage";
+                const isCommissionFixed = employee.commissionType === "fixed";
+
+                return (
+                  <article className="modern-team-card" key={employee.id}>
+                    {/* Header */}
+                    <div className="modern-team-header">
+                      <div className="modern-avatar-wrap">
+                        <Avatar
+                          name={employee.name}
+                          photoUrl={employee.photoUrl}
+                          color={avatarColor(employee.name)}
+                          size="lg"
+                        />
+                        <span className={`modern-active-dot ${employee.active ? "online" : "offline"}`} title={employee.active ? "Profissional ativo" : "Profissional inativo"} />
+                      </div>
+
+                      <div className="modern-team-badges">
+                        <span className={`team-status-badge ${employee.active ? "active" : "inactive"}`}>
+                          <span className="team-status-dot" />
+                          {employee.active ? "Ativo" : "Inativo"}
+                        </span>
+                        <span className="team-commission-badge" title="Regra de comissão">
+                          {isCommissionPercent
+                            ? `${employee.commissionValue}% comissão`
+                            : isCommissionFixed
+                            ? `${formatCurrency(employee.commissionValue)} fixa`
+                            : "Sem comissão"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="modern-team-body">
+                      <h3 className="modern-team-name">{employee.name}</h3>
+                      <span className="modern-team-role">{employee.jobTitle ?? "Profissional"}</span>
+
+                      {/* Mini Stats Strip */}
+                      <div className="modern-team-stats-strip">
+                        <div className="team-stat-item">
+                          <span className="team-stat-label">Hoje</span>
+                          <strong className="team-stat-val">{metrics.todayCount} atend.</strong>
+                        </div>
+                        <div className="team-stat-divider" />
+                        <div className="team-stat-item">
+                          <span className="team-stat-label">Este mês</span>
+                          <strong className="team-stat-val">{metrics.monthCount} atend.</strong>
+                        </div>
+                        <div className="team-stat-divider" />
+                        <div className="team-stat-item">
+                          <span className="team-stat-label">Faturamento</span>
+                          <strong className="team-stat-val">{formatCurrency(metrics.monthRevenue)}</strong>
+                        </div>
+                      </div>
+
+                      {/* Services Chips */}
+                      <div className="modern-team-services">
+                        {employee.services.slice(0, 3).map((service) => (
+                          <span key={service} className="modern-service-chip" title={service}>
+                            {service}
+                          </span>
+                        ))}
+                        {employee.services.length > 3 && (
+                          <span className="modern-service-more" title={employee.services.slice(3).join(", ")}>
+                            +{employee.services.length - 3} mais
+                          </span>
+                        )}
+                        {employee.services.length === 0 && (
+                          <span className="team-no-services">Nenhum serviço vinculado</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="modern-team-footer">
+                      <button
+                        type="button"
+                        className="modern-team-btn schedule"
+                        onClick={() => onNewAppointment(employee)}
+                        title={`Criar novo agendamento com ${employee.name}`}
+                      >
+                        <CalendarPlus size={14} />
+                        <span>Agendar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="modern-team-btn agenda"
+                        onClick={onGoToAgenda}
+                        title={`Ver grade da agenda`}
+                      >
+                        <CalendarDays size={14} />
+                        <span>Agenda</span>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={UserRound}
+              title={query || activeTab !== "all" ? "Nenhum profissional encontrado" : "Nenhum profissional cadastrado"}
+              description={
+                query || activeTab !== "all"
+                  ? "Tente ajustar os filtros ou termo de busca."
+                  : "Adicione profissionais para atribuir atendimentos e horários."
+              }
+              action={
+                query || activeTab !== "all" ? (
+                  <Button variant="secondary" onClick={() => { setQuery(""); setActiveTab("all"); }}>
+                    Limpar filtros
+                  </Button>
+                ) : (
+                  <Button onClick={onNew}>
+                    <UserPlus size={16} /> Adicionar profissional
+                  </Button>
+                )
+              }
+            />
+          )}
+        </div>
+      </section>
     </div>
   );
 }
@@ -2176,7 +2547,16 @@ export function AppShell() {
       case "servicos":
         return <ServicesPage onNew={() => setNewServiceOpen(true)} />;
       case "equipe":
-        return <TeamPage onNew={() => setNewEmployeeOpen(true)} />;
+        return (
+          <TeamPage
+            onNew={() => setNewEmployeeOpen(true)}
+            onNewAppointment={(emp) => {
+              setNewAppointmentPrefill({ employeeId: emp.id });
+              setNewAppointmentOpen(true);
+            }}
+            onGoToAgenda={() => navigate("agenda")}
+          />
+        );
       case "financeiro":
         return <FinancialPage />;
       case "configuracoes":

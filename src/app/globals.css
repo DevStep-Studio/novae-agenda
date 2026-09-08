@@ -3239,3 +3239,294 @@ kbd { display: flex; align-items: center; gap: 2px; border: 1px solid var(--bord
   color: var(--text-muted);
 }
 
+/* ===== Team Page Modern Styles ===== */
+.team-page-content .page-intro {
+  margin-bottom: 22px;
+}
+.team-metrics-grid {
+  margin-bottom: 22px;
+}
+.team-metrics-grid .metric-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.team-metrics-grid .metric-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(220, 255, 76, 0.28);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.team-main-panel {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.team-cards-container {
+  background: var(--surface);
+  min-height: 280px;
+}
+
+.team-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+  padding: 22px;
+}
+@media (max-width: 680px) {
+  .team-grid-modern {
+    grid-template-columns: 1fr;
+    padding: 14px;
+    gap: 14px;
+  }
+}
+
+.modern-team-card {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+.modern-team-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(220, 255, 76, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  background: var(--surface);
+}
+:root:not([data-theme="dark"]) .modern-team-card:hover {
+  border-color: rgba(31, 111, 102, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.modern-team-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modern-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.modern-active-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface-secondary);
+}
+.modern-team-card:hover .modern-active-dot {
+  border-color: var(--surface);
+}
+.modern-active-dot.online {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.65);
+}
+.modern-active-dot.offline {
+  background: var(--text-muted);
+}
+
+.modern-team-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.team-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.team-status-badge.active {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+:root:not([data-theme="dark"]) .team-status-badge.active {
+  color: #16a34a;
+}
+.team-status-badge.inactive {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.team-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.team-commission-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+:root:not([data-theme="dark"]) .team-commission-badge {
+  color: #d97706;
+}
+
+.modern-team-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.modern-team-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+.modern-team-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.modern-team-stats-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin: 10px 0 12px;
+}
+.team-stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.team-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.team-stat-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.team-stat-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+}
+
+.modern-team-services {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 26px;
+  align-items: center;
+}
+.modern-service-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.modern-service-more {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+:root:not([data-theme="dark"]) .modern-service-more {
+  color: #1f6f66;
+}
+.team-no-services {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.modern-team-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.modern-team-btn {
+  flex: 1;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid var(--border);
+}
+.modern-team-btn.schedule {
+  background: rgba(220, 255, 76, 0.1);
+  border-color: rgba(220, 255, 76, 0.28);
+  color: var(--primary);
+}
+.modern-team-btn.schedule:hover {
+  background: var(--primary);
+  color: #12231b;
+  border-color: var(--primary);
+  box-shadow: 0 2px 10px rgba(220, 255, 76, 0.35);
+  transform: translateY(-1px);
+}
+:root:not([data-theme="dark"]) .modern-team-btn.schedule {
+  background: rgba(31, 111, 102, 0.08);
+  border-color: rgba(31, 111, 102, 0.25);
+  color: #1f6f66;
+}
+:root:not([data-theme="dark"]) .modern-team-btn.schedule:hover {
+  background: #1f6f66;
+  color: #fff;
+  border-color: #1f6f66;
+  box-shadow: 0 2px 10px rgba(31, 111, 102, 0.3);
+}
+
+.modern-team-btn.agenda {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+.modern-team-btn.agenda:hover {
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
