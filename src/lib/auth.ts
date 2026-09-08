@@ -83,33 +83,23 @@ function formatTime(value: string): string {
   return value.length === 8 ? value.slice(0, 5) : value;
 }
 
-export async function getSession(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+/** Shared identity for staff and customers; the same signed session cookie is used. */
+export async function getIdentity() {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
-
   try {
-    const { payload } = await jwtVerify(token, secretKey);
-    const userId = payload.sub;
-    if (!userId) return null;
+    const { payload } = await jwtVerify(token, secretKey, { algorithms: ["HS256"] });
+    if (!payload.sub) return null;
+    const [user] = await db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
+    return user?.active ? user : null;
+  } catch { return null; }
+}
 
-    const [user] = await db
-      .select({
-        id: users.id,
-        companyId: users.companyId,
-        role: users.role,
-        isSuperadmin: users.isSuperadmin,
-        name: users.name,
-        email: users.email,
-        active: users.active,
-        emailVerified: users.emailVerified,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!user || !user.active) return null;
-
+export async function getSession(): Promise<SessionUser | null> {
+  try {
+    const user = await getIdentity();
+    if (!user || !user.companyId || !isRole(user.role)) return null;
+    const userId = user.id;
     const company = await db
       .select({
         id: companies.id,

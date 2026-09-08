@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { localInstant } from "@/lib/booking/time";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
@@ -303,8 +304,8 @@ describe("Availability Engine & Conflict Validation", () => {
         companyId: testCompanyId,
         employeeId: joaoId,
         reason: "Reunião de Equipe",
-        startsAt: new Date(`${testDate}T16:00:00Z`),
-        endsAt: new Date(`${testDate}T17:00:00Z`),
+        startsAt: localInstant(testDate,"16:00","America/Sao_Paulo"),
+        endsAt: localInstant(testDate,"17:00","America/Sao_Paulo"),
         allDay: false,
       })
       .returning();
@@ -332,8 +333,8 @@ describe("Availability Engine & Conflict Validation", () => {
         companyId: testCompanyId,
         employeeId: null,
         reason: "Feriado Municipal",
-        startsAt: new Date(`${testDate}T00:00:00Z`),
-        endsAt: new Date(`${testDate}T23:59:59Z`),
+        startsAt: localInstant(testDate,"00:00","America/Sao_Paulo"),
+        endsAt: localInstant(testDate,"23:59","America/Sao_Paulo"),
         allDay: true,
       })
       .returning();

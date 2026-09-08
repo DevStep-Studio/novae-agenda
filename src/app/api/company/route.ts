@@ -1,3 +1,6 @@
+import { lockCompany } from "@/lib/booking/service";
+import { assertTimezoneChange } from "@/lib/booking/timezone-setting";
+import { bookingError } from "@/lib/booking/errors";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
@@ -12,8 +15,13 @@ export async function GET() {
   const auth = await requireAuth();
   if (!auth) return unauthorized();
 
-  const [company] = await db.select().from(companies).where(eq(companies.id, auth.user.companyId)).limit(1);
-  if (!company) return Response.json({ error: "Empresa não encontrada." }, { status: 404 });
+  const [company] = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.id, auth.user.companyId))
+    .limit(1);
+  if (!company)
+    return Response.json({ error: "Empresa não encontrada." }, { status: 404 });
 
   const dto: Company = {
     id: company.id,
@@ -56,7 +64,10 @@ export async function PATCH(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
+    return Response.json(
+      { error: parsed.error.issues[0]?.message ?? "Dados inválidos." },
+      { status: 400 },
+    );
   }
 
   const patch: Record<string, unknown> = {};
@@ -66,13 +77,27 @@ export async function PATCH(request: Request) {
   if (data.whatsapp !== undefined) patch.whatsapp = data.whatsapp.trim();
   if (data.email !== undefined) patch.email = data.email.trim() || null;
   if (data.address !== undefined) patch.address = data.address.trim() || null;
-  if (data.instagram !== undefined) patch.instagram = data.instagram.trim() || null;
+  if (data.instagram !== undefined)
+    patch.instagram = data.instagram.trim() || null;
   if (data.website !== undefined) patch.website = data.website.trim() || null;
   if (data.timezone !== undefined) patch.timezone = data.timezone;
   if (data.primaryColor !== undefined) patch.primaryColor = data.primaryColor;
-  if (data.secondaryColor !== undefined) patch.secondaryColor = data.secondaryColor;
+  if (data.secondaryColor !== undefined)
+    patch.secondaryColor = data.secondaryColor;
 
-  await db.update(companies).set(patch).where(eq(companies.id, auth.user.companyId));
+  try {
+    await db.transaction(async (tx) => {
+      await lockCompany(tx, auth.user.companyId);
+      if (data.timezone)
+        await assertTimezoneChange(tx, auth.user.companyId, data.timezone);
+      await tx
+        .update(companies)
+        .set(patch)
+        .where(eq(companies.id, auth.user.companyId));
+    });
+  } catch (error) {
+    return bookingError(error);
+  }
   await recordAudit({
     companyId: auth.user.companyId,
     userId: auth.user.userId,

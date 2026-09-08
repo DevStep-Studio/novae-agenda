@@ -70,6 +70,12 @@ export type EmployeeDTO = {
 };
 
 export type ServiceDTO = {
+  bufferMinutes?: number;
+  imageUrl?: string | null;
+  deliveryMode?: string;
+  paymentType?: string;
+  depositAmount?: number;
+  cancellationPolicy?: string | null;
   id: string;
   name: string;
   categoryId: string | null;

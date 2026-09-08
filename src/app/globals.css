@@ -2898,14 +2898,53 @@ kbd { display: flex; align-items: center; gap: 2px; border: 1px solid var(--bord
 }
 .sidebar-collapsed .sidebar-top {
   justify-content: center;
-  padding: 0 8px;
+  padding: 0;
 }
-.collapse-button {
+.sidebar-collapsed .brand-lockup--collapsed {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+.collapse-button,
+.desktop-expand-button {
   flex-shrink: 0;
-  margin-left: 8px;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
-.sidebar-collapsed .collapse-button {
-  margin-left: 0;
+.collapse-button:focus,
+.collapse-button:active,
+.collapse-button:focus-visible,
+.desktop-expand-button:focus,
+.desktop-expand-button:active,
+.desktop-expand-button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.desktop-expand-button {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-right: 12px;
+  transition: all 0.15s ease;
+}
+.desktop-expand-button:hover {
+  background: var(--surface-tertiary);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+@media (max-width: 900px) {
+  .desktop-expand-button {
+    display: none !important;
+  }
 }
 
 /* ===== Settings Focus Outline & Interaction Fix ===== */

@@ -1,3 +1,6 @@
+import { localDate, localTime, localInstant } from "@/lib/booking/time";
+import { lockCompany } from "@/lib/booking/service";
+import { bookingError } from "@/lib/booking/errors";
 import { and, eq } from "drizzle-orm";
 import { isUuid, isValidDateKey, isValidTime } from "@/lib/domain";
 import { z } from "zod";
@@ -29,17 +32,17 @@ export async function GET(request: Request) {
   const dto: ScheduleBlockDTO[] = rows
     .filter((block) => {
       if (!date) return true;
-      const blockStartDate = block.startsAt.toISOString().slice(0, 10);
-      const blockEndDate = block.endsAt.toISOString().slice(0, 10);
+      const blockStartDate = localDate(block.startsAt, auth.companyTimezone);
+      const blockEndDate = localDate(block.endsAt, auth.companyTimezone);
       return blockStartDate <= date && blockEndDate >= date;
     })
     .map((block) => ({
       id: block.id,
       employeeId: block.employeeId,
       locationId: block.locationId,
-      date: block.startsAt.toISOString().slice(0, 10),
-      startsAt: block.startsAt.toISOString().slice(11, 16),
-      endsAt: block.endsAt.toISOString().slice(11, 16),
+      date: localDate(block.startsAt, auth.companyTimezone),
+      startsAt: localTime(block.startsAt, auth.companyTimezone),
+      endsAt: localTime(block.endsAt, auth.companyTimezone),
       allDay: block.allDay,
       reason: block.reason,
     }));
@@ -112,19 +115,21 @@ export async function POST(request: Request) {
   let endsAtDate: Date;
 
   if (allDay || finalEndDate !== date) {
-    startsAtDate = new Date(`${date}T00:00:00Z`);
-    endsAtDate = new Date(`${finalEndDate}T23:59:59Z`);
+    startsAtDate = localInstant(date,"00:00",auth.companyTimezone);
+    endsAtDate = localInstant(finalEndDate,"23:59",auth.companyTimezone);
   } else {
     const sTime = startsAt && isValidTime(startsAt) ? startsAt : "00:00";
     const eTime = endsAt && isValidTime(endsAt) ? endsAt : "23:59";
     if (sTime >= eTime) {
       return Response.json({ error: "O horário final deve ser depois do inicial." }, { status: 400 });
     }
-    startsAtDate = new Date(`${date}T${sTime}:00Z`);
-    endsAtDate = new Date(`${date}T${eTime}:00Z`);
+    startsAtDate = localInstant(date,sTime,auth.companyTimezone);
+    endsAtDate = localInstant(date,eTime,auth.companyTimezone);
   }
 
-  const [created] = await db
+  try { return await db.transaction(async tx => {
+    await lockCompany(tx,auth.user.companyId);
+  const [created] = await tx
     .insert(scheduleBlocks)
     .values({
       companyId: auth.user.companyId,
@@ -143,13 +148,15 @@ export async function POST(request: Request) {
         id: created.id,
         employeeId: created.employeeId,
         locationId: created.locationId,
-        date: created.startsAt.toISOString().slice(0, 10),
-        startsAt: created.startsAt.toISOString().slice(11, 16),
-        endsAt: created.endsAt.toISOString().slice(11, 16),
+        date: localDate(created.startsAt,auth.companyTimezone),
+        startsAt: localTime(created.startsAt,auth.companyTimezone),
+        endsAt: localTime(created.endsAt,auth.companyTimezone),
         allDay: created.allDay,
         reason: created.reason,
       },
     },
     { status: 201 },
   );
+  }); } catch(error) { return bookingError(error); }
+
 }

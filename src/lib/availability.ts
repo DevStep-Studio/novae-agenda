@@ -1,106 +1,144 @@
-import { and, eq, isNull, ne, or } from "drizzle-orm";
+import { and, eq, gte, isNull, lt, ne, or } from "drizzle-orm";
 import { db } from "@/db";
-import { appointments, employeeSchedules, scheduleBlocks } from "@/db/schema";
-import { addMinutesToTime, dayOfWeek, minutesToTime, normalizeTime, timeToMinutes } from "@/lib/domain";
-
+import {
+  appointments,
+  companies,
+  employeeSchedules,
+  employees,
+  locations,
+  scheduleBlocks,
+} from "@/db/schema";
+import { dayOfWeek, minutesToTime, timeToMinutes } from "@/lib/domain";
+import {
+  localDate,
+  localInstant,
+  localTime,
+  shiftDate,
+} from "@/lib/booking/time";
+import { getCompanySettings } from "@/lib/settings";
+export type DbExecutor = Pick<
+  typeof db,
+  "select" | "insert" | "update" | "delete" | "execute"
+>;
 export type Interval = { start: number; end: number };
-
-type BlockRow = { startsAt: Date; endsAt: Date; allDay: boolean };
-
 export type AvailabilityParams = {
   companyId: string;
   employeeId: string;
   date: string;
   durationMinutes: number;
   timezone: string;
+  locationId?: string;
   excludeAppointmentId?: string;
-  /** Minimum gap (minutes) kept after each appointment before next can start. */
+  excludeBookingId?: string;
   bufferMinutes?: number;
+  executor?: DbExecutor;
 };
-
-function mergeIntervals(intervals: Interval[]): Interval[] {
-  if (intervals.length === 0) return [];
-  const sorted = [...intervals].sort((a, b) => a.start - b.start);
-  const merged: Interval[] = [sorted[0]];
-  for (let i = 1; i < sorted.length; i++) {
-    const last = merged[merged.length - 1];
-    const current = sorted[i];
-    if (current.start <= last.end) {
+export function mergeIntervals(intervals: Interval[]): Interval[] {
+  const merged: Interval[] = [];
+  for (const current of [...intervals].sort((a, b) => a.start - b.start)) {
+    const last = merged.at(-1);
+    if (last && current.start <= last.end)
       last.end = Math.max(last.end, current.end);
-    } else {
-      merged.push(current);
-    }
+    else merged.push({ ...current });
   }
   return merged;
 }
-
-function subtractIntervals(working: Interval[], busy: Interval[]): Interval[] {
-  for (const block of busy) {
-    const next: Interval[] = [];
-    for (const window of working) {
-      if (block.end <= window.start || block.start >= window.end) {
-        next.push(window);
-        continue;
-      }
-      if (block.start > window.start) next.push({ start: window.start, end: block.start });
-      if (block.end < window.end) next.push({ start: block.end, end: window.end });
-    }
-    working = next;
-  }
-  return working;
+export function subtractIntervals(
+  working: Interval[],
+  busy: Interval[],
+): Interval[] {
+  let free = working;
+  for (const b of busy)
+    free = free.flatMap((w) =>
+      b.end <= w.start || b.start >= w.end
+        ? [w]
+        : [
+            ...(b.start > w.start ? [{ start: w.start, end: b.start }] : []),
+            ...(b.end < w.end ? [{ start: b.end, end: w.end }] : []),
+          ],
+    );
+  return free;
 }
-
-function getCurrentTimeInTz(timezone: string): { today: string; currentMinutes: number } {
-  const now = new Date();
-  const dateFmt = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
-  const timeFmt = new Intl.DateTimeFormat("pt-BR", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hour12: false });
-  const today = dateFmt.format(now);
-  const parts = timeFmt.format(now).split(":");
-  const currentMinutes = Number(parts[0]) * 60 + Number(parts[1]);
-  return { today, currentMinutes };
+export function scheduleWindows(
+  rows: Array<{
+    startTime: string;
+    endTime: string;
+    breakStart: string | null;
+    breakEnd: string | null;
+  }>,
+) {
+  return mergeIntervals(
+    rows.flatMap((s) =>
+      subtractIntervals(
+        [{ start: timeToMinutes(s.startTime), end: timeToMinutes(s.endTime) }],
+        s.breakStart && s.breakEnd
+          ? [
+              {
+                start: timeToMinutes(s.breakStart),
+                end: timeToMinutes(s.breakEnd),
+              },
+            ]
+          : [],
+      ),
+    ),
+  );
 }
-
-/** The professional's working windows for the given weekday (schedule minus lunch break). */
+export function blockIntervals(
+  rows: Array<{ startsAt: Date; endsAt: Date }>,
+  date: string,
+  timezone: string,
+): Interval[] {
+  const start = localInstant(date, "00:00", timezone),
+    end = localInstant(shiftDate(date, 1), "00:00", timezone);
+  return rows
+    .filter((b) => b.startsAt < end && b.endsAt > start)
+    .map((b) => ({
+      start:
+        b.startsAt <= start
+          ? 0
+          : timeToMinutes(localTime(b.startsAt, timezone)),
+      end:
+        b.endsAt >= end ? 1440 : timeToMinutes(localTime(b.endsAt, timezone)),
+    }));
+}
 export async function getEmployeeDayWindows(
   employeeId: string,
   date: string,
   timezone: string,
-): Promise<{ hasSchedule: boolean; windows: Interval[] }> {
-  const dow = dayOfWeek(date, timezone);
-  const [schedule] = await db
+  executor: DbExecutor = db,
+  locationId?: string,
+) {
+  const rows = await executor
     .select()
     .from(employeeSchedules)
-    .where(and(eq(employeeSchedules.employeeId, employeeId), eq(employeeSchedules.dayOfWeek, dow), eq(employeeSchedules.active, true)))
-    .limit(1);
-
-  if (!schedule) return { hasSchedule: false, windows: [] };
-
-  const start = timeToMinutes(normalizeTime(schedule.startTime));
-  const end = timeToMinutes(normalizeTime(schedule.endTime));
-  if (end <= start) return { hasSchedule: true, windows: [] };
-
-  const windows: Interval[] = [];
-  if (schedule.breakStart && schedule.breakEnd) {
-    const breakStart = timeToMinutes(normalizeTime(schedule.breakStart));
-    const breakEnd = timeToMinutes(normalizeTime(schedule.breakEnd));
-    if (breakStart > start) windows.push({ start, end: Math.min(breakStart, end) });
-    if (breakEnd < end) windows.push({ start: Math.max(breakEnd, start), end });
-  } else {
-    windows.push({ start, end });
-  }
-  return { hasSchedule: true, windows };
+    .where(
+      and(
+        eq(employeeSchedules.employeeId, employeeId),
+        eq(employeeSchedules.dayOfWeek, dayOfWeek(date, timezone)),
+        eq(employeeSchedules.active, true),
+        locationId
+          ? or(
+              eq(employeeSchedules.locationId, locationId),
+              isNull(employeeSchedules.locationId),
+            )
+          : undefined,
+      ),
+    );
+  return { hasSchedule: rows.length > 0, windows: scheduleWindows(rows) };
 }
-
-/** Busy intervals from other appointments on that day, padded by configured buffer. */
 export async function getAppointmentBusyIntervals(
   companyId: string,
   employeeId: string,
   date: string,
-  options: { excludeAppointmentId?: string; bufferMinutes?: number } = {},
-): Promise<Interval[]> {
-  const buffer = Math.max(0, options.bufferMinutes ?? 0);
-  const rows = await db
-    .select({ startTime: appointments.startTime, endTime: appointments.endTime })
+  options: {
+    excludeAppointmentId?: string;
+    excludeBookingId?: string;
+    bufferMinutes?: number;
+    executor?: DbExecutor;
+  } = {},
+) {
+  const rows = await (options.executor ?? db)
+    .select()
     .from(appointments)
     .where(
       and(
@@ -109,20 +147,43 @@ export async function getAppointmentBusyIntervals(
         eq(appointments.appointmentDate, date),
         ne(appointments.status, "cancelled"),
         ne(appointments.status, "no_show"),
-        options.excludeAppointmentId ? ne(appointments.id, options.excludeAppointmentId) : undefined,
+        options.excludeAppointmentId
+          ? ne(appointments.id, options.excludeAppointmentId)
+          : undefined,
+        options.excludeBookingId
+          ? or(
+              isNull(appointments.bookingId),
+              ne(appointments.bookingId, options.excludeBookingId),
+            )
+          : undefined,
       ),
     );
-
-  return rows.map((apt) => ({
-    start: timeToMinutes(normalizeTime(apt.startTime)),
-    end: timeToMinutes(normalizeTime(apt.endTime)) + buffer,
+  return rows.map((a) => ({
+    start: timeToMinutes(a.startTime),
+    end:
+      timeToMinutes(a.endTime) +
+      Math.max(a.bufferMinutes, options.bufferMinutes ?? 0),
   }));
 }
-
-/** Busy intervals from schedule blocks (employee blocks, holidays, vacations, or company-wide blocks). */
-export async function getBlockBusyIntervals(companyId: string, employeeId: string, date: string): Promise<Interval[]> {
-  const blocks = (await db
-    .select({ startsAt: scheduleBlocks.startsAt, endsAt: scheduleBlocks.endsAt, allDay: scheduleBlocks.allDay })
+export async function getBlockBusyIntervals(
+  companyId: string,
+  employeeId: string,
+  date: string,
+  timezone?: string,
+  executor: DbExecutor = db,
+  locationId?: string,
+) {
+  const tz =
+    timezone ??
+    (
+      await executor
+        .select({ timezone: companies.timezone })
+        .from(companies)
+        .where(eq(companies.id, companyId))
+    )[0]?.timezone ??
+    "America/Sao_Paulo";
+  const rows = await executor
+    .select()
     .from(scheduleBlocks)
     .where(
       and(
@@ -131,112 +192,196 @@ export async function getBlockBusyIntervals(companyId: string, employeeId: strin
           eq(scheduleBlocks.employeeId, employeeId),
           isNull(scheduleBlocks.employeeId),
         ),
+        locationId
+          ? or(
+              eq(scheduleBlocks.locationId, locationId),
+              isNull(scheduleBlocks.locationId),
+            )
+          : undefined,
+        lt(
+          scheduleBlocks.startsAt,
+          localInstant(shiftDate(date, 1), "00:00", tz),
+        ),
+        gte(scheduleBlocks.endsAt, localInstant(date, "00:00", tz)),
       ),
-    )) as BlockRow[];
-
-  const startOfDay = new Date(`${date}T00:00:00Z`);
-  const endOfDay = new Date(`${date}T23:59:59Z`);
-  const busy: Interval[] = [];
-
-  for (const block of blocks) {
-    if (block.allDay) {
-      // If block starts on or before this day and ends on or after this day
-      if (block.startsAt <= endOfDay && block.endsAt >= startOfDay) {
-        busy.push({ start: 0, end: 24 * 60 });
-        continue;
-      }
-    }
-    if (block.startsAt >= endOfDay || block.endsAt <= startOfDay) continue;
-    const s = Math.max(block.startsAt.getTime(), startOfDay.getTime());
-    const e = Math.min(block.endsAt.getTime(), endOfDay.getTime());
-    busy.push({
-      start: Math.max(0, Math.floor((s - startOfDay.getTime()) / 60000)),
-      end: Math.min(24 * 60, Math.ceil((e - startOfDay.getTime()) / 60000)),
-    });
+    );
+  return blockIntervals(rows, date, tz);
+}
+export async function getAvailabilitySlotGaps(
+  params: AvailabilityParams,
+): Promise<Interval[]> {
+  const {
+    companyId,
+    employeeId,
+    date,
+    timezone,
+    executor = db,
+    locationId,
+  } = params;
+  const settings = await getCompanySettings(companyId, executor);
+  const today = localDate(new Date(), timezone);
+  if (
+    date < today ||
+    date > shiftDate(today, settings.maxLeadDays) ||
+    !settings.workingDays.includes(dayOfWeek(date, timezone))
+  )
+    return [];
+  const [employee] = await executor
+    .select()
+    .from(employees)
+    .where(
+      and(
+        eq(employees.id, employeeId),
+        eq(employees.companyId, companyId),
+        eq(employees.active, true),
+      ),
+    );
+  if (!employee) return [];
+  const { windows } = await getEmployeeDayWindows(
+    employeeId,
+    date,
+    timezone,
+    executor,
+    locationId,
+  );
+  let open = timeToMinutes(settings.openTime),
+    close = timeToMinutes(settings.closeTime);
+  const targetLocation = locationId ?? employee.locationId;
+  if (targetLocation) {
+    const [loc] = await executor
+      .select()
+      .from(locations)
+      .where(
+        and(
+          eq(locations.id, targetLocation),
+          eq(locations.companyId, companyId),
+          eq(locations.active, true),
+        ),
+      );
+    if (!loc) return [];
+    open = Math.max(open, timeToMinutes(loc.openTime));
+    close = Math.min(close, timeToMinutes(loc.closeTime));
   }
-  return busy;
-}
-
-export async function getAvailabilitySlotGaps(params: AvailabilityParams): Promise<Interval[]> {
-  const { companyId, employeeId, date, durationMinutes, timezone, excludeAppointmentId, bufferMinutes } = params;
-
-  const { windows } = await getEmployeeDayWindows(employeeId, date, timezone);
-  if (windows.length === 0) return [];
-
+  const working = windows
+    .map((w) => ({
+      start: Math.max(w.start, open),
+      end: Math.min(w.end, close),
+    }))
+    .filter((w) => w.end > w.start);
   const busy = [
-    ...(await getAppointmentBusyIntervals(companyId, employeeId, date, { excludeAppointmentId, bufferMinutes })),
-    ...(await getBlockBusyIntervals(companyId, employeeId, date)),
+    ...(await getAppointmentBusyIntervals(companyId, employeeId, date, params)),
+    ...(await getBlockBusyIntervals(
+      companyId,
+      employeeId,
+      date,
+      timezone,
+      executor,
+      locationId,
+    )),
   ];
-
-  const free = subtractIntervals(mergeIntervals(windows), busy);
-  return free.filter((window) => window.end - window.start >= durationMinutes);
+  return subtractIntervals(working, busy);
 }
-
 export async function getAvailabilitySlots(
   params: AvailabilityParams,
   stepMinutes = 30,
-): Promise<Array<{ startTime: string; endTime: string }>> {
-  const gaps = await getAvailabilitySlotGaps(params);
-  const slots: Array<{ startTime: string; endTime: string }> = [];
-  const { today, currentMinutes } = getCurrentTimeInTz(params.timezone);
-  const isToday = params.date === today;
-
-  for (const gap of gaps) {
-    let cursor = gap.start;
-    while (cursor + params.durationMinutes <= gap.end) {
-      if (!isToday || cursor > currentMinutes) {
+) {
+  if (!Number.isInteger(stepMinutes) || stepMinutes < 1)
+    throw new Error("Intervalo inválido.");
+  const gaps = await getAvailabilitySlotGaps(params),
+    slots: Array<{ startTime: string; endTime: string }> = [];
+  for (const gap of gaps)
+    for (
+      let cursor = Math.ceil(gap.start / stepMinutes) * stepMinutes;
+      cursor + params.durationMinutes + (params.bufferMinutes ?? 0) <= gap.end;
+      cursor += stepMinutes
+    ) {
+      const startTime = minutesToTime(cursor);
+      if (localInstant(params.date, startTime, params.timezone) > new Date())
         slots.push({
-          startTime: minutesToTime(cursor),
-          endTime: addMinutesToTime(minutesToTime(cursor), params.durationMinutes),
+          startTime,
+          endTime: minutesToTime(cursor + params.durationMinutes),
         });
-      }
-      cursor += stepMinutes;
     }
-  }
   return slots;
 }
-
 export type BookableCheck =
-  | { ok: true }
-  | { ok: false; status: number; error: string };
-
-/**
- * Server-side guard for creating/rescheduling an appointment. Confirms the requested
- * span fits the professional's working hours, does not fall inside a schedule block,
- * and does not overlap another appointment (respecting the configured buffer).
- */
+  { ok: true } | { ok: false; status: number; error: string };
 export async function assertBookable(
   params: AvailabilityParams & { startMinutes: number; endMinutes: number },
 ): Promise<BookableCheck> {
-  const { companyId, employeeId, date, timezone, startMinutes, endMinutes, excludeAppointmentId, bufferMinutes } = params;
-
-  if (endMinutes <= startMinutes) {
-    return { ok: false, status: 400, error: "Horário de término inválido." };
-  }
-
-  const { hasSchedule, windows } = await getEmployeeDayWindows(employeeId, date, timezone);
-  if (!hasSchedule) {
-    return { ok: false, status: 422, error: "O profissional não atende nesse dia." };
-  }
-  const insideWorkingHours = windows.some((w) => startMinutes >= w.start && endMinutes <= w.end);
-  if (!insideWorkingHours) {
-    return { ok: false, status: 422, error: "Esse horário está fora da jornada do profissional." };
-  }
-
-  const blocks = await getBlockBusyIntervals(companyId, employeeId, date);
-  if (blocks.some((b) => startMinutes < b.end && endMinutes > b.start)) {
-    return { ok: false, status: 422, error: "Há um bloqueio na agenda do profissional nesse horário." };
-  }
-
-  const buffer = Math.max(0, bufferMinutes ?? 0);
-  const busy = await getAppointmentBusyIntervals(companyId, employeeId, date, { excludeAppointmentId, bufferMinutes });
-  
-  // Collision rule: novo_inicio < fim_existente AND novo_fim > inicio_existente
-  // with new appointment end also padded by buffer
-  const paddedEnd = endMinutes + buffer;
-  if (busy.some((b) => startMinutes < b.end && paddedEnd > b.start)) {
-    return { ok: false, status: 409, error: "Este profissional já possui um atendimento nesse horário." };
-  }
-
+  const {
+    startMinutes,
+    endMinutes,
+    date,
+    timezone,
+    employeeId,
+    companyId,
+    executor = db,
+  } = params;
+  if (
+    endMinutes <= startMinutes ||
+    endMinutes >= 1440 ||
+    localInstant(date, minutesToTime(startMinutes), timezone) <= new Date()
+  )
+    return {
+      ok: false,
+      status: 400,
+      error: "Data ou horário inválido ou no passado.",
+    };
+  const { hasSchedule, windows } = await getEmployeeDayWindows(
+    employeeId,
+    date,
+    timezone,
+    executor,
+    params.locationId,
+  );
+  if (!hasSchedule)
+    return {
+      ok: false,
+      status: 422,
+      error: "O profissional não atende nesse dia.",
+    };
+  if (!windows.some((w) => startMinutes >= w.start && endMinutes <= w.end))
+    return {
+      ok: false,
+      status: 422,
+      error: "Esse horário está fora da jornada do profissional.",
+    };
+  const buffer = params.bufferMinutes ?? 0;
+  const blocks = await getBlockBusyIntervals(
+    companyId,
+    employeeId,
+    date,
+    timezone,
+    executor,
+    params.locationId,
+  );
+  if (blocks.some((b) => startMinutes < b.end && endMinutes + buffer > b.start))
+    return {
+      ok: false,
+      status: 422,
+      error: "Há um bloqueio na agenda do profissional nesse horário.",
+    };
+  const busy = await getAppointmentBusyIntervals(
+    companyId,
+    employeeId,
+    date,
+    params,
+  );
+  if (busy.some((b) => startMinutes < b.end && endMinutes + buffer > b.start))
+    return {
+      ok: false,
+      status: 409,
+      error: "Este profissional já possui um atendimento nesse horário.",
+    };
+  const gaps = await getAvailabilitySlotGaps(params);
+  if (
+    !gaps.some((w) => startMinutes >= w.start && endMinutes + buffer <= w.end)
+  )
+    return {
+      ok: false,
+      status: 422,
+      error: "Esse horário está fora da jornada do profissional.",
+    };
   return { ok: true };
 }

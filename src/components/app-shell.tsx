@@ -18,9 +18,11 @@ import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
 } from "@/shared/types";
+import { BookingSettings } from "@/components/booking/booking-settings";
+import { ServiceEditor } from "@/components/booking/service-editor";
 import { NovaeLogo } from "@/components/brand/novae-logo";
 
-type ViewKey = "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "configuracoes";
+type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "configuracoes";
 type CalendarMode = "day" | "week" | "month";
 
 const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
@@ -30,10 +32,12 @@ const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
   { id: "servicos", label: "Serviços", icon: Tag },
   { id: "equipe", label: "Equipe", icon: UserRound },
   { id: "financeiro", label: "Financeiro", icon: WalletCards },
+  { id: "link-agendamento", label: "Link de agendamento", icon: Globe },
   { id: "configuracoes", label: "Configurações", icon: Settings2 },
 ];
 
 const pageTitles: Record<ViewKey, { title: string; eyebrow: string }> = {
+  "link-agendamento": { title: "Link de agendamento", eyebrow: "Receba reservas online" },
   dashboard: { title: "Visão geral", eyebrow: "Acompanhe o dia de hoje" },
   agenda: { title: "Agenda", eyebrow: "Organize seus atendimentos" },
   clientes: { title: "Clientes", eyebrow: "Relacionamentos que fazem seu negócio crescer" },
@@ -117,9 +121,14 @@ function Avatar({
     </span>
   );
 }
-function Logo({ collapsed = false }: { collapsed?: boolean }) {
+function Logo({ collapsed = false, onClick }: { collapsed?: boolean; onClick?: () => void }) {
   return (
-    <div className={`brand-lockup ${collapsed ? "brand-lockup--collapsed" : ""}`}>
+    <div
+      className={`brand-lockup ${collapsed ? "brand-lockup--collapsed" : ""}`}
+      onClick={onClick}
+      style={onClick ? { cursor: "pointer" } : undefined}
+      title={collapsed ? "Expandir menu lateral" : undefined}
+    >
       {collapsed ? (
         <NovaeLogo variant="symbol" size={28} />
       ) : (
@@ -757,6 +766,7 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
 
 function ServicesPage({ onNew }: { onNew: () => void }) {
   const { services, toggleService, categories } = useStore();
+  const [editing, setEditing] = useState<ServiceDTO | null>(null);
   const [filter, setFilter] = useState("Todos");
 
   const visible = services.filter((service) => filter === "Todos" || (service.active === (filter === "Ativos")));
@@ -768,7 +778,7 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
       <div className="service-grid">
         {visible.map((service) => (
           <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
-            <div className="service-card-head"><span className="service-color" style={{ backgroundColor: service.color ?? "var(--primary)" }}><Tag size={16} /></span></div>
+            <div className="service-card-head"><button className="link-button" aria-label={`Editar ${service.name}`} onClick={() => setEditing(service)}><Pencil size={15}/> Editar</button><span className="service-color" style={{ backgroundColor: service.color ?? "var(--primary)" }}><Tag size={16} /></span></div>
             <div className="service-card-body"><h3>{service.name}</h3><span className="service-category">{service.categoryName ?? "Sem categoria"}</span>{service.description && <p>{service.description}</p>}</div>
             <div className="service-card-footer">
               <div>
@@ -794,6 +804,7 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
         ))}
         <button className="add-service-card" onClick={onNew}><span><Plus size={19} /></span><strong>Criar novo serviço</strong><small>Adicione preço, duração e categoria</small></button>
       </div>
+      {editing && <Modal title="Editar serviço" eyebrow="Catálogo" onClose={() => setEditing(null)}><ServiceEditor service={editing} onDone={() => setEditing(null)}/></Modal>}
       {visible.length === 0 && <EmptyState icon={Tag} title="Nenhum serviço" description="Cadastre serviços para começar a agendar." action={<Button onClick={onNew}><Plus size={16} /> Novo serviço</Button>} />}
     </div>
   );
@@ -1669,6 +1680,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
   useEffect(() => {
     if (settings) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize asynchronously loaded company settings.
       setOpenTime(settings.openTime);
       setCloseTime(settings.closeTime);
       setWorkingDays(settings.workingDays);
@@ -2062,16 +2074,18 @@ function NewAppointmentModal({
     setServiceIds((current) => (current.includes(id) ? current.filter((s) => s !== id) : [...current, id]));
   };
 
+  const serviceSelectionKey = serviceIds.join(",");
   // Availability calculation hook
   useEffect(() => {
     if (!employeeId || !date || duration <= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clear stale server availability when its query changes.
       setAvailableSlots([]);
       return;
     }
     let active = true;
     setLoadingSlots(true);
     api<{ slots: Array<{ startTime: string; endTime: string }> }>(
-      `/api/availability?employeeId=${employeeId}&date=${date}&duration=${duration}`
+      `/api/availability?employeeId=${employeeId}&date=${date}&serviceIds=${serviceSelectionKey}&locationId=${locationId}`
     )
       .then((res) => {
         if (active) {
@@ -2089,7 +2103,7 @@ function NewAppointmentModal({
         if (active) setLoadingSlots(false);
       });
     return () => { active = false; };
-  }, [employeeId, date, duration]);
+  }, [employeeId, date, duration, serviceSelectionKey, locationId]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -2240,41 +2254,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
 }
 
 function NewServiceModal({ onClose }: { onClose: () => void }) {
-  const { createService, notify, categories } = useStore();
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [duration, setDuration] = useState("60");
-  const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    try {
-      await createService({ name, price: Number(price) || 0, durationMinutes: Number(duration) || 60, description: description || undefined });
-      notify("Serviço criado com sucesso.");
-      onClose();
-    } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Não foi possível criar o serviço.", "error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Modal title="Novo serviço" eyebrow="Expanda seu catálogo" onClose={onClose}>
-      <form onSubmit={submit}>
-        <div className="modal-form-grid">
-          <Field label="Nome do serviço"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Corte" required minLength={2} /></Field>
-          <Field label="Valor"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" step="1" value={price} onChange={(e) => setPrice(e.target.value)} required /></div></Field>
-          <Field label="Duração"><div className="input-with-suffix"><input className="input" type="number" min="5" step="5" value={duration} onChange={(e) => setDuration(e.target.value)} required /><span>min</span></div></Field>
-          <Field label="Descrição"><textarea className="input textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Breve descrição." /></Field>
-        </div>
-        {categories.length === 0 && <div className="form-note" style={{ marginTop: 8 }}><Tag size={14} /> Você poderá organizar em categorias depois.</div>}
-        <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : <><Plus size={16} /> Criar serviço</>}</Button></div></div>
-      </form>
-    </Modal>
-  );
+  return <Modal title="Novo serviço" eyebrow="Seu catálogo de atendimentos" onClose={onClose}><ServiceEditor onDone={onClose}/></Modal>;
 }
 
 function NewEmployeeModal({ onClose }: { onClose: () => void }) {
@@ -2734,6 +2714,8 @@ export function AppShell() {
         );
       case "financeiro":
         return <FinancialPage />;
+      case "link-agendamento":
+        return <BookingSettings />;
       case "configuracoes":
         return <SettingsPage theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} />;
       case "agenda":
@@ -2931,14 +2913,16 @@ export function AppShell() {
     <div className="app-shell" onClick={() => { setSearchOpen(false); setNotificationsOpen(false); setWorkspaceOpen(false); }}>
       <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""} ${mobileMenu ? "mobile-open" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="sidebar-top">
-          <Logo collapsed={collapsed} />
-          <IconButton
-            className="collapse-button"
-            label="Recolher menu"
-            onClick={() => setCollapsed((v) => !v)}
-          >
-            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </IconButton>
+          <Logo collapsed={collapsed} onClick={collapsed ? () => setCollapsed(false) : undefined} />
+          {!collapsed && (
+            <IconButton
+              className="collapse-button"
+              label="Recolher menu"
+              onClick={() => setCollapsed(true)}
+            >
+              <ChevronLeft size={18} />
+            </IconButton>
+          )}
         </div>
         
         {/* Workspace Switcher */}
@@ -3005,6 +2989,15 @@ export function AppShell() {
         <header className="topbar" onClick={(e) => e.stopPropagation()}>
           <div className="topbar-left">
             <IconButton label="Menu" className="mobile-menu-button" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></IconButton>
+            {collapsed && (
+              <IconButton
+                label="Expandir menu"
+                className="desktop-expand-button"
+                onClick={() => setCollapsed(false)}
+              >
+                <ChevronRight size={18} />
+              </IconButton>
+            )}
             <div className="breadcrumb">
               <span className="breadcrumb-company">
                 <Building2 size={13} />

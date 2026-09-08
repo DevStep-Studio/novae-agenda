@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { authTokens } from "@/db/schema";
 
@@ -42,14 +42,8 @@ export async function issueToken(userId: string, kind: TokenKind): Promise<strin
 export async function consumeToken(raw: string, kind: TokenKind): Promise<{ userId: string } | null> {
   if (!raw || raw.length < 20) return null;
 
-  const [row] = await db
-    .select()
-    .from(authTokens)
-    .where(and(eq(authTokens.tokenHash, hashToken(raw)), eq(authTokens.kind, kind)))
-    .limit(1);
-
-  if (!row || row.consumedAt || row.expiresAt.getTime() < Date.now()) return null;
-
-  await db.update(authTokens).set({ consumedAt: new Date() }).where(eq(authTokens.id, row.id));
-  return { userId: row.userId };
+  const [row] = await db.update(authTokens).set({ consumedAt: new Date() })
+    .where(and(eq(authTokens.tokenHash, hashToken(raw)),eq(authTokens.kind,kind),isNull(authTokens.consumedAt),gt(authTokens.expiresAt,new Date())))
+    .returning({userId:authTokens.userId});
+  return row ?? null;
 }

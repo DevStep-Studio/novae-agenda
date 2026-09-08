@@ -37,8 +37,8 @@ function toInt(value: string | null | undefined, fallback: number): number {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
-export async function getCompanySettings(companyId: string): Promise<CompanySettings> {
-  const rows = await db
+export async function getCompanySettings(companyId: string, executor: Pick<typeof db, "select"> = db): Promise<CompanySettings> {
+  const rows = await executor
     .select({ key: companySettings.key, value: companySettings.value })
     .from(companySettings)
     .where(eq(companySettings.companyId, companyId));
@@ -71,9 +71,10 @@ export async function setCompanySetting(
   companyId: string,
   key: keyof CompanySettings,
   value: string | number | number[],
+  executor: Pick<typeof db,"insert"> = db,
 ): Promise<void> {
   const strVal = typeof value === "object" ? JSON.stringify(value) : String(value);
-  await db
+  await executor
     .insert(companySettings)
     .values({ companyId, key: KEY_MAP[key], value: strVal })
     .onConflictDoUpdate({

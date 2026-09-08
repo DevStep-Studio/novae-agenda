@@ -9,6 +9,7 @@
  */
 
 export type MailMessage = {
+  idempotencyKey?: string;
   to: string;
   subject: string;
   html: string;
@@ -38,7 +39,8 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
     try {
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
-        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+        headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json", ...(message.idempotencyKey ? {"Idempotency-Key":message.idempotencyKey} : {}) },
+        signal: AbortSignal.timeout(15000),
         body: JSON.stringify({ from, to: message.to, subject: message.subject, html: message.html, text: message.text }),
       });
       if (!res.ok) {

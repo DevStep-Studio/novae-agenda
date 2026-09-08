@@ -31,7 +31,7 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
   let carlosClientId: string;
   let appointmentId: string;
 
-  const testDate = "2026-11-10"; // Tuesday
+  const testDate = "2026-10-20"; // Tuesday
 
   before(async () => {
     // 1. Criar empresa

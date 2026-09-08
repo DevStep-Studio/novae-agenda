@@ -57,3 +57,7 @@ Thumbs.db
 !.vscode/extensions.json
 *.sublime-workspace
 *.sublime-project
+
+# Browser verification artifacts
+/test-results/
+/playwright-report/

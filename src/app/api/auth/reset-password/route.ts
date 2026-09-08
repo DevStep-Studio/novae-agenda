@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   const passwordHash = await hashPassword(newPassword);
   await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, user.id));
-  await recordAudit({
+  if (user.companyId) await recordAudit({
     companyId: user.companyId,
     userId: user.id,
     action: "auth.password_reset",

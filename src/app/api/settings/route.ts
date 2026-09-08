@@ -1,10 +1,18 @@
+import { lockCompany } from "@/lib/booking/service";
+import { assertTimezoneChange } from "@/lib/booking/timezone-setting";
+import { BookingError, bookingError } from "@/lib/booking/errors";
+import { isValidTime } from "@/lib/domain";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { companies } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
-import { getCompanySettings, setCompanySetting, type CompanySettings } from "@/lib/settings";
+import {
+  getCompanySettings,
+  setCompanySetting,
+  type CompanySettings,
+} from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -28,13 +36,13 @@ export async function GET() {
 }
 
 const updateSchema = z.object({
-  openTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  closeTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  workingDays: z.array(z.number().min(0).max(6)).min(1).optional(),
-  slotIntervalMinutes: z.number().min(5).max(120).optional(),
-  defaultDurationMinutes: z.number().min(5).max(480).optional(),
-  bufferMinutes: z.number().min(0).max(120).optional(),
-  maxLeadDays: z.number().min(0).max(365).optional(),
+  openTime: z.string().refine(isValidTime).optional(),
+  closeTime: z.string().refine(isValidTime).optional(),
+  workingDays: z.array(z.number().int().min(0).max(6)).min(1).optional(),
+  slotIntervalMinutes: z.number().int().min(5).max(120).optional(),
+  defaultDurationMinutes: z.number().int().min(5).max(480).optional(),
+  bufferMinutes: z.number().int().min(0).max(120).optional(),
+  maxLeadDays: z.number().int().min(0).max(365).optional(),
   timezone: z.string().min(2).max(80).optional(),
 });
 
@@ -46,22 +54,64 @@ export async function PUT(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
+    return Response.json(
+      { error: parsed.error.issues[0]?.message ?? "Dados inválidos." },
+      { status: 400 },
+    );
   }
 
   const data = parsed.data;
   const companyId = auth.user.companyId;
 
-  if (data.openTime) await setCompanySetting(companyId, "openTime", data.openTime);
-  if (data.closeTime) await setCompanySetting(companyId, "closeTime", data.closeTime);
-  if (data.workingDays) await setCompanySetting(companyId, "workingDays", data.workingDays);
-  if (data.slotIntervalMinutes !== undefined) await setCompanySetting(companyId, "slotIntervalMinutes", data.slotIntervalMinutes);
-  if (data.defaultDurationMinutes !== undefined) await setCompanySetting(companyId, "defaultDurationMinutes", data.defaultDurationMinutes);
-  if (data.bufferMinutes !== undefined) await setCompanySetting(companyId, "bufferMinutes", data.bufferMinutes);
-  if (data.maxLeadDays !== undefined) await setCompanySetting(companyId, "maxLeadDays", data.maxLeadDays);
+  try {
+    await db.transaction(async (tx) => {
+      await lockCompany(tx, companyId);
+      const current = await getCompanySettings(companyId, tx);
+      if (
+        (data.openTime ?? current.openTime) >=
+        (data.closeTime ?? current.closeTime)
+      )
+        throw new BookingError("O fechamento deve ser depois da abertura.");
+      if (data.openTime)
+        await setCompanySetting(companyId, "openTime", data.openTime, tx);
+      if (data.closeTime)
+        await setCompanySetting(companyId, "closeTime", data.closeTime, tx);
+      if (data.workingDays)
+        await setCompanySetting(companyId, "workingDays", data.workingDays, tx);
+      if (data.slotIntervalMinutes !== undefined)
+        await setCompanySetting(
+          companyId,
+          "slotIntervalMinutes",
+          data.slotIntervalMinutes,
+          tx,
+        );
+      if (data.defaultDurationMinutes !== undefined)
+        await setCompanySetting(
+          companyId,
+          "defaultDurationMinutes",
+          data.defaultDurationMinutes,
+          tx,
+        );
+      if (data.bufferMinutes !== undefined)
+        await setCompanySetting(
+          companyId,
+          "bufferMinutes",
+          data.bufferMinutes,
+          tx,
+        );
+      if (data.maxLeadDays !== undefined)
+        await setCompanySetting(companyId, "maxLeadDays", data.maxLeadDays, tx);
 
-  if (data.timezone) {
-    await db.update(companies).set({ timezone: data.timezone }).where(eq(companies.id, companyId));
+      if (data.timezone) {
+        await assertTimezoneChange(tx, companyId, data.timezone);
+        await tx
+          .update(companies)
+          .set({ timezone: data.timezone })
+          .where(eq(companies.id, companyId));
+      }
+    });
+  } catch (error) {
+    return bookingError(error);
   }
 
   await recordAudit({

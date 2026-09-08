@@ -1,3 +1,5 @@
+import { lockCompany } from "@/lib/booking/service";
+import { bookingError } from "@/lib/booking/errors";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
@@ -12,7 +14,7 @@ const scheduleSchema = z.object({
   schedules: z
     .array(
       z.object({
-        dayOfWeek: z.number().min(0).max(6),
+        dayOfWeek: z.number().int().min(0).max(6),
         startTime: z.string(),
         endTime: z.string(),
         breakStart: z.string().nullable().optional(),
@@ -20,7 +22,7 @@ const scheduleSchema = z.object({
         active: z.boolean(),
       }),
     )
-    .min(1),
+    .min(1).max(28),
 });
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -53,9 +55,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  await db.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, id));
+  for (const w of parsed.data.schedules) {
+    if (Boolean(w.breakStart) !== Boolean(w.breakEnd) || (w.breakStart && w.breakEnd && (!isValidTime(w.breakStart) || !isValidTime(w.breakEnd) || w.breakStart >= w.breakEnd || w.breakStart < w.startTime || w.breakEnd > w.endTime))) return Response.json({error:"Intervalo de almoço inválido."},{status:400});
+    if (w.active && parsed.data.schedules.some(other => other !== w && other.active && other.dayOfWeek === w.dayOfWeek && other.startTime < w.endTime && other.endTime > w.startTime)) return Response.json({error:"Períodos de trabalho sobrepostos."},{status:400});
+  }
+  try { await db.transaction(async tx => {
+  await lockCompany(tx, auth.user.companyId);
+  await tx.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, id));
 
-  await db.insert(employeeSchedules).values(
+  await tx.insert(employeeSchedules).values(
     parsed.data.schedules.map((window) => ({
       employeeId: id,
       dayOfWeek: window.dayOfWeek,
@@ -66,6 +74,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       active: window.active,
     })),
   );
+
+  }); } catch(error) { return bookingError(error); }
 
   await recordAudit({
     companyId: auth.user.companyId,

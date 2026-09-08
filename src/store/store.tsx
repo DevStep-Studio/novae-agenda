@@ -312,6 +312,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })();
   }, [reloadSession]);
 
+  useEffect(() => {
+    if (!session) return;
+    const refresh = () => { if (document.visibilityState === "visible") void Promise.all([reloadAppointments(), reloadNotifications(), reloadClients(), reloadStats()]).catch(() => {}); };
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(interval); window.removeEventListener("focus", refresh); };
+  }, [session, reloadAppointments, reloadNotifications, reloadClients, reloadStats]);
+
   const value = useMemo<Store>(() => ({
     session,
     loading: booting,

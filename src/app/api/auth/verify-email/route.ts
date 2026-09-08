@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       .update(users)
       .set({ emailVerified: true, emailVerifiedAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, user.id));
-    await recordAudit({
+    if (user.companyId) await recordAudit({
       companyId: user.companyId,
       userId: user.id,
       action: "auth.email_verified",

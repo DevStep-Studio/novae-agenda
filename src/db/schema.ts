@@ -34,6 +34,15 @@ export const companies = pgTable("companies", {
   currency: text("currency").default("BRL").notNull(),
   primaryColor: text("primary_color").default("#dcff4c").notNull(),
   secondaryColor: text("secondary_color").default("#162a22").notNull(),
+  publicSlug: text("public_slug").unique(),
+  publicEnabled: boolean("public_enabled").default(false).notNull(),
+  publicDescription: text("public_description"),
+  publicColor: text("public_color").default("#234e3d").notNull(),
+  publicPhotos: jsonb("public_photos").$type<string[]>().default([]).notNull(),
+  publicPhone: boolean("public_phone").default(false).notNull(),
+  publicInstagram: boolean("public_instagram").default(false).notNull(),
+  cancellationHours: integer("cancellation_hours").default(24).notNull(),
+  allowProducts: boolean("allow_products").default(false).notNull(),
   onboarded: boolean("onboarded").default(false).notNull(),
   ...timestamps,
 });
@@ -52,7 +61,8 @@ export const locations = pgTable("locations", {
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
+  companyId: uuid("company_id").references(() => companies.id),
+  phone: text("phone"),
   name: text("name").notNull(),
   email: text("email").notNull(),
   passwordHash: text("password_hash").notNull(),
@@ -121,6 +131,7 @@ export const employeeLocations = pgTable("employee_locations", {
 export const clients = pgTable("clients", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
+  userId: uuid("user_id").references(() => users.id),
   name: text("name").notNull(),
   photoUrl: text("photo_url"),
   phone: text("phone").notNull(),
@@ -128,7 +139,7 @@ export const clients = pgTable("clients", {
   notes: text("notes"),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
-}, (table) => ({ companyIdx: index("clients_company_idx").on(table.companyId), phoneIdx: index("clients_phone_idx").on(table.phone) }));
+}, (table) => ({ userCompanyIdx: uniqueIndex("clients_company_user_idx").on(table.companyId, table.userId), companyIdx: index("clients_company_idx").on(table.companyId), phoneIdx: index("clients_phone_idx").on(table.phone) }));
 
 export const serviceCategories = pgTable("service_categories", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -145,6 +156,12 @@ export const services = pgTable("services", {
   description: text("description"),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   durationMinutes: integer("duration_minutes").notNull(),
+  bufferMinutes: integer("buffer_minutes").default(0).notNull(),
+  imageUrl: text("image_url"),
+  deliveryMode: text("delivery_mode").default("IN_PERSON").notNull(),
+  paymentType: text("payment_type").default("PAY_LATER").notNull(),
+  depositAmount: numeric("deposit_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  cancellationPolicy: text("cancellation_policy"),
   color: text("color"),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
@@ -157,9 +174,35 @@ export const employeeServices = pgTable("employee_services", {
   commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).default("0").notNull(),
 }, (table) => ({ pk: primaryKey({ columns: [table.employeeId, table.serviceId] }) }));
 
+export const bookings = pgTable("bookings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  locationId: uuid("location_id").notNull().references(() => locations.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  clientId: uuid("client_id").notNull().references(() => clients.id),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  timezone: text("timezone").notNull(),
+  status: text("status").default("confirmed").notNull(),
+  subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
+  discount: numeric("discount", { precision: 10, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 10, scale: 2 }).notNull(),
+  paymentStatus: text("payment_status").default("unpaid").notNull(),
+  paymentType: text("payment_type").default("PAY_LATER").notNull(),
+  source: text("source").default("PUBLIC_LINK").notNull(),
+  notes: text("notes"),
+  couponCode: text("coupon_code"),
+  idempotencyKey: uuid("idempotency_key").notNull(),
+  revision: integer("revision").default(1).notNull(),
+  ...timestamps,
+}, (t) => ({ userIdx: index("bookings_user_start_idx").on(t.userId, t.startsAt), companyIdx: index("bookings_company_start_idx").on(t.companyId, t.startsAt), requestIdx: uniqueIndex("bookings_user_request_idx").on(t.userId, t.idempotencyKey) }));
+
 export const appointments = pgTable("appointments", {
   id: uuid("id").defaultRandom().primaryKey(),
   companyId: uuid("company_id").notNull().references(() => companies.id),
+  bookingId: uuid("booking_id").references(() => bookings.id),
+  source: text("source").default("ADMIN").notNull(),
+  bufferMinutes: integer("buffer_minutes").default(0).notNull(),
   locationId: uuid("location_id").references(() => locations.id),
   clientId: uuid("client_id").notNull().references(() => clients.id),
   employeeId: uuid("employee_id").notNull().references(() => employees.id),
@@ -276,3 +319,64 @@ export const auditLogs = pgTable("audit_logs", {
   companyIdx: index("audit_logs_company_idx").on(table.companyId, table.createdAt),
   entityIdx: index("audit_logs_entity_idx").on(table.entity, table.entityId),
 }));
+
+export const products = pgTable("products", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  active: boolean("active").default(true).notNull(),
+  ...timestamps,
+}, t => ({ companyIdx: index("products_company_idx").on(t.companyId) }));
+
+export const bookingProducts = pgTable("booking_products", {
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id),
+  productId: uuid("product_id").notNull().references(() => products.id),
+  name: text("name").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+}, t => ({ pk: primaryKey({ columns: [t.bookingId, t.productId] }) }));
+
+export const coupons = pgTable("coupons", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  code: text("code").notNull(),
+  type: text("type").notNull(),
+  value: numeric("value", { precision: 10, scale: 2 }).notNull(),
+  active: boolean("active").default(true).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  ...timestamps,
+}, t => ({ codeIdx: uniqueIndex("coupons_company_code_idx").on(t.companyId, t.code) }));
+
+export const notificationLogs = pgTable("notification_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id),
+  event: text("event").notNull(),
+  revision: integer("revision").notNull(),
+  channel: text("channel").default("email").notNull(),
+  status: text("status").default("pending").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }).defaultNow().notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  attempts: integer("attempts").default(0).notNull(),
+  lastError: text("last_error"),
+  ...timestamps,
+}, t => ({ dedupeIdx: uniqueIndex("notification_logs_dedupe_idx").on(t.bookingId, t.event, t.revision, t.channel), queueIdx: index("notification_logs_queue_idx").on(t.status, t.dueAt) }));
+
+export const bookingEvents = pgTable("booking_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  sessionId: uuid("session_id").notNull(),
+  event: text("event").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => ({ funnelIdx: index("booking_events_company_event_idx").on(t.companyId, t.event, t.createdAt) }));
+
+export const bookingWaitlist = pgTable("booking_waitlist", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  requestedDate: date("requested_date").notNull(),
+  serviceIds: jsonb("service_ids").$type<string[]>().notNull(),
+  status: text("status").default("waiting").notNull(),
+  ...timestamps,
+});

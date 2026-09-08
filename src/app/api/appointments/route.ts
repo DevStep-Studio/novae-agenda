@@ -1,11 +1,32 @@
+import { lockCompany } from "@/lib/booking/service";
+import { bookingError, sameOrigin } from "@/lib/booking/errors";
 import { and, asc, between, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointmentServices, appointments, clients, employeeServices, employees, locations, notifications, payments, services } from "@/db/schema";
+import {
+  appointmentHistory,
+  appointmentServices,
+  appointments,
+  clients,
+  employeeServices,
+  employees,
+  locations,
+  notifications,
+  payments,
+  services,
+} from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { assertBookable } from "@/lib/availability";
 import { recordAudit } from "@/lib/audit";
-import { addMinutesToTime, centsToNumber, isUuid, isValidDateKey, isValidTime, normalizeTime, timeToMinutes } from "@/lib/domain";
+import {
+  addMinutesToTime,
+  centsToNumber,
+  isUuid,
+  isValidDateKey,
+  isValidTime,
+  normalizeTime,
+  timeToMinutes,
+} from "@/lib/domain";
 import { getCompanySettings } from "@/lib/settings";
 import type { AppointmentDTO } from "@/shared/types";
 
@@ -23,7 +44,11 @@ export async function GET(request: Request) {
   const conditions = [eq(appointments.companyId, auth.user.companyId)];
 
   if (from && isValidDateKey(from)) {
-    conditions.push(to && isValidDateKey(to) ? between(appointments.appointmentDate, from, to) : eq(appointments.appointmentDate, from));
+    conditions.push(
+      to && isValidDateKey(to)
+        ? between(appointments.appointmentDate, from, to)
+        : eq(appointments.appointmentDate, from),
+    );
   }
   if (employeeId && employeeId !== "all" && isUuid(employeeId)) {
     if (auth.user.role === "employee" && auth.user.employeeId !== employeeId) {
@@ -75,12 +100,24 @@ export async function GET(request: Request) {
         .where(inArray(appointmentServices.appointmentId, appointmentIds))
     : [];
 
-  const serviceByAppointment = new Map<string, { serviceId: string; serviceName: string; serviceColor: string | null; durationMinutes: number }>();
+  const serviceByAppointment = new Map<
+    string,
+    {
+      serviceId: string;
+      serviceName: string;
+      serviceColor: string | null;
+      durationMinutes: number;
+    }
+  >();
   const serviceMeta = new Map<string, { name: string; color: string | null }>();
   if (serviceRows.length) {
     const serviceIds = [...new Set(serviceRows.map((row) => row.serviceId))];
-    const serviceDefs = await db.select({ id: services.id, name: services.name, color: services.color }).from(services).where(inArray(services.id, serviceIds));
-    for (const def of serviceDefs) serviceMeta.set(def.id, { name: def.name, color: def.color });
+    const serviceDefs = await db
+      .select({ id: services.id, name: services.name, color: services.color })
+      .from(services)
+      .where(inArray(services.id, serviceIds));
+    for (const def of serviceDefs)
+      serviceMeta.set(def.id, { name: def.name, color: def.color });
   }
   for (const row of serviceRows) {
     const meta = serviceMeta.get(row.serviceId);
@@ -101,9 +138,18 @@ export async function GET(request: Request) {
 
   const paymentRows = appointmentIds.length
     ? await db
-        .select({ appointmentId: payments.appointmentId, method: payments.method, status: payments.status })
+        .select({
+          appointmentId: payments.appointmentId,
+          method: payments.method,
+          status: payments.status,
+        })
         .from(payments)
-        .where(and(inArray(payments.appointmentId, appointmentIds), eq(payments.status, "paid")))
+        .where(
+          and(
+            inArray(payments.appointmentId, appointmentIds),
+            eq(payments.status, "paid"),
+          ),
+        )
     : [];
   const paymentByApt = new Map<string, string>();
   for (const p of paymentRows) paymentByApt.set(p.appointmentId, p.method);
@@ -134,7 +180,8 @@ export async function GET(request: Request) {
       status: row.status as AppointmentDTO["status"],
       notes: row.notes,
       paid: paymentByApt.has(row.id) || row.status === "completed",
-      paymentMethod: (paymentByApt.get(row.id) as AppointmentDTO["paymentMethod"]) ?? null,
+      paymentMethod:
+        (paymentByApt.get(row.id) as AppointmentDTO["paymentMethod"]) ?? null,
     };
   });
 
@@ -157,157 +204,302 @@ export async function POST(request: Request) {
   if (gate.response) return gate.response;
   const { auth } = gate;
 
-  const body = await request.json().catch(() => null);
-  const parsed = createSchema.safeParse(body);
-  if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
-  }
-  const { locationId, clientId, employeeId, serviceIds, date, startTime, status, notes } = parsed.data;
+  try {
+    sameOrigin(request);
+    return await db.transaction(async (tx) => {
+      await lockCompany(tx, auth.user.companyId);
+      const body = await request.json().catch(() => null);
+      const parsed = createSchema.safeParse(body);
+      if (!parsed.success) {
+        return Response.json(
+          { error: parsed.error.issues[0]?.message ?? "Dados inválidos." },
+          { status: 400 },
+        );
+      }
+      const {
+        locationId,
+        clientId,
+        employeeId,
+        serviceIds,
+        date,
+        startTime,
+        status,
+        notes,
+      } = parsed.data;
 
-  if (!isUuid(clientId) || !isUuid(employeeId)) {
-    return Response.json({ error: "Cliente ou profissional inválido." }, { status: 400 });
-  }
-  if (!isValidDateKey(date) || !isValidTime(startTime)) {
-    return Response.json({ error: "Data ou horário inválido." }, { status: 400 });
-  }
+      if (!isUuid(clientId) || !isUuid(employeeId)) {
+        return Response.json(
+          { error: "Cliente ou profissional inválido." },
+          { status: 400 },
+        );
+      }
+      if (!isValidDateKey(date) || !isValidTime(startTime)) {
+        return Response.json(
+          { error: "Data ou horário inválido." },
+          { status: 400 },
+        );
+      }
 
-  // An employee may only create appointments on their own agenda.
-  if (auth.user.role === "employee" && auth.user.employeeId !== employeeId) {
-    return Response.json({ error: "Você só pode criar atendimentos na sua própria agenda." }, { status: 403 });
-  }
+      // An employee may only create appointments on their own agenda.
+      if (
+        auth.user.role === "employee" &&
+        auth.user.employeeId !== employeeId
+      ) {
+        return Response.json(
+          { error: "Você só pode criar atendimentos na sua própria agenda." },
+          { status: 403 },
+        );
+      }
 
-  const [client] = await db
-    .select({ id: clients.id })
-    .from(clients)
-    .where(and(eq(clients.id, clientId), eq(clients.companyId, auth.user.companyId)))
-    .limit(1);
-  if (!client) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
+      const [client] = await tx
+        .select({ id: clients.id })
+        .from(clients)
+        .where(
+          and(
+            eq(clients.id, clientId),
+            eq(clients.companyId, auth.user.companyId),
+          ),
+        )
+        .limit(1);
+      if (!client)
+        return Response.json(
+          { error: "Cliente não encontrado." },
+          { status: 404 },
+        );
 
-  const [employee] = await db
-    .select({ id: employees.id, name: employees.name })
-    .from(employees)
-    .where(and(eq(employees.id, employeeId), eq(employees.companyId, auth.user.companyId)))
-    .limit(1);
-  if (!employee) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+      const [employee] = await tx
+        .select({
+          id: employees.id,
+          name: employees.name,
+          active: employees.active,
+          locationId: employees.locationId,
+        })
+        .from(employees)
+        .where(
+          and(
+            eq(employees.id, employeeId),
+            eq(employees.companyId, auth.user.companyId),
+          ),
+        )
+        .limit(1);
+      if (!employee || !employee.active)
+        return Response.json(
+          { error: "Profissional não encontrado." },
+          { status: 404 },
+        );
 
-  const serviceRows = await db
-    .select({ id: services.id, price: services.price, durationMinutes: services.durationMinutes })
-    .from(services)
-    .where(and(inArray(services.id, serviceIds), eq(services.companyId, auth.user.companyId), eq(services.active, true)));
+      const serviceRows = await tx
+        .select({
+          id: services.id,
+          price: services.price,
+          durationMinutes: services.durationMinutes,
+          bufferMinutes: services.bufferMinutes,
+        })
+        .from(services)
+        .where(
+          and(
+            inArray(services.id, serviceIds),
+            eq(services.companyId, auth.user.companyId),
+            eq(services.active, true),
+          ),
+        );
 
-  if (serviceRows.length !== serviceIds.length) {
-    return Response.json({ error: "Um ou mais serviços são inválidos ou estão inativos." }, { status: 400 });
-  }
+      if (serviceRows.length !== serviceIds.length) {
+        return Response.json(
+          { error: "Um ou mais serviços são inválidos ou estão inativos." },
+          { status: 400 },
+        );
+      }
 
-  // Ensure THIS employee is linked to every requested service.
-  const links = await db
-    .select({ serviceId: employeeServices.serviceId })
-    .from(employeeServices)
-    .where(and(eq(employeeServices.employeeId, employeeId), inArray(employeeServices.serviceId, serviceIds)));
-  const linkedIds = new Set(links.map((link) => link.serviceId));
-  if (serviceIds.some((id) => !linkedIds.has(id))) {
-    return Response.json({ error: "Este profissional não realiza um dos serviços selecionados." }, { status: 400 });
-  }
+      // Ensure THIS employee is linked to every requested service.
+      const links = await tx
+        .select({ serviceId: employeeServices.serviceId })
+        .from(employeeServices)
+        .where(
+          and(
+            eq(employeeServices.employeeId, employeeId),
+            inArray(employeeServices.serviceId, serviceIds),
+          ),
+        );
+      const linkedIds = new Set(links.map((link) => link.serviceId));
+      if (serviceIds.some((id) => !linkedIds.has(id))) {
+        return Response.json(
+          {
+            error:
+              "Este profissional não realiza um dos serviços selecionados.",
+          },
+          { status: 400 },
+        );
+      }
 
-  const durationMinutes = serviceRows.reduce((sum, service) => sum + service.durationMinutes, 0);
-  const total = serviceRows.reduce((sum, service) => sum + centsToNumber(service.price), 0);
-  const endTime = addMinutesToTime(startTime, durationMinutes);
+      if (locationId) {
+        if (!isUuid(locationId))
+          return Response.json({ error: "Unidade inválida." }, { status: 400 });
+        const [location] = await tx
+          .select()
+          .from(locations)
+          .where(
+            and(
+              eq(locations.id, locationId),
+              eq(locations.companyId, auth.user.companyId),
+              eq(locations.active, true),
+            ),
+          );
+        if (!location)
+          return Response.json(
+            { error: "Unidade não encontrada." },
+            { status: 404 },
+          );
+      }
+      const settings = await getCompanySettings(auth.user.companyId, tx);
+      const orderedServices = serviceIds.map((id) =>
+        serviceRows.find((s) => s.id === id)!,
+      );
+      const durationMinutes = orderedServices.reduce(
+        (sum, service, index) =>
+          sum +
+          service.durationMinutes +
+          (index < orderedServices.length - 1
+            ? Math.max(settings.bufferMinutes, service.bufferMinutes)
+            : 0),
+        0,
+      );
+      const total = serviceRows.reduce(
+        (sum, service) => sum + centsToNumber(service.price),
+        0,
+      );
+      const endTime = addMinutesToTime(startTime, durationMinutes);
+      const bufferMinutes = Math.max(
+        settings.bufferMinutes,
+        orderedServices.at(-1)!.bufferMinutes,
+      );
+      const check = await assertBookable({
+        companyId: auth.user.companyId,
+        employeeId,
+        date,
+        timezone: auth.companyTimezone,
+        executor: tx,
+        locationId: locationId || employee.locationId || undefined,
+        durationMinutes,
+        bufferMinutes,
+        startMinutes: timeToMinutes(startTime),
+        endMinutes: timeToMinutes(endTime),
+      });
+      if (!check.ok) {
+        return Response.json({ error: check.error }, { status: check.status });
+      }
 
-  const { bufferMinutes } = await getCompanySettings(auth.user.companyId);
-  const check = await assertBookable({
-    companyId: auth.user.companyId,
-    employeeId,
-    date,
-    timezone: auth.companyTimezone,
-    durationMinutes,
-    bufferMinutes,
-    startMinutes: timeToMinutes(startTime),
-    endMinutes: timeToMinutes(endTime),
-  });
-  if (!check.ok) {
-    return Response.json({ error: check.error }, { status: check.status });
-  }
+      let targetLocationId =
+        locationId && isUuid(locationId) ? locationId : null;
+      if (!targetLocationId) {
+        const [defaultLoc] = await tx
+          .select({ id: locations.id })
+          .from(locations)
+          .where(
+            and(
+              eq(locations.companyId, auth.user.companyId),
+              eq(locations.active, true),
+            ),
+          )
+          .limit(1);
+        targetLocationId = defaultLoc?.id ?? null;
+      }
 
-  let targetLocationId = locationId && isUuid(locationId) ? locationId : null;
-  if (!targetLocationId) {
-    const [defaultLoc] = await db
-      .select({ id: locations.id })
-      .from(locations)
-      .where(and(eq(locations.companyId, auth.user.companyId), eq(locations.active, true)))
-      .limit(1);
-    targetLocationId = defaultLoc?.id ?? null;
-  }
+      const [created] = await tx
+        .insert(appointments)
+        .values({
+          companyId: auth.user.companyId,
+          locationId: targetLocationId,
+          clientId,
+          employeeId,
+          appointmentDate: date,
+          startTime: `${startTime}:00`,
+          endTime: `${endTime}:00`,
+          status: status ?? "scheduled",
+          bufferMinutes,
+          total: total.toFixed(2),
+          notes: notes?.trim() || null,
+        })
+        .returning();
 
-  const [created] = await db
-    .insert(appointments)
-    .values({
-      companyId: auth.user.companyId,
-      locationId: targetLocationId,
-      clientId,
-      employeeId,
-      appointmentDate: date,
-      startTime: `${startTime}:00`,
-      endTime: `${endTime}:00`,
-      status: status ?? "scheduled",
-      total: total.toFixed(2),
-      notes: notes?.trim() || null,
-    })
-    .returning();
+      // copy commission config into appointment services snapshot
+      for (const service of serviceRows) {
+        const [link] = await tx
+          .select({
+            employeeId: employeeServices.employeeId,
+            commissionType: employeeServices.commissionType,
+            commissionValue: employeeServices.commissionValue,
+          })
+          .from(employeeServices)
+          .where(
+            and(
+              eq(employeeServices.employeeId, employeeId),
+              eq(employeeServices.serviceId, service.id),
+            ),
+          )
+          .limit(1);
 
-  // copy commission config into appointment services snapshot
-  for (const service of serviceRows) {
-    const [link] = await db
-      .select({
-        employeeId: employeeServices.employeeId,
-        commissionType: employeeServices.commissionType,
-        commissionValue: employeeServices.commissionValue,
-      })
-      .from(employeeServices)
-      .where(and(eq(employeeServices.employeeId, employeeId), eq(employeeServices.serviceId, service.id)))
-      .limit(1);
+        let commissionType = "none";
+        let commissionValue = 0;
+        if (link) {
+          commissionType = link.commissionType;
+          commissionValue = centsToNumber(link.commissionValue);
+        }
+        let commissionAmount = 0;
+        if (commissionType === "percentage")
+          commissionAmount =
+            (centsToNumber(service.price) * commissionValue) / 100;
+        if (commissionType === "fixed") commissionAmount = commissionValue;
 
-    let commissionType = "none";
-    let commissionValue = 0;
-    if (link) {
-      commissionType = link.commissionType;
-      commissionValue = centsToNumber(link.commissionValue);
-    }
-    let commissionAmount = 0;
-    if (commissionType === "percentage") commissionAmount = (centsToNumber(service.price) * commissionValue) / 100;
-    if (commissionType === "fixed") commissionAmount = commissionValue;
+        await tx.insert(appointmentServices).values({
+          appointmentId: created.id,
+          serviceId: service.id,
+          price: service.price,
+          durationMinutes: service.durationMinutes,
+          commissionType,
+          commissionValue: String(commissionValue),
+          commissionAmount: commissionAmount.toFixed(2),
+        });
+      }
 
-    await db.insert(appointmentServices).values({
-      appointmentId: created.id,
-      serviceId: service.id,
-      price: service.price,
-      durationMinutes: service.durationMinutes,
-      commissionType,
-      commissionValue: String(commissionValue),
-      commissionAmount: commissionAmount.toFixed(2),
+      await tx
+        .insert(appointmentHistory)
+        .values({
+          appointmentId: created.id,
+          actorId: auth.user.userId,
+          action: "appointment.created",
+          metadata: { date, startTime, endTime },
+        });
+      await recordAudit({
+        companyId: auth.user.companyId,
+        userId: auth.user.userId,
+        action: "appointment.created",
+        entity: "appointment",
+        entityId: created.id,
+        metadata: { date, startTime, endTime, employeeId, clientId, total },
+      });
+
+      await tx.insert(notifications).values({
+        companyId: auth.user.companyId,
+        type: "appointment_created",
+        title: "Novo atendimento criado",
+        body: `${normalizeTime(startTime)} · ${employee.name}`,
+        entityType: "appointment",
+        entityId: created.id,
+      });
+
+      return Response.json({ data: { id: created.id } }, { status: 201 });
     });
+  } catch (error) {
+    return bookingError(error);
   }
-
-  await recordAudit({
-    companyId: auth.user.companyId,
-    userId: auth.user.userId,
-    action: "appointment.created",
-    entity: "appointment",
-    entityId: created.id,
-    metadata: { date, startTime, endTime, employeeId, clientId, total },
-  });
-
-  await db.insert(notifications).values({
-    companyId: auth.user.companyId,
-    type: "appointment_created",
-    title: "Novo atendimento criado",
-    body: `${normalizeTime(startTime)} · ${employee.name}`,
-    entityType: "appointment",
-    entityId: created.id,
-  });
-
-  return Response.json({ data: { id: created.id } }, { status: 201 });
 }
 
 function initials(name: string): string {
-  return name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
 }

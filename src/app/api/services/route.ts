@@ -1,7 +1,9 @@
-import { and, asc, eq } from "drizzle-orm";
+import { bookingError, BookingError } from "@/lib/booking/errors";
+import { safeImageUrl } from "@/lib/booking/validation";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { serviceCategories, services } from "@/db/schema";
+import { employeeServices, employees, serviceCategories, services } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
@@ -24,6 +26,7 @@ export async function GET() {
       durationMinutes: services.durationMinutes,
       color: services.color,
       active: services.active,
+      bufferMinutes: services.bufferMinutes, imageUrl: services.imageUrl, deliveryMode: services.deliveryMode, paymentType: services.paymentType, depositAmount: services.depositAmount, cancellationPolicy: services.cancellationPolicy,
     })
     .from(services)
     .leftJoin(serviceCategories, eq(services.categoryId, serviceCategories.id))
@@ -40,6 +43,7 @@ export async function GET() {
     durationMinutes: row.durationMinutes,
     color: row.color,
     active: row.active,
+    bufferMinutes: row.bufferMinutes, imageUrl: row.imageUrl, deliveryMode: row.deliveryMode, paymentType: row.paymentType, depositAmount: Number(row.depositAmount), cancellationPolicy: row.cancellationPolicy,
   }));
 
   return Response.json({ data: dto });
@@ -50,8 +54,15 @@ const createSchema = z.object({
   categoryId: z.string().optional().nullable(),
   description: z.string().max(1000).optional(),
   price: z.number().min(0, "O valor não pode ser negativo.").max(1000000),
-  durationMinutes: z.number().min(5, "A duração mínima é de 5 minutos.").max(1440),
+  durationMinutes: z.number().int().min(5, "A duração mínima é de 5 minutos.").max(1440),
   color: z.string().optional().nullable(),
+  employeeIds: z.array(z.uuid()).max(100).optional(),
+  bufferMinutes: z.number().int().min(0).max(180).default(0),
+  imageUrl: safeImageUrl.optional(),
+  deliveryMode: z.enum(["IN_PERSON","ONLINE"]).default("IN_PERSON"),
+  paymentType: z.enum(["PAY_LATER","FULL_PAYMENT","DEPOSIT"]).default("PAY_LATER"),
+  depositAmount: z.number().min(0).default(0),
+  cancellationPolicy: z.string().max(1000).optional(),
 });
 
 export async function POST(request: Request) {
@@ -76,7 +87,13 @@ export async function POST(request: Request) {
     if (category) validCategoryId = category.id;
   }
 
-  const [created] = await db
+  let created;
+  try { created = await db.transaction(async tx => {
+    if (parsed.data.depositAmount > price) throw new BookingError("O sinal não pode exceder o preço.");
+    const employeeIds = [...new Set(parsed.data.employeeIds ?? [])];
+    const team = employeeIds.length ? await tx.select().from(employees).where(and(eq(employees.companyId,auth.user.companyId),inArray(employees.id,employeeIds))) : [];
+    if (team.length !== employeeIds.length) throw new BookingError("Profissional inválido.");
+  const [created] = await tx
     .insert(services)
     .values({
       companyId: auth.user.companyId,
@@ -87,8 +104,14 @@ export async function POST(request: Request) {
       durationMinutes,
       color: color || null,
       active: true,
+      bufferMinutes: parsed.data.bufferMinutes, imageUrl: parsed.data.imageUrl || null, deliveryMode: parsed.data.deliveryMode, paymentType: parsed.data.paymentType, depositAmount: parsed.data.depositAmount.toFixed(2), cancellationPolicy: parsed.data.cancellationPolicy || null,
     })
     .returning();
+
+
+    if(employeeIds.length) await tx.insert(employeeServices).values(team.map(e=>({employeeId:e.id,serviceId:created.id,commissionType:e.commissionType,commissionValue:e.commissionValue})));
+    return created;
+  }); } catch(error) { return bookingError(error); }
 
   await recordAudit({
     companyId: auth.user.companyId,
