@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, CalendarDays, CalendarPlus,
+  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
   Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search,
@@ -1706,21 +1706,75 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
   return (
     <div className="page-content settings-page">
-      <div className="page-intro"><div><p className="eyebrow">Preferências do espaço</p><h1>Configurações</h1><p className="intro-copy">Personalize a experiência do seu estabelecimento.</p></div></div>
+      <div className="page-intro">
+        <div>
+          <p className="eyebrow">Preferências do espaço</p>
+          <h1>Configurações</h1>
+          <p className="intro-copy">Personalize a experiência do seu estabelecimento.</p>
+        </div>
+      </div>
       <div className="settings-layout">
         <aside className="settings-nav">
-          <button className={activeTab === "empresa" ? "active" : ""} onClick={() => setActiveTab("empresa")}><Settings2 size={16} /> Empresa</button>
-          <button className={activeTab === "unidades" ? "active" : ""} onClick={() => setActiveTab("unidades")}><Building2 size={16} /> Unidades</button>
-          <button className={activeTab === "funcionamento" ? "active" : ""} onClick={() => setActiveTab("funcionamento")}><Clock3 size={16} /> Funcionamento</button>
-          <button className={activeTab === "seguranca" ? "active" : ""} onClick={() => setActiveTab("seguranca")}><ShieldCheck size={16} /> Segurança</button>
-          <button className={activeTab === "ajuda" ? "active" : ""} onClick={() => setActiveTab("ajuda")}><CircleHelp size={16} /> Ajuda</button>
+          <button
+            type="button"
+            className={activeTab === "empresa" ? "active" : ""}
+            onClick={() => setActiveTab("empresa")}
+          >
+            <Settings2 size={16} />
+            <span>Empresa</span>
+          </button>
+          <button
+            type="button"
+            className={activeTab === "unidades" ? "active" : ""}
+            onClick={() => setActiveTab("unidades")}
+          >
+            <Building2 size={16} />
+            <span>Unidades</span>
+          </button>
+          <button
+            type="button"
+            className={activeTab === "funcionamento" ? "active" : ""}
+            onClick={() => setActiveTab("funcionamento")}
+          >
+            <Clock3 size={16} />
+            <span>Funcionamento</span>
+          </button>
+          <button
+            type="button"
+            className={activeTab === "seguranca" ? "active" : ""}
+            onClick={() => setActiveTab("seguranca")}
+          >
+            <ShieldCheck size={16} />
+            <span>Segurança</span>
+          </button>
+          <button
+            type="button"
+            className={activeTab === "ajuda" ? "active" : ""}
+            onClick={() => setActiveTab("ajuda")}
+          >
+            <CircleHelp size={16} />
+            <span>Ajuda</span>
+          </button>
         </aside>
 
         <div className="settings-sections">
           {activeTab === "empresa" && (
             <>
               <section className="settings-section">
-                <SectionHeading title="Informações da empresa" description="Esses dados aparecem nos seus agendamentos e comunicações." action={<Button onClick={saveCompany} disabled={savingCompany}>{savingCompany ? "Salvando..." : "Salvar empresa"}</Button>} />
+                <SectionHeading
+                  title="Informações da empresa"
+                  description="Esses dados aparecem nos seus agendamentos e comunicações."
+                  action={
+                    <Button onClick={saveCompany} disabled={savingCompany}>
+                      {savingCompany ? "Salvando..." : (
+                        <>
+                          <Check size={16} />
+                          <span>Salvar empresa</span>
+                        </>
+                      )}
+                    </Button>
+                  }
+                />
                 <div className="settings-form">
                   <Field label="Nome da empresa"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
                   <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></Field>
@@ -1734,12 +1788,12 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
               <section className="settings-section">
                 <SectionHeading title="Aparência" description="A Agenda se adapta ao seu jeito de trabalhar." />
                 <div className="theme-options">
-                  <button className={theme === "light" ? "theme-option active" : "theme-option"} onClick={() => setTheme("light")}>
+                  <button type="button" className={theme === "light" ? "theme-option active" : "theme-option"} onClick={() => setTheme("light")}>
                     <span className="theme-preview light-preview"><Sun size={17} /></span>
                     <span className="theme-copy"><strong>Claro</strong><small>Leve e arejado</small></span>
                     {theme === "light" && <CheckCircle size={17} className="theme-check" />}
                   </button>
-                  <button className={theme === "dark" ? "theme-option active" : "theme-option"} onClick={() => setTheme("dark")}>
+                  <button type="button" className={theme === "dark" ? "theme-option active" : "theme-option"} onClick={() => setTheme("dark")}>
                     <span className="theme-preview dark-preview"><Moon size={17} /></span>
                     <span className="theme-copy"><strong>Escuro</strong><small>Confortável à noite</small></span>
                     {theme === "dark" && <CheckCircle size={17} className="theme-check" />}
@@ -1751,15 +1805,24 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
           {activeTab === "unidades" && (
             <section className="settings-section">
-              <SectionHeading title="Unidades do estabelecimento" description="Gerencie as lojas e filiais onde seus clientes são atendidos." action={<Button onClick={onNewLocation}><Plus size={16} /> Nova unidade</Button>} />
-              <div className="service-grid">
+              <SectionHeading
+                title="Unidades do estabelecimento"
+                description="Gerencie as lojas e filiais onde seus clientes são atendidos."
+                action={<Button onClick={onNewLocation}><Plus size={16} /> Nova unidade</Button>}
+              />
+              <div className="locations-grid">
                 {locations.map((loc) => (
-                  <article className="service-card" key={loc.id}>
-                    <div className="service-card-head"><span className="service-color" style={{ backgroundColor: "var(--primary)" }}><Building2 size={16} /></span></div>
-                    <div className="service-card-body">
+                  <article className="location-card" key={loc.id}>
+                    <div className="location-card-head">
+                      <div className="location-badge">
+                        <Building2 size={18} />
+                      </div>
+                      <span className="location-status-tag">Ativa</span>
+                    </div>
+                    <div className="location-card-body">
                       <h3>{loc.name}</h3>
-                      {loc.address && <p><MapPin size={12} /> {loc.address}</p>}
-                      <p><Clock3 size={12} /> {loc.openTime} às {loc.closeTime}</p>
+                      {loc.address && <p className="location-address"><MapPin size={13} /> {loc.address}</p>}
+                      <p className="location-hours"><Clock3 size={13} /> {loc.openTime} às {loc.closeTime}</p>
                     </div>
                   </article>
                 ))}
@@ -1769,39 +1832,75 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
           {activeTab === "funcionamento" && (
             <section className="settings-section">
-              <SectionHeading title="Regras de funcionamento e agenda" description="Configure os horários, dias e intervalos calculados pelo motor de disponibilidade." action={<Button onClick={saveOperational} disabled={savingSettings}>{savingSettings ? "Salvando..." : "Salvar funcionamento"}</Button>} />
+              <SectionHeading
+                title="Regras de funcionamento e agenda"
+                description="Configure os horários, dias e intervalos calculados pelo motor de disponibilidade."
+                action={
+                  <Button onClick={saveOperational} disabled={savingSettings}>
+                    {savingSettings ? "Salvando..." : (
+                      <>
+                        <Check size={16} />
+                        <span>Salvar funcionamento</span>
+                      </>
+                    )}
+                  </Button>
+                }
+              />
               <div className="settings-form">
-                <Field label="Dias de atendimento">
-                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
-                    {daysOfWeekLabels.map(({ day, label }) => (
-                      <button
-                        type="button"
-                        key={day}
-                        className={`slot-chip ${workingDays.includes(day) ? "active" : ""}`}
-                        onClick={() => toggleDay(day)}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                <Field
+                  label="Dias de atendimento"
+                  hint="Clique nos dias para definir quando o estabelecimento recebe agendamentos."
+                >
+                  <div className="settings-days-grid">
+                    {daysOfWeekLabels.map(({ day, label }) => {
+                      const isActive = workingDays.includes(day);
+                      return (
+                        <button
+                          type="button"
+                          key={day}
+                          className={`day-toggle-pill ${isActive ? "active" : ""}`}
+                          onClick={() => toggleDay(day)}
+                          title={`${label}: ${isActive ? "Aberto" : "Fechado"}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
+                  <span className="field-hint" style={{ marginTop: "4px" }}>
+                    {workingDays.length === 0
+                      ? "Nenhum dia selecionado (estabelecimento fechado)"
+                      : `${workingDays.length} de 7 dias selecionados`}
+                  </span>
                 </Field>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                  <Field label="Horário de abertura"><input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} /></Field>
-                  <Field label="Horário de fechamento"><input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} /></Field>
+                <div className="settings-two-col">
+                  <Field label="Horário de abertura">
+                    <div className="input-with-icon">
+                      <Clock3 size={15} />
+                      <input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} />
+                    </div>
+                  </Field>
+                  <Field label="Horário de fechamento">
+                    <div className="input-with-icon">
+                      <Clock3 size={15} />
+                      <input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} />
+                    </div>
+                  </Field>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div className="settings-two-col">
                   <Field label="Intervalo entre slots">
                     <SelectField value={slotInterval} onChange={(e) => setSlotInterval(Number(e.target.value))}>
                       <option value={15}>15 minutos</option>
                       <option value={30}>30 minutos</option>
+                      <option value={45}>45 minutos</option>
                       <option value={60}>60 minutos</option>
                     </SelectField>
                   </Field>
                   <Field label="Intervalo entre atendimentos (buffer)">
                     <SelectField value={bufferMinutes} onChange={(e) => setBufferMinutes(Number(e.target.value))}>
-                      <option value={0}>0 minutos</option>
+                      <option value={0}>0 minutos (sem pausa)</option>
                       <option value={5}>5 minutos</option>
                       <option value={10}>10 minutos</option>
                       <option value={15}>15 minutos</option>
@@ -1811,14 +1910,29 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                 </div>
 
                 <Field label="Fuso horário (Timezone)">
-                  <SelectField value={timezone} onChange={(e) => setTimezone(e.target.value)}>
-                    <option value="America/Sao_Paulo">Horário de Brasília (America/Sao_Paulo)</option>
-                    <option value="America/Manaus">Manaus (America/Manaus)</option>
-                    <option value="America/Fortaleza">Fortaleza (America/Fortaleza)</option>
-                    <option value="America/Bahia">Salvador (America/Bahia)</option>
-                    <option value="UTC">UTC Universal</option>
-                  </SelectField>
+                  <div className="input-with-icon">
+                    <Globe size={15} />
+                    <SelectField value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                      <option value="America/Sao_Paulo">Horário de Brasília (America/Sao_Paulo)</option>
+                      <option value="America/Manaus">Manaus (America/Manaus)</option>
+                      <option value="America/Fortaleza">Fortaleza (America/Fortaleza)</option>
+                      <option value="America/Bahia">Salvador (America/Bahia)</option>
+                      <option value="UTC">UTC Universal</option>
+                    </SelectField>
+                  </div>
                 </Field>
+
+                <div className="operational-summary-banner">
+                  <div className="operational-summary-icon">
+                    <CalendarCheck size={18} />
+                  </div>
+                  <div className="operational-summary-text">
+                    <strong>Resumo das regras da agenda</strong>
+                    <span>
+                      Atendimento das <strong>{openTime}</strong> às <strong>{closeTime}</strong> nos dias selecionados ({workingDays.length} dias). Slots gerados a cada <strong>{slotInterval} min</strong> com buffer de <strong>{bufferMinutes} min</strong> entre atendimentos.
+                    </span>
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -1826,19 +1940,61 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
           {activeTab === "seguranca" && (
             <section className="settings-section">
               <SectionHeading title="Segurança e acesso" description="Status de proteção e permissões da sua conta." />
-              <div className="profile-note"><UserRound size={15} /><span>Conectado como <strong>{session?.name}</strong> ({session?.email}) · Papel: <strong>{roleLabel(session?.role)}</strong></span></div>
-              <div className="profile-note"><ShieldCheck size={15} /><span>Verificação de e-mail: <strong>{session?.emailVerified ? "Confirmado" : "Pendente"}</strong></span></div>
-              {session?.isSuperadmin && <div className="profile-note" style={{ background: "#e0e7ff", color: "#3730a3" }}><Sparkles size={15} /><span>Você possui privilégios de <strong>Superadmin Nova(e)</strong></span></div>}
+              <div className="security-cards-grid">
+                <div className="security-card">
+                  <div className="security-icon"><UserRound size={18} /></div>
+                  <div className="security-info">
+                    <span className="security-label">Usuário autenticado</span>
+                    <strong>{session?.name}</strong>
+                    <small>{session?.email}</small>
+                  </div>
+                  <span className="security-role-badge">{roleLabel(session?.role)}</span>
+                </div>
+                <div className="security-card">
+                  <div className="security-icon"><ShieldCheck size={18} /></div>
+                  <div className="security-info">
+                    <span className="security-label">Verificação de e-mail</span>
+                    <strong>{session?.emailVerified ? "Conta verificada" : "Verificação pendente"}</strong>
+                    <small>{session?.emailVerified ? "Acesso total autorizado" : "Confirme o link enviado por e-mail"}</small>
+                  </div>
+                  <span className={`security-status-badge ${session?.emailVerified ? "verified" : "pending"}`}>
+                    {session?.emailVerified ? "Confirmado" : "Pendente"}
+                  </span>
+                </div>
+                {session?.isSuperadmin && (
+                  <div className="security-card superadmin">
+                    <div className="security-icon"><Sparkles size={18} /></div>
+                    <div className="security-info">
+                      <span className="security-label">Privilégios da plataforma</span>
+                      <strong>Superadmin Nova(e)</strong>
+                      <small>Acesso a métricas e auditoria multitenant</small>
+                    </div>
+                    <span className="security-role-badge superadmin">Superadmin</span>
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
           {activeTab === "ajuda" && (
             <section className="settings-section">
               <SectionHeading title="Ajuda e Suporte" description="Acesse guias e tire dúvidas com o time Nova(e)." />
-              <div className="settings-feature-grid">
-                <div className="settings-feature-card"><span className="feature-pill">Agendamentos</span><strong>Motor em tempo real</strong><small>Cálculo automático de horários livres</small></div>
-                <div className="settings-feature-card"><span className="feature-pill">Financeiro</span><strong>Receita realizada</strong><small>Derivada de atendimentos pagos</small></div>
-                <div className="settings-feature-card"><span className="feature-pill">Suporte</span><strong>WhatsApp e E-mail</strong><small>Atendimento direto ao cliente</small></div>
+              <div className="help-cards-grid">
+                <div className="help-card">
+                  <div className="help-icon"><Clock3 size={20} /></div>
+                  <strong>Motor de Agendamento</strong>
+                  <p>Cálculo automático de horários livres baseado nos profissionais e unidades ativas.</p>
+                </div>
+                <div className="help-card">
+                  <div className="help-icon"><WalletCards size={20} /></div>
+                  <strong>Fluxo Financeiro</strong>
+                  <p>Receitas realizadas derivadas de atendimentos concluídos com comissões calculadas.</p>
+                </div>
+                <div className="help-card">
+                  <div className="help-icon"><MessageCircle size={20} /></div>
+                  <strong>Suporte Direto</strong>
+                  <p>Precisa de auxílio operacional ou novas integrações? Fale diretamente com o time Nova(e).</p>
+                </div>
               </div>
             </section>
           )}
