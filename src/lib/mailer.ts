@@ -67,6 +67,10 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
 
 /* ---------- Templates (Novae identity: dark forest #12231b, electric lime #dcff4c) ---------- */
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+}
+
 function layout(heading: string, bodyHtml: string, cta?: { label: string; href: string }): string {
   const button = cta
     ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 24px;background:#dcff4c;color:#12231b;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>`
@@ -91,7 +95,7 @@ export function verificationEmail(name: string, link: string): MailMessage {
     subject: "Confirme seu endereço de e-mail",
     html: layout(
       "Confirme seu e-mail",
-      `<p style="margin:0;font-size:14px;line-height:1.6">Olá, ${first}. Falta um passo para ativar sua conta na Nova(e). Confirme que este endereço é seu clicando no botão abaixo. O link expira em 24 horas.</p>`,
+      `<p style="margin:0;font-size:14px;line-height:1.6">Olá, ${escapeHtml(first)}. Falta um passo para ativar sua conta na Nova(e). Confirme que este endereço é seu clicando no botão abaixo. O link expira em 24 horas.</p>`,
       { label: "Confirmar meu e-mail", href: link },
     ),
     text: `Olá, ${first}.\n\nConfirme seu e-mail para ativar sua conta na Nova(e):\n${link}\n\nO link expira em 24 horas. Se você não criou esta conta, ignore este e-mail.`,
@@ -105,7 +109,7 @@ export function passwordResetEmail(name: string, link: string): MailMessage {
     subject: "Solicitação de redefinição de senha",
     html: layout(
       "Redefina sua senha",
-      `<p style="margin:0;font-size:14px;line-height:1.6">Olá, ${first}. Recebemos um pedido para redefinir a senha da sua conta Nova(e). Clique no botão abaixo para escolher uma nova senha. O link expira em 1 hora.</p>`,
+      `<p style="margin:0;font-size:14px;line-height:1.6">Olá, ${escapeHtml(first)}. Recebemos um pedido para redefinir a senha da sua conta Nova(e). Clique no botão abaixo para escolher uma nova senha. O link expira em 1 hora.</p>`,
       { label: "Redefinir minha senha", href: link },
     ),
     text: `Olá, ${first}.\n\nRecebemos um pedido para redefinir sua senha na Nova(e):\n${link}\n\nO link expira em 1 hora. Se não foi você, ignore este e-mail — sua senha continua a mesma.`,

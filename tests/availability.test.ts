@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { localInstant } from "@/lib/booking/time";
+import { localInstant, localDate, shiftDate } from "@/lib/booking/time";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
@@ -24,8 +24,9 @@ describe("Availability Engine & Conflict Validation", () => {
   let clientId: string;
   let serviceId: string;
 
-  // We test on a fixed future date: Monday, October 19, 2026 (dayOfWeek = 1)
-  const testDate = "2026-10-19";
+  // Keep tests within the real booking horizon as calendar time advances.
+  const baseDate = shiftDate(localDate(new Date(), "America/Sao_Paulo"), 7);
+  const testDate = shiftDate(baseDate, (8 - new Date(`${baseDate}T12:00:00Z`).getUTCDay()) % 7);
 
   before(async () => {
     // 1. Create isolated test company & location
@@ -163,7 +164,7 @@ describe("Availability Engine & Conflict Validation", () => {
     const sundayCheck = await assertBookable({
       companyId: testCompanyId,
       employeeId: joaoId,
-      date: "2026-10-18",
+      date: shiftDate(testDate, -1),
       durationMinutes: 60,
       timezone: "America/Sao_Paulo",
       startMinutes: 600, // 10:00

@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { localDate, shiftDate } from "@/lib/booking/time";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { and, eq, sql } from "drizzle-orm";
@@ -31,7 +32,8 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
   let carlosClientId: string;
   let appointmentId: string;
 
-  const testDate = "2026-10-20"; // Tuesday
+  const baseDate = shiftDate(localDate(new Date(), "America/Sao_Paulo"), 7);
+  const testDate = shiftDate(baseDate, (9 - new Date(`${baseDate}T12:00:00Z`).getUTCDay()) % 7); // Tuesday
 
   before(async () => {
     // 1. Criar empresa

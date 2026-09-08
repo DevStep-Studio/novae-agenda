@@ -10,6 +10,7 @@ import { createBooking, changeBooking, ownedBooking, bookingDetails } from "@/li
 import { localInstant, canCustomerChange, shiftDate } from "@/lib/booking/time";
 import { accessibleColor, slugSchema } from "@/lib/booking/validation";
 import { processBookingNotifications } from "@/lib/booking/notifications";
+import { verificationEmail, passwordResetEmail } from "@/lib/mailer";
 import { calendarIcs } from "@/lib/booking/calendar";
 import { isValidDateKey } from "@/lib/domain";
 import { bookingFixture, cleanupFixture, type Fixture } from "./booking-fixture";
@@ -21,6 +22,13 @@ describe("Public booking production invariants",()=>{
     assert.equal(isValidDateKey("2026-02-30"),false);assert.equal(slugSchema.safeParse("admin").success,false);assert.equal(slugSchema.safeParse("ingrid-amaral").success,true);assert.equal(accessibleColor("#ffffff"),false);assert.equal(accessibleColor("#234e3d"),true);
     assert.equal(localInstant("2026-09-09","12:00","America/Sao_Paulo").toISOString(),"2026-09-09T15:00:00.000Z");assert.throws(()=>localInstant("2026-03-08","02:30","America/New_York"));
     const start=new Date("2026-09-09T15:00Z");assert.equal(canCustomerChange(start,24,new Date("2026-09-08T15:00Z")),true);assert.equal(canCustomerChange(start,24,new Date("2026-09-08T15:01Z")),false);assert.equal(canCustomerChange(start,-1),false);
+  });
+  it("escapes customer-provided names in authentication e-mails",()=>{
+    for(const template of [verificationEmail,passwordResetEmail]){
+      const mail=template('<img/src=x/onerror=alert(1)>',"https://example.test/verify");
+      assert.ok(!mail.html.includes("<img/src"));
+      assert.ok(mail.html.includes("&lt;img/src"));
+    }
   });
   it("computes consecutive services, individual professionals, lunch and buffers",async()=>{
     const engine=await loadAvailability(f.company,f.location.id,[{serviceId:f.services[0].id,employeeId:f.team[0].id},{serviceId:f.services[1].id,employeeId:f.team[1].id}],f.date,f.date);

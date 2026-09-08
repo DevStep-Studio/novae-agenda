@@ -84,3 +84,12 @@ Não foi configurado um provedor real nem disparado e-mail para clientes reais d
 - `npm run dev -- --port 3100` e, em outro processo, `npm run test:browser`. Definir `TEST_BASE_URL` para outra origem. Executar `npx playwright install chromium` uma vez.
 - Testes de navegador usam empresas isoladas, sem fixtures publicadas como solução final, e removem os registros criados. Incluem cadastro/verificação real pelos endpoints, conclusão, cancelamento, remarcação, acesso indevido, QR e cadastro profissional.
 - As etapas de serviços, calendário e confirmação são verificadas em 320, 375, 390, 430, 768, 1024, 1366, 1440 e 1920 px.
+
+## Resultado de QA local (08/09/2026)
+
+- Migrations aplicadas; geração do Drizzle confirma ausência de diferenças pendentes.
+- Build de produção e TypeScript concluídos. ESLint sem erros; avisos de imagens HTML permanecem (inclusive na interface preexistente).
+- 23 testes de backend, incluindo escape de nomes em e-mails de autenticação, e 3 testes de navegador.
+- Concorrência verificada tanto entre dois clientes públicos quanto entre a API manual e a pública. Apenas uma gravação vence.
+- Fluxo profissional de remarcação, chegada, início e finalização validado pelas APIs reais; status refletido em Meus agendamentos.
+- Revisão 21st do módulo público sem erros bloqueantes. A revisão do AppShell também identifica questões de semântica interativa em componentes preexistentes, fora do fluxo público.
