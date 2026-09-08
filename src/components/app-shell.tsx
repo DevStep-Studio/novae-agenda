@@ -770,7 +770,26 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
           <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
             <div className="service-card-head"><span className="service-color" style={{ backgroundColor: service.color ?? "var(--primary)" }}><Tag size={16} /></span></div>
             <div className="service-card-body"><h3>{service.name}</h3><span className="service-category">{service.categoryName ?? "Sem categoria"}</span>{service.description && <p>{service.description}</p>}</div>
-            <div className="service-card-footer"><div><strong>{formatCurrency(service.price)}</strong><span><Clock3 size={13} /> {service.durationMinutes} min</span></div><label className="toggle"><input type="checkbox" checked={service.active} onChange={() => toggleService(service.id, !service.active)} /><span /></label></div>
+            <div className="service-card-footer">
+              <div>
+                <strong>{formatCurrency(service.price)}</strong>
+                <span><Clock3 size={13} /> {service.durationMinutes} min</span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={service.active}
+                aria-label={service.active ? `Desativar ${service.name}` : `Ativar ${service.name}`}
+                title={service.active ? "Clique para desativar serviço" : "Clique para ativar serviço"}
+                className={`service-toggle-btn ${service.active ? "active" : ""}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleService(service.id, !service.active);
+                }}
+              >
+                <span className="service-toggle-thumb" />
+              </button>
+            </div>
           </article>
         ))}
         <button className="add-service-card" onClick={onNew}><span><Plus size={19} /></span><strong>Criar novo serviço</strong><small>Adicione preço, duração e categoria</small></button>

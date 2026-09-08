@@ -30,7 +30,7 @@ export async function GET() {
 const schema = z.object({ name: z.string().min(2, "Informe o nome da categoria.").max(80) });
 
 export async function POST(request: Request) {
-  const gate = await requireRole("manager");
+  const gate = await requireRole("employee");
   if (gate.response) return gate.response;
   const { auth } = gate;
 

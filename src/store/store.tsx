@@ -214,9 +214,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [reloadServices, reloadEmployees]);
 
   const toggleService = useCallback(async (id: string, active: boolean) => {
-    await api(`/api/services/${id}`, { method: "PATCH", body: JSON.stringify({ active }) });
-    await reloadServices();
-  }, [reloadServices]);
+    setServices((current) => current.map((s) => (s.id === id ? { ...s, active } : s)));
+    try {
+      await api(`/api/services/${id}`, { method: "PATCH", body: JSON.stringify({ active }) });
+      notify(active ? "Serviço ativado com sucesso." : "Serviço desativado.", "success");
+    } catch (err) {
+      setServices((current) => current.map((s) => (s.id === id ? { ...s, active: !active } : s)));
+      const message = err instanceof Error ? err.message : "Não foi possível atualizar o serviço.";
+      notify(message, "error");
+    }
+  }, [notify]);
 
   const createEmployee = useCallback(async (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[] }) => {
     await api("/api/employees", { method: "POST", body: JSON.stringify(input) });

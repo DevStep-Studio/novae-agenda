@@ -19,7 +19,7 @@ const updateSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const gate = await requireRole("manager");
+  const gate = await requireRole("employee");
   if (gate.response) return gate.response;
   const { auth } = gate;
   const { id } = await params;

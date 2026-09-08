@@ -4035,3 +4035,81 @@ kbd { display: flex; align-items: center; gap: 2px; border: 1px solid var(--bord
   transform: translateY(-1px);
 }
 
+/* ===== Service Toggle Switch ===== */
+.service-toggle-btn {
+  width: 42px;
+  height: 24px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: var(--surface-tertiary, #203129);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+  cursor: pointer;
+  padding: 2px 3px;
+  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  flex-shrink: 0;
+}
+
+.service-toggle-btn:hover {
+  border-color: rgba(220, 255, 76, 0.4);
+}
+
+.service-toggle-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(220, 255, 76, 0.35);
+}
+
+.service-toggle-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
+  transform: translateX(0);
+}
+
+.service-toggle-btn.active {
+  background: var(--primary, #dcff4c);
+  border-color: var(--primary, #dcff4c);
+  box-shadow: 0 0 12px rgba(220, 255, 76, 0.28);
+}
+
+.service-toggle-btn.active .service-toggle-thumb {
+  transform: translateX(18px);
+  background: #111e18;
+}
+
+:root:not([data-theme="dark"]) .service-toggle-btn {
+  background: #cbd5e1;
+  border-color: #94a3b8;
+}
+
+:root:not([data-theme="dark"]) .service-toggle-btn.active {
+  background: #1f6f66;
+  border-color: #1f6f66;
+  box-shadow: 0 0 10px rgba(31, 111, 102, 0.25);
+}
+
+:root:not([data-theme="dark"]) .service-toggle-btn.active .service-toggle-thumb {
+  background: #ffffff;
+}
+
+/* Also ensure legacy .toggle is responsive and accessible */
+.toggle {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+.toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+

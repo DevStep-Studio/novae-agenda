@@ -89,7 +89,7 @@ async function seed() {
       set: { role: "owner", passwordHash: defaultPasswordHash, active: true, ...verified },
     });
 
-  // Standard User / Employee
+  // Standard User / Employee / Manager
   const [normalUser] = await db
     .insert(users)
     .values({
@@ -97,13 +97,13 @@ async function seed() {
       name: "Ana Costa",
       email: "usuario@studioprime.com.br",
       passwordHash: defaultPasswordHash,
-      role: "employee",
+      role: "manager",
       active: true,
       ...verified,
     })
     .onConflictDoUpdate({
       target: [users.companyId, users.email],
-      set: { role: "employee", passwordHash: defaultPasswordHash, active: true, ...verified },
+      set: { role: "manager", passwordHash: defaultPasswordHash, active: true, ...verified },
     })
     .returning();
 

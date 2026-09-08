@@ -55,7 +55,7 @@ const createSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const gate = await requireRole("manager");
+  const gate = await requireRole("employee");
   if (gate.response) return gate.response;
   const { auth } = gate;
 
