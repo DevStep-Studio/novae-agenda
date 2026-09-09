@@ -350,7 +350,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         .filter(
                           (p) =>
                             p.serviceIds.includes(service.id) &&
-                            p.locationIds.includes(locationId),
+                            (p.locationIds.length === 0 || p.locationIds.includes(locationId)),
                         )
                         .map((p) => (
                           <option key={p.id} value={p.id}>
@@ -589,7 +589,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             eligible = professionals.some(
                               (p) =>
                                 p.serviceIds.includes(service.id) &&
-                                p.locationIds.includes(locationId),
+                                (p.locationIds.length === 0 ||
+                                  p.locationIds.includes(locationId)),
                             );
                           return (
                             <article className={b.service} key={service.id}>

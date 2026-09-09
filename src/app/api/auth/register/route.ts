@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { companies, locations, users } from "@/db/schema";
 import { createSession, hashPassword, normalizeEmail } from "@/lib/auth";
+import { toSlug } from "@/lib/booking/validation";
 import { devTokenField } from "@/lib/dev";
 import { appUrl, sendMail, verificationEmail } from "@/lib/mailer";
 import { AUTH_RULES, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -52,7 +53,15 @@ export async function POST(request: Request) {
     if (duplicate) return null;
     let companyId: string | null = null;
     if (parsed.data.accountType !== "customer") {
-      const [company] = await tx.insert(companies).values({name:name.trim(),onboarded:false}).returning();
+      const baseSlug = toSlug(name.trim());
+      const suffix = Date.now().toString(36).slice(-4);
+      const publicSlug = `${baseSlug}-${suffix}`;
+      const [company] = await tx.insert(companies).values({
+        name: name.trim(),
+        publicSlug,
+        publicEnabled: true,
+        onboarded: false,
+      }).returning();
       companyId = company.id;
       await tx.insert(locations).values({companyId,name:"Unidade Principal",openTime:"08:00",closeTime:"19:00",active:true});
     }

@@ -15,13 +15,50 @@ import type { DbExecutor } from "@/lib/availability";
 import { BookingError } from "./errors";
 import { getCompanySettings } from "@/lib/settings";
 import { localDate } from "./time";
+import { toSlug } from "./validation";
+
 export async function publicCompany(slug: string, executor: DbExecutor = db) {
-  const [company] = await executor
+  const normalizedSlug = slug.toLowerCase().trim();
+
+  // 1. Direct match on publicSlug with publicEnabled = true
+  let [company] = await executor
     .select()
     .from(companies)
     .where(
-      and(eq(companies.publicSlug, slug), eq(companies.publicEnabled, true)),
+      and(eq(companies.publicSlug, normalizedSlug), eq(companies.publicEnabled, true)),
     );
+
+  // 2. If not found, check if company exists with publicSlug matching normalizedSlug
+  if (!company) {
+    const [compBySlug] = await executor
+      .select()
+      .from(companies)
+      .where(eq(companies.publicSlug, normalizedSlug));
+
+    if (compBySlug) {
+      await executor
+        .update(companies)
+        .set({ publicEnabled: true })
+        .where(eq(companies.id, compBySlug.id));
+      company = { ...compBySlug, publicEnabled: true };
+    }
+  }
+
+  // 3. Fallback: match by company name if publicSlug was null or uninitialized
+  if (!company) {
+    const allCompanies = await executor.select().from(companies);
+    const matched = allCompanies.find(
+      (c) => toSlug(c.name) === normalizedSlug || toSlug(c.publicSlug || "") === normalizedSlug,
+    );
+    if (matched) {
+      await executor
+        .update(companies)
+        .set({ publicSlug: normalizedSlug, publicEnabled: true })
+        .where(eq(companies.id, matched.id));
+      company = { ...matched, publicSlug: normalizedSlug, publicEnabled: true };
+    }
+  }
+
   if (!company)
     throw new BookingError(
       "Esta página de agendamento não está disponível.",
@@ -168,14 +205,17 @@ export async function publicCatalog(slug: string) {
       serviceIds: links
         .filter((l) => l.employeeId === e.id)
         .map((l) => l.serviceId),
-      locationIds: [
-        ...new Set([
-          ...locationLinks
-            .filter((l) => l.employeeId === e.id)
-            .map((l) => l.locationId),
-          ...(e.locationId ? [e.locationId] : []),
-        ]),
-      ],
+      locationIds: (() => {
+        const ids = [
+          ...new Set([
+            ...locationLinks
+              .filter((l) => l.employeeId === e.id)
+              .map((l) => l.locationId),
+            ...(e.locationId ? [e.locationId] : []),
+          ]),
+        ];
+        return ids.length > 0 ? ids : units.map((u) => u.id);
+      })(),
     })),
     locations: units,
     products: productRows.map((p) => ({ ...p, price: Number(p.price) })),
