@@ -1950,28 +1950,29 @@ a[style*="--brand-lime"] svg,
   color: var(--text-primary);
 }
 
-/* Rich Client Data Table */
+/* Rich Client Data Table (Minimalist SaaS Redesign) */
 .client-data-table {
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
 }
 .client-data-table th {
-  padding: 12px 18px;
+  padding: 11px 16px;
   background: var(--surface-secondary);
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   text-align: left;
+  white-space: nowrap;
 }
 .client-data-table th.actions-header {
   text-align: right;
 }
 .client-data-table td {
-  padding: 14px 18px;
+  padding: 13px 16px;
   border-bottom: 1px solid var(--border);
   color: var(--text-secondary);
   font-size: 12px;
@@ -1979,13 +1980,13 @@ a[style*="--brand-lime"] svg,
 }
 .client-table-row {
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.12s ease;
 }
 .client-table-row:hover {
-  background: rgba(220, 255, 76, 0.035);
+  background: rgba(220, 255, 76, 0.025);
 }
 :root:not([data-theme="dark"]) .client-table-row:hover {
-  background: rgba(31, 111, 102, 0.04);
+  background: rgba(31, 111, 102, 0.03);
 }
 .client-table-row:last-child td {
   border-bottom: 0;
@@ -1995,39 +1996,24 @@ a[style*="--brand-lime"] svg,
   position: relative;
   flex-shrink: 0;
 }
-.client-vip-star {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  width: 16px;
-  height: 16px;
-  background: #f59e0b;
-  color: #12231b;
-  border-radius: 50%;
-  font-size: 10px;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  border: 1.5px solid var(--surface);
-}
 
 .client-identity {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 .client-name-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   flex-wrap: wrap;
 }
 .client-name-text {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 .client-sub-info {
   font-size: 11px;
@@ -2037,66 +2023,85 @@ a[style*="--brand-lime"] svg,
   white-space: nowrap;
 }
 
+/* Minimalist Clean Badges (Linear style micro-tags) */
 .client-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 7px;
-  border-radius: 12px;
+  padding: 1px 6px;
+  border-radius: 4px;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
+  line-height: 1.4;
 }
 .badge-vip {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
 }
 .badge-frequent {
-  background: rgba(220, 255, 76, 0.12);
-  color: #dcff4c;
-  border: 1px solid rgba(220, 255, 76, 0.25);
+  background: rgba(220, 255, 76, 0.09);
+  color: #c8f53c;
+  border: 1px solid rgba(220, 255, 76, 0.2);
 }
 :root:not([data-theme="dark"]) .badge-frequent {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border-color: rgba(16, 185, 129, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.2);
 }
 .badge-new {
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(168, 85, 247, 0.1);
   color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.25);
+  border: 1px solid rgba(168, 85, 247, 0.2);
 }
 :root:not([data-theme="dark"]) .badge-new {
-  background: rgba(147, 51, 234, 0.1);
+  background: rgba(147, 51, 234, 0.08);
   color: #7e22ce;
+  border-color: rgba(147, 51, 234, 0.2);
 }
 
+/* Contact Column: Clean minimalist text with subtle green WhatsApp icon */
 .client-contact-col {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  align-items: flex-start;
 }
+.client-whatsapp-link,
 .client-whatsapp-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.08);
-  border: 1px solid rgba(74, 222, 128, 0.22);
-  padding: 3px 8px;
-  border-radius: 6px;
+  color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.15s ease;
-  width: fit-content;
+  transition: color 0.15s ease;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
-.client-whatsapp-btn:hover {
-  background: rgba(74, 222, 128, 0.18);
-  border-color: rgba(74, 222, 128, 0.45);
+.client-whatsapp-icon {
   color: #22c55e;
-  transform: translateY(-1px);
+  flex-shrink: 0;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+.client-whatsapp-link:hover,
+.client-whatsapp-btn:hover {
+  color: #4ade80;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: transparent;
+  border: none;
+  transform: none;
+}
+.client-whatsapp-link:hover .client-whatsapp-icon,
+.client-whatsapp-btn:hover .client-whatsapp-icon {
+  opacity: 1;
 }
 .client-has-upcoming {
   display: inline-flex;
@@ -2104,55 +2109,52 @@ a[style*="--brand-lime"] svg,
   gap: 4px;
   font-size: 10px;
   font-weight: 600;
-  color: var(--primary);
+  color: #dcff4c;
   width: fit-content;
 }
 :root:not([data-theme="dark"]) .client-has-upcoming {
-  color: #1f6f66;
+  color: #0f766e;
 }
 
+/* Visit & Attendance Columns */
 .client-visit-col {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.client-visits-col {
+  font-size: 12px;
   color: var(--text-secondary);
 }
-
-.client-visits-badge-wrap {
-  display: flex;
-  align-items: center;
+.client-visits-num {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.client-visits-unit {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 .visit-count-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: var(--surface-secondary);
-  border: 1px solid var(--border);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
   color: var(--text-secondary);
-}
-.visit-count-badge.active {
-  background: rgba(220, 255, 76, 0.1);
-  border-color: rgba(220, 255, 76, 0.25);
-  color: var(--text-primary);
-}
-:root:not([data-theme="dark"]) .visit-count-badge.active {
-  background: rgba(31, 111, 102, 0.08);
-  border-color: rgba(31, 111, 102, 0.22);
-  color: #1f6f66;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
+/* Spending Column */
 .client-spending-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 .client-total-spent {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
@@ -2162,6 +2164,7 @@ a[style*="--brand-lime"] svg,
   font-variant-numeric: tabular-nums;
 }
 
+/* Actions Column */
 .client-actions-cell {
   display: flex;
   align-items: center;
@@ -2171,15 +2174,14 @@ a[style*="--brand-lime"] svg,
 .client-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 7px;
+  justify-content: center;
+  height: 28px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-secondary);
   color: var(--text-secondary);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -2189,24 +2191,39 @@ a[style*="--brand-lime"] svg,
   border-color: var(--border-strong);
 }
 .client-action-btn.schedule {
-  background: rgba(220, 255, 76, 0.08);
-  border-color: rgba(220, 255, 76, 0.25);
-  color: var(--primary);
+  gap: 5px;
+  padding: 0 9px;
+  border-color: var(--border);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
 }
 .client-action-btn.schedule:hover {
   background: var(--primary);
   color: #12231b;
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(220, 255, 76, 0.3);
+  font-weight: 600;
+  box-shadow: none;
 }
-:root:not([data-theme="dark"]) .client-action-btn.schedule {
-  background: rgba(31, 111, 102, 0.08);
-  border-color: rgba(31, 111, 102, 0.25);
-  color: #1f6f66;
+.client-action-btn.schedule:hover svg {
+  stroke: #12231b;
 }
 :root:not([data-theme="dark"]) .client-action-btn.schedule:hover {
   background: #1f6f66;
-  color: #fff;
+  color: #ffffff;
+  border-color: #1f6f66;
+}
+:root:not([data-theme="dark"]) .client-action-btn.schedule:hover svg {
+  stroke: #ffffff;
+}
+.client-action-btn.view {
+  width: 28px;
+  padding: 0;
+  color: var(--text-muted);
+}
+.client-action-btn.view:hover {
+  color: var(--text-primary);
+  background: var(--surface);
+  border-color: var(--border-strong);
 }
 
 /* Legacy table helpers preserved */

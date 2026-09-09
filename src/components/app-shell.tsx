@@ -627,11 +627,11 @@ function ClientsPage({
               <thead>
                 <tr>
                   <th>Cliente</th>
-                  <th>Contato & WhatsApp</th>
-                  <th>Último atendimento</th>
+                  <th>Contato</th>
+                  <th>Última visita</th>
                   <th>Atendimentos</th>
-                  <th>Total gasto (LTV)</th>
-                  <th className="actions-header">Ações rápidas</th>
+                  <th>Total gasto</th>
+                  <th className="actions-header">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -656,9 +656,6 @@ function ClientsPage({
                               photoUrl={client.photoUrl}
                               color={avatarColor(client.name)}
                             />
-                            {isVip && (
-                              <span className="client-vip-star" title="Cliente VIP">★</span>
-                            )}
                           </div>
                           <div className="client-identity">
                             <div className="client-name-line">
@@ -685,11 +682,11 @@ function ClientsPage({
                               )}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="client-whatsapp-btn"
+                              className="client-whatsapp-link"
                               title={activeTab === "inactive" ? "Enviar mensagem de reativação no WhatsApp" : "Abrir WhatsApp com o cliente"}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <MessageCircle size={13} />
+                              <MessageCircle size={13} className="client-whatsapp-icon" />
                               <span>{client.phone}</span>
                             </a>
                           ) : (
@@ -705,15 +702,21 @@ function ClientsPage({
 
                       <td>
                         <div className="client-visit-col">
-                          <Clock3 size={13} className="text-muted" />
-                          <span>{client.lastVisit ? shortDate(client.lastVisit) : "Nenhum ainda"}</span>
+                          <span>{client.lastVisit ? shortDate(client.lastVisit) : "—"}</span>
                         </div>
                       </td>
 
                       <td>
-                        <div className="client-visits-badge-wrap">
-                          <span className={`visit-count-badge ${client.visits >= 2 ? "active" : ""}`}>
-                            {client.visits} {client.visits === 1 ? "visita" : "visitas"}
+                        <div className="client-visits-col">
+                          <span className="client-visits-text">
+                            {client.visits > 0 ? (
+                              <>
+                                <strong className="client-visits-num">{client.visits}</strong>{" "}
+                                <span className="client-visits-unit">{client.visits === 1 ? "visita" : "visitas"}</span>
+                              </>
+                            ) : (
+                              <span className="muted-text">—</span>
+                            )}
                           </span>
                         </div>
                       </td>
@@ -737,7 +740,7 @@ function ClientsPage({
                             title={`Criar novo agendamento para ${client.name}`}
                             onClick={() => onNewAppointment(client)}
                           >
-                            <CalendarPlus size={14} />
+                            <CalendarPlus size={13} />
                             <span>Agendar</span>
                           </button>
                           <IconButton
@@ -745,7 +748,7 @@ function ClientsPage({
                             onClick={() => onSelect(client)}
                             className="client-action-btn view"
                           >
-                            <ChevronRight size={16} />
+                            <ChevronRight size={15} />
                           </IconButton>
                         </div>
                       </td>
