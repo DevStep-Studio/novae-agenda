@@ -1,12 +1,35 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
+
 import { useEffect, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
-import { Copy, ExternalLink, Plus, QrCode, Share2, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Check,
+  ExternalLink,
+  Plus,
+  QrCode,
+  Share2,
+  Trash2,
+  Globe,
+  Building2,
+  MapPin,
+  Phone,
+  Clock,
+  Palette,
+  Sparkles,
+  ShoppingBag,
+  Tag,
+  Calendar,
+  MessageCircle,
+  Download,
+} from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
-import { b, ErrorMessage, money, Skeleton } from "./primitives";
+import { ErrorMessage, money, Skeleton } from "./primitives";
 import type { companies, coupons, products } from "@/db/schema";
+import styles from "./booking-settings.module.css";
+
 type Schedule = {
   employeeId: string;
   dayOfWeek: number;
@@ -16,6 +39,7 @@ type Schedule = {
   breakEnd: string | null;
   active: boolean;
 };
+
 type Data = {
   company: typeof companies.$inferSelect;
   schedules: Schedule[];
@@ -23,56 +47,74 @@ type Data = {
   coupons: Array<typeof coupons.$inferSelect>;
   funnel: Array<{ event: string; count: number }>;
 };
+
 export function BookingSettings() {
   const {
     employees,
     notify,
     settings,
     updateSettings,
-    reloadServices,
     reloadEmployees,
   } = useStore();
-  const [data, setData] = useState<Data | null>(null),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [slug, setSlug] = useState(""),
-    [url, setUrl] = useState(""),
-    [qr, setQr] = useState(""),
-    [showQr, setShowQr] = useState(false),
-    [employeeId, setEmployeeId] = useState(""),
-    [schedule, setSchedule] = useState<Schedule[]>([]),
-    [interval, setIntervalValue] = useState(30),
-    [cancellation, setCancellation] = useState(24),
-    [color, setColor] = useState("#234e3d");
+
+  const [data, setData] = useState<Data | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [slug, setSlug] = useState("");
+  const [url, setUrl] = useState("");
+  const [qr, setQr] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [employeeId, setEmployeeId] = useState("");
+  const [schedule, setSchedule] = useState<Schedule[]>([]);
+  const [interval, setIntervalValue] = useState(30);
+  const [cancellation, setCancellation] = useState(24);
+  const [color, setColor] = useState("#234e3d");
+
+  // State for toggles
+  const [publicEnabled, setPublicEnabled] = useState(true);
+  const [showPhone, setShowPhone] = useState(true);
+  const [showInstagram, setShowInstagram] = useState(true);
+  const [allowProducts, setAllowProducts] = useState(false);
+
   async function load() {
     const result = await api<Data>("/api/booking-settings");
     setData(result);
-    setSlug(
+    const initialSlug =
       result.company.publicSlug ||
-        result.company.name
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-          .slice(0, 60),
-    );
-    setColor(result.company.publicColor);
+      result.company.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 60);
+
+    setSlug(initialSlug);
+    setColor(result.company.publicColor || "#234e3d");
     setCancellation(result.company.cancellationHours);
-    setUrl(
-      result.company.publicSlug
-        ? `${window.location.origin}/agendar/${result.company.publicSlug}`
-        : "",
-    );
+    setPublicEnabled(result.company.publicEnabled);
+    setShowPhone(result.company.publicPhone);
+    setShowInstagram(result.company.publicInstagram);
+    setAllowProducts(result.company.allowProducts);
+
+    if (result.company.publicSlug) {
+      setUrl(`${window.location.origin}/agendar/${result.company.publicSlug}`);
+    } else {
+      setUrl(`${window.location.origin}/agendar/${initialSlug}`);
+    }
   }
+
   useEffect(() => {
     void load().catch((e) => setError(e.message));
   }, []);
+
   useEffect(() => {
     setIntervalValue(settings?.slotIntervalMinutes ?? 30);
   }, [settings?.slotIntervalMinutes]);
+
   useEffect(() => {
-    if (data && employeeId)
+    if (data && employeeId) {
       setSchedule(
         data.schedules
           .filter((s) => s.employeeId === employeeId)
@@ -84,17 +126,21 @@ export function BookingSettings() {
             breakEnd: s.breakEnd?.slice(0, 5) || null,
           })),
       );
+    }
   }, [data, employeeId]);
+
   useEffect(() => {
-    if (url)
+    if (url) {
       void QRCode.toDataURL(url, {
         width: 512,
         margin: 2,
-        color: { dark: "#193c2e", light: "#ffffff" },
+        color: { dark: "#0b1d17", light: "#ffffff" },
       })
         .then(setQr)
         .catch(() => setError("Não foi possível gerar o QR Code."));
+    }
   }, [url]);
+
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -104,8 +150,8 @@ export function BookingSettings() {
       await api("/api/booking-settings", {
         method: "PUT",
         body: JSON.stringify({
-          slug,
-          enabled: f.get("enabled") === "on",
+          slug: slug.trim(),
+          enabled: publicEnabled,
           name: f.get("name"),
           description: f.get("description"),
           category: f.get("category"),
@@ -119,21 +165,22 @@ export function BookingSettings() {
             .map((s) => s.trim())
             .filter(Boolean),
           color,
-          showPhone: f.get("showPhone") === "on",
-          showInstagram: f.get("showInstagram") === "on",
+          showPhone,
+          showInstagram,
           cancellationHours: cancellation,
-          allowProducts: f.get("allowProducts") === "on",
+          allowProducts,
           timezone: f.get("timezone"),
         }),
       });
       await load();
-      notify("Página de agendamento atualizada.");
+      notify("Página de agendamento atualizada com sucesso!");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
+
   async function saveSchedule() {
     setBusy(true);
     setError("");
@@ -156,20 +203,21 @@ export function BookingSettings() {
       await updateSettings({ slotIntervalMinutes: interval });
       await load();
       await reloadEmployees();
-      notify("Disponibilidade atualizada.");
+      notify("Disponibilidade atualizada com sucesso!");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
+
   async function createExtra(
     e: FormEvent<HTMLFormElement>,
     kind: "product" | "coupon",
   ) {
     e.preventDefault();
-    const form = e.currentTarget,
-      f = new FormData(form);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     setBusy(true);
     setError("");
     try {
@@ -188,447 +236,673 @@ export function BookingSettings() {
       });
       form.reset();
       await load();
-      notify(kind === "product" ? "Produto cadastrado." : "Cupom cadastrado.");
+      notify(kind === "product" ? "Produto cadastrado com sucesso." : "Cupom cadastrado com sucesso.");
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
-      notify("Link copiado.");
+      setCopied(true);
+      notify("Link copiado para a área de transferência.");
+      setTimeout(() => setCopied(false), 3000);
     } catch {
-      setError(
-        "Não foi possível copiar. Selecione o endereço e copie manualmente.",
-      );
+      setError("Não foi possível copiar. Selecione o endereço e copie manualmente.");
     }
   }
+
   async function share() {
     try {
-      if (navigator.share)
+      if (navigator.share) {
         await navigator.share({
           title: data?.company.name,
-          text: "Agende seu horário comigo",
+          text: `Agende seu horário com ${data?.company.name}:`,
           url,
         });
-      else await copy();
+      } else {
+        await copy();
+      }
     } catch (e) {
-      if ((e as Error).name !== "AbortError")
+      if ((e as Error).name !== "AbortError") {
         setError("Não foi possível compartilhar.");
+      }
     }
   }
-  if (!data)
+
+  if (!data) {
     return (
-      <div className={`${b.page} ${b.settings}`}>
+      <div className={styles.container}>
         <ErrorMessage message={error} />
-        <Skeleton label="Carregando configurações…" />
+        <Skeleton label="Carregando configurações do link..." />
       </div>
     );
+  }
+
   const c = data.company;
+
   return (
-    <div className={`${b.page} ${b.settings}`}>
-      <p className={b.eyebrow}>Sua agenda, a um clique de distância</p>
-      <h1 className={b.title}>Link de agendamento</h1>
-      <p className={b.subtitle}>
-        Receba reservas pelo Instagram, WhatsApp ou onde seus clientes
-        estiverem.
-      </p>
-      <ErrorMessage message={error} />
-      <div className={b.detail}>
-        <div className={b.row}>
-          <h2>Seu link público</h2>
-          <span className={b.status}>
-            {c.publicEnabled ? "Página ativa" : "Página desativada"}
-          </span>
+    <div className={styles.container}>
+      {/* Top Header */}
+      <div className={styles.header}>
+        <span className={styles.eyebrow}>Sua agenda, a um clique de distância</span>
+        <h1 className={styles.title}>Link de agendamento</h1>
+        <p className={styles.subtitle}>
+          Receba reservas pelo Instagram, WhatsApp ou onde seus clientes estiverem.
+        </p>
+      </div>
+
+      {error && <div className={styles.errorBanner}>{error}</div>}
+
+      {/* Hero Link Card */}
+      <div className={styles.heroCard}>
+        <div className={styles.heroCardHeader}>
+          <div className={styles.heroCardTitle}>
+            <Globe size={18} style={{ color: "#dcff4c" }} />
+            <span>Seu link público</span>
+          </div>
+          {publicEnabled ? (
+            <span className={styles.statusPillActive}>
+              <span className={styles.statusDot} />
+              Página ativa
+            </span>
+          ) : (
+            <span className={styles.statusPillInactive}>
+              Página desativada
+            </span>
+          )}
         </div>
-        {url ? (
-          <>
-            <input
-              aria-label="Seu link público"
-              readOnly
-              value={url}
-              onFocus={(e) => e.target.select()}
-            />
-            <div className={b.inline} style={{ marginTop: 15 }}>
-              <button className={b.button} onClick={copy}>
-                <Copy size={16} /> Copiar link
-              </button>
+
+        <div className={styles.urlBar}>
+          <span className={styles.urlText}>{url || `/agendar/${slug}`}</span>
+          <div className={styles.urlActions}>
+            <button type="button" className={styles.btnPrimary} onClick={copy}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "Copiado!" : "Copiar link"}
+            </button>
+
+            {url && (
               <a
-                className={`${b.button} ${b.outline}`}
+                className={styles.btnSecondary}
                 href={url}
                 target="_blank"
                 rel="noreferrer"
               >
-                <ExternalLink size={16} /> Visualizar página
+                <ExternalLink size={14} />
+                Visualizar
               </a>
-              <button className={`${b.button} ${b.outline}`} onClick={share}>
-                <Share2 size={16} /> Compartilhar
-              </button>
-              <button
-                className={`${b.button} ${b.outline}`}
-                onClick={() => setShowQr(!showQr)}
-              >
-                <QrCode size={16} /> QR Code
-              </button>
-            </div>
-            <div className={b.inline}>
-              <a
-                className={b.textButton}
-                href={`https://wa.me/?text=${encodeURIComponent(`Agende seu horário comigo: ${url}`)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                WhatsApp
-              </a>
-              <a
-                className={b.textButton}
-                href={`mailto:?subject=Agende%20seu%20horário&body=${encodeURIComponent(url)}`}
-              >
-                E-mail
-              </a>
-            </div>
-            {showQr && qr && (
-              <div style={{ marginTop: 20 }}>
-                <img src={qr} className={b.qr} alt="QR Code para agendar" />
-                <p>Escaneie para agendar</p>
-                <div className={b.inline}>
-                  <a
-                    className={b.textButton}
-                    href={qr}
-                    download={`agendar-${slug}.png`}
-                  >
-                    Baixar PNG
-                  </a>
-                  <button
-                    className={b.textButton}
-                    onClick={async () => {
-                      const svg = await QRCode.toString(url, {
-                        type: "svg",
-                        margin: 2,
-                      });
-                      const objectUrl = URL.createObjectURL(
-                        new Blob([svg], { type: "image/svg+xml" }),
-                      );
-                      const a = document.createElement("a");
-                      a.href = objectUrl;
-                      a.download = `agendar-${slug}.svg`;
-                      a.click();
-                      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-                    }}
-                  >
-                    Baixar SVG
-                  </button>
-                </div>
-              </div>
             )}
-          </>
-        ) : (
-          <p className={b.muted}>
-            Escolha seu endereço e salve abaixo para gerar seu link.
-          </p>
+
+            <button type="button" className={styles.btnSecondary} onClick={share}>
+              <Share2 size={14} />
+              Compartilhar
+            </button>
+
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => setShowQr(!showQr)}
+              style={showQr ? { background: "rgba(220, 255, 76, 0.15)", color: "#dcff4c" } : {}}
+            >
+              <QrCode size={14} />
+              QR Code
+            </button>
+          </div>
+        </div>
+
+        {/* QR Code Collapsible */}
+        {showQr && qr && (
+          <div className={styles.qrSection}>
+            <div className={styles.qrImageWrap}>
+              <img src={qr} className={styles.qrImage} alt="QR Code para agendar" />
+            </div>
+            <div className={styles.qrContent}>
+              <h4 className={styles.qrTitle}>QR Code para balcão e impressos</h4>
+              <p className={styles.qrDesc}>
+                Ideal para colocar na recepção, balcão, cartões de visita ou no feed do Instagram. Seus clientes apontam a câmera e agendam na hora.
+              </p>
+              <div className={styles.qrActions}>
+                <a
+                  className={styles.btnPrimary}
+                  href={qr}
+                  download={`agendar-${slug}.png`}
+                >
+                  <Download size={14} />
+                  Baixar PNG
+                </a>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={async () => {
+                    const svg = await QRCode.toString(url, {
+                      type: "svg",
+                      margin: 2,
+                    });
+                    const objectUrl = URL.createObjectURL(
+                      new Blob([svg], { type: "image/svg+xml" }),
+                    );
+                    const a = document.createElement("a");
+                    a.href = objectUrl;
+                    a.download = `agendar-${slug}.svg`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                  }}
+                >
+                  <Download size={14} />
+                  Baixar SVG
+                </button>
+                <a
+                  className={styles.btnSecondary}
+                  href={`https://wa.me/?text=${encodeURIComponent(`Agende seu horário conosco diretamente pelo link: ${url}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <MessageCircle size={14} />
+                  Enviar no WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
         )}
       </div>
-      <form onSubmit={save}>
-        <section>
-          <h2>Personalize sua página</h2>
-          <div className={b.grid2}>
-            <label className={b.field}>
-              Endereço do link
+
+      {/* Main Settings Form */}
+      <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Card: Identificação da Página */}
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>
+                <Building2 size={18} style={{ color: "#dcff4c" }} />
+                Identificação do Estabelecimento
+              </h2>
+              <p className={styles.cardSubtitle}>
+                Defina como sua empresa será exibida para os clientes que acessam o link.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.grid2}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Endereço do link público</label>
+              <div className={styles.inputSlugGroup}>
+                <span className={styles.slugPrefix}>/agendar/</span>
+                <input
+                  className={styles.slugInput}
+                  value={slug}
+                  onChange={(e) => {
+                    const val = e.target.value
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")
+                      .replace(/[^a-z0-9-]/g, "");
+                    setSlug(val);
+                    setUrl(`${window.location.origin}/agendar/${val}`);
+                  }}
+                  required
+                  minLength={3}
+                  maxLength={60}
+                  placeholder="seu-negocio"
+                />
+              </div>
+              <span className={styles.helperText}>Letras minúsculas, números e hífens.</span>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Nome público</label>
               <input
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
+                className={styles.input}
+                name="name"
+                defaultValue={c.name}
                 required
-                minLength={3}
-                maxLength={60}
-                pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                minLength={2}
+                placeholder="Ex: Studio Prime"
               />
-              <small className={b.muted}>/agendar/{slug}</small>
-            </label>
-            <label className={b.field}>
-              Nome público
-              <input name="name" defaultValue={c.name} required minLength={2} />
-            </label>
-            <label className={b.field}>
-              Profissão ou categoria
-              <input name="category" defaultValue={c.businessType ?? ""} />
-            </label>
-            <label className={b.field}>
-              Logo ou foto (URL)
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Profissão ou Categoria</label>
               <input
+                className={styles.input}
+                name="category"
+                defaultValue={c.businessType ?? ""}
+                placeholder="Ex: Barbearia, Estética, Salão"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Logo ou Foto de Perfil (URL)</label>
+              <input
+                className={styles.input}
                 name="logoUrl"
                 defaultValue={c.logoUrl ?? ""}
-                placeholder="https://…"
+                placeholder="https://..."
               />
-            </label>
+            </div>
           </div>
-          <label className={b.field}>
-            Apresentação
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Apresentação / Bio</label>
             <textarea
+              className={styles.textarea}
               name="description"
               defaultValue={c.publicDescription ?? ""}
               maxLength={2000}
+              placeholder="Conte um pouco sobre sua experiência, diferenciais e espaço..."
             />
-          </label>
-          <label className={b.field}>
-            Endereço
-            <input name="address" defaultValue={c.address ?? ""} />
-          </label>
-          <div className={b.grid2}>
-            <label className={b.field}>
-              Telefone
-              <input name="phone" defaultValue={c.phone ?? ""} />
-            </label>
-            <label className={b.field}>
-              WhatsApp
-              <input name="whatsapp" defaultValue={c.whatsapp ?? ""} />
-            </label>
-            <label className={b.field}>
-              Instagram (usuário)
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Endereço completo da unidade</label>
+            <input
+              className={styles.input}
+              name="address"
+              defaultValue={c.address ?? ""}
+              placeholder="Rua, número, bairro, cidade - UF"
+            />
+          </div>
+        </section>
+
+        {/* Card: Contato e Redes */}
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>
+                <Phone size={18} style={{ color: "#dcff4c" }} />
+                Contato e Redes Sociais
+              </h2>
+              <p className={styles.cardSubtitle}>
+                Canais de comunicação exibidos na página pública para tirar dúvidas.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.grid3}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Telefone comercial</label>
               <input
+                className={styles.input}
+                name="phone"
+                defaultValue={c.phone ?? ""}
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>WhatsApp</label>
+              <input
+                className={styles.input}
+                name="whatsapp"
+                defaultValue={c.whatsapp ?? ""}
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Instagram</label>
+              <input
+                className={styles.input}
                 name="instagram"
                 defaultValue={c.instagram ?? ""}
                 placeholder="@seunegocio"
               />
-            </label>
-            <label className={b.field}>
-              Fuso horário
-              <input name="timezone" defaultValue={c.timezone} required />
-            </label>
-            <label className={b.field}>
-              Cor principal
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-              />
-            </label>
-            <div>
-              <span className={b.muted}>Prévia do botão</span>
-              <div
-                className={b.button}
-                style={{ background: color, borderColor: color, marginTop: 8 }}
-              >
-                Reservar meu horário
+            </div>
+          </div>
+
+          <div className={styles.grid2}>
+            <div
+              className={styles.checkRow}
+              onClick={() => setShowPhone(!showPhone)}
+            >
+              <div className={styles.checkInfo}>
+                <span className={styles.checkTitle}>Mostrar Telefone e WhatsApp</span>
+                <span className={styles.checkDesc}>Permite que clientes entrem em contato diretamente.</span>
+              </div>
+              <div className={`${styles.switch} ${showPhone ? styles.switchActive : ""}`}>
+                <div className={`${styles.switchKnob} ${showPhone ? styles.switchKnobActive : ""}`} />
+              </div>
+            </div>
+
+            <div
+              className={styles.checkRow}
+              onClick={() => setShowInstagram(!showInstagram)}
+            >
+              <div className={styles.checkInfo}>
+                <span className={styles.checkTitle}>Mostrar Instagram</span>
+                <span className={styles.checkDesc}>Exibe link direto para o perfil do Instagram.</span>
+              </div>
+              <div className={`${styles.switch} ${showInstagram ? styles.switchActive : ""}`}>
+                <div className={`${styles.switchKnob} ${showInstagram ? styles.switchKnobActive : ""}`} />
               </div>
             </div>
           </div>
-          <label className={b.field}>
-            Fotos do espaço (uma URL por linha)
-            <textarea
-              name="photos"
-              defaultValue={c.publicPhotos.join("\n")}
-              placeholder="https://…"
-            />
-          </label>
-          <label className={b.check}>
-            <input
-              name="showPhone"
-              type="checkbox"
-              defaultChecked={c.publicPhone}
-            />{" "}
-            Mostrar telefone e WhatsApp
-          </label>
-          <label className={b.check}>
-            <input
-              name="showInstagram"
-              type="checkbox"
-              defaultChecked={c.publicInstagram}
-            />{" "}
-            Mostrar Instagram
-          </label>
-          <label className={b.check}>
-            <input
-              name="allowProducts"
-              type="checkbox"
-              defaultChecked={c.allowProducts}
-            />{" "}
-            Permitir produtos complementares
-          </label>
-          <label className={b.field} style={{ marginTop: 20 }}>
-            Prazo para cancelamento e remarcação
-            <select
-              value={cancellation}
-              onChange={(e) => setCancellation(Number(e.target.value))}
-            >
-              {[-1, 0, 2, 6, 12, 24, 48, 72].map((h) => (
-                <option value={h} key={h}>
-                  {h < 0
-                    ? "Somente pelo estabelecimento"
-                    : h === 0
-                      ? "Até o início do atendimento"
-                      : `${h} horas antes`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={b.check}>
-            <input
-              type="checkbox"
-              name="enabled"
-              defaultChecked={c.publicEnabled}
-            />{" "}
-            Ativar reservas pelo link público
-          </label>
-          <div className={b.note}>
-            Cadastre os serviços, vincule os profissionais e revise as jornadas
-            antes de compartilhar.
-          </div>
-          <button className={b.button} disabled={busy}>
-            {busy ? "Salvando…" : "Salvar página e gerar link"}
-          </button>
         </section>
-      </form>
-      <section>
-        <h2>Configurações de disponibilidade</h2>
-        <p className={b.muted}>
-          Cadastre vários períodos por dia. Férias, folgas e feriados podem ser
-          registrados em Agenda → Bloquear horário.
-        </p>
-        <div className={b.grid2}>
-          <label className={b.field}>
-            Profissional
-            <select
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-            >
-              <option value="">Selecione</option>
-              {employees
-                .filter((e) => e.active)
-                .map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}
+
+        {/* Card: Personalização Visual & Regras */}
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>
+                <Palette size={18} style={{ color: "#dcff4c" }} />
+                Identidade Visual e Políticas
+              </h2>
+              <p className={styles.cardSubtitle}>
+                Cores do agendamento, fotos e políticas de cancelamento.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.grid2}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Cor de destaque da página</label>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  style={{
+                    width: 44,
+                    height: 40,
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                    background: "transparent",
+                    cursor: "pointer",
+                  }}
+                />
+                <input
+                  className={styles.input}
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  style={{ fontFamily: "monospace", textTransform: "uppercase" }}
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Prévia do botão do cliente</label>
+              <div
+                style={{
+                  background: color,
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  padding: "11px 18px",
+                  borderRadius: 8,
+                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Sparkles size={14} />
+                Confirmar agendamento
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Prazo para cancelamento / remarcação</label>
+              <select
+                className={styles.select}
+                value={cancellation}
+                onChange={(e) => setCancellation(Number(e.target.value))}
+              >
+                {[-1, 0, 2, 6, 12, 24, 48, 72].map((h) => (
+                  <option value={h} key={h}>
+                    {h < 0
+                      ? "Somente pelo estabelecimento"
+                      : h === 0
+                        ? "Até o início do atendimento"
+                        : `Até ${h} horas antes do horário`}
                   </option>
                 ))}
-            </select>
-          </label>
-          <label className={b.field}>
-            Intervalo das opções de horários
-            <select
-              value={interval}
-              onChange={(e) => setIntervalValue(Number(e.target.value))}
+              </select>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Fuso horário oficial</label>
+              <input
+                className={styles.input}
+                name="timezone"
+                defaultValue={c.timezone}
+                required
+                placeholder="America/Sao_Paulo"
+              />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Fotos da galeria do espaço (uma URL por linha)</label>
+            <textarea
+              className={styles.textarea}
+              name="photos"
+              defaultValue={c.publicPhotos.join("\n")}
+              placeholder="https://exemplo.com/foto1.jpg&#10;https://exemplo.com/foto2.jpg"
+              rows={3}
+            />
+          </div>
+
+          <div className={styles.grid2}>
+            <div
+              className={styles.checkRow}
+              onClick={() => setPublicEnabled(!publicEnabled)}
             >
-              {[5, 10, 15, 20, 30, 60].map((v) => (
-                <option key={v} value={v}>
-                  {v} minutos
+              <div className={styles.checkInfo}>
+                <span className={styles.checkTitle}>Ativar agendamentos pelo link público</span>
+                <span className={styles.checkDesc}>Quando desativado, o link exibirá aviso de manutenção.</span>
+              </div>
+              <div className={`${styles.switch} ${publicEnabled ? styles.switchActive : ""}`}>
+                <div className={`${styles.switchKnob} ${publicEnabled ? styles.switchKnobActive : ""}`} />
+              </div>
+            </div>
+
+            <div
+              className={styles.checkRow}
+              onClick={() => setAllowProducts(!allowProducts)}
+            >
+              <div className={styles.checkInfo}>
+                <span className={styles.checkTitle}>Produtos complementares</span>
+                <span className={styles.checkDesc}>Permite oferecer itens adicionais durante o agendamento.</span>
+              </div>
+              <div className={`${styles.switch} ${allowProducts ? styles.switchActive : ""}`}>
+                <div className={`${styles.switchKnob} ${allowProducts ? styles.switchKnobActive : ""}`} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Save Bar */}
+        <div className={styles.saveBar}>
+          <span className={styles.saveBarText}>
+            Revise as informações antes de salvar sua página pública.
+          </span>
+          <button type="submit" className={styles.btnPrimary} disabled={busy}>
+            {busy ? "Salvando..." : "Salvar página e gerar link"}
+          </button>
+        </div>
+      </form>
+
+      {/* Card: Horários & Disponibilidade */}
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div>
+            <h2 className={styles.cardTitle}>
+              <Clock size={18} style={{ color: "#dcff4c" }} />
+              Jornada e Horários da Equipe
+            </h2>
+            <p className={styles.cardSubtitle}>
+              Configure os períodos de atendimento de cada profissional para o motor de disponibilidade.
+            </p>
+          </div>
+        </div>
+
+        <div className={styles.field} style={{ maxWidth: 400 }}>
+          <label className={styles.fieldLabel}>Selecione o profissional</label>
+          <select
+            className={styles.select}
+            value={employeeId}
+            onChange={(e) => setEmployeeId(e.target.value)}
+          >
+            <option value="">Selecione um profissional da equipe</option>
+            {employees
+              .filter((e) => e.active)
+              .map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
                 </option>
               ))}
-            </select>
-          </label>
+          </select>
         </div>
+
         {employeeId && (
-          <>
-            {schedule.map((s, i) => (
-              <div className={b.scheduleRow} key={i}>
-                <input
-                  aria-label={`Período ${i + 1} ativo`}
-                  type="checkbox"
-                  checked={s.active}
-                  onChange={(e) =>
-                    setSchedule(
-                      schedule.map((r, n) =>
-                        n === i ? { ...r, active: e.target.checked } : r,
-                      ),
-                    )
-                  }
-                />
-                <select
-                  aria-label={`Dia do período ${i + 1}`}
-                  value={s.dayOfWeek}
-                  onChange={(e) =>
-                    setSchedule(
-                      schedule.map((r, n) =>
-                        n === i
-                          ? { ...r, dayOfWeek: Number(e.target.value) }
-                          : r,
-                      ),
-                    )
-                  }
-                >
-                  {[
-                    "Domingo",
-                    "Segunda",
-                    "Terça",
-                    "Quarta",
-                    "Quinta",
-                    "Sexta",
-                    "Sábado",
-                  ].map((d, n) => (
-                    <option key={d} value={n}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  aria-label={`Início do período ${i + 1}`}
-                  type="time"
-                  value={s.startTime}
-                  onChange={(e) =>
-                    setSchedule(
-                      schedule.map((r, n) =>
-                        n === i ? { ...r, startTime: e.target.value } : r,
-                      ),
-                    )
-                  }
-                />
-                <span>até</span>
-                <input
-                  aria-label={`Fim do período ${i + 1}`}
-                  type="time"
-                  value={s.endTime}
-                  onChange={(e) =>
-                    setSchedule(
-                      schedule.map((r, n) =>
-                        n === i ? { ...r, endTime: e.target.value } : r,
-                      ),
-                    )
-                  }
-                />
-                <input
-                  title="Início do almoço (opcional)"
-                  aria-label={`Início do almoço ${i + 1}`}
-                  type="time"
-                  value={s.breakStart ?? ""}
-                  onChange={(e) =>
-                    setSchedule(
-                      schedule.map((r, n) =>
-                        n === i
-                          ? { ...r, breakStart: e.target.value || null }
-                          : r,
-                      ),
-                    )
-                  }
-                />
-                <input
-                  title="Fim do almoço (opcional)"
-                  aria-label={`Fim do almoço ${i + 1}`}
-                  type="time"
-                  value={s.breakEnd ?? ""}
-                  onChange={(e) =>
-                    setSchedule(
-                      schedule.map((r, n) =>
-                        n === i
-                          ? { ...r, breakEnd: e.target.value || null }
-                          : r,
-                      ),
-                    )
-                  }
-                />
-                <button
-                  className={b.remove}
-                  aria-label={`Remover período ${i + 1}`}
-                  onClick={() =>
-                    setSchedule(schedule.filter((_, n) => n !== i))
-                  }
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-            <div className={b.inline}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <table className={styles.scheduleTable}>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>Ativo</th>
+                  <th>Dia da Semana</th>
+                  <th>Horário Entrada</th>
+                  <th>Horário Saída</th>
+                  <th>Almoço / Intervalo</th>
+                  <th style={{ width: 40 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.map((s, i) => (
+                  <tr key={i}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={s.active}
+                        onChange={(e) =>
+                          setSchedule(
+                            schedule.map((r, n) =>
+                              n === i ? { ...r, active: e.target.checked } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className={styles.select}
+                        value={s.dayOfWeek}
+                        style={{ padding: "6px 10px", fontSize: "13px" }}
+                        onChange={(e) =>
+                          setSchedule(
+                            schedule.map((r, n) =>
+                              n === i
+                                ? { ...r, dayOfWeek: Number(e.target.value) }
+                                : r,
+                            ),
+                          )
+                        }
+                      >
+                        {[
+                          "Domingo",
+                          "Segunda",
+                          "Terça",
+                          "Quarta",
+                          "Quinta",
+                          "Sexta",
+                          "Sábado",
+                        ].map((d, n) => (
+                          <option key={d} value={n}>
+                            {d}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        value={s.startTime}
+                        style={{ padding: "6px 10px", width: 110 }}
+                        onChange={(e) =>
+                          setSchedule(
+                            schedule.map((r, n) =>
+                              n === i ? { ...r, startTime: e.target.value } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        value={s.endTime}
+                        style={{ padding: "6px 10px", width: 110 }}
+                        onChange={(e) =>
+                          setSchedule(
+                            schedule.map((r, n) =>
+                              n === i ? { ...r, endTime: e.target.value } : r,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <input
+                          type="time"
+                          className={styles.input}
+                          placeholder="Início"
+                          value={s.breakStart ?? ""}
+                          style={{ padding: "6px 10px", width: 100 }}
+                          onChange={(e) =>
+                            setSchedule(
+                              schedule.map((r, n) =>
+                                n === i
+                                  ? { ...r, breakStart: e.target.value || null }
+                                  : r,
+                              ),
+                            )
+                          }
+                        />
+                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>até</span>
+                        <input
+                          type="time"
+                          className={styles.input}
+                          placeholder="Fim"
+                          value={s.breakEnd ?? ""}
+                          style={{ padding: "6px 10px", width: 100 }}
+                          onChange={(e) =>
+                            setSchedule(
+                              schedule.map((r, n) =>
+                                n === i
+                                  ? { ...r, breakEnd: e.target.value || null }
+                                  : r,
+                              ),
+                            )
+                          }
+                        />
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.btnIcon}
+                        onClick={() =>
+                          setSchedule(schedule.filter((_, n) => n !== i))
+                        }
+                        title="Remover período"
+                      >
+                        <Trash2 size={15} style={{ color: "#f87171" }} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
               <button
-                className={`${b.button} ${b.outline}`}
+                type="button"
+                className={styles.btnSecondary}
                 onClick={() =>
                   setSchedule([
                     ...schedule,
@@ -644,145 +918,185 @@ export function BookingSettings() {
                   ])
                 }
               >
-                <Plus size={15} /> Adicionar período
+                <Plus size={15} />
+                Adicionar período
               </button>
+
               <button
-                className={b.button}
+                type="button"
+                className={styles.btnPrimary}
                 disabled={busy}
                 onClick={saveSchedule}
               >
-                Salvar disponibilidade
+                Salvar disponibilidade do profissional
               </button>
             </div>
-          </>
+          </div>
         )}
       </section>
-      <section>
-        <h2>Produtos complementares</h2>
-        {data.products.map((p) => (
-          <div className={b.product} key={p.id}>
-            <span>
-              {p.name} · {money(p.price)}
-            </span>
-            <button
-              className={b.textButton}
-              disabled={busy}
-              onClick={async () => {
-                try {
-                  await api("/api/booking-settings", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      kind: "product",
-                      ...p,
-                      price: Number(p.price),
-                      active: !p.active,
-                    }),
-                  });
-                  await load();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              {p.active ? "Desativar" : "Ativar"}
-            </button>
+
+      {/* Card: Produtos Complementares */}
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div>
+            <h2 className={styles.cardTitle}>
+              <ShoppingBag size={18} style={{ color: "#dcff4c" }} />
+              Produtos Complementares
+            </h2>
+            <p className={styles.cardSubtitle}>
+              Itens que o cliente pode adicionar ao carrinho durante o agendamento (pomadas, cremes, etc.).
+            </p>
           </div>
-        ))}
-        <form
-          onSubmit={(e) => createExtra(e, "product")}
-          className={b.grid2}
-          style={{ marginTop: 16 }}
-        >
-          <label className={b.field}>
-            Nome
-            <input name="name" required minLength={2} />
-          </label>
-          <label className={b.field}>
-            Preço (R$)
-            <input name="price" type="number" required min={0} step="0.01" />
-          </label>
-          <button className={`${b.button} ${b.outline}`} disabled={busy}>
+        </div>
+
+        {data.products.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {data.products.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  background: "var(--surface-secondary)",
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: 14, color: "var(--text-primary)" }}>{p.name}</strong>
+                  <span style={{ marginLeft: 12, color: "#dcff4c", fontWeight: 600 }}>{money(p.price)}</span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  disabled={busy}
+                  onClick={async () => {
+                    try {
+                      await api("/api/booking-settings", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          kind: "product",
+                          ...p,
+                          price: Number(p.price),
+                          active: !p.active,
+                        }),
+                      });
+                      await load();
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                >
+                  {p.active ? "Desativar" : "Ativar"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={(e) => createExtra(e, "product")} className={styles.grid3} style={{ alignItems: "flex-end" }}>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Nome do produto</label>
+            <input className={styles.input} name="name" required minLength={2} placeholder="Ex: Pomada Modeladora" />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Preço (R$)</label>
+            <input className={styles.input} name="price" type="number" required min={0} step="0.01" placeholder="45.00" />
+          </div>
+          <button type="submit" className={styles.btnSecondary} disabled={busy} style={{ height: 42 }}>
+            <Plus size={15} />
             Adicionar produto
           </button>
         </form>
       </section>
-      <section>
-        <h2>Cupons promocionais</h2>
-        {data.coupons.map((coupon) => (
-          <div className={b.product} key={coupon.id}>
-            <span>
-              {coupon.code} ·{" "}
-              {coupon.type === "percentage"
-                ? `${coupon.value}%`
-                : money(coupon.value)}
-            </span>
-            <button
-              className={b.textButton}
-              onClick={async () => {
-                try {
-                  await api("/api/booking-settings", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      kind: "coupon",
-                      ...coupon,
-                      value: Number(coupon.value),
-                      active: !coupon.active,
-                    }),
-                  });
-                  await load();
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              }}
-            >
-              {coupon.active ? "Desativar" : "Ativar"}
-            </button>
+
+      {/* Card: Cupons Promocionais */}
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div>
+            <h2 className={styles.cardTitle}>
+              <Tag size={18} style={{ color: "#dcff4c" }} />
+              Cupons de Desconto
+            </h2>
+            <p className={styles.cardSubtitle}>
+              Crie códigos de desconto promocionais para atrair clientes.
+            </p>
           </div>
-        ))}
-        <form
-          onSubmit={(e) => createExtra(e, "coupon")}
-          className={b.grid2}
-          style={{ marginTop: 16 }}
-        >
-          <label className={b.field}>
-            Código
-            <input name="code" required minLength={2} />
-          </label>
-          <label className={b.field}>
-            Tipo
-            <select name="type">
-              <option value="percentage">Percentual</option>
-              <option value="fixed">Valor em reais</option>
-            </select>
-          </label>
-          <label className={b.field}>
-            Desconto
-            <input name="value" type="number" min="0.01" step="0.01" required />
-          </label>
-          <button className={`${b.button} ${b.outline}`} disabled={busy}>
-            Adicionar cupom
+        </div>
+
+        {data.coupons.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {data.coupons.map((coupon) => (
+              <div
+                key={coupon.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  background: "var(--surface-secondary)",
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div>
+                  <code style={{ fontSize: 13, background: "rgba(220, 255, 76, 0.1)", color: "#dcff4c", padding: "3px 8px", borderRadius: 4 }}>
+                    {coupon.code}
+                  </code>
+                  <span style={{ marginLeft: 12, color: "var(--text-secondary)", fontSize: 13 }}>
+                    Desconto: <b>{coupon.type === "percentage" ? `${coupon.value}%` : money(coupon.value)}</b>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  disabled={busy}
+                  onClick={async () => {
+                    try {
+                      await api("/api/booking-settings", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          kind: "coupon",
+                          ...coupon,
+                          value: Number(coupon.value),
+                          active: !coupon.active,
+                        }),
+                      });
+                      await load();
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                >
+                  {coupon.active ? "Desativar" : "Ativar"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={(e) => createExtra(e, "coupon")} className={styles.grid3} style={{ alignItems: "flex-end" }}>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Código do cupom</label>
+            <input className={styles.input} name="code" required minLength={2} placeholder="Ex: PRIMEIRA10" style={{ textTransform: "uppercase" }} />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>Desconto</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <select name="type" className={styles.select} style={{ width: 90 }}>
+                <option value="percentage">%</option>
+                <option value="fixed">R$</option>
+              </select>
+              <input className={styles.input} name="value" type="number" required min={1} placeholder="10" />
+            </div>
+          </div>
+          <button type="submit" className={styles.btnSecondary} disabled={busy} style={{ height: 42 }}>
+            <Plus size={15} />
+            Criar cupom
           </button>
         </form>
-      </section>
-      <section>
-        <h2>Reservas pelo link</h2>
-        <div className={b.grid2}>
-          {[
-            ["public_profile_view", "Visualizações"],
-            ["service_selected", "Serviços selecionados"],
-            ["date_selected", "Datas selecionadas"],
-            ["time_selected", "Horários selecionados"],
-            ["checkout_started", "Confirmações iniciadas"],
-            ["booking_completed", "Reservas concluídas"],
-          ].map(([key, label]) => (
-            <div className={b.row} key={key}>
-              <span>{label}</span>
-              <strong>
-                {data.funnel.find((f) => f.event === key)?.count ?? 0}
-              </strong>
-            </div>
-          ))}
-        </div>
       </section>
     </div>
   );
