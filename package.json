@@ -12,6 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:restore": "bash scripts/restore-db.sh",
     "commit": "node scripts/auto-commit.mjs",
     "commit:watch": "node scripts/auto-commit.mjs --watch",
     "bookings:notifications": "tsx scripts/booking-notifications.ts",

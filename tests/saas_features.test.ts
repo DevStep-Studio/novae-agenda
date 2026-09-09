@@ -76,7 +76,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
         companyId: testCompanyId,
         name: "Profissional Alpha",
         commissionType: "percentage",
-        commissionValue: 40,
+        commissionValue: "40.00",
       })
       .returning();
     testEmployeeId = emp.id;
@@ -87,7 +87,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
       .values({
         companyId: testCompanyId,
         name: "Corte & Barba Premium",
-        price: 120,
+        price: "120.00",
         durationMinutes: 45,
       })
       .returning();

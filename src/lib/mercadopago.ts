@@ -153,13 +153,23 @@ export async function activateSubscription(
   }
 
   if (subscriptionId) {
-    await db.insert(subscriptionInvoices).values({
-      subscriptionId,
-      companyId,
-      amount: (amount ?? plan.price).toFixed(2),
-      status: "paid",
-      paidAt: now,
-      mercadoPagoPaymentId: paymentId ?? `sim_${Date.now()}`,
-    });
+    const paymentRef = paymentId ?? `sim_${Date.now()}`;
+    // Idempotency: verify if this payment was already recorded
+    const [existingInvoice] = await db
+      .select({ id: subscriptionInvoices.id })
+      .from(subscriptionInvoices)
+      .where(eq(subscriptionInvoices.mercadoPagoPaymentId, paymentRef))
+      .limit(1);
+
+    if (!existingInvoice) {
+      await db.insert(subscriptionInvoices).values({
+        subscriptionId,
+        companyId,
+        amount: (amount ?? plan.price).toFixed(2),
+        status: "paid",
+        paidAt: now,
+        mercadoPagoPaymentId: paymentRef,
+      });
+    }
   }
 }

@@ -61,3 +61,8 @@ Thumbs.db
 # Browser verification artifacts
 /test-results/
 /playwright-report/
+
+# Database dumps and backups
+/backups/
+*.sql.gz
+
