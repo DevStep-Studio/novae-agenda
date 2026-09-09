@@ -648,13 +648,31 @@ export function ClientPortal({
                     onClick={() => handleSelectCompany(comp)}
                   >
                     <div className={styles.companyLogo}>
-                      {comp.name.slice(0, 2).toUpperCase()}
+                      {comp.logoUrl ? (
+                        <img
+                          src={comp.logoUrl}
+                          alt={comp.name}
+                          style={{ width: "100%", height: "100%", borderRadius: 12, objectFit: "cover" }}
+                        />
+                      ) : (
+                        comp.name.slice(0, 2).toUpperCase()
+                      )}
                     </div>
-                    <div>
-                      <strong style={{ display: "block", fontSize: "14px" }}>{comp.name}</strong>
-                      <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <strong style={{ display: "block", fontSize: "14px", color: "#ffffff", letterSpacing: "-0.2px" }}>
+                        {comp.name}
+                      </strong>
+                      <span style={{ fontSize: "12px", color: "#8db3a2" }}>
                         {comp.businessType ?? "Atendimento"}
                       </span>
+                      {comp.address && (
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "11px", color: "#6e9382", marginTop: 3 }}>
+                          <MapPin size={11} />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {comp.address}
+                          </span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
