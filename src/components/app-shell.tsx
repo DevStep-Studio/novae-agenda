@@ -236,10 +236,10 @@ function DashboardPage({
 
       <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
         <div className="metric-card"><div className="metric-icon metric-teal"><CalendarDays size={18} /></div><div className="metric-copy"><p>Atendimentos hoje</p><strong>{stats?.today.appointments ?? 0}</strong><span className="metric-detail">agendados para hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-lilac"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista</p><strong>{formatCurrency(forecast)}</strong><span className="metric-detail">para hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-amber"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita realizada</p><strong>{formatCurrency(realized)}</strong><span className="metric-detail">já recebida hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon" style={{ background: "rgba(251, 146, 60, 0.12)", color: "#fb923c" }}><CircleDollarSign size={18} /></div><div className="metric-copy"><p>Receita pendente</p><strong>{formatCurrency(pendingAmount)}</strong><span className="metric-detail">a receber hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-rose"><Users size={18} /></div><div className="metric-copy"><p>Clientes atendidos</p><strong>{stats?.today.clientsServed ?? 0}</strong><span className="metric-detail">finalizados hoje</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-teal"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista</p><strong>{formatCurrency(forecast)}</strong><span className="metric-detail">para hoje</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-teal"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita realizada</p><strong>{formatCurrency(realized)}</strong><span className="metric-detail">já recebida hoje</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-teal"><CircleDollarSign size={18} /></div><div className="metric-copy"><p>Receita pendente</p><strong>{formatCurrency(pendingAmount)}</strong><span className="metric-detail">a receber hoje</span></div></div>
+        <div className="metric-card"><div className="metric-icon metric-teal"><Users size={18} /></div><div className="metric-copy"><p>Clientes atendidos</p><strong>{stats?.today.clientsServed ?? 0}</strong><span className="metric-detail">finalizados hoje</span></div></div>
       </div>
 
       <div className="metrics-subgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "20px" }}>
@@ -506,7 +506,7 @@ function ClientsPage({
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-lilac"><Sparkles size={18} /></div>
+          <div className="metric-icon metric-teal"><Sparkles size={18} /></div>
           <div className="metric-copy">
             <p>Clientes frequentes</p>
             <strong>{vipClients.length}</strong>
@@ -515,7 +515,7 @@ function ClientsPage({
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-amber"><CircleDollarSign size={18} /></div>
+          <div className="metric-icon metric-teal"><CircleDollarSign size={18} /></div>
           <div className="metric-copy">
             <p>Ticket médio</p>
             <strong>{formatCurrency(averageTicket)}</strong>
@@ -1126,7 +1126,7 @@ function TeamPage({
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-lilac"><CalendarDays size={18} /></div>
+          <div className="metric-icon metric-teal"><CalendarDays size={18} /></div>
           <div className="metric-copy">
             <p>Atendimentos no mês</p>
             <strong>{totalMonthApts}</strong>
@@ -1135,7 +1135,7 @@ function TeamPage({
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-amber"><CircleDollarSign size={18} /></div>
+          <div className="metric-icon metric-teal"><CircleDollarSign size={18} /></div>
           <div className="metric-copy">
             <p>Faturamento da equipe</p>
             <strong>{formatCurrency(totalTeamRevenue)}</strong>
@@ -1613,7 +1613,7 @@ function FinancialPage() {
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-lilac"><TrendingUp size={18} /></div>
+          <div className="metric-icon metric-teal"><TrendingUp size={18} /></div>
           <div className="metric-copy">
             <p>Receita prevista</p>
             <strong>{formatCurrency(forecastRevenue)}</strong>
@@ -1622,7 +1622,7 @@ function FinancialPage() {
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-amber"><BarChart3 size={18} /></div>
+          <div className="metric-icon metric-teal"><BarChart3 size={18} /></div>
           <div className="metric-copy">
             <p>Comissões a pagar</p>
             <strong>{formatCurrency(totalCommissions)}</strong>
@@ -1631,7 +1631,7 @@ function FinancialPage() {
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon metric-rose"><ReceiptText size={18} /></div>
+          <div className="metric-icon metric-teal"><ReceiptText size={18} /></div>
           <div className="metric-copy">
             <p>Lucro líquido</p>
             <strong>{formatCurrency(netProfit)}</strong>
