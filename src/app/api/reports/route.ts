@@ -145,38 +145,49 @@ export async function GET(request: Request) {
   }
 
   // Calculate available capacity from active schedules
-  const activeSchedules = await db
-    .select()
-    .from(employeeSchedules)
-    .innerJoin(employees, eq(employeeSchedules.employeeId, employees.id))
-    .where(
-      and(
-        eq(employees.companyId, companyId),
-        eq(employees.active, true),
-        eq(employeeSchedules.active, true),
-      ),
-    );
+  let occupancyRate = 0;
+  try {
+    const activeSchedules = await db
+      .select({
+        startTime: employeeSchedules.startTime,
+        endTime: employeeSchedules.endTime,
+        breakStart: employeeSchedules.breakStart,
+        breakEnd: employeeSchedules.breakEnd,
+      })
+      .from(employeeSchedules)
+      .innerJoin(employees, eq(employeeSchedules.employeeId, employees.id))
+      .where(
+        and(
+          eq(employees.companyId, companyId),
+          eq(employees.active, true),
+          eq(employeeSchedules.active, true),
+        ),
+      );
 
-  // Approximate days count
-  const dStart = new Date(`${fromDate}T12:00:00Z`);
-  const dEnd = new Date(`${toDate}T12:00:00Z`);
-  const daysDiff = Math.max(1, Math.round((dEnd.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    // Approximate days count
+    const dStart = new Date(`${fromDate}T12:00:00Z`);
+    const dEnd = new Date(`${toDate}T12:00:00Z`);
+    const daysDiff = Math.max(1, Math.round((dEnd.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
 
-  let availableDailyMinutes = 0;
-  for (const s of activeSchedules) {
-    const [sh, sm] = s.employee_schedules.startTime.split(":").map(Number);
-    const [eh, em] = s.employee_schedules.endTime.split(":").map(Number);
-    let dur = Math.max(0, eh * 60 + em - (sh * 60 + sm));
-    if (s.employee_schedules.breakStart && s.employee_schedules.breakEnd) {
-      const [bsh, bsm] = s.employee_schedules.breakStart.split(":").map(Number);
-      const [beh, bem] = s.employee_schedules.breakEnd.split(":").map(Number);
-      dur -= Math.max(0, beh * 60 + bem - (bsh * 60 + bsm));
+    let availableDailyMinutes = 0;
+    for (const s of activeSchedules) {
+      if (!s.startTime || !s.endTime) continue;
+      const [sh, sm] = s.startTime.split(":").map(Number);
+      const [eh, em] = s.endTime.split(":").map(Number);
+      let dur = Math.max(0, eh * 60 + em - (sh * 60 + sm));
+      if (s.breakStart && s.breakEnd) {
+        const [bsh, bsm] = s.breakStart.split(":").map(Number);
+        const [beh, bem] = s.breakEnd.split(":").map(Number);
+        dur -= Math.max(0, beh * 60 + bem - (bsh * 60 + bsm));
+      }
+      availableDailyMinutes += dur;
     }
-    availableDailyMinutes += dur;
-  }
 
-  const totalAvailableMinutes = Math.max(1, (availableDailyMinutes / 7) * daysDiff);
-  const occupancyRate = Math.min(100, Math.round((occupiedMinutes / totalAvailableMinutes) * 100));
+    const totalAvailableMinutes = Math.max(1, (availableDailyMinutes / 7) * daysDiff);
+    occupancyRate = Math.min(100, Math.round((occupiedMinutes / totalAvailableMinutes) * 100));
+  } catch {
+    occupancyRate = 0;
+  }
 
   /* 5. Peak Hours & Busy Days */
   const hourCounts = new Map<string, number>();
