@@ -682,7 +682,7 @@ function ClientsPage({
                               )}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="client-whatsapp-link"
+                              className="client-whatsapp-btn"
                               title={activeTab === "inactive" ? "Enviar mensagem de reativação no WhatsApp" : "Abrir WhatsApp com o cliente"}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -690,7 +690,7 @@ function ClientsPage({
                               <span>{client.phone}</span>
                             </a>
                           ) : (
-                            <span className="muted-text">—</span>
+                            <span className="client-whatsapp-empty">—</span>
                           )}
                           {hasUpcoming && (
                             <span className="client-has-upcoming" title="Possui agendamento ativo">

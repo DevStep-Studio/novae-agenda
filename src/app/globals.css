@@ -1978,6 +1978,36 @@ a[style*="--brand-lime"] svg,
   font-size: 12px;
   vertical-align: middle;
 }
+.client-data-table th:nth-child(1),
+.client-data-table td:nth-child(1) {
+  width: auto;
+  min-width: 200px;
+}
+.client-data-table th:nth-child(2),
+.client-data-table td:nth-child(2) {
+  width: 165px;
+  min-width: 165px;
+}
+.client-data-table th:nth-child(3),
+.client-data-table td:nth-child(3) {
+  width: 120px;
+  min-width: 120px;
+}
+.client-data-table th:nth-child(4),
+.client-data-table td:nth-child(4) {
+  width: 110px;
+  min-width: 110px;
+}
+.client-data-table th:nth-child(5),
+.client-data-table td:nth-child(5) {
+  width: 130px;
+  min-width: 130px;
+}
+.client-data-table th:nth-child(6),
+.client-data-table td:nth-child(6) {
+  width: 130px;
+  min-width: 130px;
+}
 .client-table-row {
   cursor: pointer;
   transition: background 0.12s ease;
@@ -2061,47 +2091,83 @@ a[style*="--brand-lime"] svg,
   border-color: rgba(147, 51, 234, 0.2);
 }
 
-/* Contact Column: Clean minimalist text with subtle green WhatsApp icon */
+/* Contact Column: Clean, fixed-width WhatsApp pill/button with standard dimensions */
 .client-contact-col {
   display: flex;
   flex-direction: column;
   gap: 3px;
   align-items: flex-start;
 }
-.client-whatsapp-link,
-.client-whatsapp-btn {
+.client-whatsapp-btn,
+.client-whatsapp-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  font-size: 12px;
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.22);
   text-decoration: none;
-  transition: color 0.15s ease;
   font-variant-numeric: tabular-nums;
-  background: transparent;
-  border: none;
-  padding: 0;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 .client-whatsapp-icon {
-  color: #22c55e;
-  flex-shrink: 0;
-  opacity: 0.85;
-  transition: opacity 0.15s ease;
-}
-.client-whatsapp-link:hover,
-.client-whatsapp-btn:hover {
   color: #4ade80;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  background: transparent;
-  border: none;
-  transform: none;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
 }
-.client-whatsapp-link:hover .client-whatsapp-icon,
-.client-whatsapp-btn:hover .client-whatsapp-icon {
-  opacity: 1;
+.client-whatsapp-btn:hover,
+.client-whatsapp-link:hover {
+  background: rgba(74, 222, 128, 0.18);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #22c55e;
+  text-decoration: none;
+}
+.client-whatsapp-btn:hover .client-whatsapp-icon,
+.client-whatsapp-link:hover .client-whatsapp-icon {
+  color: #22c55e;
+}
+
+:root:not([data-theme="dark"]) .client-whatsapp-btn,
+:root:not([data-theme="dark"]) .client-whatsapp-link {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #059669;
+}
+:root:not([data-theme="dark"]) .client-whatsapp-btn .client-whatsapp-icon,
+:root:not([data-theme="dark"]) .client-whatsapp-link .client-whatsapp-icon {
+  color: #059669;
+}
+:root:not([data-theme="dark"]) .client-whatsapp-btn:hover,
+:root:not([data-theme="dark"]) .client-whatsapp-link:hover {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #047857;
+}
+
+.client-whatsapp-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  height: 28px;
+  box-sizing: border-box;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 .client-has-upcoming {
   display: inline-flex;
@@ -2192,7 +2258,13 @@ a[style*="--brand-lime"] svg,
 }
 .client-action-btn.schedule {
   gap: 5px;
-  padding: 0 9px;
+  width: 84px;
+  min-width: 84px;
+  max-width: 84px;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0;
+  justify-content: center;
   border-color: var(--border);
   background: var(--surface-secondary);
   color: var(--text-secondary);
@@ -2217,6 +2289,10 @@ a[style*="--brand-lime"] svg,
 }
 .client-action-btn.view {
   width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  height: 28px;
+  box-sizing: border-box;
   padding: 0;
   color: var(--text-muted);
 }
