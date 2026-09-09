@@ -2182,12 +2182,12 @@ kbd { display: flex; align-items: center; gap: 2px; border: 1px solid var(--bord
   width: min(460px, 100%);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid rgba(220, 255, 76, 0.16);
   border-radius: 18px;
   background: var(--surface);
   box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(220, 255, 76, 0.1);
   position: relative;
-  overflow: hidden;
 }
 .modal-wide {
   width: min(700px, 100%);

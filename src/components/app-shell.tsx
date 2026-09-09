@@ -804,7 +804,7 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
         ))}
         <button className="add-service-card" onClick={onNew}><span><Plus size={19} /></span><strong>Criar novo serviço</strong><small>Adicione preço, duração e categoria</small></button>
       </div>
-      {editing && <Modal title="Editar serviço" eyebrow="Catálogo" onClose={() => setEditing(null)}><ServiceEditor service={editing} onDone={() => setEditing(null)}/></Modal>}
+      {editing && <Modal title="Editar serviço" eyebrow="Catálogo" onClose={() => setEditing(null)} wide><ServiceEditor service={editing} onDone={() => setEditing(null)}/></Modal>}
       {visible.length === 0 && <EmptyState icon={Tag} title="Nenhum serviço" description="Cadastre serviços para começar a agendar." action={<Button onClick={onNew}><Plus size={16} /> Novo serviço</Button>} />}
     </div>
   );
@@ -2254,7 +2254,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
 }
 
 function NewServiceModal({ onClose }: { onClose: () => void }) {
-  return <Modal title="Novo serviço" eyebrow="Seu catálogo de atendimentos" onClose={onClose}><ServiceEditor onDone={onClose}/></Modal>;
+  return <Modal title="Novo serviço" eyebrow="Seu catálogo de atendimentos" onClose={onClose} wide><ServiceEditor onDone={onClose}/></Modal>;
 }
 
 function NewEmployeeModal({ onClose }: { onClose: () => void }) {

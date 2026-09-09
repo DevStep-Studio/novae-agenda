@@ -3,7 +3,28 @@ import { useState, type FormEvent } from "react";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import type { ServiceDTO } from "@/shared/types";
-import { b, ErrorMessage } from "./primitives";
+import { ErrorMessage } from "./primitives";
+import styles from "./service-editor.module.css";
+import {
+  Sparkles,
+  Users,
+  FolderPlus,
+  ChevronDown,
+  Check,
+  Image as ImageIcon,
+  SlidersHorizontal,
+  Loader2,
+  Clock3,
+  Coins,
+  FileText,
+} from "lucide-react";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function ServiceEditor({
   service,
   onDone,
@@ -13,18 +34,60 @@ export function ServiceEditor({
 }) {
   const { employees, categories, reloadServices, reloadEmployees, notify } =
     useStore();
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [category, setCategory] = useState(service?.categoryId ?? ""),
-    [extraCategories, setExtraCategories] = useState<
-      Array<{ id: string; name: string }>
-    >([]),
-    [newCategory, setNewCategory] = useState(""),
-    [ids, setIds] = useState(
-      employees
-        .filter((e) => e.serviceIds.includes(service?.id ?? ""))
-        .map((e) => e.id),
-    );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [category, setCategory] = useState(service?.categoryId ?? "");
+  const [extraCategories, setExtraCategories] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [newCategory, setNewCategory] = useState("");
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [durationValue, setDurationValue] = useState<number>(
+    service?.durationMinutes ?? 60,
+  );
+  const [imageUrl, setImageUrl] = useState(service?.imageUrl ?? "");
+  const [paymentType, setPaymentType] = useState(
+    service?.paymentType ?? "PAY_LATER",
+  );
+  const [deliveryMode, setDeliveryMode] = useState(
+    service?.deliveryMode ?? "IN_PERSON",
+  );
+  const [showAdvanced, setShowAdvanced] = useState(
+    Boolean(
+      service?.cancellationPolicy ||
+        (service?.paymentType && service.paymentType !== "PAY_LATER") ||
+        (service?.deliveryMode && service.deliveryMode !== "IN_PERSON"),
+    ),
+  );
+
+  const [ids, setIds] = useState(
+    employees
+      .filter((e) => e.serviceIds.includes(service?.id ?? ""))
+      .map((e) => e.id),
+  );
+
+  const activeEmployees = employees.filter((e) => e.active);
+
+  async function handleAddCategory() {
+    if (newCategory.trim().length < 2 || busy) return;
+    setBusy(true);
+    try {
+      const c = await api<{ id: string; name: string }>("/api/categories", {
+        method: "POST",
+        body: JSON.stringify({ name: newCategory.trim() }),
+      });
+      setExtraCategories((prev) => [...prev, c]);
+      setCategory(c.id);
+      setNewCategory("");
+      setShowNewCategory(false);
+      notify(`Categoria "${c.name}" criada com sucesso.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -42,14 +105,14 @@ export function ServiceEditor({
           employeeIds: ids,
           bufferMinutes: Number(f.get("buffer")),
           imageUrl: f.get("image"),
-          deliveryMode: f.get("mode"),
-          paymentType: f.get("payment"),
-          depositAmount: Number(f.get("deposit")),
-          cancellationPolicy: f.get("policy"),
+          deliveryMode: f.get("mode") || deliveryMode,
+          paymentType: f.get("payment") || paymentType,
+          depositAmount: Number(f.get("deposit") || 0),
+          cancellationPolicy: f.get("policy") || "",
         }),
       });
       await Promise.all([reloadServices(), reloadEmployees()]);
-      notify(service ? "Serviço atualizado." : "Serviço cadastrado.");
+      notify(service ? "Serviço atualizado com sucesso." : "Serviço cadastrado com sucesso.");
       onDone();
     } catch (e) {
       setError((e as Error).message);
@@ -57,210 +120,452 @@ export function ServiceEditor({
       setBusy(false);
     }
   }
+
   return (
-    <div
-      className={b.page}
-      style={{ minHeight: 0, padding: 20, borderRadius: 12 }}
-    >
-      <form onSubmit={submit}>
+    <div className={styles.container}>
+      <form onSubmit={submit} className={styles.section}>
         <ErrorMessage message={error} />
-        <label className={b.field}>
-          Nome do serviço
-          <input
-            name="name"
-            required
-            minLength={2}
-            defaultValue={service?.name}
-          />
-        </label>
-        <div className={b.grid2}>
-          <label className={b.field}>
-            Preço (R$)
-            <input
-              name="price"
-              type="number"
-              step="0.01"
-              min={0}
-              required
-              defaultValue={service?.price}
-            />
-          </label>
-          <label className={b.field}>
-            Duração em minutos
-            <input
-              name="duration"
-              type="number"
-              min={5}
-              max={1440}
-              step={1}
-              required
-              defaultValue={service?.durationMinutes ?? 60}
-            />
-          </label>
-          <label className={b.field}>
-            Intervalo após atendimento (min)
-            <input
-              name="buffer"
-              type="number"
-              min={0}
-              max={180}
-              step={1}
-              defaultValue={service?.bufferMinutes ?? 0}
-            />
-          </label>
-          <label className={b.field}>
-            Categoria
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">Outros</option>
-              {[
-                ...categories,
-                ...extraCategories.filter(
-                  (c) => !categories.some((x) => x.id === c.id),
-                ),
-              ].map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
+
+        {/* 1. Informações Básicas */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>
+            <Sparkles size={13} />
+            <span>Dados principais</span>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="service-name" className={styles.label}>
+              Nome do serviço
+            </label>
+            <div className={styles.inputWrapper}>
+              <input
+                id="service-name"
+                name="name"
+                aria-label="Nome do serviço"
+                required
+                minLength={2}
+                defaultValue={service?.name}
+                placeholder="Ex.: Corte & Barba Terapia, Manicure Completa..."
+                className={styles.input}
+              />
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <label htmlFor="service-category" className={styles.label}>
+                Categoria
+              </label>
+              <button
+                type="button"
+                className={styles.addCategoryTrigger}
+                onClick={() => setShowNewCategory(!showNewCategory)}
+              >
+                <FolderPlus size={13} />
+                <span>{showNewCategory ? "Fechar" : "+ Nova categoria"}</span>
+              </button>
+            </div>
+            <div className={styles.categoryBar}>
+              <div className={styles.categorySelectWrapper}>
+                <select
+                  id="service-category"
+                  className={styles.select}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                >
+                  <option value="">Outros (Geral)</option>
+                  {[
+                    ...categories,
+                    ...extraCategories.filter(
+                      (c) => !categories.some((x) => x.id === c.id),
+                    ),
+                  ].map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {showNewCategory && (
+              <div className={styles.newCategoryBox}>
+                <input
+                  aria-label="Nova categoria"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Criar categoria"
+                  className={styles.newCategoryInput}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCategory();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className={styles.newCategoryBtn}
+                  disabled={newCategory.trim().length < 2 || busy}
+                  onClick={handleAddCategory}
+                >
+                  Adicionar
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className={b.inline}>
-          <input
-            aria-label="Nova categoria"
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            placeholder="Criar categoria"
-            style={{ flex: 1 }}
-          />
+
+        {/* 2. Valores e Tempo */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>
+            <Coins size={13} />
+            <span>Valores & Tempo</span>
+          </div>
+
+          <div className={styles.grid3}>
+            <div className={styles.field}>
+              <label htmlFor="service-price" className={styles.label}>
+                Preço (R$)
+              </label>
+              <div className={styles.inputWrapper}>
+                <span className={styles.prefix}>R$</span>
+                <input
+                  id="service-price"
+                  name="price"
+                  aria-label="Preço (R$)"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  required
+                  defaultValue={service?.price}
+                  placeholder="0,00"
+                  className={`${styles.input} ${styles.inputWithPrefix}`}
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="service-duration" className={styles.label}>
+                Duração em minutos
+              </label>
+              <div className={styles.inputWrapper}>
+                <input
+                  id="service-duration"
+                  name="duration"
+                  aria-label="Duração em minutos"
+                  type="number"
+                  min={5}
+                  max={1440}
+                  step={1}
+                  required
+                  value={durationValue}
+                  onChange={(e) => setDurationValue(Number(e.target.value))}
+                  className={`${styles.input} ${styles.inputWithSuffix}`}
+                />
+                <span className={styles.suffix}>min</span>
+              </div>
+              <div className={styles.presetRow}>
+                {[30, 45, 60, 90].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={`${styles.presetBtn} ${durationValue === preset ? styles.presetBtnActive : ""}`}
+                    onClick={() => setDurationValue(preset)}
+                  >
+                    {preset}m
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <div className={styles.labelRow}>
+                <label htmlFor="service-buffer" className={styles.label}>
+                  Intervalo após atendimento (min)
+                </label>
+              </div>
+              <div className={styles.inputWrapper}>
+                <input
+                  id="service-buffer"
+                  name="buffer"
+                  aria-label="Intervalo após atendimento (min)"
+                  type="number"
+                  min={0}
+                  max={180}
+                  step={1}
+                  defaultValue={service?.bufferMinutes ?? 0}
+                  className={`${styles.input} ${styles.inputWithSuffix}`}
+                />
+                <span className={styles.suffix}>min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Detalhes (Descrição e Imagem) */}
+        <div className={styles.section}>
+          <div className={styles.sectionTitle}>
+            <FileText size={13} />
+            <span>Apresentação</span>
+          </div>
+
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <label htmlFor="service-description" className={styles.label}>
+                Descrição
+              </label>
+              <span className={styles.labelHint}>Opcional</span>
+            </div>
+            <textarea
+              id="service-description"
+              name="description"
+              className={styles.textarea}
+              placeholder="Descreva o que está incluso no atendimento, benefícios e orientações para o cliente..."
+              defaultValue={service?.description ?? ""}
+            />
+          </div>
+
+          <div className={styles.field}>
+            <div className={styles.labelRow}>
+              <label htmlFor="service-image" className={styles.label}>
+                Imagem (URL)
+              </label>
+              <span className={styles.labelHint}>Opcional</span>
+            </div>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div className={styles.inputWrapper}>
+                <span className={styles.inputIcon}>
+                  <ImageIcon size={16} />
+                </span>
+                <input
+                  id="service-image"
+                  name="image"
+                  aria-label="Imagem (URL)"
+                  className={`${styles.input} ${styles.inputWithIcon}`}
+                  placeholder="https://exemplo.com/foto-do-servico.jpg"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                />
+              </div>
+              {imageUrl && imageUrl.startsWith("http") && (
+                <img
+                  src={imageUrl}
+                  alt="Prévia da imagem"
+                  className={styles.imagePreview}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = "none";
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Profissionais que realizam */}
+        <div className={styles.teamSection}>
+          <div className={styles.teamTopRow}>
+            <div className={styles.sectionTitle}>
+              <Users size={13} />
+              <span>Profissionais que realizam</span>
+              {ids.length > 0 && (
+                <span className={styles.labelHint}>
+                  ({ids.length} selecionado{ids.length > 1 ? "s" : ""})
+                </span>
+              )}
+            </div>
+            {activeEmployees.length > 0 && (
+              <button
+                type="button"
+                className={styles.teamActionBtn}
+                onClick={() => {
+                  if (ids.length === activeEmployees.length) {
+                    setIds([]);
+                  } else {
+                    setIds(activeEmployees.map((e) => e.id));
+                  }
+                }}
+              >
+                {ids.length === activeEmployees.length
+                  ? "Desmarcar todos"
+                  : "Selecionar todos"}
+              </button>
+            )}
+          </div>
+
+          {activeEmployees.length > 0 ? (
+            <div className={styles.teamGrid}>
+              {activeEmployees.map((e) => {
+                const isSelected = ids.includes(e.id);
+                return (
+                  <label
+                    key={e.id}
+                    htmlFor={`emp-${e.id}`}
+                    className={`${styles.teamCard} ${isSelected ? styles.teamCardActive : ""}`}
+                  >
+                    <input
+                      id={`emp-${e.id}`}
+                      type="checkbox"
+                      className={styles.srOnlyCheckbox}
+                      checked={isSelected}
+                      aria-label={e.name}
+                      onChange={(event) =>
+                        setIds(
+                          event.target.checked
+                            ? [...ids, e.id]
+                            : ids.filter((id) => id !== e.id),
+                        )
+                      }
+                    />
+                    <span className={styles.teamAvatar} aria-hidden="true">
+                      {getInitials(e.name)}
+                    </span>
+                    <div className={styles.teamInfo}>
+                      <span className={styles.teamName}>{e.name}</span>
+                    </div>
+                    <span className={styles.teamCheckIcon} aria-hidden="true">
+                      <Check size={11} strokeWidth={3} />
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.teamEmpty}>
+              Cadastre sua equipe para disponibilizar este serviço no catálogo.
+            </div>
+          )}
+        </div>
+
+        {/* 5. Opções Avançadas (Modalidade, Pagamento e Cancelamento) */}
+        <div className={styles.section}>
           <button
             type="button"
-            className={`${b.button} ${b.outline}`}
-            disabled={newCategory.trim().length < 2 || busy}
-            onClick={async () => {
-              setBusy(true);
-              try {
-                const c = await api<{ id: string; name: string }>(
-                  "/api/categories",
-                  {
-                    method: "POST",
-                    body: JSON.stringify({ name: newCategory }),
-                  },
-                );
-                setExtraCategories([...extraCategories, c]);
-                setCategory(c.id);
-                setNewCategory("");
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            className={`${styles.advancedToggle} ${showAdvanced ? styles.advancedToggleOpen : ""}`}
+            onClick={() => setShowAdvanced(!showAdvanced)}
           >
-            Adicionar
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <SlidersHorizontal size={14} />
+              <span>Opções avançadas (Modalidade, Pagamento & Políticas)</span>
+            </span>
+            <ChevronDown size={15} />
+          </button>
+
+          <div
+            className={styles.advancedContent}
+            style={{ display: showAdvanced ? "flex" : "none" }}
+          >
+            <div className={styles.grid2}>
+              <div className={styles.field}>
+                <label htmlFor="service-mode" className={styles.label}>
+                  Atendimento
+                </label>
+                <select
+                  id="service-mode"
+                  name="mode"
+                  className={styles.select}
+                  value={deliveryMode}
+                  onChange={(e) => setDeliveryMode(e.target.value)}
+                >
+                  <option value="IN_PERSON">Presencial</option>
+                  <option value="ONLINE">Online</option>
+                </select>
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="service-payment" className={styles.label}>
+                  Pagamento
+                </label>
+                <select
+                  id="service-payment"
+                  name="payment"
+                  className={styles.select}
+                  value={paymentType}
+                  onChange={(e) => setPaymentType(e.target.value)}
+                >
+                  <option value="PAY_LATER">No atendimento</option>
+                  <option value="FULL_PAYMENT">
+                    Antecipado (aguarda integração)
+                  </option>
+                  <option value="DEPOSIT">Sinal (aguarda integração)</option>
+                </select>
+              </div>
+            </div>
+
+            {paymentType === "DEPOSIT" && (
+              <div className={styles.field}>
+                <label htmlFor="service-deposit" className={styles.label}>
+                  Valor do sinal (R$)
+                </label>
+                <div className={styles.inputWrapper}>
+                  <span className={styles.prefix}>R$</span>
+                  <input
+                    id="service-deposit"
+                    name="deposit"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    defaultValue={service?.depositAmount ?? 0}
+                    placeholder="0,00"
+                    className={`${styles.input} ${styles.inputWithPrefix}`}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className={styles.field}>
+              <div className={styles.labelRow}>
+                <label htmlFor="service-policy" className={styles.label}>
+                  Informações de cancelamento
+                </label>
+                <span className={styles.labelHint}>Opcional</span>
+              </div>
+              <textarea
+                id="service-policy"
+                name="policy"
+                className={styles.textarea}
+                placeholder="Ex.: Reagendamentos ou cancelamentos permitidos com até 24h de antecedência..."
+                defaultValue={service?.cancellationPolicy ?? ""}
+                maxLength={1000}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Rodapé / Ações */}
+        <div className={styles.footer}>
+          <button
+            type="button"
+            className={styles.cancelBtn}
+            onClick={onDone}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={busy}
+          >
+            {busy ? (
+              <>
+                <Loader2 size={16} className={styles.spin} />
+                <span>Salvando…</span>
+              </>
+            ) : (
+              <>
+                <Check size={16} />
+                <span>Salvar serviço</span>
+              </>
+            )}
           </button>
         </div>
-        <label className={b.field} style={{ marginTop: 18 }}>
-          Descrição
-          <textarea
-            name="description"
-            defaultValue={service?.description ?? ""}
-          />
-        </label>
-        <label className={b.field}>
-          Imagem (URL)
-          <input
-            name="image"
-            defaultValue={service?.imageUrl ?? ""}
-            placeholder="https://…"
-          />
-        </label>
-        <fieldset
-          style={{
-            border: "1px solid #e1e7e2",
-            borderRadius: 9,
-            padding: 14,
-            marginBottom: 20,
-          }}
-        >
-          <legend>Profissionais que realizam</legend>
-          {employees
-            .filter((e) => e.active)
-            .map((e) => (
-              <label key={e.id} className={b.check}>
-                <input
-                  type="checkbox"
-                  checked={ids.includes(e.id)}
-                  onChange={(event) =>
-                    setIds(
-                      event.target.checked
-                        ? [...ids, e.id]
-                        : ids.filter((id) => id !== e.id),
-                    )
-                  }
-                />
-                {e.name}
-              </label>
-            ))}
-          {!employees.length && (
-            <p className={b.muted}>
-              Cadastre sua equipe para disponibilizar este serviço no link.
-            </p>
-          )}
-        </fieldset>
-        <div className={b.grid2}>
-          <label className={b.field}>
-            Atendimento
-            <select
-              name="mode"
-              defaultValue={service?.deliveryMode ?? "IN_PERSON"}
-            >
-              <option value="IN_PERSON">Presencial</option>
-              <option value="ONLINE">Online</option>
-            </select>
-          </label>
-          <label className={b.field}>
-            Pagamento
-            <select
-              name="payment"
-              defaultValue={service?.paymentType ?? "PAY_LATER"}
-            >
-              <option value="PAY_LATER">No atendimento</option>
-              <option value="FULL_PAYMENT">
-                Antecipado (aguarda integração)
-              </option>
-              <option value="DEPOSIT">Sinal (aguarda integração)</option>
-            </select>
-          </label>
-          <label className={b.field}>
-            Valor do sinal (R$)
-            <input
-              name="deposit"
-              type="number"
-              min={0}
-              step="0.01"
-              defaultValue={service?.depositAmount ?? 0}
-            />
-          </label>
-        </div>
-        <p className={b.muted}>
-          Serviços com pagamento antecipado ficam fora do catálogo público até
-          que um gateway seja integrado.
-        </p>
-        <label className={b.field}>
-          Informações de cancelamento
-          <textarea
-            name="policy"
-            defaultValue={service?.cancellationPolicy ?? ""}
-            maxLength={1000}
-          />
-        </label>
-        <button className={`${b.button} ${b.wide}`} disabled={busy}>
-          {busy ? "Salvando…" : "Salvar serviço"}
-        </button>
       </form>
     </div>
   );
