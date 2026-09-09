@@ -165,7 +165,14 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
 
     setSaving(true);
     try {
-      await api("/api/business/branding", {
+      const res = await api<{
+        ok: boolean;
+        logoUrl: string | null;
+        avatarUrl: string | null;
+        coverUrl: string | null;
+        primaryColor: string;
+        bookingThemeMode: BookingThemeMode;
+      }>("/api/business/branding", {
         method: "PUT",
         body: JSON.stringify({
           logoUrl,
@@ -177,16 +184,21 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         }),
       });
 
-      setInitialData({
+      const updated = {
         name,
         slug,
-        logoUrl,
-        avatarUrl,
-        coverUrl,
+        logoUrl: res?.logoUrl !== undefined ? res.logoUrl : logoUrl,
+        avatarUrl: res?.avatarUrl !== undefined ? res.avatarUrl : avatarUrl,
+        coverUrl: res?.coverUrl !== undefined ? res.coverUrl : coverUrl,
         coverPosition,
         primaryColor,
         bookingThemeMode,
-      });
+      };
+
+      setInitialData(updated);
+      if (res?.logoUrl) setLogoUrl(res.logoUrl);
+      if (res?.avatarUrl) setAvatarUrl(res.avatarUrl);
+      if (res?.coverUrl) setCoverUrl(res.coverUrl);
 
       setSaveSuccess(true);
       notify("Identidade visual atualizada com sucesso!");
@@ -213,13 +225,40 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <p className={styles.eyebrow}>Branding Studio</p>
-        <h1 className={styles.title}>Identidade da sua página</h1>
-        <p className={styles.subtitle}>
-          Personalize como seus clientes veem seu espaço ao agendar pelo seu link público.
-        </p>
+      {/* Header with quick save action */}
+      <div className={styles.studioHeader}>
+        <div className={styles.studioHeaderLeft}>
+          <p className={styles.eyebrow}>Branding Studio</p>
+          <h1 className={styles.title}>Identidade da sua página</h1>
+          <p className={styles.subtitle}>
+            Personalize como seus clientes veem seu espaço ao agendar pelo seu link público.
+          </p>
+        </div>
+        <div className={styles.studioHeaderActions}>
+          {hasChanges && (
+            <span className={styles.unsavedBadge}>
+              <AlertTriangle size={13} /> Alterações não salvas
+            </span>
+          )}
+          <button
+            type="button"
+            className={styles.btnSaveTop}
+            disabled={!hasChanges || saving}
+            onClick={handleSave}
+          >
+            {saveSuccess ? (
+              <>
+                <CheckCircle2 size={16} /> Salvo!
+              </>
+            ) : saving ? (
+              "Salvando..."
+            ) : (
+              <>
+                <Check size={16} /> Salvar alterações
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Main Split Layout */}

@@ -9,14 +9,71 @@
   gap: 24px;
 }
 
-.header {
-  margin-bottom: 8px;
+.studioHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+}
+
+.studioHeaderLeft {
+  flex: 1;
+  min-width: 260px;
+}
+
+.studioHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.unsavedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btnSaveTop {
+  min-height: 40px;
+  padding: 8px 20px;
+  border-radius: 9px;
+  background: #dcff4c;
+  border: 1px solid #dcff4c;
+  color: #102118;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.15s ease;
+}
+
+.btnSaveTop:hover:not(:disabled) {
+  background: #e5ff70;
+  transform: translateY(-1px);
+}
+
+.btnSaveTop:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(40%);
 }
 
 .eyebrow {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 1.5px;
   color: #dcff4c;
   font-weight: 800;
   margin: 0 0 4px;
@@ -354,15 +411,20 @@
 
 /* Action Bar */
 .actionBar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 16px 20px;
+  padding: 14px 20px;
   background: #11231a;
-  border: 1px solid rgba(220, 255, 76, 0.14);
+  border: 1px solid rgba(220, 255, 76, 0.3);
   border-radius: 14px;
   margin-top: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
 }
 
 .btnReset {

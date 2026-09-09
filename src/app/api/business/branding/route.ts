@@ -3,9 +3,9 @@ import { z } from "zod";
 import { db } from "@/db";
 import { auditLogs, companies, companySettings } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
-import { BookingError, bookingError, sameOrigin } from "@/lib/booking/errors";
-import { safeImageUrl } from "@/lib/booking/validation";
+import { bookingError, sameOrigin } from "@/lib/booking/errors";
 import { isValidHexColor } from "@/lib/branding";
+import { saveBrandingImage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -38,21 +38,32 @@ export async function GET() {
       name: company.name,
       slug: company.publicSlug,
       logoUrl: company.logoUrl,
-      avatarUrl: settingsMap.avatarUrl || null,
-      coverUrl: settingsMap.coverUrl || null,
-      coverPosition: settingsMap.coverPosition || "center",
+      avatarUrl: settingsMap.avatar_url || settingsMap.avatarUrl || null,
+      coverUrl: settingsMap.cover_url || settingsMap.coverUrl || null,
+      coverPosition: settingsMap.cover_position || settingsMap.coverPosition || "center",
       primaryColor: company.publicColor || company.primaryColor || "#dcff4c",
-      bookingThemeMode: settingsMap.bookingThemeMode || "auto",
+      bookingThemeMode: (settingsMap.booking_theme_mode || settingsMap.bookingThemeMode || "auto") as "auto" | "light" | "dark",
       businessType: company.businessType,
       publicDescription: company.publicDescription,
     },
   });
 }
 
+const flexibleImageSchema = z
+  .string()
+  .refine(
+    (v) =>
+      !v ||
+      v.startsWith("data:image/") ||
+      /^https?:\/\//.test(v) ||
+      /^\/(?!\/)/.test(v),
+    "Use uma imagem válida (upload, HTTPS ou caminho local).",
+  );
+
 const brandingSchema = z.object({
-  logoUrl: safeImageUrl.optional().nullable(),
-  avatarUrl: safeImageUrl.optional().nullable(),
-  coverUrl: safeImageUrl.optional().nullable(),
+  logoUrl: flexibleImageSchema.optional().nullable(),
+  avatarUrl: flexibleImageSchema.optional().nullable(),
+  coverUrl: flexibleImageSchema.optional().nullable(),
   coverPosition: z.enum(["center", "top", "bottom"]).default("center"),
   primaryColor: z
     .string()
@@ -69,19 +80,51 @@ export async function PUT(request: Request) {
     const { companyId, userId } = gate.auth.user;
     const body = brandingSchema.parse(await request.json());
 
+    // 1. Fetch current company & settings to track previous images
+    const [currentCompany] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId));
+
+    const settingsRows = await db
+      .select()
+      .from(companySettings)
+      .where(eq(companySettings.companyId, companyId));
+
+    const settingsMap = Object.fromEntries(
+      settingsRows.map((s) => [s.key, s.value]),
+    );
+
+    // 2. Process dataUrls into secure filesystem files (stored as /uploads/branding/...)
+    const storedLogoUrl = body.logoUrl
+      ? await saveBrandingImage(body.logoUrl, currentCompany?.logoUrl)
+      : null;
+    const storedAvatarUrl = body.avatarUrl
+      ? await saveBrandingImage(
+          body.avatarUrl,
+          settingsMap.avatar_url || settingsMap.avatarUrl,
+        )
+      : null;
+    const storedCoverUrl = body.coverUrl
+      ? await saveBrandingImage(
+          body.coverUrl,
+          settingsMap.cover_url || settingsMap.coverUrl,
+        )
+      : null;
+
     await db.transaction(async (tx) => {
-      // 1. Update company record
+      // 3. Update company record
       await tx
         .update(companies)
         .set({
-          logoUrl: body.logoUrl || null,
+          logoUrl: storedLogoUrl,
           publicColor: body.primaryColor,
           primaryColor: body.primaryColor,
           updatedAt: new Date(),
         })
         .where(eq(companies.id, companyId));
 
-      // 2. Helper to upsert company_settings
+      // 4. Helper to upsert company_settings
       const upsertSetting = async (key: string, value: string | null) => {
         if (value === null || value === undefined) {
           await tx
@@ -106,7 +149,7 @@ export async function PUT(request: Request) {
           if (existing) {
             await tx
               .update(companySettings)
-              .set({ value })
+              .set({ value, updatedAt: new Date() })
               .where(eq(companySettings.id, existing.id));
           } else {
             await tx.insert(companySettings).values({
@@ -118,12 +161,17 @@ export async function PUT(request: Request) {
         }
       };
 
-      await upsertSetting("avatarUrl", body.avatarUrl || null);
-      await upsertSetting("coverUrl", body.coverUrl || null);
+      // Store both snake_case (canonical) and camelCase for full compatibility
+      await upsertSetting("avatar_url", storedAvatarUrl);
+      await upsertSetting("avatarUrl", storedAvatarUrl);
+      await upsertSetting("cover_url", storedCoverUrl);
+      await upsertSetting("coverUrl", storedCoverUrl);
+      await upsertSetting("cover_position", body.coverPosition || "center");
       await upsertSetting("coverPosition", body.coverPosition || "center");
+      await upsertSetting("booking_theme_mode", body.bookingThemeMode || "auto");
       await upsertSetting("bookingThemeMode", body.bookingThemeMode || "auto");
 
-      // 3. Log audit event
+      // 5. Log audit event
       await tx.insert(auditLogs).values({
         companyId,
         userId,
@@ -133,13 +181,22 @@ export async function PUT(request: Request) {
         metadata: {
           primaryColor: body.primaryColor,
           bookingThemeMode: body.bookingThemeMode,
-          hasLogo: Boolean(body.logoUrl),
-          hasCover: Boolean(body.coverUrl),
+          hasLogo: Boolean(storedLogoUrl),
+          hasCover: Boolean(storedCoverUrl),
         },
       });
     });
 
-    return Response.json({ data: { ok: true } });
+    return Response.json({
+      data: {
+        ok: true,
+        logoUrl: storedLogoUrl,
+        avatarUrl: storedAvatarUrl,
+        coverUrl: storedCoverUrl,
+        primaryColor: body.primaryColor,
+        bookingThemeMode: body.bookingThemeMode,
+      },
+    });
   } catch (error) {
     return bookingError(error);
   }
