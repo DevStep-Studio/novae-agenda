@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, CalendarCheck, CalendarDays, CalendarPlus,
-  Check, CheckCheck, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
+  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
+  Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
-  Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Search,
-  Settings2, ShieldCheck, Sparkles, Star, Sun, Tag, TrendingUp, UserPlus,
+  Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
+  Settings2, ShieldCheck, Sparkles, Star, Sun, Tag, TrendingUp, User, UserPlus,
   UserRound, Users, WalletCards, X, XCircle, Zap,
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
@@ -155,8 +155,17 @@ function IconButton({ label, children, className = "", ...props }: React.ButtonH
 function StatusBadge({ status }: { status: AppointmentStatus }) {
   return <span className={`status-badge ${statusClass[status]}`}><span className="status-dot" />{STATUS_LABELS[status]}</span>;
 }
-function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
-  return <label className="field"><span className="field-label">{label}</span>{children}{hint && <span className="field-hint">{hint}</span>}</label>;
+function Field({ label, icon: Icon, children, hint }: { label: string; icon?: LucideIcon; children: ReactNode; hint?: string }) {
+  return (
+    <label className="field">
+      <span className="field-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {Icon && <Icon size={14} style={{ color: "var(--primary)" }} />}
+        <span>{label}</span>
+      </span>
+      {children}
+      {hint && <span className="field-hint">{hint}</span>}
+    </label>
+  );
 }
 function SelectField(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return <select className="input select-input" {...props} />;
@@ -918,6 +927,32 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
   );
 }
 
+function getServiceImage(service: { name: string; imageUrl?: string | null }): string {
+  if (service.imageUrl && service.imageUrl.trim() !== "") {
+    return service.imageUrl;
+  }
+  const n = (service.name || "").toLowerCase();
+  if (n.includes("corte") && n.includes("barba")) {
+    return "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80";
+  }
+  if (n.includes("barba") || n.includes("shave") || n.includes("navalha")) {
+    return "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=800&q=80";
+  }
+  if (n.includes("corte") || n.includes("cabelo") || n.includes("fade") || n.includes("hair")) {
+    return "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80";
+  }
+  if (n.includes("manicure") || n.includes("unha") || n.includes("pedicure")) {
+    return "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=800&q=80";
+  }
+  if (n.includes("massagem") || n.includes("spa") || n.includes("terapia")) {
+    return "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80";
+  }
+  if (n.includes("sobrancelha") || n.includes("cilios") || n.includes("estetica")) {
+    return "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80";
+  }
+  return "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=800&q=80";
+}
+
 function ServicesPage({ onNew }: { onNew: () => void }) {
   const { services, toggleService, categories } = useStore();
   const [editing, setEditing] = useState<ServiceDTO | null>(null);
@@ -930,33 +965,67 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
       <div className="page-intro"><div><p className="eyebrow">Catálogo de serviços</p><h1>Serviços</h1><p className="intro-copy">Crie experiências claras para seus clientes e sua equipe.</p></div><Button onClick={onNew}><Plus size={17} /> Novo serviço</Button></div>
       {categories.length > 0 && <div className="category-tabs">{["Todos", "Ativos", "Inativos"].map((tab) => <button key={tab} className={filter === tab ? "active" : ""} onClick={() => setFilter(tab)}>{tab}</button>)}</div>}
       <div className="service-grid">
-        {visible.map((service) => (
-          <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
-            <div className="service-card-head"><button className="link-button" aria-label={`Editar ${service.name}`} onClick={() => setEditing(service)}><Pencil size={15}/> Editar</button><span className="service-color" style={{ backgroundColor: service.color ?? "var(--primary)" }}><Tag size={16} /></span></div>
-            <div className="service-card-body"><h3>{service.name}</h3><span className="service-category">{service.categoryName ?? "Sem categoria"}</span>{service.description && <p>{service.description}</p>}</div>
-            <div className="service-card-footer">
-              <div>
-                <strong>{formatCurrency(service.price)}</strong>
-                <span><Clock3 size={13} /> {service.durationMinutes} min</span>
+        {visible.map((service) => {
+          const bgImg = getServiceImage(service);
+          return (
+            <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
+              <div className="service-card-bg" style={{ backgroundImage: `url(${bgImg})` }} />
+              <div className="service-card-overlay" />
+              <div className="service-card-content">
+                <div className="service-card-head">
+                  <button
+                    type="button"
+                    className="service-edit-pill"
+                    aria-label={`Editar ${service.name}`}
+                    onClick={() => setEditing(service)}
+                  >
+                    <Pencil size={13} />
+                    <span>Editar</span>
+                  </button>
+                  <span className="service-category-badge">
+                    <Tag size={12} />
+                    <span>{service.categoryName ?? "Sem categoria"}</span>
+                  </span>
+                </div>
+                <div className="service-card-body">
+                  <h3>{service.name}</h3>
+                  {service.description ? (
+                    <p>{service.description}</p>
+                  ) : (
+                    <p className="service-desc-fallback">Duração de {service.durationMinutes} min</p>
+                  )}
+                </div>
+                <div className="service-card-footer">
+                  <div>
+                    <strong className="service-price-tag">{formatCurrency(service.price)}</strong>
+                    <span className="service-duration-badge">
+                      <Clock3 size={13} /> {service.durationMinutes} min
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={service.active}
+                    aria-label={service.active ? `Desativar ${service.name}` : `Ativar ${service.name}`}
+                    title={service.active ? "Clique para desativar serviço" : "Clique para ativar serviço"}
+                    className={`service-toggle-btn ${service.active ? "active" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleService(service.id, !service.active);
+                    }}
+                  >
+                    <span className="service-toggle-thumb" />
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={service.active}
-                aria-label={service.active ? `Desativar ${service.name}` : `Ativar ${service.name}`}
-                title={service.active ? "Clique para desativar serviço" : "Clique para ativar serviço"}
-                className={`service-toggle-btn ${service.active ? "active" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleService(service.id, !service.active);
-                }}
-              >
-                <span className="service-toggle-thumb" />
-              </button>
-            </div>
-          </article>
-        ))}
-        <button className="add-service-card" onClick={onNew}><span><Plus size={19} /></span><strong>Criar novo serviço</strong><small>Adicione preço, duração e categoria</small></button>
+            </article>
+          );
+        })}
+        <button className="add-service-card" onClick={onNew}>
+          <span className="add-service-icon"><Plus size={22} /></span>
+          <strong>Criar novo serviço</strong>
+          <small>Adicione preço, duração e categoria</small>
+        </button>
       </div>
       {editing && <Modal title="Editar serviço" eyebrow="Catálogo" onClose={() => setEditing(null)} wide><ServiceEditor service={editing} onDone={() => setEditing(null)}/></Modal>}
       {visible.length === 0 && <EmptyState icon={Tag} title="Nenhum serviço" description="Cadastre serviços para começar a agendar." action={<Button onClick={onNew}><Plus size={16} /> Novo serviço</Button>} />}
@@ -2435,22 +2504,71 @@ function NewAppointmentModal({
     <Modal title="Novo agendamento" eyebrow="Motor em tempo real" onClose={onClose} wide headerVariant="primary">
       <form onSubmit={submit}>
         <div className="modal-form-grid">
-          <Field label="Cliente"><SelectField value={clientId} onChange={(e) => setClientId(e.target.value)} required><option value="">Selecione...</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</SelectField></Field>
-          <Field label="Unidade">
-            <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-              {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
-            </SelectField>
+          <Field label="Cliente" icon={User}>
+            <div className="input-with-icon">
+              <User size={16} className="input-field-icon" />
+              <SelectField value={clientId} onChange={(e) => setClientId(e.target.value)} required>
+                <option value="">Selecione um cliente...</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </SelectField>
+            </div>
           </Field>
-          <Field label="Profissional"><SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required><option value="">Selecione...</option>{eligibleEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
-          <Field label="Data"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
 
-          <Field label="Serviços">
+          <Field label="Unidade" icon={Building2}>
+            <div className="input-with-icon">
+              <Building2 size={16} className="input-field-icon" />
+              <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
+                ))}
+              </SelectField>
+            </div>
+          </Field>
+
+          <Field label="Profissional" icon={UserRound}>
+            <div className="input-with-icon">
+              <UserRound size={16} className="input-field-icon" />
+              <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required>
+                <option value="">Selecione um profissional...</option>
+                {eligibleEmployees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>{employee.name}</option>
+                ))}
+              </SelectField>
+            </div>
+          </Field>
+
+          <Field label="Data" icon={Calendar}>
+            <div className="input-with-icon">
+              <Calendar size={16} className="input-field-icon" />
+              <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+          </Field>
+
+          <Field label="Serviços" icon={Scissors}>
             <div className="service-multi-select">
-              {services.filter((s) => s.active).map((service) => (
-                <button type="button" key={service.id} className={serviceIds.includes(service.id) ? "service-option active" : "service-option"} onClick={() => toggleService(service.id)}>
-                  <span>{service.name}</span><small>{formatCurrency(service.price)} · {service.durationMinutes} min</small>
-                </button>
-              ))}
+              {services.filter((s) => s.active).map((service) => {
+                const isSelected = serviceIds.includes(service.id);
+                return (
+                  <button
+                    type="button"
+                    key={service.id}
+                    className={isSelected ? "service-option active" : "service-option"}
+                    onClick={() => toggleService(service.id)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      {isSelected ? (
+                        <CheckCircle2 size={15} style={{ color: "#dcff4c", flexShrink: 0 }} />
+                      ) : (
+                        <Tag size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                      )}
+                      <span>{service.name}</span>
+                    </div>
+                    <small>{formatCurrency(service.price)} · {service.durationMinutes} min</small>
+                  </button>
+                );
+              })}
               {services.filter((s) => s.active).length === 0 && <span className="field-hint">Cadastre serviços primeiro.</span>}
             </div>
             {selectedServices.length > 0 && (
@@ -2462,8 +2580,11 @@ function NewAppointmentModal({
             )}
           </Field>
 
-          <Field label="Horário">
-            <input className="input" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+          <Field label="Horário" icon={Clock3}>
+            <div className="input-with-icon">
+              <Clock3 size={16} className="input-field-icon" />
+              <input className="input" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            </div>
             {loadingSlots && <span className="field-hint">Calculando horários livres...</span>}
             {!loadingSlots && availableSlots.length > 0 && (
               <div className="slot-chips-wrap">
@@ -2489,7 +2610,18 @@ function NewAppointmentModal({
             )}
           </Field>
 
-          <Field label="Observações"><textarea className="input textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Alguma informação importante?" /></Field>
+          <Field label="Observações" icon={FileText}>
+            <div className="input-with-icon textarea-with-icon">
+              <FileText size={16} className="input-field-icon" />
+              <textarea
+                className="input textarea"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Alguma informação importante?"
+                rows={3}
+              />
+            </div>
+          </Field>
         </div>
         {serviceIds.length > 0 && eligibleEmployees.length === 0 && <div className="form-note" style={{ color: "var(--warning)", marginTop: 10 }}><CircleAlert size={14} /> Nenhum profissional selecionável realiza os serviços escolhidos.</div>}
         <div className="modal-footer"><span className="form-note"><ShieldCheck size={14} /> Conflitos são validados pelo motor</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : <><Check size={16} /> Confirmar agendamento</>}</Button></div></div>
