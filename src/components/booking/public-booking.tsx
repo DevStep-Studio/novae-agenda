@@ -587,10 +587,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   return (
     <PublicFrame
       color={company.color}
+      coverUrl={company.coverUrl}
+      themeMode={company.bookingThemeMode}
       company={{
         name: company.name,
         category: company.category,
         logoUrl: company.logoUrl,
+        avatarUrl: company.avatarUrl,
         slug: company.slug,
         address: company.address,
       }}

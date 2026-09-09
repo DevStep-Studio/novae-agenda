@@ -79,12 +79,15 @@ export const safeImageUrl = z
   );
 export function accessibleColor(hex: string) {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return false;
-  const rgb = [1, 3, 5]
-    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-    .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return (
-    1.05 / (rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722 + 0.05) >= 4.5
-  );
+  const num = parseInt(hex.slice(1), 16);
+  const r = (num >> 16) / 255;
+  const g = ((num >> 8) & 0xff) / 255;
+  const b = (num & 0xff) / 255;
+  const toL = (c: number) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const L = 0.2126 * toL(r) + 0.7152 * toL(g) + 0.0722 * toL(b);
+  const contrastWithWhite = (1 + 0.05) / (L + 0.05);
+  return contrastWithWhite >= 4.5;
 }
 
 export function toSlug(text: string): string {

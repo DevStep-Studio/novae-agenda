@@ -27,6 +27,7 @@ import {
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
+import { BrandingStudio } from "./branding-studio";
 import type { companies, coupons, products } from "@/db/schema";
 import styles from "./booking-settings.module.css";
 
@@ -70,6 +71,7 @@ export function BookingSettings() {
   const [interval, setIntervalValue] = useState(30);
   const [cancellation, setCancellation] = useState(24);
   const [color, setColor] = useState("#234e3d");
+  const [activeTab, setActiveTab] = useState<"branding" | "link" | "schedules" | "extras">("branding");
 
   // State for toggles
   const [publicEnabled, setPublicEnabled] = useState(true);
@@ -297,8 +299,52 @@ export function BookingSettings() {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      {/* Hero Link Card */}
-      <div className={styles.heroCard}>
+      {/* Navigation Tabs */}
+      <nav className={styles.tabNav} aria-label="Abas de personalização e agendamento">
+        <button
+          type="button"
+          className={`${styles.tabBtn} ${activeTab === "branding" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("branding")}
+        >
+          <Palette size={16} />
+          Identidade & Branding Studio
+        </button>
+        <button
+          type="button"
+          className={`${styles.tabBtn} ${activeTab === "link" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("link")}
+        >
+          <Globe size={16} />
+          Link & Informações
+        </button>
+        <button
+          type="button"
+          className={`${styles.tabBtn} ${activeTab === "schedules" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("schedules")}
+        >
+          <Clock size={16} />
+          Horários da Equipe
+        </button>
+        <button
+          type="button"
+          className={`${styles.tabBtn} ${activeTab === "extras" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("extras")}
+        >
+          <ShoppingBag size={16} />
+          Produtos & Cupons
+        </button>
+      </nav>
+
+      {/* Tab: Branding Studio */}
+      {activeTab === "branding" && (
+        <BrandingStudio onSaved={() => void load()} />
+      )}
+
+      {/* Tab: Link & Informações */}
+      {activeTab === "link" && (
+        <>
+          {/* Hero Link Card */}
+          <div className={styles.heroCard}>
         <div className={styles.heroCardHeader}>
           <div className={styles.heroCardTitle}>
             <Globe size={18} style={{ color: "#dcff4c" }} />
@@ -743,30 +789,33 @@ export function BookingSettings() {
           </div>
         </section>
 
-        {/* Save Bar */}
-        <div className={styles.saveBar}>
-          <span className={styles.saveBarText}>
-            Revise as informações antes de salvar sua página pública.
-          </span>
-          <button type="submit" className={styles.btnPrimary} disabled={busy}>
-            {busy ? "Salvando..." : "Salvar página e gerar link"}
-          </button>
-        </div>
-      </form>
-
-      {/* Card: Horários & Disponibilidade */}
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <div>
-            <h2 className={styles.cardTitle}>
-              <Clock size={18} style={{ color: "#dcff4c" }} />
-              Jornada e Horários da Equipe
-            </h2>
-            <p className={styles.cardSubtitle}>
-              Configure os períodos de atendimento de cada profissional para o motor de disponibilidade.
-            </p>
+          {/* Save Bar */}
+          <div className={styles.saveBar}>
+            <span className={styles.saveBarText}>
+              Revise as informações antes de salvar sua página pública.
+            </span>
+            <button type="submit" className={styles.btnPrimary} disabled={busy}>
+              {busy ? "Salvando..." : "Salvar página e gerar link"}
+            </button>
           </div>
-        </div>
+        </form>
+        </>
+      )}
+
+      {/* Tab: Horários da Equipe */}
+      {activeTab === "schedules" && (
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>
+                <Clock size={18} style={{ color: "#dcff4c" }} />
+                Jornada e Horários da Equipe
+              </h2>
+              <p className={styles.cardSubtitle}>
+                Configure os períodos de atendimento de cada profissional para o motor de disponibilidade.
+              </p>
+            </div>
+          </div>
 
         <div className={styles.field} style={{ maxWidth: 400 }}>
           <label className={styles.fieldLabel}>Selecione o profissional</label>
@@ -964,20 +1013,24 @@ export function BookingSettings() {
           </div>
         )}
       </section>
+      )}
 
-      {/* Card: Produtos Complementares */}
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <div>
-            <h2 className={styles.cardTitle}>
-              <ShoppingBag size={18} style={{ color: "#dcff4c" }} />
-              Produtos Complementares
-            </h2>
-            <p className={styles.cardSubtitle}>
-              Itens que o cliente pode adicionar ao carrinho durante o agendamento (pomadas, cremes, etc.).
-            </p>
-          </div>
-        </div>
+      {/* Tab: Produtos & Cupons */}
+      {activeTab === "extras" && (
+        <>
+          {/* Card: Produtos Complementares */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div>
+                <h2 className={styles.cardTitle}>
+                  <ShoppingBag size={18} style={{ color: "#dcff4c" }} />
+                  Produtos Complementares
+                </h2>
+                <p className={styles.cardSubtitle}>
+                  Itens que o cliente pode adicionar ao carrinho durante o agendamento (pomadas, cremes, etc.).
+                </p>
+              </div>
+            </div>
 
         {data.products.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1128,6 +1181,8 @@ export function BookingSettings() {
           </button>
         </form>
       </section>
+      </>
+      )}
     </div>
   );
 }

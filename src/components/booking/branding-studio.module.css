@@ -1,0 +1,706 @@
+/* =========================================================
+   NOVAE - BRANDING STUDIO CSS MODULE
+   Solid, premium SaaS design for public page customizer
+   ========================================================= */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  margin-bottom: 8px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #dcff4c;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px;
+  letter-spacing: -0.4px;
+}
+
+.subtitle {
+  font-size: 13.5px;
+  color: #8eb3a2;
+  margin: 0;
+}
+
+/* Studio Split Layout */
+.studioLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.controlsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.previewCol {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Cards */
+.card {
+  background: #11231a;
+  border: 1px solid rgba(220, 255, 76, 0.12);
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 12px;
+}
+
+.cardTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.cardTitle svg {
+  color: #dcff4c;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #c5dfd4;
+}
+
+.fieldHint {
+  font-size: 11px;
+  color: #8eb3a2;
+}
+
+/* Upload Boxes */
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.logoBox {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  background: #0d1a13;
+  border: 1.5px dashed rgba(220, 255, 76, 0.25);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.logoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
+
+.logoFallback {
+  font-size: 24px;
+  font-weight: 800;
+  color: #dcff4c;
+}
+
+.coverBox {
+  width: 100%;
+  height: 110px;
+  border-radius: 12px;
+  background: #0d1a13;
+  border: 1.5px dashed rgba(220, 255, 76, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.coverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.uploadActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fileInput {
+  display: none;
+}
+
+.btnUpload {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #142a1f;
+  border: 1px solid rgba(220, 255, 76, 0.24);
+  color: #dcff4c;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btnUpload:hover {
+  background: #dcff4c;
+  color: #102118;
+  border-color: #dcff4c;
+}
+
+.btnRemove {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.btnRemove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #f87171;
+}
+
+/* Color Picker */
+.colorPickerWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.colorInputWrap {
+  position: relative;
+  width: 44px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(220, 255, 76, 0.25);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.nativeColorInput {
+  position: absolute;
+  inset: -10px;
+  width: 200%;
+  height: 200%;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.hexInput {
+  min-height: 40px;
+  border: 1px solid rgba(220, 255, 76, 0.18);
+  border-radius: 8px;
+  background: #11221a;
+  color: #f1f7f4;
+  padding: 8px 12px;
+  font: inherit;
+  font-family: monospace;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  width: 120px;
+  outline: none;
+}
+
+.hexInput:focus {
+  border-color: #dcff4c;
+  background: #142c21;
+}
+
+.colorPresets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.presetDot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.presetDot:hover {
+  transform: scale(1.15);
+  border-color: #ffffff;
+}
+
+.presetDotActive {
+  border-color: #ffffff;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px #dcff4c;
+}
+
+/* Contrast Feedback Banner */
+.contrastFeedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #0d1a13;
+  border: 1px solid rgba(220, 255, 76, 0.12);
+  font-size: 11.5px;
+  color: #c5dfd4;
+}
+
+.contrastFeedback svg {
+  color: #dcff4c;
+  flex-shrink: 0;
+}
+
+/* Appearance Segmented Control */
+.themeSegmentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.themeSegmentBtn {
+  min-height: 44px;
+  border: 1px solid rgba(220, 255, 76, 0.14);
+  background: #0d1a13;
+  border-radius: 10px;
+  padding: 8px;
+  color: #8eb3a2;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.themeSegmentBtn:hover {
+  border-color: rgba(220, 255, 76, 0.3);
+  color: #ffffff;
+}
+
+.themeSegmentBtnActive {
+  background: #142a1f;
+  border-color: #dcff4c;
+  color: #dcff4c;
+  font-weight: 700;
+}
+
+/* Action Bar */
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #11231a;
+  border: 1px solid rgba(220, 255, 76, 0.14);
+  border-radius: 14px;
+  margin-top: 8px;
+}
+
+.btnReset {
+  background: none;
+  border: 0;
+  color: #8eb3a2;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s ease;
+}
+
+.btnReset:hover {
+  color: #f87171;
+}
+
+.btnSave {
+  min-height: 42px;
+  padding: 8px 22px;
+  border-radius: 10px;
+  background: #dcff4c;
+  border: 1px solid #dcff4c;
+  color: #102118;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.btnSave:hover:not(:disabled) {
+  background: #e5ff70;
+  border-color: #e5ff70;
+}
+
+.btnSave:disabled {
+  background: #162f22 !important;
+  color: #557566 !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   RIGHT PANEL: LIVE REAL-TIME PREVIEW
+   ========================================================= */
+.previewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.previewTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewportToggle {
+  display: flex;
+  gap: 4px;
+  background: #0d1a13;
+  border: 1px solid rgba(220, 255, 76, 0.12);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.viewportBtn {
+  background: none;
+  border: 0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8eb3a2;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.viewportBtnActive {
+  background: #163628;
+  color: #dcff4c;
+  font-weight: 700;
+}
+
+/* Preview Frame */
+.previewFrameWrap {
+  background: #0b1712;
+  border: 1px solid rgba(220, 255, 76, 0.16);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  transition: max-width 0.25s ease;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.previewFrameMobile {
+  max-width: 375px;
+}
+
+.previewFrameDesktop {
+  max-width: 100%;
+}
+
+.previewWindowHead {
+  background: #0d1a13;
+  border-bottom: 1px solid rgba(220, 255, 76, 0.1);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.windowDots {
+  display: flex;
+  gap: 5px;
+}
+
+.windowDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.windowUrl {
+  font-size: 10.5px;
+  color: #8eb3a2;
+  font-family: monospace;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+
+/* Mock Live Public Booking Preview Container */
+.livePreviewContainer {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 13px;
+  min-height: 480px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Light / Dark Mode dynamic classes for preview */
+.previewDark {
+  background: #0b1712;
+  color: #f1f7f4;
+}
+
+.previewLight {
+  background: #f4f7f5;
+  color: #12231b;
+}
+
+.previewCover {
+  width: 100%;
+  height: 90px;
+  border-radius: 10px;
+  object-fit: cover;
+  margin-bottom: -24px;
+}
+
+.previewHero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.previewDark .previewHero {
+  background: #11231a;
+  border: 1px solid rgba(220, 255, 76, 0.14);
+}
+
+.previewLight .previewHero {
+  background: #ffffff;
+  border: 1px solid #dbe6e0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.previewLogo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: #163628;
+}
+
+.previewLogoFallback {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--brand, #dcff4c);
+  color: var(--brand-contrast, #102118);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.previewHero h4 {
+  margin: 0 0 2px;
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.previewHero span {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Preview Service Card */
+.previewService {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 10px;
+  gap: 12px;
+}
+
+.previewDark .previewService {
+  background: #112219;
+  border: 1px solid rgba(220, 255, 76, 0.12);
+}
+
+.previewLight .previewService {
+  background: #ffffff;
+  border: 1px solid #dbe6e0;
+}
+
+.previewServiceSelected {
+  border-color: var(--brand, #dcff4c) !important;
+}
+
+.previewServiceInfo h5 {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.previewServiceInfo span {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.previewServiceAction {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.previewPrice {
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--brand, #dcff4c);
+}
+
+.previewLight .previewPrice {
+  color: #12231b;
+}
+
+.previewBtn {
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.previewBtnBrand {
+  background: var(--brand, #dcff4c);
+  color: var(--brand-contrast, #102118);
+}
+
+.previewBtnOutline {
+  background: transparent;
+  border: 1px solid var(--brand, #dcff4c);
+  color: var(--brand, #dcff4c);
+}
+
+.previewLight .previewBtnOutline {
+  border-color: #586f65;
+  color: #12231b;
+}
+
+.previewCtaBtn {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 8px;
+  background: var(--brand, #dcff4c);
+  color: var(--brand-contrast, #102118);
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+@media (max-width: 960px) {
+  .studioLayout {
+    grid-template-columns: 1fr;
+  }
+  .previewCol {
+    position: static;
+  }
+}

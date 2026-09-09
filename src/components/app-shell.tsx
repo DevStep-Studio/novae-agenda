@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
-  Clock, Clock3, FileText, Globe, Home, LogOut, Mail, MapPin,
+  Clock, Clock3, FileText, Globe, Home, Laptop, LogOut, Mail, MapPin,
   Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, Sparkles, Star, Sun, Tag, TrendingUp, User, UserPlus,
   UserRound, Users, WalletCards, X, XCircle, Zap,
@@ -2242,7 +2242,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
               <section className="settings-section">
                 <SectionHeading title="Aparência" description="A Agenda se adapta ao seu jeito de trabalhar." />
-                <div className="theme-options">
+                <div className="theme-options" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
                   <button type="button" className={theme === "light" ? "theme-option active" : "theme-option"} onClick={() => setTheme("light")}>
                     <span className="theme-preview light-preview"><Sun size={17} /></span>
                     <span className="theme-copy"><strong>Claro</strong><small>Leve e arejado</small></span>
@@ -2252,6 +2252,11 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                     <span className="theme-preview dark-preview"><Moon size={17} /></span>
                     <span className="theme-copy"><strong>Escuro</strong><small>Confortável à noite</small></span>
                     {theme === "dark" && <CheckCircle size={17} className="theme-check" />}
+                  </button>
+                  <button type="button" className={theme === "system" ? "theme-option active" : "theme-option"} onClick={() => setTheme("system")}>
+                    <span className="theme-preview system-preview" style={{ background: "rgba(220, 255, 76, 0.12)", color: "#dcff4c" }}><Laptop size={17} /></span>
+                    <span className="theme-copy"><strong>Sistema</strong><small>Automático do SO</small></span>
+                    {theme === "system" && <CheckCircle size={17} className="theme-check" />}
                   </button>
                 </div>
               </section>
