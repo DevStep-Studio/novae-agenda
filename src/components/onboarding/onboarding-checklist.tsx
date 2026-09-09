@@ -250,20 +250,14 @@ export function OnboardingChecklistCard({
             <div
               key={step.id}
               onClick={() => onNavigate(step.targetTab)}
+              className={`onboarding-step-card ${step.completed ? "completed" : "pending"}`}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
                 padding: "8px 10px",
                 borderRadius: "8px",
-                background: step.completed
-                  ? "rgba(22, 42, 34, 0.4)"
-                  : "var(--surface-secondary)",
-                border: `1px solid ${
-                  step.completed ? "rgba(220, 255, 76, 0.2)" : "var(--border)"
-                }`,
                 cursor: "pointer",
-                transition: "all 0.15s ease",
               }}
               title={step.completed ? "Etapa concluída" : "Clique para configurar"}
             >
@@ -276,13 +270,13 @@ export function OnboardingChecklistCard({
                 style={{
                   fontSize: "12px",
                   color: step.completed ? "#f2f7f4" : "var(--text-secondary)",
-                  fontWeight: step.completed ? 500 : 400,
+                  fontWeight: step.completed ? 600 : 400,
                   flex: 1,
                 }}
               >
                 {step.label}
               </span>
-              <ArrowRight size={13} style={{ color: "var(--text-muted)" }} />
+              <ArrowRight size={13} style={{ color: step.completed ? "#dcff4c" : "var(--text-muted)" }} />
             </div>
           ))}
         </div>

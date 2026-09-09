@@ -242,22 +242,22 @@ function DashboardPage({
         <div className="metric-card"><div className="metric-icon metric-teal"><Users size={18} /></div><div className="metric-copy"><p>Clientes atendidos</p><strong>{stats?.today.clientsServed ?? 0}</strong><span className="metric-detail">finalizados hoje</span></div></div>
       </div>
 
-      <div className="metrics-subgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "20px" }}>
-        <div style={{ background: "rgba(220, 255, 76, 0.07)", border: "1px solid rgba(220, 255, 76, 0.22)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="metrics-subgrid">
+        <div className="submetric-card">
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Ocupação do dia</span>
             <div style={{ fontSize: "20px", fontWeight: 700, color: "#dcff4c", marginTop: 2 }}>{occupancyRate}%</div>
           </div>
           <Sparkles size={18} style={{ color: "#dcff4c" }} />
         </div>
-        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="submetric-card">
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Horários livres hoje</span>
             <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)", marginTop: 2 }}>{freeSlotsToday}</div>
           </div>
           <Clock size={18} style={{ color: "var(--text-secondary)" }} />
         </div>
-        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div className="submetric-card">
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
             <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "#f87171" : "var(--text-primary)", marginTop: 2 }}>{cancellationsToday}</div>
