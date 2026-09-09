@@ -275,14 +275,63 @@ kbd { display: flex; align-items: center; gap: 2px; border: 1px solid var(--bord
 .eyebrow, .modal-eyebrow { margin: 0; color: var(--primary); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .intro-copy { margin: 8px 0 0; color: var(--text-secondary); font-size: 13px; }
 .wave { color: #d2984f; font-size: 20px; margin-left: 4px; }
-.button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 0 14px; background: var(--primary); color: #fff; font-size: 12px; font-weight: 600; transition: background .15s, transform .15s, box-shadow .15s; white-space: nowrap; }
+.button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 0 14px; background: var(--primary); color: var(--primary-foreground, #12231b); font-size: 12px; font-weight: 700; transition: background .15s, transform .15s, box-shadow .15s; white-space: nowrap; }
+.button svg { color: inherit; stroke: currentColor; }
 .button.full-width { display: flex; width: 100%; }
 .button:hover { background: var(--primary-hover); box-shadow: 0 4px 12px rgba(31, 111, 102, .2); }
 .button:active { transform: translateY(1px); }
-.button-secondary { background: var(--surface); color: var(--text-primary); border-color: var(--border); }
+.button-secondary { background: var(--surface); color: var(--text-primary); border-color: var(--border); font-weight: 600; }
 .button-secondary:hover, .button-ghost:hover { background: var(--surface-secondary); color: var(--text-primary); border-color: var(--border-strong); box-shadow: none; }
-.button-ghost { background: transparent; color: var(--text-secondary); border-color: transparent; }
-.button-danger { background: var(--danger); }
+.button-ghost { background: transparent; color: var(--text-secondary); border-color: transparent; font-weight: 600; }
+.button-danger { background: var(--danger); color: #ffffff !important; }
+.button-danger svg { color: #ffffff !important; stroke: #ffffff !important; }
+
+/* Regra estrita: botões verdes/lime sempre possuem texto e ícones escuros */
+:root[data-theme="dark"] .button:not(.button-secondary):not(.button-ghost):not(.button-danger),
+:root[data-theme="dark"] .button-primary,
+:root[data-theme="dark"] button.button:not(.button-secondary):not(.button-ghost):not(.button-danger),
+:root[data-theme="dark"] a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) {
+  background: var(--primary, #dcff4c);
+  color: #12231b !important;
+  font-weight: 700;
+}
+:root[data-theme="dark"] .button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
+:root[data-theme="dark"] .button-primary svg,
+:root[data-theme="dark"] button.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
+:root[data-theme="dark"] a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg {
+  color: #12231b !important;
+  stroke: #12231b !important;
+}
+:root[data-theme="dark"] .button:not(.button-secondary):not(.button-ghost):not(.button-danger):hover,
+:root[data-theme="dark"] .button-primary:hover {
+  background: #cbfa33;
+  color: #12231b !important;
+}
+:root[data-theme="dark"] .button:not(.button-secondary):not(.button-ghost):not(.button-danger):hover svg,
+:root[data-theme="dark"] .button-primary:hover svg {
+  color: #12231b !important;
+  stroke: #12231b !important;
+}
+
+/* Botões com estilo inline ou classes de cor verde/lime */
+button[style*="#dcff4c"],
+button[style*="--brand-lime"],
+a[style*="#dcff4c"],
+a[style*="--brand-lime"],
+.btn-primary,
+.bg-lime {
+  color: #12231b !important;
+  font-weight: 700;
+}
+button[style*="#dcff4c"] svg,
+button[style*="--brand-lime"] svg,
+a[style*="#dcff4c"] svg,
+a[style*="--brand-lime"] svg,
+.btn-primary svg,
+.bg-lime svg {
+  color: #12231b !important;
+  stroke: #12231b !important;
+}
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
 .section-heading, .panel-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; }
 .section-heading h2, .panel-toolbar h2 { margin: 0; font: 600 15px/1.25 "Plus Jakarta Sans", sans-serif; letter-spacing: -.2px; }

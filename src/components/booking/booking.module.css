@@ -262,11 +262,11 @@
   min-height: 46px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast, #fff);
   border-radius: 9px;
   padding: 11px 18px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -274,6 +274,19 @@
   gap: 9px;
   text-decoration: none;
   line-height: 1.4;
+}
+.button svg {
+  color: inherit;
+  stroke: currentColor;
+}
+:global([style*="--accent: #dcff4c"]) .button,
+:global([style*="--accent:#dcff4c"]) .button {
+  color: #12231b !important;
+}
+:global([style*="--accent: #dcff4c"]) .button svg,
+:global([style*="--accent:#dcff4c"]) .button svg {
+  color: #12231b !important;
+  stroke: #12231b !important;
 }
 .button:hover {
   filter: brightness(0.93);
