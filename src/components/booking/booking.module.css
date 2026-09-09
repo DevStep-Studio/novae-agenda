@@ -167,6 +167,13 @@
   font-weight: 800;
   color: #ffffff;
   margin: 0 0 8px;
+  outline: none;
+}
+
+.title:focus,
+.title:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .subtitle {

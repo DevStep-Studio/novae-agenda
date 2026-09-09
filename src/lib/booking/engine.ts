@@ -219,8 +219,11 @@ export async function loadAvailability(
     const candidates = team.filter(
       (e) =>
         (!item.employeeId || e.id === item.employeeId) &&
-        (e.locationId === locationId ||
-          unitLinks.some((l) => l.employeeId === e.id)) &&
+        (!e.locationId ||
+          e.locationId === locationId ||
+          unitLinks.some(
+            (l) => l.employeeId === e.id && l.locationId === locationId,
+          )) &&
         links.some((l) => l.employeeId === e.id && l.serviceId === service.id),
     );
     if (!candidates.length)
