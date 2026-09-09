@@ -155,11 +155,23 @@ function IconButton({ label, children, className = "", ...props }: React.ButtonH
 function StatusBadge({ status }: { status: AppointmentStatus }) {
   return <span className={`status-badge ${statusClass[status]}`}><span className="status-dot" />{STATUS_LABELS[status]}</span>;
 }
-function Field({ label, icon: Icon, children, hint }: { label: string; icon?: LucideIcon; children: ReactNode; hint?: string }) {
+function Field({
+  label,
+  icon: Icon,
+  children,
+  hint,
+  className = "",
+}: {
+  label: string;
+  icon?: LucideIcon;
+  children: ReactNode;
+  hint?: string;
+  className?: string;
+}) {
   return (
-    <label className="field">
-      <span className="field-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        {Icon && <Icon size={14} style={{ color: "var(--primary)" }} />}
+    <label className={`field ${className}`}>
+      <span className="field-label">
+        {Icon && <Icon size={14} className="label-icon" />}
         <span>{label}</span>
       </span>
       {children}
@@ -180,6 +192,7 @@ function Modal({
   children,
   wide = false,
   headerVariant = "default",
+  icon: Icon,
 }: {
   title: string;
   eyebrow?: string;
@@ -187,14 +200,23 @@ function Modal({
   children: ReactNode;
   wide?: boolean;
   headerVariant?: "default" | "primary";
+  icon?: LucideIcon;
 }) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className={`modal ${wide ? "modal-wide" : ""} ${headerVariant === "primary" ? "modal-has-primary-header" : ""}`} role="dialog" aria-modal="true">
         <div className={`modal-header ${headerVariant === "primary" ? "modal-header-primary" : ""}`}>
           <div>
-            {eyebrow && <p className="modal-eyebrow">{eyebrow}</p>}
-            <h2>{title}</h2>
+            {eyebrow && (
+              <p className="modal-eyebrow">
+                <Sparkles size={11} />
+                <span>{eyebrow}</span>
+              </p>
+            )}
+            <h2>
+              {Icon && <Icon size={20} className="modal-title-icon" />}
+              <span>{title}</span>
+            </h2>
           </div>
           <IconButton label="Fechar" onClick={onClose}><X size={19} /></IconButton>
         </div>
@@ -2501,12 +2523,19 @@ function NewAppointmentModal({
   };
 
   return (
-    <Modal title="Novo agendamento" eyebrow="Motor em tempo real" onClose={onClose} wide headerVariant="primary">
+    <Modal
+      title="Novo agendamento"
+      eyebrow="Motor em tempo real"
+      icon={CalendarPlus}
+      onClose={onClose}
+      wide
+      headerVariant="primary"
+    >
       <form onSubmit={submit}>
         <div className="modal-form-grid">
           <Field label="Cliente" icon={User}>
-            <div className="input-with-icon">
-              <User size={16} className="input-field-icon" />
+            <div className="modal-input-wrap">
+              <User size={18} className="modal-input-icon" />
               <SelectField value={clientId} onChange={(e) => setClientId(e.target.value)} required>
                 <option value="">Selecione um cliente...</option>
                 {clients.map((client) => (
@@ -2517,8 +2546,8 @@ function NewAppointmentModal({
           </Field>
 
           <Field label="Unidade" icon={Building2}>
-            <div className="input-with-icon">
-              <Building2 size={16} className="input-field-icon" />
+            <div className="modal-input-wrap">
+              <Building2 size={18} className="modal-input-icon" />
               <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>{loc.name}</option>
@@ -2528,8 +2557,8 @@ function NewAppointmentModal({
           </Field>
 
           <Field label="Profissional" icon={UserRound}>
-            <div className="input-with-icon">
-              <UserRound size={16} className="input-field-icon" />
+            <div className="modal-input-wrap">
+              <UserRound size={18} className="modal-input-icon" />
               <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required>
                 <option value="">Selecione um profissional...</option>
                 {eligibleEmployees.map((employee) => (
@@ -2540,55 +2569,82 @@ function NewAppointmentModal({
           </Field>
 
           <Field label="Data" icon={Calendar}>
-            <div className="input-with-icon">
-              <Calendar size={16} className="input-field-icon" />
+            <div className="modal-input-wrap">
+              <Calendar size={18} className="modal-input-icon" />
               <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
           </Field>
 
-          <Field label="Serviços" icon={Scissors}>
-            <div className="service-multi-select">
+          <Field label="Serviços disponíveis" icon={Scissors} className="field-full">
+            <div className="service-cards-grid">
               {services.filter((s) => s.active).map((service) => {
                 const isSelected = serviceIds.includes(service.id);
                 return (
                   <button
                     type="button"
                     key={service.id}
-                    className={isSelected ? "service-option active" : "service-option"}
+                    className={`service-option-card ${isSelected ? "selected" : ""}`}
                     onClick={() => toggleService(service.id)}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      {isSelected ? (
-                        <CheckCircle2 size={15} style={{ color: "#dcff4c", flexShrink: 0 }} />
-                      ) : (
-                        <Tag size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                      )}
-                      <span>{service.name}</span>
+                    <div className="service-card-top">
+                      <div className="service-card-icon-badge">
+                        <Scissors size={14} />
+                      </div>
+                      <div className="service-card-check">
+                        {isSelected ? (
+                          <CheckCircle2 size={17} />
+                        ) : (
+                          <span className="uncheck-dot" />
+                        )}
+                      </div>
                     </div>
-                    <small>{formatCurrency(service.price)} · {service.durationMinutes} min</small>
+                    <div className="service-card-title">{service.name}</div>
+                    <div className="service-card-footer">
+                      <span className="service-card-price">{formatCurrency(service.price)}</span>
+                      <span className="service-card-duration">
+                        <Clock3 size={11} /> {service.durationMinutes} min
+                      </span>
+                    </div>
                   </button>
                 );
               })}
-              {services.filter((s) => s.active).length === 0 && <span className="field-hint">Cadastre serviços primeiro.</span>}
+              {services.filter((s) => s.active).length === 0 && (
+                <span className="field-hint">Cadastre serviços primeiro.</span>
+              )}
             </div>
             {selectedServices.length > 0 && (
-              <div className="selected-services-summary">
-                <span className="summary-pill">{selectedServices.length} {selectedServices.length === 1 ? "serviço" : "serviços"}</span>
-                <span className="summary-pill highlight"><Clock3 size={12} /> {duration} min</span>
-                <span className="summary-pill highlight-price">{formatCurrency(total)}</span>
+              <div className="selected-services-summary-bar">
+                <div className="summary-bar-left">
+                  <CheckCheck size={16} style={{ color: "var(--primary, #dcff4c)" }} />
+                  <span>
+                    <strong>{selectedServices.length}</strong> {selectedServices.length === 1 ? "serviço selecionado" : "serviços selecionados"}
+                  </span>
+                  <span className="summary-bar-dot">•</span>
+                  <span className="summary-duration">
+                    <Clock3 size={13} /> {duration} min total
+                  </span>
+                </div>
+                <div className="summary-bar-right">
+                  <span>Total:</span>
+                  <strong>{formatCurrency(total)}</strong>
+                </div>
               </div>
             )}
           </Field>
 
-          <Field label="Horário" icon={Clock3}>
-            <div className="input-with-icon">
-              <Clock3 size={16} className="input-field-icon" />
+          <Field label="Horário de início" icon={Clock3}>
+            <div className="modal-input-wrap">
+              <Clock3 size={18} className="modal-input-icon" />
               <input className="input" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
             </div>
-            {loadingSlots && <span className="field-hint">Calculando horários livres...</span>}
+            {loadingSlots && (
+              <span className="field-hint" style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6 }}>
+                <Sparkles size={12} /> Calculando horários livres...
+              </span>
+            )}
             {!loadingSlots && availableSlots.length > 0 && (
               <div className="slot-chips-wrap">
-                <span className="slot-chips-label">Horários livres sugeridos ({availableSlots.length}):</span>
+                <span className="slot-chips-label"><Sparkles size={12} /> Horários livres sugeridos ({availableSlots.length}):</span>
                 <div className="slot-chips-grid">
                   {availableSlots.map((slot) => (
                     <button
@@ -2597,6 +2653,7 @@ function NewAppointmentModal({
                       className={`slot-chip ${startTime === slot.startTime ? "active" : ""}`}
                       onClick={() => setStartTime(slot.startTime)}
                     >
+                      <Clock3 size={11} />
                       {slot.startTime}
                     </button>
                   ))}
@@ -2604,27 +2661,41 @@ function NewAppointmentModal({
               </div>
             )}
             {!loadingSlots && employeeId && date && duration > 0 && availableSlots.length === 0 && (
-              <span className="field-hint" style={{ color: "var(--warning)" }}>
-                Nenhum horário livre para este profissional nesta data.
+              <span className="field-hint" style={{ color: "var(--warning)", marginTop: 6, display: "flex", alignItems: "center", gap: 5 }}>
+                <CircleAlert size={13} /> Nenhum horário livre para este profissional nesta data.
               </span>
             )}
           </Field>
 
-          <Field label="Observações" icon={FileText}>
-            <div className="input-with-icon textarea-with-icon">
-              <FileText size={16} className="input-field-icon" />
+          <Field label="Observações (opcional)" icon={FileText}>
+            <div className="modal-input-wrap textarea-wrap">
+              <FileText size={18} className="modal-input-icon" />
               <textarea
                 className="input textarea"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Alguma informação importante?"
+                placeholder="Alguma informação importante para este agendamento?"
                 rows={3}
               />
             </div>
           </Field>
         </div>
-        {serviceIds.length > 0 && eligibleEmployees.length === 0 && <div className="form-note" style={{ color: "var(--warning)", marginTop: 10 }}><CircleAlert size={14} /> Nenhum profissional selecionável realiza os serviços escolhidos.</div>}
-        <div className="modal-footer"><span className="form-note"><ShieldCheck size={14} /> Conflitos são validados pelo motor</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : <><Check size={16} /> Confirmar agendamento</>}</Button></div></div>
+        {serviceIds.length > 0 && eligibleEmployees.length === 0 && (
+          <div className="form-note" style={{ color: "var(--warning)", margin: "0 28px 12px", display: "flex", alignItems: "center", gap: 6 }}>
+            <CircleAlert size={14} /> Nenhum profissional selecionável realiza os serviços escolhidos.
+          </div>
+        )}
+        <div className="modal-footer">
+          <span className="form-note">
+            <ShieldCheck size={16} /> Conflitos são validados pelo motor
+          </span>
+          <div className="modal-actions">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Criando..." : <><Check size={16} /> Confirmar agendamento</>}
+            </Button>
+          </div>
+        </div>
       </form>
     </Modal>
   );
@@ -2671,15 +2742,40 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Novo cliente" eyebrow="Adicionar à sua base" onClose={onClose}>
+    <Modal title="Novo cliente" eyebrow="Adicionar à sua base" icon={UserPlus} onClose={onClose}>
       <form onSubmit={submit} noValidate>
         <div className="modal-form-grid single">
-          <Field label="Nome completo"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Fernanda Almeida" required minLength={2} /></Field>
-          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" inputMode="numeric" required /></Field>
-          <Field label="E-mail (opcional)"><input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@dominio.com" /></Field>
-          <Field label="Observações (opcional)"><textarea className="input textarea" value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+          <Field label="Nome completo" icon={User}>
+            <div className="modal-input-wrap">
+              <User size={18} className="modal-input-icon" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Fernanda Almeida" required minLength={2} />
+            </div>
+          </Field>
+          <Field label="Telefone / WhatsApp" icon={Phone}>
+            <div className="modal-input-wrap">
+              <Phone size={18} className="modal-input-icon" />
+              <input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" inputMode="numeric" required />
+            </div>
+          </Field>
+          <Field label="E-mail (opcional)" icon={Mail}>
+            <div className="modal-input-wrap">
+              <Mail size={18} className="modal-input-icon" />
+              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@dominio.com" />
+            </div>
+          </Field>
+          <Field label="Observações (opcional)" icon={FileText}>
+            <div className="modal-input-wrap textarea-wrap">
+              <FileText size={18} className="modal-input-icon" />
+              <textarea className="input textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Preferências ou dados relevantes do cliente..." rows={3} />
+            </div>
+          </Field>
         </div>
-        <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Cadastrar cliente</>}</Button></div></div>
+        <div className="modal-footer">
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Cadastrar cliente</>}</Button>
+          </div>
+        </div>
       </form>
     </Modal>
   );
@@ -2810,35 +2906,81 @@ function BlockModal({ onClose, defaultDate }: { onClose: () => void; defaultDate
   };
 
   return (
-    <Modal title="Bloquear horário ou período" eyebrow="Reserve horários na agenda" onClose={onClose}>
+    <Modal title="Bloquear horário ou período" eyebrow="Reserve horários na agenda" icon={Ban} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-form-grid">
-          <Field label="Profissional">
-            <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-              <option value="all">Toda a equipe (Geral da empresa)</option>
-              {employees.filter((e) => e.active).map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-            </SelectField>
+          <Field label="Profissional" icon={UserRound}>
+            <div className="modal-input-wrap">
+              <UserRound size={18} className="modal-input-icon" />
+              <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+                <option value="all">Toda a equipe (Geral da empresa)</option>
+                {employees.filter((e) => e.active).map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+              </SelectField>
+            </div>
           </Field>
-          <Field label="Unidade">
-            <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-              <option value="">Todas as unidades</option>
-              {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
-            </SelectField>
+          <Field label="Unidade" icon={Building2}>
+            <div className="modal-input-wrap">
+              <Building2 size={18} className="modal-input-icon" />
+              <SelectField value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+                <option value="">Todas as unidades</option>
+                {locations.map((loc) => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
+              </SelectField>
+            </div>
           </Field>
-          <Field label="Tipo de bloqueio">
-            <SelectField value={blockType} onChange={(e) => setBlockType(e.target.value as "hours" | "allDay" | "period")}>
-              <option value="hours">Parcial (Horário específico)</option>
-              <option value="allDay">Dia inteiro (Feriado/Folga)</option>
-              <option value="period">Período de múltiplos dias (Férias)</option>
-            </SelectField>
+          <Field label="Tipo de bloqueio" icon={Tag}>
+            <div className="modal-input-wrap">
+              <Tag size={18} className="modal-input-icon" />
+              <SelectField value={blockType} onChange={(e) => setBlockType(e.target.value as "hours" | "allDay" | "period")}>
+                <option value="hours">Parcial (Horário específico)</option>
+                <option value="allDay">Dia inteiro (Feriado/Folga)</option>
+                <option value="period">Período de múltiplos dias (Férias)</option>
+              </SelectField>
+            </div>
           </Field>
-          <Field label="Motivo"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: Almoço, Reforma, Férias..." required /></Field>
-          <Field label="Data inicial"><input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
-          {blockType === "period" && <Field label="Data final"><input className="input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required /></Field>}
-          {blockType === "hours" && <Field label="Horário início"><input className="input" type="time" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required /></Field>}
-          {blockType === "hours" && <Field label="Horário fim"><input className="input" type="time" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required /></Field>}
+          <Field label="Motivo" icon={FileText}>
+            <div className="modal-input-wrap">
+              <FileText size={18} className="modal-input-icon" />
+              <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex.: Almoço, Reforma, Férias..." required />
+            </div>
+          </Field>
+          <Field label="Data inicial" icon={Calendar}>
+            <div className="modal-input-wrap">
+              <Calendar size={18} className="modal-input-icon" />
+              <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+          </Field>
+          {blockType === "period" && (
+            <Field label="Data final" icon={Calendar}>
+              <div className="modal-input-wrap">
+                <Calendar size={18} className="modal-input-icon" />
+                <input className="input" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+              </div>
+            </Field>
+          )}
+          {blockType === "hours" && (
+            <Field label="Horário início" icon={Clock3}>
+              <div className="modal-input-wrap">
+                <Clock3 size={18} className="modal-input-icon" />
+                <input className="input" type="time" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
+              </div>
+            </Field>
+          )}
+          {blockType === "hours" && (
+            <Field label="Horário fim" icon={Clock3}>
+              <div className="modal-input-wrap">
+                <Clock3 size={18} className="modal-input-icon" />
+                <input className="input" type="time" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
+              </div>
+            </Field>
+          )}
         </div>
-        <div className="modal-footer"><span className="form-note"><CircleAlert size={14} /> O motor impedirá agendamentos neste intervalo</span><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Bloqueando..." : "Bloquear"}</Button></div></div>
+        <div className="modal-footer">
+          <span className="form-note"><CircleAlert size={14} /> O motor impedirá agendamentos neste intervalo</span>
+          <div className="modal-actions">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Bloqueando..." : "Bloquear"}</Button>
+          </div>
+        </div>
       </form>
     </Modal>
   );

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Reservei | Gestão e Agendamento Comercial SaaS",
+  title: "Reservei",
   description: "Plataforma SaaS profissional de agendamentos, gestão de clientes, equipe e financeiro.",
   icons: {
     icon: "/brand/favicon-32.png",
