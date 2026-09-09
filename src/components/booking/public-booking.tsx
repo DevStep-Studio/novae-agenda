@@ -594,7 +594,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             );
                           return (
                             <article className={b.service} key={service.id}>
-                              <div>
+                              <div className={b.serviceMain}>
                                 {service.bookings > 0 &&
                                   service.bookings ===
                                     Math.max(
@@ -604,31 +604,35 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                       Mais escolhido
                                     </span>
                                   )}
-                                {service.imageUrl && (
-                                  <img
-                                    className={b.serviceImage}
-                                    src={service.imageUrl}
-                                    alt=""
-                                    loading="lazy"
-                                  />
-                                )}
-                                <h3>{service.name}</h3>
-                                {service.description && (
-                                  <p className={b.muted}>
-                                    {service.description}
-                                  </p>
-                                )}
-                                <div className={`${b.muted} ${b.inline}`}>
-                                  <Clock3 size={13} />
-                                  {duration(service.durationMinutes)}
-                                  {service.deliveryMode === "ONLINE" &&
-                                    " · Online"}
+                                <div className={b.serviceBody}>
+                                  {service.imageUrl && (
+                                    <img
+                                      className={b.serviceImage}
+                                      src={service.imageUrl}
+                                      alt=""
+                                      loading="lazy"
+                                    />
+                                  )}
+                                  <div className={b.serviceDetails}>
+                                    <h3>{service.name}</h3>
+                                    {service.description && (
+                                      <p className={b.muted}>
+                                        {service.description}
+                                      </p>
+                                    )}
+                                    <div className={`${b.muted} ${b.inline}`}>
+                                      <Clock3 size={13} />
+                                      {duration(service.durationMinutes)}
+                                      {service.deliveryMode === "ONLINE" &&
+                                        " · Online"}
+                                    </div>
+                                    {!eligible && (
+                                      <p className={b.muted}>
+                                        Indisponível nesta unidade
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
-                                {!eligible && (
-                                  <p className={b.muted}>
-                                    Indisponível nesta unidade
-                                  </p>
-                                )}
                               </div>
                               <div className={b.serviceActions}>
                                 <div className={b.price}>
@@ -735,8 +739,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   }}
                 />
                 {date && (
-                  <div style={{ marginTop: 24, padding: "16px 20px", background: "#162a22", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
-                    <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
+                  <div className={b.card}>
+                    <p style={{ margin: "0 0 10px", fontSize: 13, color: "#a5c8b7" }}>
                       Não encontrou uma vaga ou prefere outro horário nesta data?
                     </p>
                     <button
@@ -758,8 +762,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           setWaitlistStatus("error");
                         }
                       }}
-                      className={b.button}
-                      style={{ background: "#234e3d", color: "#f2f7f4", fontSize: 13, padding: "8px 16px" }}
+                      className={`${b.button} ${b.small} ${b.outline}`}
                     >
                       {waitlistStatus === "success"
                         ? "✓ Você está na lista de espera!"
@@ -768,7 +771,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           : "Entrar na lista de espera"}
                     </button>
                     {waitlistStatus === "success" && (
-                      <p style={{ margin: "8px 0 0", fontSize: 12, color: "#4ade80" }}>
+                      <p style={{ margin: "8px 0 0", fontSize: 12, color: "#dcff4c" }}>
                         O estabelecimento foi notificado e entrará em contato caso surja um horário livre.
                       </p>
                     )}
@@ -804,11 +807,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </button>
                   </div>
                 ) : (
-                  <div style={{ background: "#162a22", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#ffffff", margin: "0 0 4px" }}>
+                  <div className={b.card}>
+                    <h3>
                       Seus dados para confirmação
                     </h3>
-                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: "0 0 16px" }}>
+                    <p>
                       Agendamento rápido e direto. Você poderá criar uma senha depois se desejar.
                     </p>
                     <label className={b.field}>
@@ -847,7 +850,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         type="button"
                         onClick={() => setUseManualLogin(true)}
                         className={b.textButton}
-                        style={{ fontSize: 12, color: "#dcff4c" }}
+                        style={{ fontSize: 12 }}
                       >
                         Já possui conta? Entrar com senha
                       </button>
