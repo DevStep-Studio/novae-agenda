@@ -25,6 +25,7 @@ import {
   AlertCircle,
   ShieldCheck,
   Download,
+  Star,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { NovaeLogo } from "@/components/brand/novae-logo";
@@ -111,6 +112,13 @@ export function ClientPortal({
   const [cancellingBooking, setCancellingBooking] = useState<CustomerBooking | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
+  // Review state
+  const [reviewBooking, setReviewBooking] = useState<CustomerBooking | null>(null);
+  const [reviewRating, setReviewRating] = useState<number>(5);
+  const [reviewComment, setReviewComment] = useState<string>("");
+  const [reviewSubmitting, setReviewSubmitting] = useState<boolean>(false);
+  const [reviewedBookings, setReviewedBookings] = useState<Set<string>>(new Set());
+
   // Load session & customer data
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -138,22 +146,16 @@ export function ClientPortal({
   // Next upcoming booking
   const now = new Date();
   const upcomingBookings = bookings.filter(
-    (b) =>
-      (b.status === "confirmed" || b.status === "scheduled" || b.status === "waiting") &&
-      new Date(b.startsAt) >= new Date(now.getTime() - 3600000), // within last hour or future
+    (b) => new Date(b.startsAt) >= now && b.status !== "cancelled"
   );
-
-  const pastBookings = bookings.filter(
-    (b) =>
-      b.status === "completed" ||
-      b.status === "cancelled" ||
-      b.status === "no_show" ||
-      new Date(b.startsAt) < new Date(now.getTime() - 3600000),
-  );
-
   const nextBooking = upcomingBookings[0] ?? null;
 
-  // Handle Cancel Booking
+  // Past bookings (history)
+  const pastBookings = bookings.filter(
+    (b) => new Date(b.startsAt) < now || b.status === "completed" || b.status === "cancelled"
+  );
+
+  // Cancel handler
   const handleCancelBooking = async () => {
     if (!cancellingBooking) return;
     try {
@@ -167,6 +169,30 @@ export function ClientPortal({
       await loadData();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Não foi possível cancelar o atendimento.");
+    }
+  };
+
+  const handleReviewBooking = async () => {
+    if (!reviewBooking) return;
+    setReviewSubmitting(true);
+    try {
+      await api("/api/reviews", {
+        method: "POST",
+        body: JSON.stringify({
+          appointmentId: reviewBooking.id,
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+        }),
+      });
+      setReviewedBookings((prev) => new Set([...prev, reviewBooking.id]));
+      setSuccessMsg("Obrigado pela sua avaliação!");
+      setReviewBooking(null);
+      setReviewComment("");
+      setReviewRating(5);
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : "Não foi possível registrar a avaliação.");
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -919,13 +945,33 @@ export function ClientPortal({
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
-                    onClick={() => handleBookAgain(b)}
-                  >
-                    <RotateCcw size={13} /> Agendar novamente
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => handleBookAgain(b)}
+                    >
+                      <RotateCcw size={13} /> Agendar novamente
+                    </button>
+                    {!reviewedBookings.has(b.id) ? (
+                      <button
+                        type="button"
+                        className={styles.actionBtn}
+                        onClick={() => {
+                          setReviewBooking(b);
+                          setReviewRating(5);
+                          setReviewComment("");
+                        }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                      >
+                        <Star size={13} style={{ color: "#facc15" }} /> Avaliar
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 12, color: "var(--primary)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <CheckCircle2 size={13} /> Avaliado
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -1098,6 +1144,116 @@ export function ClientPortal({
                   onClick={handleCancelBooking}
                 >
                   Confirmar cancelamento
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Avaliação */}
+        {reviewBooking && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              display: "grid",
+              placeItems: "center",
+              zIndex: 100,
+              padding: 20,
+            }}
+            onClick={() => setReviewBooking(null)}
+          >
+            <div
+              style={{
+                background: "var(--surface)",
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 440,
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 750 }}>
+                  Como foi seu atendimento?
+                </h3>
+                <p style={{ margin: "4px 0 0", color: "var(--text-secondary)", fontSize: "14px" }}>
+                  {reviewBooking.items?.[0]?.serviceName ?? "Atendimento"} com{" "}
+                  <strong>{reviewBooking.items?.[0]?.employeeName}</strong>
+                </p>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "center", gap: 10, padding: "8px 0" }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 4,
+                      color: star <= reviewRating ? "#facc15" : "var(--border)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    title={`${star} estrelas`}
+                  >
+                    <Star
+                      size={28}
+                      fill={star <= reviewRating ? "#facc15" : "none"}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                  Comentário ou elogio (opcional):
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Conte como foi sua experiência..."
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    marginTop: 6,
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    color: "var(--text-primary)",
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                    resize: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className={styles.actionBtn}
+                  onClick={() => setReviewBooking(null)}
+                  disabled={reviewSubmitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+                  onClick={handleReviewBooking}
+                  disabled={reviewSubmitting}
+                >
+                  {reviewSubmitting ? "Enviando..." : "Confirmar avaliação"}
                 </button>
               </div>
             </div>

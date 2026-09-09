@@ -105,6 +105,7 @@ export async function GET() {
     isSuperadmin: user.isSuperadmin,
     createdAt: (row?.createdAt ?? new Date()).toISOString(),
     employeeId: user.employeeId,
+    memberships: user.memberships ?? [],
     company: company
       ? {
           id: company.id,

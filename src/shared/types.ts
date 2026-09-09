@@ -243,6 +243,8 @@ export type SuperadminCompanyDTO = {
   employeesCount: number;
   locationsCount: number;
   appointmentsCount: number;
+  plan?: string;
+  subscriptionStatus?: string;
   createdAt: string;
   active: boolean;
 };
@@ -253,7 +255,16 @@ export type SuperadminStatsDTO = {
   totalEmployees: number;
   totalLocations: number;
   totalAppointments: number;
+  activeSubscriptions: number;
+  trialSubscriptions: number;
+  estimatedMRR: number;
   recentCompanies: SuperadminCompanyDTO[];
+  recentLogs?: Array<{
+    id: string;
+    action: string;
+    entity: string;
+    createdAt: string;
+  }>;
 };
 
 export type StatsResponse = {

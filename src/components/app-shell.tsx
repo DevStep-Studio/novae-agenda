@@ -21,8 +21,12 @@ import type {
 import { BookingSettings } from "@/components/booking/booking-settings";
 import { ServiceEditor } from "@/components/booking/service-editor";
 import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReportsView } from "@/components/reports/reports-view";
+import { SubscriptionView } from "@/components/subscriptions/subscription-view";
+import { SubscriptionPaywallModal } from "@/components/subscriptions/subscription-paywall-modal";
+import { CashClosingModal } from "@/components/financial/cash-closing-modal";
 
-type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "configuracoes";
+type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes";
 type CalendarMode = "day" | "week" | "month";
 
 const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
@@ -32,7 +36,9 @@ const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
   { id: "servicos", label: "Serviços", icon: Tag },
   { id: "equipe", label: "Equipe", icon: UserRound },
   { id: "financeiro", label: "Financeiro", icon: WalletCards },
+  { id: "relatorios", label: "Relatórios", icon: BarChart3 },
   { id: "link-agendamento", label: "Link de agendamento", icon: Globe },
+  { id: "assinatura", label: "Minha assinatura", icon: Sparkles },
   { id: "configuracoes", label: "Configurações", icon: Settings2 },
 ];
 
@@ -44,6 +50,8 @@ const pageTitles: Record<ViewKey, { title: string; eyebrow: string }> = {
   servicos: { title: "Serviços", eyebrow: "Catálogo e preços do estabelecimento" },
   equipe: { title: "Equipe", eyebrow: "Profissionais e disponibilidade" },
   financeiro: { title: "Financeiro", eyebrow: "Acompanhe a saúde do seu negócio" },
+  relatorios: { title: "Relatórios", eyebrow: "Desempenho e indicadores do estabelecimento" },
+  assinatura: { title: "Minha assinatura", eyebrow: "Planos e faturamento SaaS" },
   configuracoes: { title: "Configurações", eyebrow: "Deixe a Agenda com a sua cara" },
 };
 
@@ -342,7 +350,7 @@ function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO
   );
 }
 
-type ClientTab = "all" | "vip" | "new" | "with_appointment";
+type ClientTab = "all" | "vip" | "new" | "with_appointment" | "inactive";
 type ClientSort = "visits-desc" | "spent-desc" | "recent" | "name-asc";
 
 function ClientsPage({
@@ -358,6 +366,7 @@ function ClientsPage({
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ClientTab>("all");
   const [sortBy, setSortBy] = useState<ClientSort>("visits-desc");
+  const [inactiveDays, setInactiveDays] = useState<30 | 45 | 60 | 90>(30);
 
   // Metric computations matching the Home page KPIs
   const totalClients = clients.length;
@@ -390,6 +399,16 @@ function ClientsPage({
     (c) => clientIdsWithAppointment.has(c.id) || Boolean(c.nextVisit)
   ).length;
 
+  const inactiveClients = useMemo(() => {
+    return clients.filter((c) => {
+      const refDateStr = c.lastVisit || c.createdAt;
+      if (!refDateStr) return false;
+      const diffDays = Math.floor((Date.now() - new Date(refDateStr).getTime()) / (1000 * 60 * 60 * 24));
+      const hasUpcoming = clientIdsWithAppointment.has(c.id) || Boolean(c.nextVisit);
+      return diffDays >= inactiveDays && !hasUpcoming;
+    });
+  }, [clients, inactiveDays, clientIdsWithAppointment]);
+
   // Filtered by query & active tab
   const filtered = useMemo(() => {
     return clients.filter((client) => {
@@ -410,9 +429,16 @@ function ClientsPage({
       if (activeTab === "with_appointment") {
         return clientIdsWithAppointment.has(client.id) || Boolean(client.nextVisit);
       }
+      if (activeTab === "inactive") {
+        const refDateStr = client.lastVisit || client.createdAt;
+        if (!refDateStr) return false;
+        const diffDays = Math.floor((Date.now() - new Date(refDateStr).getTime()) / (1000 * 60 * 60 * 24));
+        const hasUpcoming = clientIdsWithAppointment.has(client.id) || Boolean(client.nextVisit);
+        return diffDays >= inactiveDays && !hasUpcoming;
+      }
       return true;
     });
-  }, [clients, query, activeTab, thirtyDaysAgo, clientIdsWithAppointment]);
+  }, [clients, query, activeTab, thirtyDaysAgo, clientIdsWithAppointment, inactiveDays]);
 
   // Sorted list
   const sorted = useMemo(() => {
@@ -436,6 +462,7 @@ function ClientsPage({
     { id: "vip", label: "Frequentes & VIPs", count: vipClients.length, icon: Sparkles },
     { id: "new", label: "Novos no mês", count: newClientsCount, icon: UserPlus },
     { id: "with_appointment", label: "Com agendamento", count: withAppointmentCount, icon: CalendarDays },
+    { id: "inactive", label: "Sem retorno", count: inactiveClients.length, icon: Clock3 },
   ];
 
   return (
@@ -514,6 +541,26 @@ function ClientsPage({
             })}
           </div>
         </div>
+
+        {activeTab === "inactive" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface)", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>Sem retorno há pelo menos:</span>
+            {([30, 45, 60, 90] as const).map((days) => (
+              <button
+                key={days}
+                type="button"
+                className={`client-tab-btn ${inactiveDays === days ? "active" : ""}`}
+                style={{ padding: "4px 10px", fontSize: 12, height: "auto" }}
+                onClick={() => setInactiveDays(days)}
+              >
+                {days} dias
+              </button>
+            ))}
+            <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: "auto" }}>
+              💡 Envie mensagem no WhatsApp para reconquistar esses clientes!
+            </span>
+          </div>
+        )}
 
         {/* Toolbar: Search + Sort + Count */}
         <div className="client-panel-toolbar">
@@ -616,11 +663,15 @@ function ClientsPage({
                         <div className="client-contact-col">
                           {client.phone ? (
                             <a
-                              href={`https://wa.me/${formatPhoneForWhatsApp(client.phone)}?text=${encodeURIComponent(`Olá, ${client.name}! Tudo bem? Falamos da ${session?.company.name || "Agenda"}.`)}`}
+                              href={`https://wa.me/${formatPhoneForWhatsApp(client.phone)}?text=${encodeURIComponent(
+                                activeTab === "inactive"
+                                  ? `Olá, ${client.name}! Faz tempo que não nos vemos no(a) ${session?.company.name || "Nova(e)"}. Preparamos um horário especial para você retornar, que tal agendar?`
+                                  : `Olá, ${client.name}! Tudo bem? Falamos da ${session?.company.name || "Agenda"}.`
+                              )}`}
                               target="_blank"
                               rel="noreferrer"
                               className="client-whatsapp-btn"
-                              title="Abrir WhatsApp com o cliente"
+                              title={activeTab === "inactive" ? "Enviar mensagem de reativação no WhatsApp" : "Abrir WhatsApp com o cliente"}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MessageCircle size={13} />
@@ -1290,8 +1341,9 @@ function TeamPage({
 type FinancialPeriod = "today" | "week" | "month" | "all";
 
 function FinancialPage() {
-  const { stats, employees, appointments } = useStore();
+  const { session, stats, employees, appointments, locations } = useStore();
   const [period, setPeriod] = useState<FinancialPeriod>("month");
+  const [cashClosingOpen, setCashClosingOpen] = useState(false);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -1499,12 +1551,21 @@ function FinancialPage() {
   return (
     <div className="page-content financial-page-content">
       {/* Intro Header */}
-      <div className="page-intro">
+      <div className="page-intro" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
         <div>
           <p className="eyebrow">Visão financeira</p>
           <h1>Financeiro</h1>
           <p className="intro-copy">Faturamento real calculado a partir dos atendimentos finalizados e comissões da equipe.</p>
         </div>
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => setCashClosingOpen(true)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", cursor: "pointer", fontWeight: 600, fontSize: 13 }}
+        >
+          <ReceiptText size={16} />
+          <span>Fechamento de Caixa</span>
+        </button>
       </div>
 
       {/* Segmented Period Tabs ("Aba acima") */}
@@ -1735,6 +1796,16 @@ function FinancialPage() {
             })}
           </div>
         </section>
+      )}
+      {cashClosingOpen && (
+        <CashClosingModal
+          onClose={() => setCashClosingOpen(false)}
+          appointments={appointments}
+          employees={employees}
+          locations={locations}
+          stats={stats}
+          companyName={session?.company.name || "Nova(e)"}
+        />
       )}
     </div>
   );
@@ -2735,6 +2806,22 @@ export function AppShell() {
   const [superadminOpen, setSuperadminOpen] = useState(false);
   const [detailAppointment, setDetailAppointment] = useState<AppointmentDTO | null>(null);
   const [clientDrawer, setClientDrawer] = useState<ClientDTO | null>(null);
+  const [subStatus, setSubStatus] = useState<string>("active");
+  const [paywallOpen, setPaywallOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/subscriptions")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.subscription?.status) {
+          setSubStatus(data.subscription.status);
+          if (data.subscription.status === "expired" || data.subscription.status === "cancelled") {
+            setPaywallOpen(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     applyTheme(theme);
@@ -2799,6 +2886,10 @@ export function AppShell() {
         );
       case "financeiro":
         return <FinancialPage />;
+      case "relatorios":
+        return <ReportsView />;
+      case "assinatura":
+        return <SubscriptionView />;
       case "link-agendamento":
         return <BookingSettings />;
       case "configuracoes":
@@ -3273,6 +3364,15 @@ export function AppShell() {
           onSettings={() => navigate("configuracoes")}
           onSuperadmin={session.isSuperadmin ? () => setSuperadminOpen(true) : undefined}
           onLogout={logout}
+        />
+      )}
+
+      {paywallOpen && (subStatus === "expired" || subStatus === "cancelled") && (
+        <SubscriptionPaywallModal
+          onSelectPlan={() => {
+            setPaywallOpen(false);
+            navigate("assinatura");
+          }}
         />
       )}
 

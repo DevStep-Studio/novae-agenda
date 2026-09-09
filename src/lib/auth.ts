@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, employees, users } from "@/db/schema";
+import { companies, companyMemberships, employees, users } from "@/db/schema";
 
 export type Role = "superadmin" | "owner" | "admin" | "manager" | "employee" | "client";
 
@@ -54,6 +54,12 @@ export type SessionUser = {
   phone?: string | null;
   emailVerified: boolean;
   employeeId: string | null;
+  memberships?: Array<{
+    id: string;
+    companyId: string;
+    companyName: string;
+    role: Role;
+  }>;
 };
 
 const SESSION_COOKIE = "agenda_session";
@@ -129,24 +135,62 @@ export async function getSession(): Promise<SessionUser | null> {
     const normalizedRole = normalizeRole(user.role);
     const userId = user.id;
 
+    // Load active company memberships for multi-tenant support
+    const membershipRows = await db
+      .select({
+        id: companyMemberships.id,
+        companyId: companyMemberships.companyId,
+        companyName: companies.name,
+        role: companyMemberships.role,
+      })
+      .from(companyMemberships)
+      .innerJoin(companies, eq(companyMemberships.companyId, companies.id))
+      .where(and(eq(companyMemberships.userId, userId), eq(companyMemberships.active, true)));
+
+    const memberships = membershipRows.map((m) => ({
+      id: m.id,
+      companyId: m.companyId,
+      companyName: m.companyName,
+      role: normalizeRole(m.role),
+    }));
+
+    const cookieStore = await cookies();
+    const activeCompanyCookie = cookieStore.get("active_company_id")?.value;
+
+    let activeCompanyId = user.companyId ?? "";
+    let activeRole = normalizedRole;
+
+    if (activeCompanyCookie) {
+      const matched = memberships.find((m) => m.companyId === activeCompanyCookie);
+      if (matched) {
+        activeCompanyId = matched.companyId;
+        activeRole = matched.role;
+      } else if (user.isSuperadmin || user.companyId === activeCompanyCookie) {
+        activeCompanyId = activeCompanyCookie;
+      }
+    } else if (!activeCompanyId && memberships.length > 0) {
+      activeCompanyId = memberships[0].companyId;
+      activeRole = memberships[0].role;
+    }
+
     let employeeId: string | null = null;
     const [employee] = await db
       .select({ id: employees.id })
       .from(employees)
-      .where(eq(employees.userId, userId))
+      .where(and(eq(employees.userId, userId), activeCompanyId ? eq(employees.companyId, activeCompanyId) : undefined))
       .limit(1);
     if (employee) employeeId = employee.id;
 
     // Resolve target portal based on authenticated roles
     let targetPortal: TargetPortal = "/cliente";
-    let effectiveRole: Role = normalizedRole;
+    let effectiveRole: Role = activeRole;
 
     if (user.isSuperadmin) {
       targetPortal = "/admin";
       effectiveRole = "superadmin";
-    } else if (normalizedRole === "owner" || normalizedRole === "admin" || normalizedRole === "manager") {
+    } else if (activeRole === "owner" || activeRole === "admin" || activeRole === "manager") {
       targetPortal = "/gestao";
-    } else if (normalizedRole === "employee" || employeeId) {
+    } else if (activeRole === "employee" || employeeId) {
       targetPortal = "/profissional";
       effectiveRole = "employee";
     } else {
@@ -156,7 +200,7 @@ export async function getSession(): Promise<SessionUser | null> {
 
     return {
       userId: user.id,
-      companyId: user.companyId ?? "",
+      companyId: activeCompanyId,
       locationId: null,
       role: effectiveRole,
       primaryRole: effectiveRole,
@@ -167,6 +211,7 @@ export async function getSession(): Promise<SessionUser | null> {
       phone: user.phone ?? null,
       emailVerified: user.emailVerified,
       employeeId,
+      memberships,
     };
   } catch {
     return null;
@@ -254,6 +299,41 @@ export async function requireSuperadmin(): Promise<{ auth: AuthContext; response
   const auth = await requireAuth();
   if (!auth) return { auth: null, response: unauthorized() };
   if (!auth.user.isSuperadmin) return { auth: null, response: forbidden("Acesso restrito ao Superadmin da plataforma.") };
+  return { auth, response: null };
+}
+
+export type Permission =
+  | "view_financial"
+  | "manage_clients"
+  | "manage_services"
+  | "manage_team"
+  | "manage_schedule"
+  | "view_reports"
+  | "manage_company"
+  | "view_commissions";
+
+export function hasPermission(role: Role, permission: Permission): boolean {
+  if (role === "superadmin" || role === "owner" || role === "admin") return true;
+  if (role === "manager") {
+    return permission !== "manage_company";
+  }
+  if (role === "employee") {
+    return permission === "manage_schedule" || permission === "manage_clients" || permission === "view_commissions";
+  }
+  if (role === "client") {
+    return permission === "manage_schedule";
+  }
+  return false;
+}
+
+export async function requirePermission(
+  permission: Permission
+): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth) return { auth: null, response: unauthorized() };
+  if (!hasPermission(auth.user.role, permission)) {
+    return { auth: null, response: forbidden("Você não possui permissão para realizar esta ação.") };
+  }
   return { auth, response: null };
 }
 

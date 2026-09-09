@@ -1,0 +1,100 @@
+import Link from "next/link";
+import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+
+export const metadata = {
+  title: "Política de Privacidade | Nova(e)",
+  description: "Conformidade com a LGPD e tratamento de dados pessoais na plataforma Nova(e).",
+};
+
+export default function PrivacidadePage() {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f1f18", color: "#f2f7f4", padding: "40px 20px" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
+          <NovaeLogo size={32} />
+          <Link
+            href="/"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              fontSize: 14,
+              color: "#dcff4c",
+              textDecoration: "none",
+              fontWeight: 500,
+            }}
+          >
+            <ArrowLeft size={16} /> Voltar ao início
+          </Link>
+        </header>
+
+        <article
+          style={{
+            background: "#162a22",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: 16,
+            padding: "36px 32px",
+            lineHeight: 1.7,
+            fontSize: 15,
+          }}
+        >
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#dcff4c", marginBottom: 12 }}>
+            <ShieldCheck size={20} />
+            <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Conformidade LGPD
+            </span>
+          </div>
+
+          <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 8, color: "#ffffff" }}>
+            Política de Privacidade e Proteção de Dados
+          </h1>
+          <p style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 13, marginBottom: 28 }}>
+            Em conformidade com a Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais)
+          </p>
+
+          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+            1. Dados Coletados e Finalidade
+          </h2>
+          <p>
+            O Nova(e) coleta exclusivamente os dados indispensáveis para a prestação dos serviços de agendamento e gestão:
+          </p>
+          <ul style={{ paddingLeft: 20, margin: "12px 0" }}>
+            <li><strong>Clientes Finais:</strong> Nome, telefone para contato via WhatsApp/SMS e e-mail para confirmações e lembretes de agendamentos.</li>
+            <li><strong>Estabelecimentos:</strong> Dados cadastrais da empresa, horários de expediente, catálogo de serviços e profissionais vinculados.</li>
+            <li><strong>Profissionais:</strong> Nome, telefone, jornada de trabalho e comissões registradas no ato dos atendimentos.</li>
+          </ul>
+
+          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+            2. Segurança e Isolamento Multi-Tenant
+          </h2>
+          <p>
+            Garantimos isolamento criptográfico e lógico rigoroso: os dados de uma empresa nunca são acessíveis por outra.
+            Senhas são armazenadas com algoritmo de hash Bcrypt de alto custo (12 rounds) e as sessões utilizam tokens assinados em cookies HttpOnly com proteção contra CSRF e XSS.
+          </p>
+
+          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+            3. Direitos do Titular (Art. 18 da LGPD)
+          </h2>
+          <p>
+            Você pode exercer seus direitos legais a qualquer momento:
+          </p>
+          <ul style={{ paddingLeft: 20, margin: "12px 0" }}>
+            <li>Acesso e confirmação da existência de tratamento;</li>
+            <li>Exportação completa dos seus dados em formato estruturado (JSON/CSV);</li>
+            <li>Correção de dados incompletos ou inexatos;</li>
+            <li>Eliminação dos dados pessoais tratados mediante solicitação do titular.</li>
+          </ul>
+
+          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+            4. Encarregado pelo Tratamento de Dados (DPO)
+          </h2>
+          <p>
+            Para exercer seus direitos ou esclarecer dúvidas sobre o tratamento de dados pessoais, entre em contato pelo e-mail
+            <strong> privacidade@novae.app</strong>.
+          </p>
+        </article>
+      </div>
+    </div>
+  );
+}

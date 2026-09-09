@@ -1,8 +1,9 @@
 import { quoteBooking, quoteSchema } from "@/lib/booking/pricing";
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { bookingEvents, bookingWaitlist } from "@/db/schema";
-import { getIdentity } from "@/lib/auth";
+import { bookingEvents, bookingWaitlist, notifications, users } from "@/db/schema";
+import { getIdentity, hashPassword } from "@/lib/auth";
 import { publicCatalog, publicCompany } from "@/lib/booking/catalog";
 import { loadAvailability } from "@/lib/booking/engine";
 import { BookingError, bookingError, sameOrigin } from "@/lib/booking/errors";
@@ -147,16 +148,66 @@ export async function POST(request: Request, { params }: Context) {
         .parse(body);
       await db.insert(bookingEvents).values({ ...data, companyId: company.id });
     } else if (path.join("/") === "waitlist") {
-      const user = await getIdentity();
-      if (!user) throw new BookingError("Entre na sua conta.", 401);
+      let user = await getIdentity();
       const data = z
-        .object({ date: dateSchema, items: selectionSchema })
+        .object({
+          date: dateSchema,
+          items: selectionSchema,
+          customer: z
+            .object({
+              name: z.string().min(2),
+              phone: z.string().min(8),
+            })
+            .optional()
+            .nullable(),
+        })
         .parse(body);
+
+      if (!user) {
+        if (data.customer?.phone) {
+          const phoneDigits = data.customer.phone.replace(/\D/g, "");
+          const cleanEmail = `${phoneDigits}@cliente.novae.app`;
+          const [found] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, cleanEmail))
+            .limit(1);
+
+          if (found) {
+            user = found;
+          } else {
+            const dummy = await hashPassword(crypto.randomUUID());
+            const [created] = await db
+              .insert(users)
+              .values({
+                name: data.customer.name,
+                email: cleanEmail,
+                phone: data.customer.phone,
+                passwordHash: dummy,
+                role: "client",
+                emailVerified: false,
+              })
+              .returning();
+            user = created;
+          }
+        } else {
+          throw new BookingError("Entre na sua conta ou informe seus dados.", 401);
+        }
+      }
+
       await db.insert(bookingWaitlist).values({
         companyId: company.id,
         userId: user.id,
         requestedDate: data.date,
         serviceIds: data.items.map((i) => i.serviceId),
+      });
+
+      await db.insert(notifications).values({
+        companyId: company.id,
+        type: "waitlist.joined",
+        title: "Novo cliente na lista de espera",
+        body: `${user.name} aguarda vaga para ${data.date}`,
+        entityType: "waitlist",
       });
     } else throw new BookingError("Página não encontrada.", 404);
     return Response.json({ data: { ok: true } });

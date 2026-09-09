@@ -49,6 +49,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     [slot, setSlot] = useState<AvailableSlot | null>(null),
     [search, setSearch] = useState(""),
     [customer, setCustomer] = useState<Customer | null>(null),
+    [guestName, setGuestName] = useState(""),
+    [guestPhone, setGuestPhone] = useState(""),
+    [guestEmail, setGuestEmail] = useState(""),
+    [useManualLogin, setUseManualLogin] = useState(false),
+    [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle"),
     [notes, setNotes] = useState(""),
     [extras, setExtras] = useState<Record<string, number>>({}),
     [coupon, setCoupon] = useState(""),
@@ -226,7 +231,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   }
   async function confirm(e?: FormEvent) {
     e?.preventDefault();
-    if (busy || !slot || !customer || quoteLoading || !quote) return;
+    if (busy || !slot || quoteLoading || !quote) return;
+    if (!customer && (!guestName.trim() || !guestPhone.trim())) {
+      setError("Por favor, informe seu nome e telefone/WhatsApp para confirmar.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -244,6 +253,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             .filter(([, quantity]) => quantity > 0)
             .map(([productId, quantity]) => ({ productId, quantity })),
           couponCode: coupon,
+          customer: customer
+            ? undefined
+            : {
+                name: guestName.trim(),
+                phone: guestPhone.trim(),
+                email: guestEmail.trim() || null,
+              },
         }),
       });
       setBookingId(result.id);
@@ -699,32 +715,69 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               </>
             )}
             {step === 1 && items.length > 0 && (
-              <AvailabilityPicker
-                slug={company.slug}
-                locationId={locationId}
-                items={items}
-                today={today}
-                maxLeadDays={settings.maxLeadDays}
-                date={date}
-                onDate={(d) => {
-                  setDate(d);
-                  event("date_selected");
-                }}
-                selected={slot}
-                onSelect={(s) => {
-                  setSlot(s);
-                  if (s) event("time_selected");
-                }}
-              />
+              <>
+                <AvailabilityPicker
+                  slug={company.slug}
+                  locationId={locationId}
+                  items={items}
+                  today={today}
+                  maxLeadDays={settings.maxLeadDays}
+                  date={date}
+                  onDate={(d) => {
+                    setDate(d);
+                    event("date_selected");
+                  }}
+                  selected={slot}
+                  onSelect={(s) => {
+                    setSlot(s);
+                    if (s) event("time_selected");
+                  }}
+                />
+                {date && (
+                  <div style={{ marginTop: 24, padding: "16px 20px", background: "#162a22", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <p style={{ margin: "0 0 10px", fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
+                      Não encontrou uma vaga ou prefere outro horário nesta data?
+                    </p>
+                    <button
+                      type="button"
+                      disabled={waitlistStatus === "loading" || waitlistStatus === "success"}
+                      onClick={async () => {
+                        setWaitlistStatus("loading");
+                        try {
+                          await api(`/api/public/${company.slug}/waitlist`, {
+                            method: "POST",
+                            body: JSON.stringify({
+                              date,
+                              items,
+                              customer: customer ? { name: customer.name, phone: customer.phone } : (guestName && guestPhone ? { name: guestName, phone: guestPhone } : { name: "Cliente Interessado", phone: "11999999999" }),
+                            }),
+                          });
+                          setWaitlistStatus("success");
+                        } catch {
+                          setWaitlistStatus("error");
+                        }
+                      }}
+                      className={b.button}
+                      style={{ background: "#234e3d", color: "#f2f7f4", fontSize: 13, padding: "8px 16px" }}
+                    >
+                      {waitlistStatus === "success"
+                        ? "✓ Você está na lista de espera!"
+                        : waitlistStatus === "loading"
+                          ? "Registrando..."
+                          : "Entrar na lista de espera"}
+                    </button>
+                    {waitlistStatus === "success" && (
+                      <p style={{ margin: "8px 0 0", fontSize: 12, color: "#4ade80" }}>
+                        O estabelecimento foi notificado e entrará em contato caso surja um horário livre.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
             {step === 2 && (
               <>
-                {!customer ? (
-                  <CustomerAuth
-                    returnTo={`/agendar/${company.slug}`}
-                    onReady={onCustomer}
-                  />
-                ) : (
+                {customer ? (
                   <div className={b.note}>
                     <div className={b.inline}>
                       <Check size={17} />
@@ -733,6 +786,71 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     <p>
                       {customer.email} · {customer.phone}
                     </p>
+                  </div>
+                ) : useManualLogin ? (
+                  <div>
+                    <CustomerAuth
+                      returnTo={`/agendar/${company.slug}`}
+                      onReady={onCustomer}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setUseManualLogin(false)}
+                      className={b.textButton}
+                      style={{ marginTop: 12, fontSize: 13 }}
+                    >
+                      ← Voltar para agendamento rápido sem senha
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ background: "#162a22", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "20px 24px", marginBottom: 20 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, color: "#ffffff", margin: "0 0 4px" }}>
+                      Seus dados para confirmação
+                    </h3>
+                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: "0 0 16px" }}>
+                      Agendamento rápido e direto. Você poderá criar uma senha depois se desejar.
+                    </p>
+                    <label className={b.field}>
+                      Nome completo *
+                      <input
+                        type="text"
+                        required
+                        minLength={2}
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        placeholder="Ex: João da Silva"
+                      />
+                    </label>
+                    <label className={b.field}>
+                      WhatsApp / Telefone *
+                      <input
+                        type="tel"
+                        required
+                        minLength={8}
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        placeholder="Ex: (11) 99999-9999"
+                      />
+                    </label>
+                    <label className={b.field}>
+                      E-mail (opcional)
+                      <input
+                        type="email"
+                        value={guestEmail}
+                        onChange={(e) => setGuestEmail(e.target.value)}
+                        placeholder="Para receber lembretes do horário"
+                      />
+                    </label>
+                    <div style={{ marginTop: 12, textAlign: "right" }}>
+                      <button
+                        type="button"
+                        onClick={() => setUseManualLogin(true)}
+                        className={b.textButton}
+                        style={{ fontSize: 12, color: "#dcff4c" }}
+                      >
+                        Já possui conta? Entrar com senha
+                      </button>
+                    </div>
                   </div>
                 )}
                 {customer && !customer.phone && (

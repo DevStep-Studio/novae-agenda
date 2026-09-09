@@ -61,6 +61,13 @@ export const createBookingSchema = searchSchema.extend({
     .max(20)
     .default([]),
   couponCode: z.string().max(40).optional(),
+  customer: z
+    .object({
+      name: z.string().min(2, "Informe seu nome.").max(120),
+      phone: z.string().min(8, "Informe seu telefone.").max(25),
+      email: z.string().email("E-mail inválido.").optional().or(z.literal("")).nullable(),
+    })
+    .optional(),
 });
 export type Selection = z.infer<typeof selectionSchema>;
 export const safeImageUrl = z

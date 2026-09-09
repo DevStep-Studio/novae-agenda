@@ -393,3 +393,51 @@ export const bookingWaitlist = pgTable("booking_waitlist", {
   status: text("status").default("waiting").notNull(),
   ...timestamps,
 });
+
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  plan: text("plan").default("pro_monthly").notNull(), // 'trial' | 'pro_monthly' | 'pro_yearly'
+  status: text("status").default("trialing").notNull(), // 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired'
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }).notNull(),
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+  mercadoPagoSubscriptionId: text("mercado_pago_subscription_id"),
+  mercadoPagoPayerId: text("mercado_pago_payer_id"),
+  ...timestamps,
+}, (table) => ({
+  companyIdx: uniqueIndex("subscriptions_company_idx").on(table.companyId),
+  statusIdx: index("subscriptions_status_idx").on(table.status),
+}));
+
+export const subscriptionInvoices = pgTable("subscription_invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").default("paid").notNull(), // 'paid' | 'pending' | 'failed'
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  mercadoPagoPaymentId: text("mercado_pago_payment_id"),
+  invoiceUrl: text("invoice_url"),
+  ...timestamps,
+}, (table) => ({
+  companyIdx: index("subscription_invoices_company_idx").on(table.companyId),
+}));
+
+export const reviews = pgTable("reviews", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  appointmentId: uuid("appointment_id").notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
+  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+  rating: integer("rating").notNull(), // 1 to 5
+  comment: text("comment"),
+  status: text("status").default("approved").notNull(), // 'pending' | 'approved' | 'hidden'
+  ...timestamps,
+}, (table) => ({
+  appointmentIdx: uniqueIndex("reviews_appointment_idx").on(table.appointmentId),
+  companyIdx: index("reviews_company_idx").on(table.companyId),
+  employeeIdx: index("reviews_employee_idx").on(table.employeeId),
+}));
