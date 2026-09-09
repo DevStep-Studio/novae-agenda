@@ -414,8 +414,9 @@ export function ClientPortal({
             style={{
               padding: "12px 16px",
               borderRadius: "10px",
-              background: "#fae9ea",
-              color: "#c04e54",
+              background: "rgba(239, 68, 68, 0.12)",
+              color: "#fca5a5",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
@@ -439,8 +440,9 @@ export function ClientPortal({
             style={{
               padding: "12px 16px",
               borderRadius: "10px",
-              background: "#e4f4ed",
-              color: "#1f7a55",
+              background: "rgba(220, 255, 76, 0.12)",
+              color: "#dcff4c",
+              border: "1px solid rgba(220, 255, 76, 0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",

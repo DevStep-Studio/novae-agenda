@@ -48,9 +48,7 @@ export function NovaeLogo({
   variant = "full",
   size = "md",
   className = "",
-  useImage = true,
 }: NovaeLogoProps) {
-  // Dimension presets
   const height =
     typeof size === "number"
       ? size
@@ -60,7 +58,7 @@ export function NovaeLogo({
       ? 28
       : size === "lg"
       ? 38
-      : 52; // xl
+      : 52;
 
   if (variant === "symbol") {
     return <NovaeStarIcon size={height} className={className} fill="#dcff4c" />;
@@ -69,18 +67,18 @@ export function NovaeLogo({
   if (variant === "wordmark") {
     return (
       <span
-        className={`reservei-brand-wordmark ${className}`}
+        className={`novae-brand-wordmark ${className}`}
         style={{
-          fontSize: `${Math.round(height * 0.75)}px`,
-          fontWeight: 700,
-          color: "#f2f7f4",
-          letterSpacing: "-0.5px",
+          fontSize: `${Math.round(height * 0.78)}px`,
+          fontWeight: 800,
+          color: "#ffffff",
+          letterSpacing: "-0.8px",
           display: "inline-flex",
           alignItems: "center",
           fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
-        reservei<span style={{ color: "#dcff4c" }}>.</span>
+        Nova<span style={{ color: "#dcff4c" }}>(e)</span>
       </span>
     );
   }
@@ -88,26 +86,26 @@ export function NovaeLogo({
   // Full lockup
   return (
     <div
-      className={`reservei-brand-lockup ${className}`}
+      className={`novae-brand-lockup ${className}`}
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: `${Math.round(height * 0.3)}px`,
+        gap: "8px",
         height: `${height}px`,
       }}
     >
       <NovaeStarIcon size={height} fill="#dcff4c" />
       <span
         style={{
-          fontSize: `${Math.round(height * 0.72)}px`,
-          fontWeight: 700,
-          color: "#f2f7f4",
-          letterSpacing: "-0.5px",
+          fontSize: `${Math.round(height * 0.78)}px`,
+          fontWeight: 800,
+          color: "#ffffff",
+          letterSpacing: "-0.8px",
           fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
           lineHeight: 1,
         }}
       >
-        reservei<span style={{ color: "#dcff4c" }}>.</span>
+        Nova<span style={{ color: "#dcff4c" }}>(e)</span>
       </span>
     </div>
   );
