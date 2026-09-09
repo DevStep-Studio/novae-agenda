@@ -1,15 +1,18 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
+
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Clock, CalendarDays, Sparkles, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { AvailableSlot } from "@/lib/booking/engine";
 import type { Selection } from "@/lib/booking/validation";
-import { b, dateLabel, ErrorMessage, Skeleton } from "./primitives";
+import { b, dateLabel, dateLabelShort, ErrorMessage, Skeleton } from "./primitives";
+
 type Availability = {
   dates: Array<{ date: string; count: number }>;
   slots: AvailableSlot[];
 };
+
 function monthDays(month: string) {
   return new Date(
     Number(month.slice(0, 4)),
@@ -17,11 +20,13 @@ function monthDays(month: string) {
     0,
   ).getDate();
 }
+
 function moveMonth(month: string, delta: number) {
   const d = new Date(`${month}-15T12:00:00Z`);
   d.setUTCMonth(d.getUTCMonth() + delta);
   return d.toISOString().slice(0, 7);
 }
+
 export function AvailabilityPicker({
   slug,
   locationId,
@@ -33,6 +38,8 @@ export function AvailabilityPicker({
   selected,
   onSelect,
   bookingId,
+  onWaitlist,
+  waitlistStatus = "idle",
 }: {
   slug: string;
   locationId: string;
@@ -44,16 +51,20 @@ export function AvailabilityPicker({
   selected: AvailableSlot | null;
   onSelect: (slot: AvailableSlot | null) => void;
   bookingId?: string;
+  onWaitlist?: () => void;
+  waitlistStatus?: "idle" | "loading" | "success" | "error";
 }) {
-  const [month, setMonth] = useState((date || today).slice(0, 7)),
-    [counts, setCounts] = useState<Record<string, number>>({}),
-    [slots, setSlots] = useState<AvailableSlot[]>([]),
-    [loading, setLoading] = useState(true),
-    [calendarLoading, setCalendarLoading] = useState(true),
-    [error, setError] = useState(""),
-    [period, setPeriod] = useState("Todos"),
-    [nextBusy, setNextBusy] = useState(false),
-    [reload, setReload] = useState(0);
+  const [month, setMonth] = useState((date || today).slice(0, 7));
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [slots, setSlots] = useState<AvailableSlot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [calendarLoading, setCalendarLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [period, setPeriod] = useState("Todos");
+  const [nextSuggestion, setNextSuggestion] = useState<{ date: string; slot: AvailableSlot } | null>(null);
+  const [nextBusy, setNextBusy] = useState(false);
+  const [reload, setReload] = useState(0);
+
   const encoded = JSON.stringify(items);
   const query = (day: string) =>
     new URLSearchParams({
@@ -62,6 +73,8 @@ export function AvailabilityPicker({
       items: encoded,
       ...(bookingId ? { bookingId } : {}),
     });
+
+  // Load monthly calendar availability counts
   useEffect(() => {
     const controller = new AbortController();
     setCalendarLoading(true);
@@ -73,6 +86,7 @@ export function AvailabilityPicker({
       days: String(monthDays(month)),
       ...(bookingId ? { bookingId } : {}),
     });
+
     api<Availability>(`/api/public/${slug}/availability?${q}`, {
       signal: controller.signal,
     })
@@ -82,44 +96,66 @@ export function AvailabilityPicker({
       })
       .catch((e) => {
         if (!controller.signal.aborted) {
-          setError(e.message);
+          setError(e.message || "Não foi possível carregar o calendário.");
           setCalendarLoading(false);
         }
       });
+
     return () => controller.abort();
   }, [slug, locationId, encoded, month, bookingId, reload]);
+
+  // Load time slots for selected date
   useEffect(() => {
     if (!date) {
       setSlots([]);
       setLoading(false);
+      setNextSuggestion(null);
       return;
     }
+
     const controller = new AbortController();
     setLoading(true);
     setSlots([]);
     setError("");
+    setNextSuggestion(null);
+
     const q = new URLSearchParams({
       locationId,
       date,
       items: encoded,
       ...(bookingId ? { bookingId } : {}),
     });
+
     api<Availability>(`/api/public/${slug}/availability?${q}`, {
       signal: controller.signal,
     })
       .then((data) => {
         setSlots(data.slots);
         setLoading(false);
+
+        // If no slots on this date, fetch next availability in background for suggestion
+        if (data.slots.length === 0) {
+          api<{ date: string; slot: AvailableSlot } | null>(
+            `/api/public/${slug}/next-availability?${query(date)}`,
+            { signal: controller.signal }
+          )
+            .then((next) => {
+              if (next) setNextSuggestion(next);
+            })
+            .catch(() => {});
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) {
-          setError(e.message);
+          setError(e.message || "Não conseguimos carregar os horários para esta data.");
           setLoading(false);
         }
       });
+
     return () => controller.abort();
   }, [slug, locationId, encoded, date, bookingId, reload]);
-  async function next() {
+
+  async function handleFindNext() {
     setNextBusy(true);
     setError("");
     try {
@@ -131,57 +167,87 @@ export function AvailabilityPicker({
         onDate(result.date);
         onSelect(result.slot);
         setReload((v) => v + 1);
-      } else
+      } else {
         setError(
-          "Não há horários disponíveis no período de reservas. Entre em contato com o estabelecimento.",
+          "Não encontramos vagas livres nos próximos dias. Entre na lista de espera ou contate o estabelecimento.",
         );
+      }
     } catch (e) {
-      setError((e as Error).message);
+      setError((e as Error).message || "Não foi possível buscar a próxima data.");
     } finally {
       setNextBusy(false);
     }
   }
+
   const offset = (new Date(`${month}-01T12:00:00Z`).getUTCDay() + 6) % 7;
   const last = new Date(`${today}T12:00:00Z`);
   last.setUTCDate(last.getUTCDate() + maxLeadDays);
+
   const groups = [
     { name: "Manhã", min: 6, max: 12 },
     { name: "Tarde", min: 12, max: 18 },
     { name: "Noite", min: 18, max: 24 },
   ];
+
+  // Count slots per group
+  const groupCounts = groups.reduce((acc, g) => {
+    const c = slots.filter((s) => {
+      const h = Number(s.startTime.slice(0, 2));
+      return (h >= g.min && h < g.max) || (g.name === "Noite" && h < 6);
+    }).length;
+    acc[g.name] = c;
+    return acc;
+  }, {} as Record<string, number>);
+
   return (
-    <div>
+    <div className={b.pickerContainer}>
       <ErrorMessage message={error} />
+
+      {/* Calendar Header with Unified Navigation Group */}
       <div className={b.calendarHeader}>
-        <h2>
-          {new Intl.DateTimeFormat("pt-BR", {
-            month: "long",
-            year: "numeric",
-            timeZone: "UTC",
-          }).format(new Date(`${month}-01T12:00:00Z`))}
-        </h2>
-        <div className={b.inline}>
-          <button
-            className={b.iconButton}
-            aria-label="Mês anterior"
-            disabled={month <= today.slice(0, 7)}
-            onClick={() => setMonth(moveMonth(month, -1))}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            className={b.iconButton}
-            aria-label="Próximo mês"
-            disabled={month >= last.toISOString().slice(0, 7)}
-            onClick={() => setMonth(moveMonth(month, 1))}
-          >
-            <ChevronRight size={18} />
-          </button>
+        <div className={b.calendarMonthGroup}>
+          <h2 className={b.calendarMonthTitle}>
+            {new Intl.DateTimeFormat("pt-BR", {
+              month: "long",
+              year: "numeric",
+              timeZone: "UTC",
+            }).format(new Date(`${month}-01T12:00:00Z`))}
+          </h2>
+          <div className={b.calendarNavGroup}>
+            <button
+              className={b.calendarNavBtn}
+              aria-label="Mês anterior"
+              disabled={month <= today.slice(0, 7)}
+              onClick={() => setMonth(moveMonth(month, -1))}
+            >
+              <ChevronLeft size={17} />
+            </button>
+            <button
+              className={b.calendarNavBtn}
+              aria-label="Próximo mês"
+              disabled={month >= last.toISOString().slice(0, 7)}
+              onClick={() => setMonth(moveMonth(month, 1))}
+            >
+              <ChevronRight size={17} />
+            </button>
+          </div>
         </div>
+
+        <button
+          type="button"
+          className={b.nextAvailableLink}
+          disabled={nextBusy}
+          onClick={handleFindNext}
+        >
+          <span>{nextBusy ? "Buscando…" : "Próximo horário livre"}</span>
+          <ArrowRight size={14} />
+        </button>
       </div>
+
+      {/* Calendar Grid */}
       <div
         className={b.calendar}
-        aria-label="Datas disponíveis"
+        aria-label="Calendário de agendamento"
         aria-busy={calendarLoading}
       >
         {["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"].map((d) => (
@@ -189,127 +255,199 @@ export function AvailabilityPicker({
             {d}
           </span>
         ))}
+
         {Array.from({ length: offset }, (_, i) => (
-          <span key={`empty${i}`} />
+          <span key={`empty-${i}`} className={b.emptyDay} />
         ))}
+
         {Array.from({ length: monthDays(month) }, (_, i) => {
-          const key = `${month}-${String(i + 1).padStart(2, "0")}`,
-            count = counts[key] ?? 0;
+          const key = `${month}-${String(i + 1).padStart(2, "0")}`;
+          const count = counts[key] ?? 0;
+          const isSelected = date === key;
+          const isToday = key === today;
+          const isPast = key < today;
+          const isAvailable = !calendarLoading && count > 0 && !isPast;
+          const isFew = count > 0 && count <= 4;
+
           return (
             <button
               key={key}
-              className={`${b.day} ${date === key ? b.selected : ""}`}
-              aria-label={`${dateLabel(key)}, ${calendarLoading ? "carregando" : `${count} horários`}`}
-              aria-pressed={date === key}
-              disabled={calendarLoading || !count || key < today}
+              type="button"
+              className={`${b.day} ${isSelected ? b.daySelected : ""} ${isToday ? b.dayToday : ""} ${isAvailable ? b.dayAvailable : b.dayDisabled}`}
+              aria-label={`${dateLabel(key)}, ${calendarLoading ? "carregando" : `${count} horários disponíveis`}`}
+              aria-pressed={isSelected}
+              disabled={calendarLoading || !count || isPast}
               onClick={() => {
                 onDate(key);
                 onSelect(null);
               }}
             >
-              {i + 1}
-              {count > 0 && (
-                <span className={`${b.dot} ${count < 6 ? b.few : ""}`} />
+              <span className={b.dayNumber}>{i + 1}</span>
+              {isToday && !isSelected && <span className={b.todayBadge}>Hoje</span>}
+              {isAvailable && !isSelected && (
+                <span className={`${b.availabilityDot} ${isFew ? b.dotFew : b.dotGood}`} />
               )}
             </button>
           );
         })}
       </div>
+
+      {/* Discrete Availability Legend */}
       <div className={b.legend}>
-        <span>
-          <i className={b.dot} /> Boa disponibilidade
+        <span className={b.legendItem}>
+          <span className={`${b.legendIndicator} ${b.dotGood}`} />
+          Boa disponibilidade
         </span>
-        <span>
-          <i className={`${b.dot} ${b.few}`} /> Poucos horários
+        <span className={b.legendItem}>
+          <span className={`${b.legendIndicator} ${b.dotFew}`} />
+          Poucos horários
         </span>
-        {calendarLoading && <span role="status">Consultando agenda…</span>}
+        {calendarLoading && (
+          <span className={b.legendLoading} role="status">
+            Atualizando calendário…
+          </span>
+        )}
       </div>
-      <div className={b.row}>
-        <span className={b.muted}>
-          {date ? dateLabel(date) : "Escolha um dia para ver os horários."}
-        </span>
-        <button className={b.textButton} disabled={nextBusy} onClick={next}>
-          {nextBusy ? "Buscando…" : "Próximo horário"}
-          <ArrowRight size={14} />
-        </button>
-      </div>
-      {date && (
-        <>
-          <div className={b.periods} aria-label="Filtrar parte do dia">
-            {["Todos", "Manhã", "Tarde", "Noite"].map((p) => (
-              <button
-                key={p}
-                aria-pressed={period === p}
-                className={`${b.pill} ${period === p ? b.selected : ""}`}
-                onClick={() => setPeriod(p)}
-              >
-                {p}
-              </button>
-            ))}
+
+      {/* Time Slots Section (Appears Immediately Below Calendar) */}
+      <div className={b.slotsSection}>
+        <div className={b.slotsSectionHeader}>
+          <div className={b.slotsSectionTitle}>
+            <Clock size={16} />
+            <h3>Horários disponíveis</h3>
+            {date && (
+              <span className={b.slotsDateHighlight}>
+                · {dateLabelShort(date)}
+              </span>
+            )}
           </div>
-          {loading ? (
-            <Skeleton label="Consultando horários disponíveis…" />
-          ) : slots.length ? (
-            <div
-              className={b.slots}
-              style={
-                period !== "Todos" ? { gridTemplateColumns: "1fr" } : undefined
-              }
-            >
-              {groups
-                .filter((g) => period === "Todos" || period === g.name)
-                .map((g) => {
-                  const times = slots.filter((s) => {
-                    const hour = Number(s.startTime.slice(0, 2));
-                    return (
-                      (hour >= g.min && hour < g.max) ||
-                      (g.name === "Noite" && hour < 6)
-                    );
-                  });
-                  return (
-                    <section key={g.name}>
-                      <h3>
-                        {g.name} ({times.length})
-                      </h3>
-                      {times.length ? (
-                        times.map((slot) => (
-                          <button
-                            key={slot.startTime}
-                            className={`${b.slot} ${selected?.startTime === slot.startTime ? b.selected : ""}`}
-                            aria-pressed={
-                              selected?.startTime === slot.startTime
-                            }
-                            onClick={() => onSelect(slot)}
-                          >
-                            {slot.startTime}
-                          </button>
-                        ))
-                      ) : (
-                        <p className={b.muted} style={{ textAlign: "center" }}>
-                          Sem horários
-                        </p>
-                      )}
-                    </section>
-                  );
-                })}
-            </div>
-          ) : (
-            <div className={b.empty}>
-              <p>Nenhum horário disponível neste dia.</p>
-              <button
-                className={`${b.button} ${b.outline}`}
-                onClick={next}
-                disabled={nextBusy}
-              >
-                Ver próxima data disponível
-              </button>
+
+          {date && slots.length > 0 && (
+            <div className={b.segmentedControl} role="tablist" aria-label="Filtrar turnos">
+              {["Todos", "Manhã", "Tarde", "Noite"].map((p) => {
+                const count = p === "Todos" ? slots.length : (groupCounts[p] ?? 0);
+                if (p !== "Todos" && count === 0) return null;
+
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    role="tab"
+                    aria-selected={period === p}
+                    className={`${b.segmentBtn} ${period === p ? b.segmentBtnActive : ""}`}
+                    onClick={() => setPeriod(p)}
+                  >
+                    <span>{p}</span>
+                    {count > 0 && <small className={b.segmentCount}>{count}</small>}
+                  </button>
+                );
+              })}
             </div>
           )}
-        </>
-      )}
-      <p className={b.muted}>
-        Os horários são confirmados novamente ao concluir a reserva.
-      </p>
+        </div>
+
+        {!date ? (
+          <div className={b.selectDatePrompt}>
+            <CalendarDays size={24} />
+            <p>Selecione um dia disponível no calendário acima para visualizar os horários.</p>
+          </div>
+        ) : loading ? (
+          <Skeleton label="Consultando horários disponíveis nesta data…" />
+        ) : slots.length > 0 ? (
+          <div className={b.slotsGridWrap}>
+            {groups
+              .filter((g) => period === "Todos" || period === g.name)
+              .map((g) => {
+                const times = slots.filter((s) => {
+                  const hour = Number(s.startTime.slice(0, 2));
+                  return (
+                    (hour >= g.min && hour < g.max) ||
+                    (g.name === "Noite" && hour < 6)
+                  );
+                });
+
+                if (period === "Todos" && times.length === 0) return null;
+
+                return (
+                  <div key={g.name} className={b.periodGroup}>
+                    {period === "Todos" && (
+                      <h4 className={b.periodGroupTitle}>
+                        {g.name} <span className={b.periodGroupCount}>({times.length})</span>
+                      </h4>
+                    )}
+                    <div className={b.slotsGrid}>
+                      {times.map((slot) => {
+                        const isSlotSelected = selected?.startTime === slot.startTime;
+                        return (
+                          <button
+                            key={slot.startTime}
+                            type="button"
+                            className={`${b.slotChip} ${isSlotSelected ? b.slotChipSelected : ""}`}
+                            aria-pressed={isSlotSelected}
+                            onClick={() => onSelect(slot)}
+                          >
+                            <span className={b.slotTime}>{slot.startTime}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          /* Empty Slots Fallback with Next Availability Suggestion & Waitlist */
+          <div className={b.noSlotsCard}>
+            <div className={b.noSlotsIconWrap}>
+              <AlertCircle size={22} />
+            </div>
+            <div className={b.noSlotsContent}>
+              <h4>Nenhum horário disponível neste dia</h4>
+              <p>Os horários para esta data já foram preenchidos ou o estabelecimento não possui expediente.</p>
+
+              {nextSuggestion && (
+                <div className={b.nextSuggestionBox}>
+                  <div className={b.nextSuggestionText}>
+                    <Sparkles size={14} />
+                    <span>
+                      Próximo horário disponível: <strong>{dateLabelShort(nextSuggestion.date)} às {nextSuggestion.slot.startTime}</strong>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className={b.acceptNextBtn}
+                    onClick={() => {
+                      setMonth(nextSuggestion.date.slice(0, 7));
+                      onDate(nextSuggestion.date);
+                      onSelect(nextSuggestion.slot);
+                      setReload((v) => v + 1);
+                    }}
+                  >
+                    Selecionar este horário
+                  </button>
+                </div>
+              )}
+
+              {onWaitlist && (
+                <div className={b.waitlistInlineWrap}>
+                  <button
+                    type="button"
+                    disabled={waitlistStatus === "loading" || waitlistStatus === "success"}
+                    onClick={onWaitlist}
+                    className={b.waitlistInlineBtn}
+                  >
+                    {waitlistStatus === "success"
+                      ? "✓ Você está na lista de espera deste dia"
+                      : waitlistStatus === "loading"
+                        ? "Registrando..."
+                        : "Avise-me se surgir uma vaga nesta data"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
