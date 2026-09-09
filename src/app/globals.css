@@ -428,6 +428,52 @@ a[style*="--brand-lime"] svg,
 :root:not([data-theme="dark"]) .onboarding-step-card.pending:hover {
   background: #ebf5f0 !important;
 }
+
+/* Reports Redesign (Solid, Minimalist, Generous Spacing) */
+.reports-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 90px;
+}
+.reports-toolbar {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+:root[data-theme="dark"] .reports-toolbar {
+  background: #152720;
+  border-color: rgba(220, 255, 76, 0.18);
+}
+.reports-panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+:root[data-theme="dark"] .reports-panel {
+  background: #152720;
+  border-color: rgba(220, 255, 76, 0.18);
+}
+.payment-method-card {
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+  transition: all 0.2s ease;
+}
+:root[data-theme="dark"] .payment-method-card {
+  background: #1e4f3a;
+  border-color: rgba(220, 255, 76, 0.24);
+}
+:root[data-theme="dark"] .payment-method-card:hover {
+  background: #235b44;
+  border-color: rgba(220, 255, 76, 0.45);
+}
+:root:not([data-theme="dark"]) .payment-method-card {
+  background: #ebf5f0;
+  border-color: #c2e0d3;
+}
+:root:not([data-theme="dark"]) .payment-method-card:hover {
+  background: #e1efe8;
+  border-color: #1f7a55;
+}
+
 .metric-icon { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 9px; }
 .metric-teal { color: var(--primary); background: var(--primary-soft); }
 :root[data-theme="dark"] .metric-teal {

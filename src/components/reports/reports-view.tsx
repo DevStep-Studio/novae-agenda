@@ -10,9 +10,7 @@ import {
   Download,
   Percent,
   CheckCircle2,
-  XCircle,
   AlertCircle,
-  ArrowUpRight,
   CreditCard,
   UserCheck,
 } from "lucide-react";
@@ -61,6 +59,31 @@ function formatDateDisplay(dateStr?: string): string {
   const parts = dateStr.split("-");
   if (parts.length !== 3) return dateStr;
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function formatMethodName(method: string): string {
+  const map: Record<string, string> = {
+    pix: "Pix",
+    credit: "Cartão de Crédito",
+    credit_card: "Cartão de Crédito",
+    debit: "Cartão de Débito",
+    debit_card: "Cartão de Débito",
+    cash: "Dinheiro",
+    dinheiro: "Dinheiro",
+    card: "Cartão",
+    transfer: "Transferência",
+    other: "Outro",
+  };
+  return map[method.toLowerCase()] || method.charAt(0).toUpperCase() + method.slice(1);
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((n) => n[0].toUpperCase())
+    .join("");
 }
 
 export function ReportsView() {
@@ -141,130 +164,127 @@ export function ReportsView() {
   const noShowPct = totalAppts > 0 ? Math.round((noShowAppts / totalAppts) * 100) : 0;
 
   const totalEmployeeRevenue = data?.byEmployee.reduce((sum, e) => sum + e.revenue, 0) || 0;
+  const totalPaymentRevenue = data?.byMethod.reduce((sum, m) => sum + m.total, 0) || 0;
   const maxDayCount = Math.max(1, ...(data?.busyDays.map((d) => d.count) || [1]));
 
   return (
-    <div className="reports-container" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 48 }}>
-      {/* Top Controls: Period Segmented Switcher + Interval Badge + Export Button */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          {/* Segmented Period Tabs (Solid, No Gradient) */}
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 2,
-              background: "#0f1f18",
-              padding: 3,
-              borderRadius: 8,
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-            }}
-          >
-            {RANGES.map((item) => {
-              const active = range === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setRange(item.id)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: 6,
-                    border: "none",
-                    fontSize: 12,
-                    fontWeight: active ? 700 : 500,
-                    cursor: "pointer",
-                    background: active ? "#dcff4c" : "transparent",
-                    color: active ? "#12231b" : "rgba(255, 255, 255, 0.7)",
-                    transition: "all 0.12s ease",
-                  }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Date range badge */}
-          {data && (
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "6px 10px",
-                borderRadius: 6,
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                fontSize: 12,
-                color: "rgba(255, 255, 255, 0.65)",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <Calendar size={13} color="#dcff4c" />
-              <span>
-                {formatDateDisplay(data.fromDate)} — {formatDateDisplay(data.toDate)}
-              </span>
-            </div>
-          )}
+    <div className="page-content reports-page-content">
+      {/* 1. Page Header with Title and CSV Export */}
+      <div className="page-intro" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <p className="eyebrow">Inteligência & Negócio</p>
+          <h1>Relatórios</h1>
+          <p className="intro-copy">Métricas analíticas de faturamento, ocupação, horários de maior fluxo e comissões da equipe.</p>
         </div>
 
-        {/* Export CSV Button (Ghost, Solid) */}
         <button
           type="button"
+          className="button-secondary"
           onClick={handleExportCsv}
           disabled={!data || loading}
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 7,
-            height: 32,
-            padding: "0 14px",
-            background: "#162a22",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
-            borderRadius: 6,
-            color: "#ffffff",
-            fontSize: 12,
-            fontWeight: 500,
+            gap: 8,
+            padding: "10px 18px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--text-primary)",
             cursor: !data || loading ? "not-allowed" : "pointer",
+            fontWeight: 600,
+            fontSize: 13,
             opacity: !data || loading ? 0.5 : 1,
             transition: "all 0.15s ease",
           }}
         >
-          <Download size={13} />
+          <Download size={15} />
           <span>Exportar Relatório (CSV)</span>
         </button>
       </div>
 
-      {/* Loading State: Clean Skeleton Cards */}
+      {/* 2. Filter Toolbar: Period Segmented Switcher + Date Range */}
+      <div
+        className="reports-toolbar"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 14,
+          padding: "14px 18px",
+          borderRadius: 12,
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {RANGES.map((item) => {
+            const active = range === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setRange(item.id)}
+                className={`reports-range-btn ${active ? "active" : ""}`}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 7,
+                  border: active ? "1px solid #dcff4c" : "1px solid transparent",
+                  fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  cursor: "pointer",
+                  background: active ? "#dcff4c" : "transparent",
+                  color: active ? "#12231b" : "var(--text-secondary)",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {data && (
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "7px 14px",
+              borderRadius: 8,
+              background: "var(--surface-secondary)",
+              border: "1px solid var(--border)",
+              fontSize: 12,
+              color: "var(--text-secondary)",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            <Calendar size={14} style={{ color: "#dcff4c" }} />
+            <span>
+              {formatDateDisplay(data.fromDate)} — {formatDateDisplay(data.toDate)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Loading Skeleton */}
       {loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
+              className="metric-card"
               style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "20px",
-                height: 106,
-                boxSizing: "border-box",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
+                minHeight: 124,
               }}
             >
-              <div style={{ width: "40%", height: 12, background: "rgba(255, 255, 255, 0.06)", borderRadius: 4 }} />
-              <div style={{ width: "65%", height: 26, background: "rgba(255, 255, 255, 0.1)", borderRadius: 4 }} />
-              <div style={{ width: "50%", height: 10, background: "rgba(255, 255, 255, 0.04)", borderRadius: 4 }} />
+              <div style={{ width: "40%", height: 12, background: "rgba(255, 255, 255, 0.08)", borderRadius: 4 }} />
+              <div style={{ width: "65%", height: 26, background: "rgba(255, 255, 255, 0.14)", borderRadius: 4 }} />
+              <div style={{ width: "50%", height: 10, background: "rgba(255, 255, 255, 0.06)", borderRadius: 4 }} />
             </div>
           ))}
         </div>
@@ -273,29 +293,27 @@ export function ReportsView() {
       {/* Error State */}
       {error && !loading && (
         <div
+          className="reports-panel"
           style={{
-            background: "#162a22",
-            border: "1px solid rgba(248, 113, 113, 0.3)",
-            borderRadius: 10,
-            padding: 24,
+            padding: 32,
             textAlign: "center",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 12,
+            gap: 14,
+            borderRadius: 12,
+            border: "1px solid rgba(248, 113, 113, 0.3)",
           }}
         >
-          <AlertCircle size={24} color="#f87171" />
-          <p style={{ margin: 0, color: "rgba(255, 255, 255, 0.8)", fontSize: 13 }}>{error}</p>
+          <AlertCircle size={28} color="#f87171" />
+          <p style={{ margin: 0, color: "var(--text-primary)", fontSize: 14 }}>{error}</p>
           <button
             type="button"
             onClick={() => setRange(range)}
+            className="button-secondary"
             style={{
-              padding: "6px 14px",
-              borderRadius: 6,
-              background: "#0f1f18",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              color: "#ffffff",
+              padding: "8px 18px",
+              borderRadius: 7,
               fontSize: 12,
               cursor: "pointer",
             }}
@@ -308,155 +326,95 @@ export function ReportsView() {
       {/* Main Dashboard Data */}
       {data && !loading && (
         <>
-          {/* Row 1: 4 Key Metric Cards (Solid #162a22, zero gradients) */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
+          {/* 3. Top 4 Metric Cards (Uniform Solid Green Style) */}
+          <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
             {/* KPI 1: Receita Realizada */}
-            <div
-              style={{
-                background: "#162a22",
-                border: "1px solid rgba(220, 255, 76, 0.22)",
-                borderRadius: 10,
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255, 255, 255, 0.55)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Receita Realizada
-                </span>
-                <TrendingUp size={14} color="#dcff4c" />
+            <div className="metric-card">
+              <div className="metric-icon metric-teal">
+                <TrendingUp size={18} />
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#dcff4c", fontVariantNumeric: "tabular-nums" }}>
-                {formatCurrency(data.metrics.realizedRevenue)}
+              <div className="metric-copy">
+                <p>Receita realizada</p>
+                <strong style={{ color: "#dcff4c" }}>{formatCurrency(data.metrics.realizedRevenue)}</strong>
+                <span className="metric-detail">Prevista: {formatCurrency(data.metrics.forecastRevenue)}</span>
               </div>
-              <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.5)", fontVariantNumeric: "tabular-nums" }}>
-                Prevista: {formatCurrency(data.metrics.forecastRevenue)}
-              </span>
             </div>
 
             {/* KPI 2: Taxa de Ocupação */}
-            <div
-              style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255, 255, 255, 0.55)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Taxa de Ocupação
-                </span>
-                <Percent size={14} color="#4ade80" />
+            <div className="metric-card">
+              <div className="metric-icon metric-teal">
+                <Percent size={18} />
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
-                {data.metrics.occupancyRate}%
+              <div className="metric-copy">
+                <p>Taxa de ocupação</p>
+                <strong>{data.metrics.occupancyRate}%</strong>
+                <span className="metric-detail">{data.metrics.completedAppointments} atendimentos concluídos</span>
               </div>
-              <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.5)" }}>
-                {data.metrics.completedAppointments} atendimentos concluídos
-              </span>
             </div>
 
             {/* KPI 3: Ticket Médio */}
-            <div
-              style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255, 255, 255, 0.55)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Ticket Médio
-                </span>
-                <BarChart3 size={14} color="rgba(255, 255, 255, 0.7)" />
+            <div className="metric-card">
+              <div className="metric-icon metric-teal">
+                <BarChart3 size={18} />
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
-                {formatCurrency(data.metrics.averageTicket)}
+              <div className="metric-copy">
+                <p>Ticket médio</p>
+                <strong>{formatCurrency(data.metrics.averageTicket)}</strong>
+                <span className="metric-detail">por atendimento</span>
               </div>
-              <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.5)" }}>
-                Média por atendimento
-              </span>
             </div>
 
             {/* KPI 4: Clientes Atendidos */}
-            <div
-              style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "18px 20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255, 255, 255, 0.55)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Clientes Atendidos
+            <div className="metric-card">
+              <div className="metric-icon metric-teal">
+                <Users size={18} />
+              </div>
+              <div className="metric-copy">
+                <p>Clientes atendidos</p>
+                <strong>{data.metrics.newClients + data.metrics.recurringClients}</strong>
+                <span className="metric-detail">
+                  {data.metrics.newClients} novos · {data.metrics.recurringClients} recorrentes
                 </span>
-                <Users size={14} color="rgba(255, 255, 255, 0.7)" />
               </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
-                {data.metrics.newClients + data.metrics.recurringClients}
-              </div>
-              <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.5)", fontVariantNumeric: "tabular-nums" }}>
-                {data.metrics.newClients} novos · {data.metrics.recurringClients} recorrentes
-              </span>
             </div>
           </div>
 
-          {/* Row 2: Analytics Cards (Operational Funnel & Peak Times) */}
+          {/* 4. Analytics Grid: Operational Status & Peak Movement */}
           <div
+            className="reports-analytics-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: 16,
+              gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+              gap: 20,
             }}
           >
             {/* Panel 1: Atendimentos por Status */}
             <div
+              className="reports-panel"
               style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "20px 22px",
+                borderRadius: 12,
+                padding: "24px 26px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 16,
+                gap: 20,
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <CheckCircle2 size={16} color="#4ade80" />
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#ffffff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <CheckCircle2 size={18} color="#4ade80" />
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
                     Status dos Atendimentos
                   </h3>
                 </div>
                 <span
                   style={{
                     fontSize: 11,
-                    fontWeight: 600,
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    background: "#0f1f18",
-                    color: "rgba(255, 255, 255, 0.7)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    fontWeight: 700,
+                    padding: "3px 10px",
+                    borderRadius: 6,
+                    background: "var(--surface-secondary)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
@@ -464,43 +422,43 @@ export function ReportsView() {
                 </span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                 {/* Concluídos */}
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
-                    <span style={{ color: "rgba(255, 255, 255, 0.7)" }}>Concluídos</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 7 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Concluídos</span>
                     <strong style={{ color: "#4ade80", fontVariantNumeric: "tabular-nums" }}>
                       {completedAppts} ({completedPct}%)
                     </strong>
                   </div>
-                  <div style={{ height: 6, background: "rgba(255, 255, 255, 0.06)", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ width: `${completedPct}%`, height: "100%", background: "#4ade80", borderRadius: 3 }} />
+                  <div style={{ height: 8, background: "var(--surface-tertiary)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${completedPct}%`, height: "100%", background: "#4ade80", borderRadius: 4 }} />
                   </div>
                 </div>
 
-                {/* Cancelamentos */}
+                {/* Cancelados */}
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
-                    <span style={{ color: "rgba(255, 255, 255, 0.7)" }}>Cancelados</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 7 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Cancelados</span>
                     <strong style={{ color: "#f87171", fontVariantNumeric: "tabular-nums" }}>
                       {cancelledAppts} ({cancelledPct}%)
                     </strong>
                   </div>
-                  <div style={{ height: 6, background: "rgba(255, 255, 255, 0.06)", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ width: `${cancelledPct}%`, height: "100%", background: "#f87171", borderRadius: 3 }} />
+                  <div style={{ height: 8, background: "var(--surface-tertiary)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${cancelledPct}%`, height: "100%", background: "#f87171", borderRadius: 4 }} />
                   </div>
                 </div>
 
                 {/* No-show */}
                 <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}>
-                    <span style={{ color: "rgba(255, 255, 255, 0.7)" }}>Não Compareceu (No-show)</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 7 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Não Compareceu (No-show)</span>
                     <strong style={{ color: "#fb923c", fontVariantNumeric: "tabular-nums" }}>
                       {noShowAppts} ({noShowPct}%)
                     </strong>
                   </div>
-                  <div style={{ height: 6, background: "rgba(255, 255, 255, 0.06)", borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ width: `${noShowPct}%`, height: "100%", background: "#fb923c", borderRadius: 3 }} />
+                  <div style={{ height: 8, background: "var(--surface-tertiary)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ width: `${noShowPct}%`, height: "100%", background: "#fb923c", borderRadius: 4 }} />
                   </div>
                 </div>
 
@@ -510,12 +468,12 @@ export function ReportsView() {
                     display: "flex",
                     justifyContent: "space-between",
                     fontSize: 13,
-                    paddingTop: 12,
-                    borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                    paddingTop: 16,
+                    borderTop: "1px solid var(--border)",
                   }}
                 >
-                  <span style={{ color: "rgba(255, 255, 255, 0.55)" }}>Total em Descontos</span>
-                  <strong style={{ color: "rgba(255, 255, 255, 0.8)", fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ color: "var(--text-muted)" }}>Total em Descontos</span>
+                  <strong style={{ color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
                     {formatCurrency(data.metrics.totalDiscounts)}
                   </strong>
                 </div>
@@ -524,29 +482,36 @@ export function ReportsView() {
 
             {/* Panel 2: Horários de Pico & Dias da Semana */}
             <div
+              className="reports-panel"
               style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "20px 22px",
+                borderRadius: 12,
+                padding: "24px 26px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 16,
+                gap: 20,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Clock3 size={16} color="#dcff4c" />
-                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#ffffff" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Clock3 size={18} style={{ color: "#dcff4c" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
                   Horários e Dias de Movimento
                 </h3>
               </div>
 
               {/* Peak Hours */}
               <div>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255, 255, 255, 0.5)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Horários com maior demanda
                 </span>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
                   {data.peakHours.length > 0 ? (
                     data.peakHours.map((p) => (
                       <span
@@ -554,39 +519,56 @@ export function ReportsView() {
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 5,
-                          padding: "4px 10px",
-                          background: "#0f1f18",
-                          borderRadius: 6,
+                          gap: 6,
+                          padding: "6px 12px",
+                          background: "var(--surface-secondary)",
+                          borderRadius: 8,
                           fontSize: 12,
-                          fontWeight: 500,
+                          fontWeight: 600,
                           color: "#dcff4c",
-                          border: "1px solid rgba(220, 255, 76, 0.18)",
+                          border: "1px solid rgba(220, 255, 76, 0.22)",
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
                         <strong>{p.hour}</strong>
-                        <span style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 11 }}>
-                          ({p.count} {p.count === 1 ? "atend." : "atend."})
+                        <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 400 }}>
+                          ({p.count} {p.count === 1 ? "atendimento" : "atendimentos"})
                         </span>
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.45)" }}>
-                      Nenhum atendimento no período
+                    <span style={{ fontSize: 12, color: "var(--text-muted)", padding: "4px 0" }}>
+                      Nenhum atendimento registrado no período
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Busy Days Bar Chart (Minimalist, Solid) */}
-              <div style={{ marginTop: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255, 255, 255, 0.5)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              {/* Busy Days Bar Chart (Generous Height, Solid & Clean) */}
+              <div style={{ marginTop: 6 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
                   Distribuição por dia da semana
                 </span>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6, marginTop: 12, alignItems: "end", height: 75 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(7, 1fr)",
+                    gap: 10,
+                    marginTop: 14,
+                    alignItems: "end",
+                    height: 125,
+                  }}
+                >
                   {data.busyDays.map((d) => {
-                    const heightPct = maxDayCount > 0 ? Math.max(8, Math.round((d.count / maxDayCount) * 100)) : 8;
+                    const heightPct = maxDayCount > 0 ? Math.max(10, Math.round((d.count / maxDayCount) * 100)) : 10;
                     const isBusiest = d.count > 0 && d.count === maxDayCount;
                     return (
                       <div
@@ -597,22 +579,37 @@ export function ReportsView() {
                           alignItems: "center",
                           height: "100%",
                           justifyContent: "flex-end",
-                          gap: 6,
+                          gap: 8,
                         }}
                       >
-                        <span style={{ fontSize: 10, color: isBusiest ? "#dcff4c" : "rgba(255, 255, 255, 0.45)", fontVariantNumeric: "tabular-nums" }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: isBusiest ? 700 : 500,
+                            color: isBusiest ? "#dcff4c" : "var(--text-muted)",
+                            fontVariantNumeric: "tabular-nums",
+                          }}
+                        >
                           {d.count > 0 ? d.count : "·"}
                         </span>
                         <div
                           style={{
                             width: "100%",
+                            maxWidth: 36,
                             height: `${heightPct}%`,
-                            background: isBusiest ? "#dcff4c" : "rgba(255, 255, 255, 0.12)",
-                            borderRadius: "3px 3px 0 0",
-                            transition: "height 0.2s ease",
+                            background: isBusiest ? "#dcff4c" : "var(--surface-tertiary)",
+                            borderRadius: "4px 4px 0 0",
+                            transition: "height 0.25s ease",
                           }}
                         />
-                        <span style={{ fontSize: 10, color: "rgba(255, 255, 255, 0.55)", textTransform: "uppercase" }}>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: isBusiest ? "var(--text-primary)" : "var(--text-secondary)",
+                            textTransform: "uppercase",
+                          }}
+                        >
                           {d.day.slice(0, 3)}
                         </span>
                       </div>
@@ -623,23 +620,34 @@ export function ReportsView() {
             </div>
           </div>
 
-          {/* Row 3: Equipe & Comissões (Data Table, Minimalist & Solid) */}
+          {/* 5. Team Performance & Commissions Table */}
           <section
+            className="reports-panel"
             style={{
-              background: "#162a22",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: 10,
-              padding: "20px 22px",
+              borderRadius: 12,
+              padding: "24px 26px",
               display: "flex",
               flexDirection: "column",
-              gap: 14,
+              gap: 18,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#ffffff" }}>
-                Desempenho da Equipe e Comissões
-              </h3>
-              <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.5)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <UserCheck size={18} style={{ color: "#dcff4c" }} />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
+                  Desempenho da Equipe e Comissões
+                </h3>
+              </div>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-secondary)",
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  background: "var(--surface-secondary)",
+                  border: "1px solid var(--border)",
+                }}
+              >
                 {data.byEmployee.length} profissionais
               </span>
             </div>
@@ -649,19 +657,19 @@ export function ReportsView() {
                 <thead>
                   <tr
                     style={{
-                      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                      color: "rgba(255, 255, 255, 0.5)",
+                      borderBottom: "1px solid var(--border)",
+                      color: "var(--text-muted)",
                       fontSize: 11,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       textTransform: "uppercase",
-                      letterSpacing: "0.04em",
+                      letterSpacing: "0.05em",
                     }}
                   >
-                    <th style={{ padding: "10px 14px" }}>Profissional</th>
-                    <th style={{ padding: "10px 14px" }}>Atendimentos</th>
-                    <th style={{ padding: "10px 14px" }}>Faturamento Gerado</th>
-                    <th style={{ padding: "10px 14px" }}>Comissão Devida</th>
-                    <th style={{ padding: "10px 14px", textAlign: "right" }}>% da Receita</th>
+                    <th style={{ padding: "12px 16px" }}>Profissional</th>
+                    <th style={{ padding: "12px 16px" }}>Atendimentos</th>
+                    <th style={{ padding: "12px 16px" }}>Faturamento Gerado</th>
+                    <th style={{ padding: "12px 16px" }}>Comissão Devida</th>
+                    <th style={{ padding: "12px 16px", textAlign: "right" }}>% da Receita</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -671,23 +679,41 @@ export function ReportsView() {
                       <tr
                         key={emp.employeeId}
                         style={{
-                          borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
-                          transition: "background 0.12s ease",
+                          borderBottom: "1px solid var(--border)",
+                          transition: "background 0.15s ease",
                         }}
                       >
-                        <td style={{ padding: "12px 14px", fontWeight: 600, color: "#ffffff" }}>
-                          {emp.name}
+                        <td style={{ padding: "16px", fontWeight: 600, color: "var(--text-primary)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span
+                              style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: "50%",
+                                background: "var(--primary-soft)",
+                                color: "#dcff4c",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 11,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {getInitials(emp.name)}
+                            </span>
+                            <span>{emp.name}</span>
+                          </div>
                         </td>
-                        <td style={{ padding: "12px 14px", color: "rgba(255, 255, 255, 0.7)", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "16px", color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
                           {emp.appointments}
                         </td>
-                        <td style={{ padding: "12px 14px", color: "#ffffff", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "16px", color: "var(--text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                           {formatCurrency(emp.revenue)}
                         </td>
-                        <td style={{ padding: "12px 14px", color: "#dcff4c", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "16px", color: "#dcff4c", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                           {formatCurrency(emp.commission)}
                         </td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "rgba(255, 255, 255, 0.6)" }}>
+                        <td style={{ padding: "16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)", fontWeight: 600 }}>
                           {pctOfTotal}%
                         </td>
                       </tr>
@@ -695,7 +721,7 @@ export function ReportsView() {
                   })}
                   {data.byEmployee.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ padding: 24, textAlign: "center", color: "rgba(255, 255, 255, 0.45)", fontSize: 13 }}>
+                      <td colSpan={5} style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
                         Nenhum atendimento de profissional registrado no período selecionado.
                       </td>
                     </tr>
@@ -705,38 +731,74 @@ export function ReportsView() {
             </div>
           </section>
 
-          {/* Row 4: Formas de Pagamento (se houver dados) */}
+          {/* 6. Payment Methods Section: Clean Cards Grid */}
           {data.byMethod && data.byMethod.length > 0 && (
             <div
+              className="reports-panel"
               style={{
-                background: "#162a22",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: 10,
-                padding: "18px 22px",
+                borderRadius: 12,
+                padding: "24px 26px",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 16,
+                flexDirection: "column",
+                gap: 18,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <CreditCard size={15} color="rgba(255, 255, 255, 0.7)" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#ffffff" }}>
-                  Recebimento por Forma de Pagamento
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <CreditCard size={18} style={{ color: "#dcff4c" }} />
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
+                    Recebimento por Forma de Pagamento
+                  </h3>
+                </div>
+                <span style={{ fontSize: 12, color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
+                  Total recebido: <strong style={{ color: "var(--text-primary)" }}>{formatCurrency(totalPaymentRevenue)}</strong>
                 </span>
               </div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                {data.byMethod.map((m) => (
-                  <div key={m.method} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                    <span style={{ color: "rgba(255, 255, 255, 0.55)", textTransform: "capitalize" }}>
-                      {m.method}:
-                    </span>
-                    <strong style={{ color: "#ffffff", fontVariantNumeric: "tabular-nums" }}>
-                      {formatCurrency(m.total)}
-                    </strong>
-                  </div>
-                ))}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {data.byMethod.map((m) => {
+                  const pct = totalPaymentRevenue > 0 ? Math.round((m.total / totalPaymentRevenue) * 100) : 0;
+                  return (
+                    <div
+                      key={m.method}
+                      className="payment-method-card"
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 10,
+                        padding: "16px 20px",
+                        borderRadius: 10,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>
+                          {formatMethodName(m.method)}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#12231b",
+                            background: "#dcff4c",
+                            padding: "2px 7px",
+                            borderRadius: 4,
+                          }}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+                      <strong style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                        {formatCurrency(m.total)}
+                      </strong>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
