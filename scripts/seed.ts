@@ -107,6 +107,52 @@ async function seed() {
     })
     .returning();
 
+  // Employee (Profissional)
+  await db
+    .insert(users)
+    .values({
+      companyId: company.id,
+      name: "João Mendes",
+      email: "funcionario@studioprime.com.br",
+      phone: "(11) 99120-4432",
+      passwordHash: defaultPasswordHash,
+      role: "employee",
+      active: true,
+      ...verified,
+    })
+    .onConflictDoUpdate({
+      target: [users.companyId, users.email],
+      set: { role: "employee", passwordHash: defaultPasswordHash, active: true, ...verified },
+    });
+
+  // Client User
+  const [existingClient] = await db.select().from(users).where(eq(users.email, "cliente@email.com")).limit(1);
+  if (!existingClient) {
+    await db.insert(users).values({
+      name: "Carlos Silva",
+      email: "cliente@email.com",
+      phone: "(11) 99999-9999",
+      passwordHash: defaultPasswordHash,
+      role: "client",
+      active: true,
+      ...verified,
+    });
+  }
+
+  // Superadmin User
+  const [existingSuper] = await db.select().from(users).where(eq(users.email, "superadmin@novae.app")).limit(1);
+  if (!existingSuper) {
+    await db.insert(users).values({
+      name: "Superadmin Novae",
+      email: "superadmin@novae.app",
+      passwordHash: defaultPasswordHash,
+      role: "owner",
+      isSuperadmin: true,
+      active: true,
+      ...verified,
+    });
+  }
+
   // Ensure employees exist and link to users
   let [ana] = await db.select().from(employees).where(eq(employees.name, "Ana Costa")).limit(1);
   if (!ana) {
