@@ -816,7 +816,15 @@ function ClientsPage({
   );
 }
 
-function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: string; onClose: () => void; onNewAppointment: (client: ClientDTO) => void }) {
+function ClientDrawer({
+  clientId,
+  onClose,
+  onNewAppointment,
+}: {
+  clientId: string;
+  onClose: () => void;
+  onNewAppointment: (client: ClientDTO) => void;
+}) {
   const { clients, notify } = useStore();
   const [detail, setDetail] = useState<import("@/shared/types").ClientDetailDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -833,8 +841,12 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
           setInternalNotes(data.internalNotes || "");
         }
       })
-      .catch((e) => { if (active) setError(e instanceof ApiError ? e.message : "Erro ao carregar."); });
-    return () => { active = false; };
+      .catch((e) => {
+        if (active) setError(e instanceof ApiError ? e.message : "Erro ao carregar.");
+      });
+    return () => {
+      active = false;
+    };
   }, [clientId]);
 
   const handleSaveInternalNotes = async () => {
@@ -856,92 +868,221 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
   const phone = detail?.phone ?? client.phone ?? "";
 
   return (
-    <div className="drawer-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="drawer-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <aside className="profile-drawer">
-        <div className="drawer-header"><span className="eyebrow">Perfil do cliente</span><IconButton label="Fechar perfil" onClick={onClose}><X size={19} /></IconButton></div>
+        {/* Drawer Header */}
+        <div className="drawer-header">
+          <span className="profile-drawer-eyebrow">Perfil do cliente</span>
+          <button
+            type="button"
+            className="drawer-close-btn"
+            aria-label="Fechar perfil"
+            onClick={onClose}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Profile Hero */}
         <div className="profile-hero">
-          <Avatar name={client.name} photoUrl={detail?.photoUrl ?? client.photoUrl} color={avatarColor(client.name)} size="lg" />
+          <div className="profile-avatar-wrap">
+            <Avatar
+              name={client.name}
+              photoUrl={detail?.photoUrl ?? client.photoUrl}
+              color={avatarColor(client.name)}
+              size="lg"
+            />
+          </div>
           <h2>{client.name}</h2>
-          {detail?.createdAt && <p>Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}</p>}
+          {detail?.createdAt && (
+            <p className="profile-since">
+              Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}
+            </p>
+          )}
+
           <div className="profile-actions">
             {phone && (
               <a
-                className="whatsapp-button"
-                href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(`Olá, ${client.name}! Agradecemos a sua preferência na Agenda.`)}`}
+                className="profile-btn-whatsapp"
+                href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(
+                  `Olá, ${client.name}! Agradecemos a sua preferência na Agenda.`,
+                )}`}
                 target="_blank"
                 rel="noreferrer"
               >
                 <MessageCircle size={15} /> WhatsApp
               </a>
             )}
-            <Button onClick={() => onNewAppointment(client)}><CalendarPlus size={15} /> Agendar</Button>
+            <button
+              type="button"
+              className="profile-btn-schedule"
+              onClick={() => onNewAppointment(client)}
+            >
+              <CalendarPlus size={15} /> Agendar
+            </button>
           </div>
         </div>
-        <div className="profile-contact"><div><Phone size={15} /><span>{phone}</span></div>{detail?.email && <div><Mail size={15} /><span>{detail.email}</span></div>}</div>
-        <div className="profile-stats">
-          <div><strong>{formatCurrency(detail?.spent ?? client.spent)}</strong><span>Total gasto</span></div>
-          <div><strong>{detail?.visits ?? client.visits}</strong><span>Atendimentos</span></div>
-          <div><strong>{formatCurrency(detail?.averageTicket ?? 0)}</strong><span>Ticket médio</span></div>
-          <div><strong>{detail?.lastVisit ? shortDate(detail.lastVisit) : "—"}</strong><span>Última visita</span></div>
+
+        {/* Contact Info Card */}
+        {(phone || detail?.email) && (
+          <div className="profile-contact-card">
+            {phone && (
+              <a href={`tel:${phone.replace(/\D/g, "")}`} className="contact-row">
+                <Phone size={14} className="contact-icon" />
+                <span>{phone}</span>
+              </a>
+            )}
+            {detail?.email && (
+              <a href={`mailto:${detail.email}`} className="contact-row">
+                <Mail size={14} className="contact-icon" />
+                <span>{detail.email}</span>
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* 2x2 Stats Grid */}
+        <div className="profile-stats-grid">
+          <div className="stat-box">
+            <span className="stat-label">Total gasto</span>
+            <strong className="stat-value highlight">
+              {formatCurrency(detail?.spent ?? client.spent)}
+            </strong>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">Atendimentos</span>
+            <strong className="stat-value">
+              {detail?.visits ?? client.visits}
+            </strong>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">Ticket médio</span>
+            <strong className="stat-value highlight">
+              {formatCurrency(detail?.averageTicket ?? 0)}
+            </strong>
+          </div>
+          <div className="stat-box">
+            <span className="stat-label">Última visita</span>
+            <strong className="stat-value">
+              {detail?.lastVisit ? shortDate(detail.lastVisit) : "—"}
+            </strong>
+          </div>
         </div>
-        {detail?.nextVisit && <div className="profile-next"><CalendarDays size={14} /> Próximo: {detail.nextVisit}</div>}
+
+        {/* Next Visit Banner */}
+        {detail?.nextVisit && (
+          <div className="profile-next-banner">
+            <CalendarDays size={15} />
+            <span>
+              Próximo agendamento: <strong>{detail.nextVisit}</strong>
+            </span>
+          </div>
+        )}
+
+        {/* Service History Section */}
         <section className="profile-section">
-          <SectionHeading title="Histórico de atendimentos" />
+          <div className="section-header-row">
+            <span className="section-title">Histórico de atendimentos</span>
+            {detail?.history && detail.history.length > 0 && (
+              <span className="section-count-badge">{detail.history.length}</span>
+            )}
+          </div>
+
           {error && <p className="profile-error">{error}</p>}
-          {detail && !detail.history.length && <p className="profile-empty">Nenhum atendimento registrado ainda.</p>}
+          {detail && !detail.history.length && (
+            <p className="profile-empty">Nenhum atendimento registrado ainda.</p>
+          )}
+
           {detail?.history && detail.history.length > 0 && (
-            <div className="history-list">
+            <div className="history-list-modern">
               {detail.history.slice(0, 15).map((item) => (
-                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
-                  <div>
-                    <span className="history-date">{shortDate(item.date)} às {item.time}</span>
-                    <div><strong>{item.service}</strong> · <small>{item.employee}</small></div>
-                    {item.locationName && <small className="muted-text"><MapPin size={11} /> {item.locationName}</small>}
+                <div key={item.id} className="history-item-card">
+                  <div className="history-item-left">
+                    <div className="history-date-pill">
+                      <CalendarDays size={12} />
+                      <span>
+                        {shortDate(item.date)} · {item.time}
+                      </span>
+                    </div>
+                    <div className="history-service-name">
+                      <strong>{item.service}</strong>
+                      {item.employee && (
+                        <span className="history-employee"> · {item.employee}</span>
+                      )}
+                    </div>
+                    {item.locationName && (
+                      <span className="history-location">
+                        <MapPin size={11} /> {item.locationName}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <b>{formatCurrency(item.total)}</b>
-                    <div><small className="muted-text">{item.paymentMethod ? PAYMENT_LABELS[item.paymentMethod] : "Pendente"}</small></div>
+
+                  <div className="history-item-right">
+                    <strong className="history-price">
+                      {formatCurrency(item.total)}
+                    </strong>
+                    <span
+                      className={`history-status-badge ${
+                        item.paymentMethod ? "paid" : "pending"
+                      }`}
+                    >
+                      {item.paymentMethod
+                        ? PAYMENT_LABELS[item.paymentMethod]
+                        : "Pendente"}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </section>
+
+        {/* Public Notes Section */}
         <section className="profile-section">
-          <SectionHeading title="Observações Públicas" />
-          <div className="profile-note"><Pencil size={14} /><span>{detail?.notes || client.notes || "Nenhuma observação informada pelo cliente."}</span></div>
-        </section>
-        <section className="profile-section" style={{ marginTop: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)" }}>
-              Notas internas da empresa (Privadas)
-            </span>
-            <span style={{ fontSize: "10px", background: "rgba(220, 255, 76, 0.15)", color: "#dcff4c", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>
-              Nunca visível ao cliente
+          <div className="section-header-row">
+            <span className="section-title">Observações Públicas</span>
+          </div>
+          <div className="profile-note-modern">
+            <Pencil size={14} className="note-icon" />
+            <span>
+              {detail?.notes ||
+                client.notes ||
+                "Nenhuma observação informada pelo cliente."}
             </span>
           </div>
+        </section>
+
+        {/* Internal Notes (Private) Section */}
+        <section className="profile-section" style={{ marginBottom: "32px" }}>
+          <div className="section-header-row">
+            <span className="section-title">Notas internas da empresa</span>
+            <span className="private-badge">
+              🔒 Nunca visível ao cliente
+            </span>
+          </div>
+
           <textarea
             value={internalNotes}
             onChange={(e) => setInternalNotes(e.target.value)}
-            placeholder="Ex: Cliente prefere máquina 2, café sem açúcar..."
+            placeholder="Ex: Cliente prefere máquina 2, café sem açúcar, corte nas terças..."
             rows={3}
-            style={{
-              width: "100%",
-              background: "var(--bg-input, #0f2920)",
-              border: "1px solid var(--border)",
-              borderRadius: "8px",
-              padding: "10px",
-              color: "var(--text-primary)",
-              fontSize: "13px",
-              resize: "vertical",
-              fontFamily: "inherit",
-              boxSizing: "border-box",
-            }}
+            className="internal-notes-textarea"
           />
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "6px" }}>
-            <Button variant="secondary" onClick={handleSaveInternalNotes} disabled={savingNotes}>
+
+          <div className="internal-notes-actions">
+            <button
+              type="button"
+              className="save-notes-btn"
+              onClick={handleSaveInternalNotes}
+              disabled={savingNotes}
+            >
               {savingNotes ? "Salvando..." : "Salvar notas internas"}
-            </Button>
+            </button>
           </div>
         </section>
       </aside>
