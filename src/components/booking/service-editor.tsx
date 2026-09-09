@@ -1,5 +1,5 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import type { ServiceDTO } from "@/shared/types";
@@ -12,6 +12,10 @@ import {
   ChevronDown,
   Check,
   Image as ImageIcon,
+  ImagePlus,
+  Trash2,
+  RefreshCw,
+  Link2,
   SlidersHorizontal,
   Loader2,
   Clock3,
@@ -23,6 +27,49 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function processImageFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Imagem inválida"));
+      img.onload = () => {
+        const MAX_DIM = 800;
+        let { width, height } = img;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(String(e.target?.result));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        try {
+          const webp = canvas.toDataURL("image/webp", 0.85);
+          if (webp.startsWith("data:image/webp")) {
+            resolve(webp);
+            return;
+          }
+        } catch {}
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.src = String(e.target?.result);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 export function ServiceEditor({
@@ -46,6 +93,10 @@ export function ServiceEditor({
     service?.durationMinutes ?? 60,
   );
   const [imageUrl, setImageUrl] = useState(service?.imageUrl ?? "");
+  const [isDragging, setIsDragging] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [paymentType, setPaymentType] = useState(
     service?.paymentType ?? "PAY_LATER",
   );
@@ -67,6 +118,24 @@ export function ServiceEditor({
   );
 
   const activeEmployees = employees.filter((e) => e.active);
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setError("Por favor, selecione um arquivo de imagem válido (PNG, JPG, WebP).");
+      return;
+    }
+    setUploadingImage(true);
+    setError("");
+    try {
+      const dataUrl = await processImageFile(file);
+      setImageUrl(dataUrl);
+      notify("Foto selecionada da galeria com sucesso.");
+    } catch {
+      setError("Não foi possível processar a imagem selecionada.");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
 
   async function handleAddCategory() {
     if (newCategory.trim().length < 2 || busy) return;
@@ -104,7 +173,7 @@ export function ServiceEditor({
           categoryId: category || null,
           employeeIds: ids,
           bufferMinutes: Number(f.get("buffer")),
-          imageUrl: f.get("image"),
+          imageUrl: String(f.get("image") || imageUrl || "").trim() || null,
           deliveryMode: f.get("mode") || deliveryMode,
           paymentType: f.get("payment") || paymentType,
           depositAmount: Number(f.get("deposit") || 0),
@@ -329,35 +398,127 @@ export function ServiceEditor({
 
           <div className={styles.field}>
             <div className={styles.labelRow}>
-              <label htmlFor="service-image" className={styles.label}>
-                Imagem (URL)
+              <label className={styles.label}>
+                Foto do serviço
               </label>
-              <span className={styles.labelHint}>Opcional</span>
+              <span className={styles.labelHint}>Galeria do dispositivo</span>
             </div>
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <div className={styles.inputWrapper}>
-                <span className={styles.inputIcon}>
-                  <ImageIcon size={16} />
-                </span>
+
+            <input type="hidden" name="image" value={imageUrl} />
+
+            {!imageUrl ? (
+              <div
+                className={`${styles.uploadDropzone} ${isDragging ? styles.uploadDropzoneActive : ""}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={async (e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) await handleFile(file);
+                }}
+              >
                 <input
-                  id="service-image"
-                  name="image"
-                  aria-label="Imagem (URL)"
-                  className={`${styles.input} ${styles.inputWithIcon}`}
-                  placeholder="https://exemplo.com/foto-do-servico.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-              </div>
-              {imageUrl && imageUrl.startsWith("http") && (
-                <img
-                  src={imageUrl}
-                  alt="Prévia da imagem"
-                  className={styles.imagePreview}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = "none";
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleFile(file);
                   }}
                 />
+                <div className={styles.uploadIconWrap}>
+                  {uploadingImage ? (
+                    <Loader2 size={22} className={styles.spin} />
+                  ) : (
+                    <ImagePlus size={22} />
+                  )}
+                </div>
+                <div className={styles.uploadTextWrap}>
+                  <strong className={styles.uploadTitle}>
+                    {uploadingImage
+                      ? "Processando foto..."
+                      : "Escolher foto da galeria"}
+                  </strong>
+                  <span className={styles.uploadHint}>
+                    Clique ou arraste uma imagem do seu dispositivo (PNG, JPG, WebP)
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.imagePreviewCard}>
+                <img
+                  src={imageUrl}
+                  alt="Prévia do serviço"
+                  className={styles.imagePreviewLarge}
+                />
+                <div className={styles.imagePreviewMeta}>
+                  <span className={styles.imageSuccessBadge}>
+                    <Check size={14} /> Foto selecionada
+                  </span>
+                  <span className={styles.imageHintText}>
+                    A foto será exibida no cartão de agendamento online.
+                  </span>
+                  <div className={styles.imageActions}>
+                    <button
+                      type="button"
+                      className={styles.imageChangeBtn}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <RefreshCw size={12} /> Trocar foto
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.imageRemoveBtn}
+                      onClick={() => {
+                        setImageUrl("");
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                      }}
+                    >
+                      <Trash2 size={12} /> Remover
+                    </button>
+                  </div>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) await handleFile(file);
+                  }}
+                />
+              </div>
+            )}
+
+            <div className={styles.urlToggleWrap}>
+              <button
+                type="button"
+                className={styles.urlToggleBtn}
+                onClick={() => setShowUrlInput(!showUrlInput)}
+              >
+                <Link2 size={12} />
+                {showUrlInput ? "Ocultar link manual" : "Ou inserir por link (URL)"}
+              </button>
+              {showUrlInput && (
+                <div className={styles.inputWrapper} style={{ marginTop: 8 }}>
+                  <span className={styles.inputIcon}>
+                    <ImageIcon size={16} />
+                  </span>
+                  <input
+                    aria-label="Imagem (URL manual)"
+                    className={`${styles.input} ${styles.inputWithIcon}`}
+                    placeholder="https://exemplo.com/foto-do-servico.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                  />
+                </div>
               )}
             </div>
           </div>
