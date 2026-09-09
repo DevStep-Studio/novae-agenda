@@ -407,6 +407,36 @@ export function BookingSettings() {
             </div>
           </div>
         )}
+
+        {/* Funnel Analytics Metrics */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px", marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--border)" }}>
+          <div style={{ padding: "12px", background: "var(--surface-secondary)", borderRadius: "8px", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block" }}>Acessos ao link</span>
+            <strong style={{ fontSize: "18px", color: "#f2f7f4" }}>{data.funnel.find((f) => f.event === "view" || f.event === "page_view")?.count ?? 0}</strong>
+            <small style={{ display: "block", fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>visitas na página</small>
+          </div>
+          <div style={{ padding: "12px", background: "var(--surface-secondary)", borderRadius: "8px", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block" }}>Escolheram horário</span>
+            <strong style={{ fontSize: "18px", color: "#f2f7f4" }}>{data.funnel.find((f) => f.event === "slot_selection" || f.event === "service_selected")?.count ?? 0}</strong>
+            <small style={{ display: "block", fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>etapa intermediária</small>
+          </div>
+          <div style={{ padding: "12px", background: "var(--surface-secondary)", borderRadius: "8px", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block" }}>Agendamentos</span>
+            <strong style={{ fontSize: "18px", color: "#dcff4c" }}>{data.funnel.find((f) => f.event === "booking_completed" || f.event === "booking_created")?.count ?? 0}</strong>
+            <small style={{ display: "block", fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>reservas confirmadas</small>
+          </div>
+          <div style={{ padding: "12px", background: "rgba(220, 255, 76, 0.08)", borderRadius: "8px", border: "1px solid rgba(220, 255, 76, 0.2)" }}>
+            <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block" }}>Conversão estimada</span>
+            <strong style={{ fontSize: "18px", color: "#dcff4c" }}>
+              {(() => {
+                const v = data.funnel.find((f) => f.event === "view" || f.event === "page_view")?.count ?? 0;
+                const b = data.funnel.find((f) => f.event === "booking_completed" || f.event === "booking_created")?.count ?? 0;
+                return v > 0 ? ((b / v) * 100).toFixed(1) : "0.0";
+              })()}%
+            </strong>
+            <small style={{ display: "block", fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>visitantes convertidos</small>
+          </div>
+        </div>
       </div>
 
       {/* Main Settings Form */}

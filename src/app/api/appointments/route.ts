@@ -198,6 +198,7 @@ const createSchema = z.object({
   startTime: z.string(),
   status: z.enum(["scheduled", "confirmed"]).optional(),
   notes: z.string().max(2000).optional(),
+  allowConflict: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -226,6 +227,7 @@ export async function POST(request: Request) {
         startTime,
         status,
         notes,
+        allowConflict,
       } = parsed.data;
 
       if (!isUuid(clientId) || !isUuid(employeeId)) {
@@ -387,7 +389,27 @@ export async function POST(request: Request) {
         endMinutes: timeToMinutes(endTime),
       });
       if (!check.ok) {
-        return Response.json({ error: check.error }, { status: check.status });
+        if (allowConflict) {
+          if (auth.user.role !== "owner" && auth.user.role !== "admin") {
+            return Response.json(
+              {
+                error:
+                  "Apenas proprietário ou administrador podem autorizar encaixe com conflito de horário.",
+              },
+              { status: 403 },
+            );
+          }
+        } else {
+          return Response.json(
+            {
+              error: check.error,
+              conflict: true,
+              canOverride:
+                auth.user.role === "owner" || auth.user.role === "admin",
+            },
+            { status: check.status },
+          );
+        }
       }
 
       let targetLocationId =
@@ -422,6 +444,23 @@ export async function POST(request: Request) {
           notes: notes?.trim() || null,
         })
         .returning();
+
+      if (!check.ok && allowConflict) {
+        await recordAudit({
+          companyId: auth.user.companyId,
+          userId: auth.user.userId,
+          action: "appointment.manual_override",
+          entity: "appointment",
+          entityId: created.id,
+          metadata: {
+            reason: check.error,
+            date,
+            startTime,
+            employeeId,
+            clientId,
+          },
+        });
+      }
 
       // copy commission config into appointment services snapshot
       for (const service of serviceRows) {

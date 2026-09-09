@@ -15,11 +15,11 @@ export function calendarIcs(b: BookingDetails) {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Novae//Agendamentos//PT-BR",
+    "PRODID:-//Reservei//Agendamentos//PT-BR",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${b.id}@novae`,
+    `UID:${b.id}@reservei`,
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(b.startsAt)}`,
     `DTEND:${stamp(b.endsAt)}`,

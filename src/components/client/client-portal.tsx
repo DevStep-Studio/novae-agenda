@@ -287,13 +287,42 @@ export function ClientPortal({
   };
 
   // Quick action: Agendar novamente
-  const handleBookAgain = (booking: CustomerBooking) => {
+  const handleBookAgain = async (booking: CustomerBooking) => {
     const matchedComp = companies.find((c) => c.id === booking.companyId);
-    if (matchedComp) {
-      void handleSelectCompany(matchedComp);
+    if (!matchedComp) {
       setActiveTab("agendar");
-    } else {
-      setActiveTab("agendar");
+      return;
+    }
+    setSelectedCompany(matchedComp);
+    setActiveTab("agendar");
+    try {
+      const cat = await api<any>(`/api/public/${matchedComp.publicSlug}`);
+      setCatalog(cat);
+      const item = booking.items?.[0];
+      const matchedSvc = cat.services?.find((s: any) => s.id === item?.serviceId);
+      const matchedEmp = cat.employees?.find((e: any) => e.id === item?.employeeId) || { id: "any", name: "Qualquer profissional" };
+      if (matchedSvc) {
+        setSelectedService(matchedSvc);
+        setSelectedEmployee(matchedEmp);
+        const today = new Date().toISOString().slice(0, 10);
+        setSelectedDate(today);
+        const proId = matchedEmp?.id === "any" ? null : matchedEmp?.id;
+        const items = [{ serviceId: matchedSvc.id, employeeId: proId }];
+        const query = new URLSearchParams({
+          locationId: cat?.company?.locationId || cat?.locations?.[0]?.id || "",
+          date: today,
+          items: JSON.stringify(items),
+        });
+        const res = await api<{ slots: Array<{ startTime: string }> }>(
+          `/api/public/${matchedComp.publicSlug}/availability?${query.toString()}`
+        ).catch(() => ({ slots: [] }));
+        setAvailableSlots(res?.slots?.map((s: any) => s.startTime) || []);
+        setBookingStep(4);
+      } else {
+        setBookingStep(2);
+      }
+    } catch {
+      setBookingStep(2);
     }
   };
 

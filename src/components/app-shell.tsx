@@ -2394,8 +2394,35 @@ function NewAppointmentModal({
       });
       notify("Agendamento criado com sucesso.");
       onClose();
-    } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Não foi possível criar o agendamento.", "error");
+    } catch (e: any) {
+      const msg = e instanceof ApiError ? e.message : "Não foi possível criar o agendamento.";
+      const isConflict = e instanceof ApiError && (e.status === 409 || msg.toLowerCase().includes("atendimento") || msg.toLowerCase().includes("bloqueio") || msg.toLowerCase().includes("jornada"));
+      if (isConflict) {
+        const wantsOverride = window.confirm(
+          `Aviso de Conflito: ${msg}\n\nDeseja realizar o ENCAIXE MANUAL forçado para este horário? (A ação será registrada na auditoria do estabelecimento)`
+        );
+        if (wantsOverride) {
+          try {
+            await createAppointment({
+              clientId,
+              employeeId,
+              locationId: locationId || undefined,
+              serviceIds,
+              date,
+              startTime,
+              notes: notes || undefined,
+              allowConflict: true,
+            });
+            notify("Encaixe manual realizado com sucesso.");
+            onClose();
+            return;
+          } catch (err: any) {
+            notify(err instanceof ApiError ? err.message : "Erro ao forçar encaixe manual.", "error");
+            return;
+          }
+        }
+      }
+      notify(msg, "error");
     } finally {
       setSubmitting(false);
     }

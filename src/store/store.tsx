@@ -59,7 +59,7 @@ type Store = DataState & {
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
   createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[] }) => Promise<void>;
-  createAppointment: (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string }) => Promise<void>;
+  createAppointment: (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string; allowConflict?: boolean }) => Promise<void>;
   updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>;
   rescheduleAppointment: (id: string, input: { date: string; startTime: string; employeeId?: string }) => Promise<void>;
   finishAppointment: (id: string, amount: number, method: PaymentMethod, discount?: number) => Promise<void>;
@@ -230,7 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await reloadEmployees();
   }, [reloadEmployees]);
 
-  const createAppointment = useCallback(async (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string }) => {
+  const createAppointment = useCallback(async (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string; allowConflict?: boolean }) => {
     await api("/api/appointments", { method: "POST", body: JSON.stringify(input) });
     await Promise.all([reloadAppointments(), reloadStats(), reloadClients(), reloadNotifications()]);
   }, [reloadAppointments, reloadStats, reloadClients, reloadNotifications]);
