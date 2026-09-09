@@ -1,10 +1,12 @@
 import type { AppointmentStatus, PaymentMethod, Role } from "@/shared/types";
 
 export const ROLE_LABELS: Record<Role, string> = {
+  superadmin: "Superadmin",
   owner: "Proprietário",
   admin: "Administrador",
   manager: "Gerente",
   employee: "Profissional",
+  client: "Cliente",
 };
 
 export function roleLabel(role: string | null | undefined): string {

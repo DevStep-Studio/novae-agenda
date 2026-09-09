@@ -15,7 +15,7 @@ import {
   payments,
   services,
 } from "@/db/schema";
-import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { forbidden, requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { assertBookable } from "@/lib/availability";
 import { recordAudit } from "@/lib/audit";
 import {
@@ -35,6 +35,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const auth = await requireAuth();
   if (!auth) return unauthorized();
+  if (auth.user.role === "client") return forbidden("Acesso restrito à equipe.");
 
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");

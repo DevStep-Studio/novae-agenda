@@ -2,15 +2,16 @@ import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { appointments, clients, payments } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
 import type { ClientDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("q") ?? "").trim();

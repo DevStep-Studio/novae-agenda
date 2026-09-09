@@ -9,8 +9,9 @@ import type { ClientDetailDTO, HistoryItemDTO, PaymentMethod } from "@/shared/ty
 export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
@@ -120,6 +121,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     email: client.email,
     photoUrl: client.photoUrl ?? null,
     notes: client.notes,
+    internalNotes: client.internalNotes ?? null,
     active: client.active,
     initials: client.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
     color: "#d8e5f0",
@@ -137,15 +139,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 const updateSchema = z.object({
-  name: z.string().min(2).max(120),
-  phone: z.string().min(8).max(20),
-  email: z.string().email().optional().or(z.literal("")),
-  notes: z.string().max(2000).optional(),
+  name: z.string().min(2).max(120).optional(),
+  phone: z.string().min(8).max(20).optional(),
+  email: z.string().email().optional().or(z.literal("")).nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+  internalNotes: z.string().max(4000).optional().nullable(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
@@ -155,15 +159,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
 
-  const { name, phone, email, notes } = parsed.data;
+  const { name, phone, email, notes, internalNotes } = parsed.data;
+  const updateData: Record<string, any> = {};
+  if (name !== undefined) updateData.name = name.trim();
+  if (phone !== undefined) updateData.phone = phone.trim();
+  if (email !== undefined) updateData.email = email?.trim() || null;
+  if (notes !== undefined) updateData.notes = notes?.trim() || null;
+  if (internalNotes !== undefined) updateData.internalNotes = internalNotes?.trim() || null;
+
   const [updated] = await db
     .update(clients)
-    .set({
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email?.trim() || null,
-      notes: notes?.trim() || null,
-    })
+    .set(updateData)
     .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)))
     .returning();
 

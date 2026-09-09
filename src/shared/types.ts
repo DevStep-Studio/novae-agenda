@@ -9,7 +9,16 @@ export type AppointmentStatus =
 
 export type CommissionType = "none" | "percentage" | "fixed";
 export type PaymentMethod = "pix" | "cash" | "debit" | "credit" | "other";
-export type Role = "owner" | "admin" | "manager" | "employee";
+export type Role = "owner" | "admin" | "manager" | "employee" | "client" | "superadmin";
+export type UserRole = Role;
+
+export type CompanyMembershipDTO = {
+  id: string;
+  companyId: string;
+  companyName: string;
+  role: Role;
+  isPrimary?: boolean;
+};
 
 export type Company = {
   id: string;
@@ -43,12 +52,16 @@ export type SessionInfo = {
   userId: string;
   companyId: string;
   role: Role;
+  primaryRole?: Role;
+  targetPortal?: "/cliente" | "/gestao" | "/profissional" | "/admin";
   name: string;
   email: string;
+  phone?: string | null;
   emailVerified: boolean;
   isSuperadmin: boolean;
   createdAt: string;
   employeeId: string | null;
+  memberships?: CompanyMembershipDTO[];
   company: Company;
   locations: LocationDTO[];
 };
@@ -100,6 +113,7 @@ export type ClientDTO = {
   email: string | null;
   photoUrl?: string | null;
   notes: string | null;
+  internalNotes?: string | null;
   active: boolean;
   initials: string;
   color: string;

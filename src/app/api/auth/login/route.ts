@@ -32,7 +32,15 @@ export async function POST(request: Request) {
   }
 
   const [user] = await db
-    .select({ id: users.id, passwordHash: users.passwordHash, active: users.active })
+    .select({
+      id: users.id,
+      name: users.name,
+      role: users.role,
+      isSuperadmin: users.isSuperadmin,
+      companyId: users.companyId,
+      passwordHash: users.passwordHash,
+      active: users.active,
+    })
     .from(users)
     .where(eq(users.email, normalized))
     .limit(1);
@@ -44,5 +52,22 @@ export async function POST(request: Request) {
 
   await Promise.all([clearRateLimit(ipBucket), clearRateLimit(emailBucket)]);
   await createSession(user.id);
-  return NextResponse.json({ data: { userId: user.id } });
+
+  let targetPortal = "/cliente";
+  if (user.isSuperadmin) {
+    targetPortal = "/admin";
+  } else if (user.role === "owner" || user.role === "admin" || user.role === "manager") {
+    targetPortal = "/gestao";
+  } else if (user.role === "employee") {
+    targetPortal = "/profissional";
+  }
+
+  return NextResponse.json({
+    data: {
+      userId: user.id,
+      name: user.name,
+      role: user.role,
+      targetPortal,
+    },
+  });
 }

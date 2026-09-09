@@ -289,7 +289,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setLocations(data.locations);
           setActiveLocationId((cur) => cur ?? data.locations[0].id);
         }
-        await refreshAll();
+        if (data.primaryRole !== "client") {
+          await refreshAll();
+        }
       }
       return data;
     } catch {
@@ -313,7 +315,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [reloadSession]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || session.primaryRole === "client") return;
     const refresh = () => { if (document.visibilityState === "visible") void Promise.all([reloadAppointments(), reloadNotifications(), reloadClients(), reloadStats()]).catch(() => {}); };
     const interval = window.setInterval(refresh, 15000);
     window.addEventListener("focus", refresh);

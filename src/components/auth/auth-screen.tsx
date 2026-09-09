@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import {
-  Sparkles,
   ArrowLeft,
   ArrowRight,
   Eye,
@@ -10,13 +9,10 @@ import {
   Lock,
   Mail,
   User,
-  Shield,
-  UserRound,
   KeyRound,
   CheckCircle2,
   MailCheck,
   ShieldCheck,
-  Check,
   RotateCcw,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
@@ -24,19 +20,17 @@ import { useStore } from "@/store/store";
 import { NovaeLogo } from "@/components/brand/novae-logo";
 
 type Mode = "login" | "register" | "forgot-password";
-type Role = "user" | "admin";
 type RecoveryStep = "request_email" | "email_sent";
 
 export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboarding: boolean) => void }) {
   const { reloadSession } = useStore();
-  const [role, setRole] = useState<Role>("user");
   const [mode, setMode] = useState<Mode>("login");
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("request_email");
 
   // Form states
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("usuario@studioprime.com.br");
-  const [password, setPassword] = useState("senha123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -59,43 +53,18 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  const handleRoleChange = (newRole: Role) => {
-    setRole(newRole);
-    setMode("login");
-    setError(null);
-    setSuccessBanner(null);
-    if (newRole === "admin") {
-      setEmail("admin@studioprime.com.br");
-      setPassword("senha123");
-    } else {
-      setEmail("usuario@studioprime.com.br");
-      setPassword("senha123");
-    }
-  };
-
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
     setError(null);
     setSuccessBanner(null);
-    if (newMode === "register") {
-      setEmail("");
-      setPassword("");
-    } else if (newMode === "forgot-password") {
+    if (newMode === "forgot-password") {
       setRecoveryStep("request_email");
-      setRecoveryEmail(email || (role === "admin" ? "admin@studioprime.com.br" : "usuario@studioprime.com.br"));
-    } else {
-      if (role === "admin") {
-        setEmail((prev) => prev || "admin@studioprime.com.br");
-        setPassword((prev) => prev || "senha123");
-      } else {
-        setEmail((prev) => prev || "usuario@studioprime.com.br");
-        setPassword((prev) => prev || "senha123");
-      }
+      setRecoveryEmail(email);
     }
   };
 
   const handleOpenForgotPassword = () => {
-    setRecoveryEmail(email || (role === "admin" ? "admin@studioprime.com.br" : "usuario@studioprime.com.br"));
+    setRecoveryEmail(email);
     setRecoveryStep("request_email");
     setError(null);
     setSuccessBanner(null);
@@ -110,17 +79,19 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     setLoading(true);
     try {
       if (mode === "login") {
-        const loginEndpoint = role === "admin" ? "/api/auth/admin/login" : "/api/auth/login";
-        await api(loginEndpoint, { method: "POST", body: JSON.stringify({ email, password }) });
+        await api<{ data: { userId: string; targetPortal?: string } }>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email: email.trim(), password }),
+        });
         const updatedSession = await reloadSession();
-        onAuthenticated(!updatedSession?.company?.onboarded);
+        onAuthenticated(Boolean(!updatedSession?.company?.onboarded && updatedSession?.primaryRole !== "client"));
       } else {
         await api("/api/auth/register", {
           method: "POST",
-          body: JSON.stringify({ name, email, password, confirmPassword }),
+          body: JSON.stringify({ name: name.trim(), email: email.trim(), password, confirmPassword }),
         });
         const updatedSession = await reloadSession();
-        onAuthenticated(!updatedSession?.company?.onboarded);
+        onAuthenticated(Boolean(!updatedSession?.company?.onboarded && updatedSession?.primaryRole !== "client"));
       }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível concluir. Tente novamente.");
@@ -178,29 +149,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
         <NovaeLogo size={40} />
       </div>
 
-      {/* Role selector */}
-      <div className="auth-role-selector">
-        <button
-          id="btn-role-user"
-          type="button"
-          className={`auth-role-chip ${role === "user" ? "active" : ""}`}
-          onClick={() => handleRoleChange("user")}
-        >
-          <UserRound size={14} />
-          Usuário
-        </button>
-        <button
-          id="btn-role-admin"
-          type="button"
-          className={`auth-role-chip ${role === "admin" ? "active admin" : ""}`}
-          onClick={() => handleRoleChange("admin")}
-        >
-          <Shield size={14} />
-          Admin
-        </button>
-      </div>
-
-      <div className={`auth-card ${role === "admin" ? "auth-card--admin" : ""}`}>
+      <div className="auth-card">
         {/* ========================================================= */}
         {/* RECOVERY MODE (Esqueci minha senha - Inspirado no Google) */}
         {/* ========================================================= */}
@@ -209,7 +158,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
             {recoveryStep === "request_email" && (
               <>
                 <div className="auth-recovery-header">
-                  <div className={`auth-recovery-badge ${role === "admin" ? "admin" : ""}`}>
+                  <div className="auth-recovery-badge">
                     <KeyRound size={13} />
                     Recuperação de conta
                   </div>
@@ -270,7 +219,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
             {recoveryStep === "email_sent" && (
               <>
                 <div className="auth-recovery-header">
-                  <div className={`auth-recovery-badge ${role === "admin" ? "admin" : ""}`}>
+                  <div className="auth-recovery-badge">
                     <MailCheck size={13} />
                     Instruções enviadas
                   </div>
@@ -336,45 +285,31 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
           /* LOGIN / REGISTER MODE                                      */
           /* ========================================================= */
           <div className="auth-view-animated">
-            {role === "admin" && (
-              <div className="auth-admin-badge">
-                <Shield size={12} />
-                Acesso Administrativo
-              </div>
-            )}
             <h1>
-              {mode === "login"
-                ? role === "admin"
-                  ? "Painel Admin"
-                  : "Bem-vindo de volta"
-                : "Crie sua conta"}
+              {mode === "login" ? "Bem-vindo ao Nova(e)" : "Crie sua conta"}
             </h1>
             <p className="auth-subtitle">
               {mode === "login"
-                ? role === "admin"
-                  ? "Entre com suas credenciais de administrador."
-                  : "Entre para acessar sua agenda e seus clientes."
-                : "Organize seu negócio em poucos segundos."}
+                ? "Entre com seu e-mail e senha para acessar o sistema."
+                : "Agendamentos simples e gestão completa em um só lugar."}
             </p>
 
-            {role === "user" && (
-              <div className="auth-tabs">
-                <button
-                  type="button"
-                  className={mode === "login" ? "active" : ""}
-                  onClick={() => handleModeChange("login")}
-                >
-                  Entrar
-                </button>
-                <button
-                  type="button"
-                  className={mode === "register" ? "active" : ""}
-                  onClick={() => handleModeChange("register")}
-                >
-                  Criar conta
-                </button>
-              </div>
-            )}
+            <div className="auth-tabs">
+              <button
+                type="button"
+                className={mode === "login" ? "active" : ""}
+                onClick={() => handleModeChange("login")}
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                className={mode === "register" ? "active" : ""}
+                onClick={() => handleModeChange("register")}
+              >
+                Criar conta
+              </button>
+            </div>
 
             {successBanner && (
               <div className="auth-success-banner">
@@ -399,7 +334,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
                       className="input"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Seu nome"
+                      placeholder="Seu nome completo"
                       autoComplete="name"
                       required
                       minLength={2}

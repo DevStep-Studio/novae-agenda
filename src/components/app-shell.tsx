@@ -194,13 +194,19 @@ function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string
 
 /* ---------- Pages ---------- */
 function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => void; onAppointment: (apt: AppointmentDTO) => void; onGoToAgenda: () => void }) {
-  const { stats, appointments, services, clients } = useStore();
+  const { stats, appointments, services, clients, employees } = useStore();
   const today = todayKey();
   const todayApts = appointments.filter((apt) => apt.date === today).filter((apt) => !["cancelled", "no_show"].includes(apt.status));
   const pending = todayApts.filter((apt) => apt.status !== "completed");
   const next = pending[0];
   const realized = stats?.today.realized ?? 0;
   const forecast = stats?.today.forecast ?? 0;
+
+  const totalSlotsCapacity = Math.max(1, employees.filter((e) => e.active).length * 12);
+  const activeTodayCount = todayApts.filter((a) => a.status !== "cancelled" && a.status !== "no_show").length;
+  const occupancyRate = Math.min(100, Math.round((activeTodayCount / totalSlotsCapacity) * 100));
+  const freeSlotsToday = Math.max(0, totalSlotsCapacity - activeTodayCount);
+  const cancellationsToday = (stats?.today.cancelled ?? 0) + (stats?.today.noShow ?? 0);
 
   return (
     <div className="page-content dashboard-page">
@@ -211,6 +217,30 @@ function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => vo
         <div className="metric-card"><div className="metric-icon metric-lilac"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista</p><strong>{formatCurrency(forecast)}</strong><span className="metric-detail">para hoje</span></div></div>
         <div className="metric-card"><div className="metric-icon metric-amber"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita realizada</p><strong>{formatCurrency(realized)}</strong><span className="metric-detail">já recebida hoje</span></div></div>
         <div className="metric-card"><div className="metric-icon metric-rose"><Users size={18} /></div><div className="metric-copy"><p>Clientes atendidos</p><strong>{stats?.today.clientsServed ?? 0}</strong><span className="metric-detail">finalizados hoje</span></div></div>
+      </div>
+
+      <div className="metrics-subgrid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+        <div style={{ background: "rgba(220, 255, 76, 0.07)", border: "1px solid rgba(220, 255, 76, 0.22)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Ocupação do dia</span>
+            <div style={{ fontSize: "20px", fontWeight: 700, color: "#dcff4c", marginTop: 2 }}>{occupancyRate}%</div>
+          </div>
+          <Sparkles size={18} style={{ color: "#dcff4c" }} />
+        </div>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Horários livres hoje</span>
+            <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)", marginTop: 2 }}>{freeSlotsToday}</div>
+          </div>
+          <Clock size={18} style={{ color: "var(--text-secondary)" }} />
+        </div>
+        <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
+            <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "#f87171" : "var(--text-primary)", marginTop: 2 }}>{cancellationsToday}</div>
+          </div>
+          <Ban size={18} style={{ color: cancellationsToday > 0 ? "#f87171" : "var(--text-secondary)" }} />
+        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -687,18 +717,40 @@ function ClientsPage({
 }
 
 function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: string; onClose: () => void; onNewAppointment: (client: ClientDTO) => void }) {
-  const { clients } = useStore();
+  const { clients, notify } = useStore();
   const [detail, setDetail] = useState<import("@/shared/types").ClientDetailDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [internalNotes, setInternalNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
   const client = clients.find((c) => c.id === clientId);
 
   useEffect(() => {
     let active = true;
     api<import("@/shared/types").ClientDetailDTO>(`/api/clients/${clientId}`)
-      .then((data) => { if (active) setDetail(data); })
+      .then((data) => {
+        if (active) {
+          setDetail(data);
+          setInternalNotes(data.internalNotes || "");
+        }
+      })
       .catch((e) => { if (active) setError(e instanceof ApiError ? e.message : "Erro ao carregar."); });
     return () => { active = false; };
   }, [clientId]);
+
+  const handleSaveInternalNotes = async () => {
+    setSavingNotes(true);
+    try {
+      await api(`/api/clients/${clientId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ internalNotes }),
+      });
+      notify("Notas internas salvas com sucesso!");
+    } catch {
+      notify("Erro ao salvar notas internas.", "error");
+    } finally {
+      setSavingNotes(false);
+    }
+  };
 
   if (!client) return null;
   const phone = detail?.phone ?? client.phone ?? "";
@@ -756,8 +808,41 @@ function ClientDrawer({ clientId, onClose, onNewAppointment }: { clientId: strin
           )}
         </section>
         <section className="profile-section">
-          <SectionHeading title="Observações" />
-          <div className="profile-note"><Pencil size={14} /><span>{detail?.notes || client.notes || "Nenhuma observação."}</span></div>
+          <SectionHeading title="Observações Públicas" />
+          <div className="profile-note"><Pencil size={14} /><span>{detail?.notes || client.notes || "Nenhuma observação informada pelo cliente."}</span></div>
+        </section>
+        <section className="profile-section" style={{ marginTop: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-secondary)" }}>
+              Notas internas da empresa (Privadas)
+            </span>
+            <span style={{ fontSize: "10px", background: "rgba(220, 255, 76, 0.15)", color: "#dcff4c", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>
+              Nunca visível ao cliente
+            </span>
+          </div>
+          <textarea
+            value={internalNotes}
+            onChange={(e) => setInternalNotes(e.target.value)}
+            placeholder="Ex: Cliente prefere máquina 2, café sem açúcar..."
+            rows={3}
+            style={{
+              width: "100%",
+              background: "var(--bg-input, #0f2920)",
+              border: "1px solid var(--border)",
+              borderRadius: "8px",
+              padding: "10px",
+              color: "var(--text-primary)",
+              fontSize: "13px",
+              resize: "vertical",
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "6px" }}>
+            <Button variant="secondary" onClick={handleSaveInternalNotes} disabled={savingNotes}>
+              {savingNotes ? "Salvando..." : "Salvar notas internas"}
+            </Button>
+          </div>
         </section>
       </aside>
     </div>
@@ -3215,6 +3300,26 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
         </div>
 
         <div className="profile-actions-drawer">
+          <a
+            href="/cliente"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "10px 16px",
+              background: "rgba(220, 255, 76, 0.12)",
+              color: "#dcff4c",
+              border: "1px solid rgba(220, 255, 76, 0.25)",
+              borderRadius: "8px",
+              fontWeight: 600,
+              fontSize: "14px",
+              textDecoration: "none",
+              marginBottom: "8px",
+            }}
+          >
+            <UserRound size={16} /> Alternar para Área do Cliente
+          </a>
           {onSuperadmin && (
             <Button onClick={() => { onSuperadmin(); onClose(); }} className="full-width" variant="secondary">
               <Sparkles size={16} /> Painel Superadmin Nova(e)

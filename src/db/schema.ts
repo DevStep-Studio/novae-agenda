@@ -77,6 +77,18 @@ export const users = pgTable("users", {
   emailIdx: index("users_email_idx").on(table.email),
 }));
 
+export const companyMemberships = pgTable("company_memberships", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // 'owner' | 'admin' | 'manager' | 'employee'
+  active: boolean("active").default(true).notNull(),
+  ...timestamps,
+}, (table) => ({
+  userCompanyIdx: uniqueIndex("company_memberships_user_company_idx").on(table.userId, table.companyId),
+  companyIdx: index("company_memberships_company_idx").on(table.companyId),
+}));
+
 // One-time tokens for email verification and password reset.
 // Only the SHA-256 hash of the token is stored; the raw token lives only in the e-mail link.
 export const authTokens = pgTable("auth_tokens", {
@@ -137,6 +149,7 @@ export const clients = pgTable("clients", {
   phone: text("phone").notNull(),
   email: text("email"),
   notes: text("notes"),
+  internalNotes: text("internal_notes"),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({ userCompanyIdx: uniqueIndex("clients_company_user_idx").on(table.companyId, table.userId), companyIdx: index("clients_company_idx").on(table.companyId), phoneIdx: index("clients_phone_idx").on(table.phone) }));

@@ -1,0 +1,769 @@
+/* Client Portal Minimalist Styling */
+
+.page {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 76px; /* space for mobile bottom navigation */
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding-bottom: 30px;
+  }
+}
+
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.headerInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 750;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  color: var(--primary);
+}
+
+.brand span {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.desktopNav {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (min-width: 768px) {
+  .desktopNav {
+    display: flex;
+  }
+}
+
+.navItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.navItem:hover {
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+}
+
+.navItemActive {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contextSwitchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.contextSwitchBtn:hover {
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.avatarBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+/* Container */
+.main {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Welcome Section */
+.welcomeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.welcomeTitle {
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.welcomeSubtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Primary Card: Próximo Atendimento */
+.nextCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.nextCardTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary);
+}
+
+.nextCardBody {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .nextCardBody {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+  }
+}
+
+.companyLogo {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 750;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.appointmentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.companyName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.serviceName {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+.appointmentMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.appointmentMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.appointmentStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e4f4ed;
+  color: #1f7a55;
+  width: fit-content;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.actionBtn:hover {
+  background: var(--surface-secondary);
+  border-color: var(--border-strong);
+}
+
+.actionBtnDanger {
+  color: #c04e54;
+}
+
+.actionBtnDanger:hover {
+  background: #fae9ea;
+  border-color: #c04e54;
+}
+
+/* Empty State Card */
+.emptyCard {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyIconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--surface-secondary);
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.emptySubtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 380px;
+  margin: 0;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+}
+
+.ctaButton:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+/* Quick Actions Grid */
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.quickActionCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.quickActionCard:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.quickActionIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.quickActionText strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.quickActionText span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Step-by-Step Booking Flow */
+.flowContainer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.flowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+}
+
+.flowHeaderTitle {
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.flowProgress {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.companyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.companyCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.companyCard:hover {
+  border-color: var(--primary);
+  background: var(--surface-secondary);
+}
+
+.companyCardActive {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+/* Service Selection Cards */
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.serviceCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.serviceCard:hover {
+  border-color: var(--primary);
+}
+
+.serviceCardActive {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.serviceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.servicePrice {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.serviceDuration {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Professional Selection Cards */
+.proGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.proCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.proCard:hover {
+  border-color: var(--primary);
+}
+
+.proCardActive {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.proAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.proCardActive .proAvatar {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Slots Grid */
+.slotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.slotBtn {
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.slotBtn:hover {
+  border-color: var(--primary);
+}
+
+.slotBtnActive {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Summary Box */
+.summaryBox {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.summaryLabel {
+  color: var(--text-secondary);
+}
+
+.summaryValue {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.summaryTotal {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--primary);
+}
+
+/* Success Confirmation */
+.successCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.successIconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #e4f4ed;
+  color: #1f7a55;
+  display: grid;
+  place-items: center;
+}
+
+/* Tabs for Meus Horários */
+.tabRow {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.tabBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tabBtn:hover {
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+}
+
+.tabBtnActive {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* History List Item */
+.historyCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.historyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.historyDate {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.historyService {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.historySub {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Mobile Bottom Navigation Bar */
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 64px;
+  padding: 0 4px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+}
+
+@media (min-width: 768px) {
+  .bottomNav {
+    display: none;
+  }
+}
+
+.bottomNavItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex: 1;
+}
+
+.bottomNavItemActive {
+  color: var(--primary);
+}
+
+.bottomNavItemActive svg {
+  color: var(--primary);
+}

@@ -7,6 +7,9 @@ import { OnboardingScreen } from "@/components/auth/onboarding-screen";
 import { ResetPasswordScreen } from "@/components/auth/reset-password-screen";
 import { VerifyEmailScreen } from "@/components/auth/verify-email-screen";
 import { AppShell } from "@/components/app-shell";
+import { ClientPortal } from "@/components/client/client-portal";
+import { EmployeeDashboard } from "@/components/employee/employee-dashboard";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 function readTokenParams(): { verify: string | null; reset: string | null } {
@@ -80,6 +83,20 @@ export function AppGate() {
     );
   }
 
+  // Profile experiences:
+  if (session.primaryRole === "superadmin" || session.targetPortal === "/admin") {
+    return <AdminDashboard />;
+  }
+
+  if (session.primaryRole === "employee" || session.targetPortal === "/profissional") {
+    return <EmployeeDashboard />;
+  }
+
+  if (session.primaryRole === "client" || session.targetPortal === "/cliente") {
+    return <ClientPortal />;
+  }
+
+  // Business (owner, admin, manager)
   if (needsOnboarding || !session.company?.onboarded) {
     return (
       <OnboardingScreen

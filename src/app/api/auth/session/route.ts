@@ -12,58 +12,73 @@ export async function GET() {
     return Response.json({ data: null }, { status: 200 });
   }
 
-  const [company] = await db
-    .select()
-    .from(companies)
-    .where(eq(companies.id, user.companyId))
-    .limit(1);
+  const [company] = user.companyId
+    ? await db
+        .select()
+        .from(companies)
+        .where(eq(companies.id, user.companyId))
+        .limit(1)
+    : [];
 
   const [row] = await db
-    .select({ createdAt: users.createdAt })
+    .select({ createdAt: users.createdAt, phone: users.phone })
     .from(users)
     .where(eq(users.id, user.userId))
     .limit(1);
 
-  let locationRows = await db
-    .select({
-      id: locations.id,
-      companyId: locations.companyId,
-      name: locations.name,
-      address: locations.address,
-      phone: locations.phone,
-      openTime: locations.openTime,
-      closeTime: locations.closeTime,
-      active: locations.active,
-    })
-    .from(locations)
-    .where(and(eq(locations.companyId, user.companyId), eq(locations.active, true)))
-    .orderBy(asc(locations.name));
+  let locationRows: Array<{
+    id: string;
+    companyId: string;
+    name: string;
+    address: string | null;
+    phone: string | null;
+    openTime: string;
+    closeTime: string;
+    active: boolean;
+  }> = [];
 
-  // If company has no locations yet, ensure the default location exists
-  if (locationRows.length === 0 && company) {
-    const [defaultLoc] = await db
-      .insert(locations)
-      .values({
-        companyId: user.companyId,
-        name: "Unidade Principal",
-        address: company.address ?? "Sede",
-        phone: company.phone ?? null,
-        openTime: "08:00",
-        closeTime: "19:00",
-        active: true,
+  if (user.companyId) {
+    locationRows = await db
+      .select({
+        id: locations.id,
+        companyId: locations.companyId,
+        name: locations.name,
+        address: locations.address,
+        phone: locations.phone,
+        openTime: locations.openTime,
+        closeTime: locations.closeTime,
+        active: locations.active,
       })
-      .returning();
+      .from(locations)
+      .where(and(eq(locations.companyId, user.companyId), eq(locations.active, true)))
+      .orderBy(asc(locations.name));
 
-    locationRows = [{
-      id: defaultLoc.id,
-      companyId: defaultLoc.companyId,
-      name: defaultLoc.name,
-      address: defaultLoc.address,
-      phone: defaultLoc.phone,
-      openTime: defaultLoc.openTime,
-      closeTime: defaultLoc.closeTime,
-      active: defaultLoc.active,
-    }];
+    // If company has no locations yet, ensure the default location exists
+    if (locationRows.length === 0 && company) {
+      const [defaultLoc] = await db
+        .insert(locations)
+        .values({
+          companyId: user.companyId,
+          name: "Unidade Principal",
+          address: company.address ?? "Sede",
+          phone: company.phone ?? null,
+          openTime: "08:00",
+          closeTime: "19:00",
+          active: true,
+        })
+        .returning();
+
+      locationRows = [{
+        id: defaultLoc.id,
+        companyId: defaultLoc.companyId,
+        name: defaultLoc.name,
+        address: defaultLoc.address,
+        phone: defaultLoc.phone,
+        openTime: defaultLoc.openTime,
+        closeTime: defaultLoc.closeTime,
+        active: defaultLoc.active,
+      }];
+    }
   }
 
   const locationDTOs: LocationDTO[] = locationRows.map((loc) => ({
@@ -79,10 +94,13 @@ export async function GET() {
 
   const session: SessionInfo = {
     userId: user.userId,
-    companyId: user.companyId,
+    companyId: user.companyId ?? "",
     role: user.role,
+    primaryRole: user.primaryRole,
+    targetPortal: user.targetPortal,
     name: user.name,
     email: user.email,
+    phone: row?.phone ?? user.phone ?? null,
     emailVerified: user.emailVerified,
     isSuperadmin: user.isSuperadmin,
     createdAt: (row?.createdAt ?? new Date()).toISOString(),
@@ -104,9 +122,24 @@ export async function GET() {
           secondaryColor: company.secondaryColor,
           onboarded: company.onboarded,
         }
-      : (null as unknown as SessionInfo["company"]),
+      : {
+          id: "",
+          name: "Portal do Cliente",
+          businessType: null,
+          phone: null,
+          whatsapp: null,
+          email: null,
+          address: null,
+          instagram: null,
+          website: null,
+          timezone: "America/Sao_Paulo",
+          currency: "BRL",
+          primaryColor: "#dcff4c",
+          secondaryColor: "#162a22",
+          onboarded: true,
+        },
     locations: locationDTOs,
   };
 
-  return Response.json({ data: session });
+  return Response.json({ data: session }, { status: 200 });
 }

@@ -17,8 +17,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("employee");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const settings = await getCompanySettings(auth.user.companyId);
   const [company] = await db

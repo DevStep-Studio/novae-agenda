@@ -1,15 +1,16 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { appointmentServices, appointments, employees, payments, services } from "@/db/schema";
-import { requireAuth, unauthorized } from "@/lib/auth";
+import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, todayKey } from "@/lib/domain";
 import type { PaymentMethod, StatsResponse } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
 
   const { searchParams } = new URL(request.url);
   const range = searchParams.get("range") ?? "month";

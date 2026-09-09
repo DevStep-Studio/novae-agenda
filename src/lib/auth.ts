@@ -5,27 +5,53 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, employees, users } from "@/db/schema";
 
-export type Role = "owner" | "admin" | "manager" | "employee";
+export type Role = "superadmin" | "owner" | "admin" | "manager" | "employee" | "client";
 
 /** Higher number = more privilege. Used for hierarchical permission checks. */
-export const ROLE_RANK: Record<Role, number> = { owner: 4, admin: 3, manager: 2, employee: 1 };
+export const ROLE_RANK: Record<Role, number> = {
+  superadmin: 5,
+  owner: 4,
+  admin: 3,
+  manager: 2,
+  employee: 1,
+  client: 0,
+};
 
 export function isRole(value: string): value is Role {
-  return value === "owner" || value === "admin" || value === "manager" || value === "employee";
+  return (
+    value === "superadmin" ||
+    value === "owner" ||
+    value === "admin" ||
+    value === "manager" ||
+    value === "employee" ||
+    value === "client" ||
+    value === "customer" // alias for client
+  );
+}
+
+export function normalizeRole(roleStr: string): Role {
+  if (roleStr === "customer") return "client";
+  if (isRole(roleStr)) return roleStr as Role;
+  return "client";
 }
 
 export function hasMinRole(role: Role, min: Role): boolean {
-  return ROLE_RANK[role] >= ROLE_RANK[min];
+  return (ROLE_RANK[role] ?? 0) >= (ROLE_RANK[min] ?? 0);
 }
+
+export type TargetPortal = "/cliente" | "/gestao" | "/profissional" | "/admin";
 
 export type SessionUser = {
   userId: string;
   companyId: string;
   locationId: string | null;
   role: Role;
+  primaryRole: Role;
+  targetPortal: TargetPortal;
   isSuperadmin: boolean;
   name: string;
   email: string;
+  phone?: string | null;
   emailVerified: boolean;
   employeeId: string | null;
 };
@@ -98,25 +124,10 @@ export async function getIdentity() {
 export async function getSession(): Promise<SessionUser | null> {
   try {
     const user = await getIdentity();
-    if (!user || !user.companyId || !isRole(user.role)) return null;
+    if (!user) return null;
+
+    const normalizedRole = normalizeRole(user.role);
     const userId = user.id;
-    const company = await db
-      .select({
-        id: companies.id,
-        timezone: companies.timezone,
-        currency: companies.currency,
-        name: companies.name,
-        businessType: companies.businessType,
-        primaryColor: companies.primaryColor,
-        secondaryColor: companies.secondaryColor,
-        onboarded: companies.onboarded,
-        phone: companies.phone,
-        whatsapp: companies.whatsapp,
-        email: companies.email,
-      })
-      .from(companies)
-      .where(eq(companies.id, user.companyId))
-      .limit(1);
 
     let employeeId: string | null = null;
     const [employee] = await db
@@ -126,14 +137,34 @@ export async function getSession(): Promise<SessionUser | null> {
       .limit(1);
     if (employee) employeeId = employee.id;
 
+    // Resolve target portal based on authenticated roles
+    let targetPortal: TargetPortal = "/cliente";
+    let effectiveRole: Role = normalizedRole;
+
+    if (user.isSuperadmin) {
+      targetPortal = "/admin";
+      effectiveRole = "superadmin";
+    } else if (normalizedRole === "owner" || normalizedRole === "admin" || normalizedRole === "manager") {
+      targetPortal = "/gestao";
+    } else if (normalizedRole === "employee" || employeeId) {
+      targetPortal = "/profissional";
+      effectiveRole = "employee";
+    } else {
+      targetPortal = "/cliente";
+      effectiveRole = "client";
+    }
+
     return {
       userId: user.id,
-      companyId: user.companyId,
+      companyId: user.companyId ?? "",
       locationId: null,
-      role: isRole(user.role) ? user.role : "employee",
+      role: effectiveRole,
+      primaryRole: effectiveRole,
+      targetPortal,
       isSuperadmin: Boolean(user.isSuperadmin),
       name: user.name,
       email: user.email,
+      phone: user.phone ?? null,
       emailVerified: user.emailVerified,
       employeeId,
     };
@@ -152,16 +183,25 @@ export async function requireAuth(): Promise<AuthContext | null> {
   const user = await getSession();
   if (!user) return null;
 
-  const [company] = await db
-    .select({ timezone: companies.timezone, currency: companies.currency })
-    .from(companies)
-    .where(eq(companies.id, user.companyId))
-    .limit(1);
+  let timezone = "America/Sao_Paulo";
+  let currency = "BRL";
+
+  if (user.companyId) {
+    const [company] = await db
+      .select({ timezone: companies.timezone, currency: companies.currency })
+      .from(companies)
+      .where(eq(companies.id, user.companyId))
+      .limit(1);
+    if (company) {
+      timezone = company.timezone;
+      currency = company.currency;
+    }
+  }
 
   return {
     user,
-    companyTimezone: company?.timezone ?? "America/Sao_Paulo",
-    currency: company?.currency ?? "BRL",
+    companyTimezone: timezone,
+    currency,
   };
 }
 
@@ -182,10 +222,6 @@ export function forbidden(message = "Você não tem permissão para realizar ess
 /**
  * Route guard: returns an { auth } context when the session meets `minRole`,
  * or a ready-to-return Response (401/403) otherwise.
- *
- *   const gate = await requireRole("manager");
- *   if (gate.response) return gate.response;
- *   const { auth } = gate;
  */
 export async function requireRole(
   minRole: Role,
@@ -193,6 +229,24 @@ export async function requireRole(
   const auth = await requireAuth();
   if (!auth) return { auth: null, response: unauthorized() };
   if (!hasMinRole(auth.user.role, minRole)) return { auth: null, response: forbidden() };
+  if (!auth.user.companyId && minRole !== "client") {
+    return { auth: null, response: forbidden("Nenhuma empresa associada a esta conta.") };
+  }
+  return { auth, response: null };
+}
+
+export async function requireEmployee(): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth) return { auth: null, response: unauthorized() };
+  if (!auth.user.employeeId && !hasMinRole(auth.user.role, "manager")) {
+    return { auth: null, response: forbidden("Acesso restrito aos profissionais da equipe.") };
+  }
+  return { auth, response: null };
+}
+
+export async function requireClient(): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth) return { auth: null, response: unauthorized() };
   return { auth, response: null };
 }
 
