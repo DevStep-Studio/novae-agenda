@@ -123,6 +123,10 @@ export type ClientDTO = {
   lastVisit: string | null;
   nextVisit: string | null;
   averageTicket?: number;
+  tags?: string[];
+  favoriteEmployeeName?: string | null;
+  cancelledCount?: number;
+  noShowCount?: number;
   createdAt: string;
 };
 
@@ -230,6 +234,11 @@ export type CompanySettingsDTO = {
   defaultDurationMinutes: number;
   bufferMinutes: number;
   maxLeadDays: number;
+  minLeadMinutes?: number;
+  cancellationHours?: number;
+  rescheduleHours?: number;
+  dailyBookingLimit?: number;
+  allowHolidayBookings?: boolean;
   timezone: string;
 };
 

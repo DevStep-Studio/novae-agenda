@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Novae | Gestão e Agendamento Comercial",
-  description: "Sistema comercial completo de agenda, multiunidade, financeiro e clientes.",
+  title: "Reservei | Gestão e Agendamento Comercial SaaS",
+  description: "Plataforma SaaS profissional de agendamentos, gestão de clientes, equipe e financeiro.",
   icons: {
     icon: "/brand/favicon-32.png",
     shortcut: "/brand/favicon-64.png",

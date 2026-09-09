@@ -23,6 +23,9 @@ import {
   PLANS,
 } from "@/lib/subscriptions";
 import { createSubscriptionCheckout, activateSubscription } from "@/lib/mercadopago";
+import { PlanFeatureService } from "@/lib/subscriptions/features";
+import { WhatsAppMessagingProvider, EmailMessagingProvider } from "@/lib/messaging/provider";
+import { getCompanySettings, setCompanySetting } from "@/lib/settings";
 
 describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
   let testCompanyId: string;
@@ -290,4 +293,77 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
       assert.equal(notif.companyId, testCompanyId);
     });
   });
+
+  describe("4. Commercial SaaS Features: Plan Limits, Advanced Settings & Messaging", () => {
+    it("should enforce PlanFeatureService professional and location quotas", () => {
+      // Trial
+      const trialCheck1 = PlanFeatureService.canAddProfessional(2, "trial");
+      assert.equal(trialCheck1.allowed, true);
+      const trialCheck2 = PlanFeatureService.canAddProfessional(3, "trial");
+      assert.equal(trialCheck2.allowed, false);
+      assert.equal(trialCheck2.limit, 3);
+
+      // Pro Monthly
+      const proCheck = PlanFeatureService.canAddProfessional(4, "pro_monthly");
+      assert.equal(proCheck.allowed, true);
+      const proCheckLimit = PlanFeatureService.canAddProfessional(5, "pro_monthly");
+      assert.equal(proCheckLimit.allowed, false);
+
+      // Capabilities
+      assert.equal(PlanFeatureService.hasCapability("trial", "customBranding"), false);
+      assert.equal(PlanFeatureService.hasCapability("pro_monthly", "customBranding"), true);
+      assert.equal(PlanFeatureService.hasCapability("trial", "waitingList"), true);
+    });
+
+    it("should store and retrieve advanced booking rules in companySettings", async () => {
+      await setCompanySetting(testCompanyId, "minLeadMinutes", 120);
+      await setCompanySetting(testCompanyId, "cancellationHours", 12);
+      await setCompanySetting(testCompanyId, "rescheduleHours", 6);
+      await setCompanySetting(testCompanyId, "dailyBookingLimit", 10);
+      await setCompanySetting(testCompanyId, "allowHolidayBookings", "true");
+
+      const loaded = await getCompanySettings(testCompanyId);
+      assert.equal(loaded.minLeadMinutes, 120);
+      assert.equal(loaded.cancellationHours, 12);
+      assert.equal(loaded.rescheduleHours, 6);
+      assert.equal(loaded.dailyBookingLimit, 10);
+      assert.equal(loaded.allowHolidayBookings, true);
+    });
+
+    it("should format WhatsApp confirmation link correctly", async () => {
+      const waProvider = new WhatsAppMessagingProvider();
+      const res = await waProvider.sendBookingConfirmation({
+        customerName: "Maria Silva",
+        customerPhone: "(11) 99999-8888",
+        companyName: "Studio Reservei",
+        serviceName: "Corte e Escova",
+        date: "2026-03-20",
+        time: "14:00",
+        bookingId: "dummy-id",
+      });
+
+      assert.equal(res.ok, true);
+      assert.equal(res.channel, "whatsapp");
+      assert.ok(res.deepLink?.startsWith("https://wa.me/5511999998888"));
+      assert.ok(res.deepLink?.includes("Studio%20Reservei"));
+      assert.ok(res.deepLink?.includes("Corte%20e%20Escova"));
+    });
+
+    it("should generate email confirmation message payload correctly", async () => {
+      const emailProvider = new EmailMessagingProvider();
+      const res = await emailProvider.sendBookingConfirmation({
+        customerName: "Lucas Costa",
+        customerEmail: "lucas@example.com",
+        companyName: "Barbearia Reservei",
+        serviceName: "Barba e Cabelo",
+        date: "2026-03-22",
+        time: "10:30",
+        bookingId: "dummy-id-2",
+      });
+
+      assert.equal(res.ok, true);
+      assert.equal(res.channel, "email");
+    });
+  });
 });
+

@@ -25,6 +25,7 @@ import { ReportsView } from "@/components/reports/reports-view";
 import { SubscriptionView } from "@/components/subscriptions/subscription-view";
 import { SubscriptionPaywallModal } from "@/components/subscriptions/subscription-paywall-modal";
 import { CashClosingModal } from "@/components/financial/cash-closing-modal";
+import { OnboardingChecklistCard } from "@/components/onboarding/onboarding-checklist";
 
 type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes";
 type CalendarMode = "day" | "week" | "month";
@@ -201,14 +202,25 @@ function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string
 }
 
 /* ---------- Pages ---------- */
-function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => void; onAppointment: (apt: AppointmentDTO) => void; onGoToAgenda: () => void }) {
-  const { stats, appointments, services, clients, employees } = useStore();
+function DashboardPage({
+  onNew,
+  onAppointment,
+  onGoToAgenda,
+  onNavigate,
+}: {
+  onNew: () => void;
+  onAppointment: (apt: AppointmentDTO) => void;
+  onGoToAgenda: () => void;
+  onNavigate?: (tab: string) => void;
+}) {
+  const { stats, appointments, services, clients, employees, notify } = useStore();
   const today = todayKey();
   const todayApts = appointments.filter((apt) => apt.date === today).filter((apt) => !["cancelled", "no_show"].includes(apt.status));
   const pending = todayApts.filter((apt) => apt.status !== "completed");
   const next = pending[0];
   const realized = stats?.today.realized ?? 0;
   const forecast = stats?.today.forecast ?? 0;
+  const pendingAmount = Math.max(0, forecast - realized);
 
   const totalSlotsCapacity = Math.max(1, employees.filter((e) => e.active).length * 12);
   const activeTodayCount = todayApts.filter((a) => a.status !== "cancelled" && a.status !== "no_show").length;
@@ -220,10 +232,13 @@ function DashboardPage({ onNew, onAppointment, onGoToAgenda }: { onNew: () => vo
     <div className="page-content dashboard-page">
       <div className="page-intro"><div><p className="eyebrow">{pageTitles.dashboard.eyebrow}</p><h1>Olá! Aqui está seu dia</h1><p className="intro-copy">Acompanhe os atendimentos e a receita do seu estabelecimento hoje.</p></div><Button onClick={onNew}><Plus size={17} /> Novo agendamento</Button></div>
 
-      <div className="metrics-grid">
+      <OnboardingChecklistCard onNavigate={onNavigate || onGoToAgenda} onToast={notify} />
+
+      <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
         <div className="metric-card"><div className="metric-icon metric-teal"><CalendarDays size={18} /></div><div className="metric-copy"><p>Atendimentos hoje</p><strong>{stats?.today.appointments ?? 0}</strong><span className="metric-detail">agendados para hoje</span></div></div>
         <div className="metric-card"><div className="metric-icon metric-lilac"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista</p><strong>{formatCurrency(forecast)}</strong><span className="metric-detail">para hoje</span></div></div>
         <div className="metric-card"><div className="metric-icon metric-amber"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita realizada</p><strong>{formatCurrency(realized)}</strong><span className="metric-detail">já recebida hoje</span></div></div>
+        <div className="metric-card"><div className="metric-icon" style={{ background: "rgba(251, 146, 60, 0.12)", color: "#fb923c" }}><CircleDollarSign size={18} /></div><div className="metric-copy"><p>Receita pendente</p><strong>{formatCurrency(pendingAmount)}</strong><span className="metric-detail">a receber hoje</span></div></div>
         <div className="metric-card"><div className="metric-icon metric-rose"><Users size={18} /></div><div className="metric-copy"><p>Clientes atendidos</p><strong>{stats?.today.clientsServed ?? 0}</strong><span className="metric-detail">finalizados hoje</span></div></div>
       </div>
 
@@ -665,8 +680,8 @@ function ClientsPage({
                             <a
                               href={`https://wa.me/${formatPhoneForWhatsApp(client.phone)}?text=${encodeURIComponent(
                                 activeTab === "inactive"
-                                  ? `Olá, ${client.name}! Faz tempo que não nos vemos no(a) ${session?.company.name || "Nova(e)"}. Preparamos um horário especial para você retornar, que tal agendar?`
-                                  : `Olá, ${client.name}! Tudo bem? Falamos da ${session?.company.name || "Agenda"}.`
+                                  ? `Olá, ${client.name}! Faz tempo que não nos vemos no(a) ${session?.company.name || "Reservei"}. Preparamos um horário especial para você retornar, que tal agendar?`
+                                  : `Olá, ${client.name}! Tudo bem? Falamos da ${session?.company.name || "Reservei"}.`
                               )}`}
                               target="_blank"
                               rel="noreferrer"
@@ -1804,7 +1819,7 @@ function FinancialPage() {
           employees={employees}
           locations={locations}
           stats={stats}
-          companyName={session?.company.name || "Nova(e)"}
+          companyName={session?.company.name || "Reservei"}
         />
       )}
     </div>
@@ -1831,6 +1846,12 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
   const [workingDays, setWorkingDays] = useState<number[]>(settings?.workingDays ?? [1, 2, 3, 4, 5, 6]);
   const [slotInterval, setSlotInterval] = useState(settings?.slotIntervalMinutes ?? 30);
   const [bufferMinutes, setBufferMinutes] = useState(settings?.bufferMinutes ?? 0);
+  const [maxLeadDays, setMaxLeadDays] = useState(settings?.maxLeadDays ?? 60);
+  const [minLeadMinutes, setMinLeadMinutes] = useState(settings?.minLeadMinutes ?? 60);
+  const [cancellationHours, setCancellationHours] = useState(settings?.cancellationHours ?? 24);
+  const [rescheduleHours, setRescheduleHours] = useState(settings?.rescheduleHours ?? 12);
+  const [dailyBookingLimit, setDailyBookingLimit] = useState(settings?.dailyBookingLimit ?? 0);
+  const [allowHolidayBookings, setAllowHolidayBookings] = useState(settings?.allowHolidayBookings ?? false);
   const [timezone, setTimezone] = useState(settings?.timezone ?? "America/Sao_Paulo");
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -1842,6 +1863,12 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
       setWorkingDays(settings.workingDays);
       setSlotInterval(settings.slotIntervalMinutes);
       setBufferMinutes(settings.bufferMinutes);
+      if (settings.maxLeadDays !== undefined) setMaxLeadDays(settings.maxLeadDays);
+      if (settings.minLeadMinutes !== undefined) setMinLeadMinutes(settings.minLeadMinutes);
+      if (settings.cancellationHours !== undefined) setCancellationHours(settings.cancellationHours);
+      if (settings.rescheduleHours !== undefined) setRescheduleHours(settings.rescheduleHours);
+      if (settings.dailyBookingLimit !== undefined) setDailyBookingLimit(settings.dailyBookingLimit);
+      if (settings.allowHolidayBookings !== undefined) setAllowHolidayBookings(settings.allowHolidayBookings);
       setTimezone(settings.timezone);
     }
   }, [settings]);
@@ -1867,6 +1894,12 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
         workingDays,
         slotIntervalMinutes: slotInterval,
         bufferMinutes,
+        maxLeadDays,
+        minLeadMinutes,
+        cancellationHours,
+        rescheduleHours,
+        dailyBookingLimit,
+        allowHolidayBookings,
         timezone,
       });
       notify("Configurações da agenda salvas.");
@@ -2096,6 +2129,72 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                   </Field>
                 </div>
 
+                <div className="settings-two-col">
+                  <Field label="Antecedência mínima para agendar" hint="Tempo mínimo entre a reserva e o atendimento.">
+                    <SelectField value={minLeadMinutes} onChange={(e) => setMinLeadMinutes(Number(e.target.value))}>
+                      <option value={30}>30 minutos</option>
+                      <option value={60}>1 hora antes</option>
+                      <option value={120}>2 horas antes</option>
+                      <option value={360}>6 horas antes</option>
+                      <option value={720}>12 horas antes</option>
+                      <option value={1440}>24 horas antes (1 dia)</option>
+                    </SelectField>
+                  </Field>
+                  <Field label="Limite futuro para agendar" hint="Até quantos dias à frente os clientes podem reservar.">
+                    <SelectField value={maxLeadDays} onChange={(e) => setMaxLeadDays(Number(e.target.value))}>
+                      <option value={7}>7 dias (1 semana)</option>
+                      <option value={15}>15 dias</option>
+                      <option value={30}>30 dias (1 mês)</option>
+                      <option value={60}>60 dias (2 meses)</option>
+                      <option value={90}>90 dias (3 meses)</option>
+                      <option value={180}>180 dias (6 meses)</option>
+                      <option value={365}>365 dias (1 ano)</option>
+                    </SelectField>
+                  </Field>
+                </div>
+
+                <div className="settings-two-col">
+                  <Field label="Cancelamento pelo cliente" hint="Antecedência mínima permitida para cancelar online.">
+                    <SelectField value={cancellationHours} onChange={(e) => setCancellationHours(Number(e.target.value))}>
+                      <option value={0}>Não permitir cancelamento online</option>
+                      <option value={2}>Até 2 horas antes</option>
+                      <option value={6}>Até 6 horas antes</option>
+                      <option value={12}>Até 12 horas antes</option>
+                      <option value={24}>Até 24 horas antes</option>
+                      <option value={48}>Até 48 horas antes</option>
+                      <option value={72}>Até 72 horas antes</option>
+                    </SelectField>
+                  </Field>
+                  <Field label="Remarcação pelo cliente" hint="Antecedência mínima permitida para remarcar online.">
+                    <SelectField value={rescheduleHours} onChange={(e) => setRescheduleHours(Number(e.target.value))}>
+                      <option value={2}>Até 2 horas antes</option>
+                      <option value={6}>Até 6 horas antes</option>
+                      <option value={12}>Até 12 horas antes</option>
+                      <option value={24}>Até 24 horas antes</option>
+                      <option value={48}>Até 48 horas antes</option>
+                    </SelectField>
+                  </Field>
+                </div>
+
+                <div className="settings-two-col">
+                  <Field label="Limite de atendimentos diários" hint="Máximo de agendamentos aceitos por dia.">
+                    <SelectField value={dailyBookingLimit} onChange={(e) => setDailyBookingLimit(Number(e.target.value))}>
+                      <option value={0}>Sem limite (capacidade máxima)</option>
+                      <option value={5}>Máximo de 5 atendimentos/dia</option>
+                      <option value={8}>Máximo de 8 atendimentos/dia</option>
+                      <option value={10}>Máximo de 10 atendimentos/dia</option>
+                      <option value={15}>Máximo de 15 atendimentos/dia</option>
+                      <option value={20}>Máximo de 20 atendimentos/dia</option>
+                    </SelectField>
+                  </Field>
+                  <Field label="Atendimento em feriados" hint="Permitir agendamentos em feriados nacionais.">
+                    <SelectField value={allowHolidayBookings ? "true" : "false"} onChange={(e) => setAllowHolidayBookings(e.target.value === "true")}>
+                      <option value="false">Não trabalhar em feriados (fechado)</option>
+                      <option value="true">Aceitar agendamentos normalmente em feriados</option>
+                    </SelectField>
+                  </Field>
+                </div>
+
                 <Field label="Fuso horário (Timezone)">
                   <div className="input-with-icon">
                     <Globe size={15} />
@@ -2153,7 +2252,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                     <div className="security-icon"><Sparkles size={18} /></div>
                     <div className="security-info">
                       <span className="security-label">Privilégios da plataforma</span>
-                      <strong>Superadmin Nova(e)</strong>
+                      <strong>Superadmin Reservei</strong>
                       <small>Acesso a métricas e auditoria multitenant</small>
                     </div>
                     <span className="security-role-badge superadmin">Superadmin</span>
@@ -2165,22 +2264,37 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
           {activeTab === "ajuda" && (
             <section className="settings-section">
-              <SectionHeading title="Ajuda e Suporte" description="Acesse guias e tire dúvidas com o time Nova(e)." />
-              <div className="help-cards-grid">
-                <div className="help-card">
-                  <div className="help-icon"><Clock3 size={20} /></div>
-                  <strong>Motor de Agendamento</strong>
-                  <p>Cálculo automático de horários livres baseado nos profissionais e unidades ativas.</p>
+              <SectionHeading title="Central de Ajuda e Tutoriais" description="Guias práticos para dominar o seu Reservei." />
+              <div className="help-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Clock3 size={20} /></div>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>1. Como configurar a agenda</strong>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Defina os horários de abertura, fechamento e dias de funcionamento na aba "Funcionamento" desta tela.</p>
                 </div>
-                <div className="help-card">
-                  <div className="help-icon"><WalletCards size={20} /></div>
-                  <strong>Fluxo Financeiro</strong>
-                  <p>Receitas realizadas derivadas de atendimentos concluídos com comissões calculadas.</p>
+                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Tag size={20} /></div>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>2. Como criar um serviço</strong>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Acesse a aba Serviços no menu lateral, clique em "+ Novo serviço", defina valor, duração e profissionais.</p>
                 </div>
-                <div className="help-card">
-                  <div className="help-icon"><MessageCircle size={20} /></div>
-                  <strong>Suporte Direto</strong>
-                  <p>Precisa de auxílio operacional ou novas integrações? Fale diretamente com o time Nova(e).</p>
+                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Ban size={20} /></div>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>3. Como bloquear horário</strong>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Na aba Agenda, use "+ Bloquear horário" para registrar folgas, pausas para almoço ou manutenção.</p>
+                </div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Globe size={20} /></div>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>4. Como compartilhar link</strong>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Vá para "Link de agendamento" para personalizar seu slug, copiar o link ou baixar o QR Code para balcão.</p>
+                </div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><UserRound size={20} /></div>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>5. Como cadastrar equipe</strong>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Na aba Equipe, cadastre os colaboradores, defina comissões percentuais ou fixas e vincule serviços.</p>
+                </div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><CalendarCheck size={20} /></div>
+                  <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>6. Como cancelar ou remarcar</strong>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Clique no agendamento desejado para alterar o status para cancelado ou remarcar dia e horário.</p>
                 </div>
               </div>
             </section>
@@ -2721,7 +2835,7 @@ function SuperadminModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   return (
-    <Modal title="Painel Superadmin Nova(e)" eyebrow="Administração da Plataforma" onClose={onClose} wide>
+    <Modal title="Painel Superadmin Reservei" eyebrow="Administração da Plataforma" onClose={onClose} wide>
       {loading && <div className="popover-empty">Carregando dados da plataforma...</div>}
       {stats && (
         <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -2733,7 +2847,7 @@ function SuperadminModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <section>
-            <SectionHeading title="Empresas cadastradas no Nova(e)" description="Visão global dos clientes da plataforma" />
+            <SectionHeading title="Empresas cadastradas no Reservei" description="Visão global dos clientes da plataforma" />
             <div className="data-table-wrap">
               <table className="data-table">
                 <thead><tr><th>Empresa</th><th>Ramo</th><th>Usuários</th><th>Profissionais</th><th>Unidades</th><th>Agendamentos</th><th>Cadastro</th></tr></thead>
@@ -2859,7 +2973,14 @@ export function AppShell() {
   const render = () => {
     switch (view) {
       case "dashboard":
-        return <DashboardPage onNew={() => setNewAppointmentOpen(true)} onAppointment={setDetailAppointment} onGoToAgenda={() => navigate("agenda")} />;
+        return (
+          <DashboardPage
+            onNew={() => setNewAppointmentOpen(true)}
+            onAppointment={setDetailAppointment}
+            onGoToAgenda={() => navigate("agenda")}
+            onNavigate={(tab) => navigate(tab as ViewKey)}
+          />
+        );
       case "clientes":
         return (
           <ClientsPage
@@ -3422,14 +3543,14 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
           </a>
           {onSuperadmin && (
             <Button onClick={() => { onSuperadmin(); onClose(); }} className="full-width" variant="secondary">
-              <Sparkles size={16} /> Painel Superadmin Nova(e)
+              <Sparkles size={16} /> Painel Superadmin Reservei
             </Button>
           )}
           <Button onClick={() => { onSettings(); onClose(); }} className="full-width"><Settings2 size={16} /> Configurações da conta</Button>
           <Button variant="secondary" onClick={() => { onLogout(); onClose(); }} className="full-width"><LogOut size={16} /> Sair da conta</Button>
         </div>
 
-        <div className="profile-footer"><span className="profile-version">Nova(e) Agenda v2.0 · Comercial</span></div>
+        <div className="profile-footer"><span className="profile-version">Reservei SaaS v2.0 · Comercial</span></div>
       </aside>
     </div>
   );

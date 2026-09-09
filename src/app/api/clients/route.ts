@@ -49,25 +49,60 @@ export async function GET(request: Request) {
         .groupBy(appointments.clientId)
     : [];
 
+  const statusRows = ids.length
+    ? await db
+        .select({
+          clientId: appointments.clientId,
+          cancelled: sql<number>`count(*) filter (where ${appointments.status} = 'cancelled')`.as("cancelled"),
+          noShow: sql<number>`count(*) filter (where ${appointments.status} = 'no_show')`.as("noShow"),
+          nextVisit: sql<string | null>`min(${appointments.appointmentDate}) filter (where ${appointments.status} in ('scheduled', 'confirmed') and ${appointments.appointmentDate} >= current_date)`.as("nextVisit"),
+        })
+        .from(appointments)
+        .where(inArray(appointments.clientId, ids))
+        .groupBy(appointments.clientId)
+    : [];
+
   const visitsBy = new Map(visitRows.map((r) => [r.clientId, r]));
   const spentBy = new Map(spentRows.map((r) => [r.clientId, centsToNumber(r.spent)]));
+  const statusBy = new Map(statusRows.map((r) => [r.clientId, r]));
 
-  const dto: ClientDTO[] = rows.map((client) => ({
-    id: client.id,
-    name: client.name,
-    phone: client.phone ?? "",
-    email: client.email,
-    photoUrl: client.photoUrl ?? null,
-    notes: client.notes,
-    active: client.active,
-    initials: initials(client.name),
-    color: avatarColor(client.name),
-    visits: Number(visitsBy.get(client.id)?.visits ?? 0),
-    spent: spentBy.get(client.id) ?? 0,
-    lastVisit: visitsBy.get(client.id)?.last ?? null,
-    nextVisit: null,
-    createdAt: client.createdAt.toISOString(),
-  }));
+  const dto: ClientDTO[] = rows.map((client) => {
+    const visits = Number(visitsBy.get(client.id)?.visits ?? 0);
+    const spent = spentBy.get(client.id) ?? 0;
+    const st = statusBy.get(client.id);
+    const cancelledCount = Number(st?.cancelled ?? 0);
+    const noShowCount = Number(st?.noShow ?? 0);
+    const nextVisit = st?.nextVisit ?? null;
+
+    const tags: string[] = [];
+    if (spent >= 500 || visits >= 8) tags.push("VIP");
+    else if (visits >= 3) tags.push("Recorrente");
+    else if (visits <= 1) tags.push("Novo");
+
+    if (noShowCount >= 2) tags.push("No-show frequente");
+
+    return {
+      id: client.id,
+      name: client.name,
+      phone: client.phone ?? "",
+      email: client.email,
+      photoUrl: client.photoUrl ?? null,
+      notes: client.notes,
+      internalNotes: client.internalNotes,
+      active: client.active,
+      initials: initials(client.name),
+      color: avatarColor(client.name),
+      visits,
+      spent,
+      averageTicket: visits > 0 ? spent / visits : 0,
+      tags,
+      cancelledCount,
+      noShowCount,
+      lastVisit: visitsBy.get(client.id)?.last ?? null,
+      nextVisit,
+      createdAt: client.createdAt.toISOString(),
+    };
+  });
 
   return Response.json({ data: dto });
 }

@@ -247,6 +247,12 @@ export async function loadAvailability(
       !settings.workingDays.includes(dayOfWeek(date, company.timezone))
     )
       return [];
+
+    if (settings.dailyBookingLimit > 0) {
+      const busyForDay = busy.filter((a) => a.appointmentDate === date);
+      if (busyForDay.length >= settings.dailyBookingLimit) return [];
+    }
+
     const gaps = new Map<string, Interval[]>();
     for (const e of team) {
       const work = scheduleWindows(
@@ -280,6 +286,9 @@ export async function loadAvailability(
     }
     const result: AvailableSlot[] = [];
     const step = Math.max(1, settings.slotIntervalMinutes);
+    const minLeadMs = (settings.minLeadMinutes ?? 0) * 60 * 1000;
+    const now = Date.now();
+
     for (
       let start = Math.ceil(open / step) * step;
       start < close;
@@ -291,7 +300,7 @@ export async function loadAvailability(
       } catch {
         continue;
       }
-      if (instant <= new Date()) continue;
+      if (instant.getTime() - now < minLeadMs) continue;
       let cursor = start;
       const items: PlannedItem[] = [];
       for (const { service, candidates } of ordered) {

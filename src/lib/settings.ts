@@ -10,6 +10,11 @@ export type CompanySettings = {
   defaultDurationMinutes: number;
   bufferMinutes: number;
   maxLeadDays: number;
+  minLeadMinutes: number;
+  cancellationHours: number;
+  rescheduleHours: number;
+  dailyBookingLimit: number;
+  allowHolidayBookings: boolean;
 };
 
 export const DEFAULT_SETTINGS: CompanySettings = {
@@ -20,6 +25,11 @@ export const DEFAULT_SETTINGS: CompanySettings = {
   defaultDurationMinutes: 60,
   bufferMinutes: 0,
   maxLeadDays: 60,
+  minLeadMinutes: 60,
+  cancellationHours: 24,
+  rescheduleHours: 12,
+  dailyBookingLimit: 0,
+  allowHolidayBookings: false,
 };
 
 const KEY_MAP: Record<keyof CompanySettings, string> = {
@@ -30,6 +40,11 @@ const KEY_MAP: Record<keyof CompanySettings, string> = {
   defaultDurationMinutes: "default_duration_minutes",
   bufferMinutes: "appointment_buffer_minutes",
   maxLeadDays: "max_lead_days",
+  minLeadMinutes: "min_lead_minutes",
+  cancellationHours: "cancellation_hours",
+  rescheduleHours: "reschedule_hours",
+  dailyBookingLimit: "daily_booking_limit",
+  allowHolidayBookings: "allow_holiday_bookings",
 };
 
 function toInt(value: string | null | undefined, fallback: number): number {
@@ -64,6 +79,11 @@ export async function getCompanySettings(companyId: string, executor: Pick<typeo
     defaultDurationMinutes: toInt(byKey.get(KEY_MAP.defaultDurationMinutes), DEFAULT_SETTINGS.defaultDurationMinutes),
     bufferMinutes: toInt(byKey.get(KEY_MAP.bufferMinutes), DEFAULT_SETTINGS.bufferMinutes),
     maxLeadDays: toInt(byKey.get(KEY_MAP.maxLeadDays), DEFAULT_SETTINGS.maxLeadDays),
+    minLeadMinutes: toInt(byKey.get(KEY_MAP.minLeadMinutes), DEFAULT_SETTINGS.minLeadMinutes),
+    cancellationHours: toInt(byKey.get(KEY_MAP.cancellationHours), DEFAULT_SETTINGS.cancellationHours),
+    rescheduleHours: toInt(byKey.get(KEY_MAP.rescheduleHours), DEFAULT_SETTINGS.rescheduleHours),
+    dailyBookingLimit: toInt(byKey.get(KEY_MAP.dailyBookingLimit), DEFAULT_SETTINGS.dailyBookingLimit),
+    allowHolidayBookings: byKey.get(KEY_MAP.allowHolidayBookings) === "true",
   };
 }
 

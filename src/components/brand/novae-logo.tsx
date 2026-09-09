@@ -63,46 +63,55 @@ export function NovaeLogo({
       : 52; // xl
 
   if (variant === "symbol") {
-    if (useImage) {
-      return (
-        <img
-          src="/brand/novae-symbol.png"
-          alt="Novae"
-          width={Math.round(height * 0.99)}
-          height={height}
-          className={`novae-brand-symbol ${className}`}
-          style={{ height: `${height}px`, width: "auto", objectFit: "contain" }}
-        />
-      );
-    }
     return <NovaeStarIcon size={height} className={className} fill="#dcff4c" />;
   }
 
   if (variant === "wordmark") {
     return (
-      <img
-        src="/brand/novae-wordmark.png"
-        alt="novae"
-        height={height}
-        className={`novae-brand-wordmark ${className}`}
-        style={{ height: `${height}px`, width: "auto", objectFit: "contain" }}
-      />
+      <span
+        className={`reservei-brand-wordmark ${className}`}
+        style={{
+          fontSize: `${Math.round(height * 0.75)}px`,
+          fontWeight: 700,
+          color: "#f2f7f4",
+          letterSpacing: "-0.5px",
+          display: "inline-flex",
+          alignItems: "center",
+          fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        }}
+      >
+        reservei<span style={{ color: "#dcff4c" }}>.</span>
+      </span>
     );
   }
 
   // Full lockup
   return (
     <div
-      className={`novae-brand-lockup ${className}`}
-      style={{ display: "inline-flex", alignItems: "center", height: `${height}px` }}
+      className={`reservei-brand-lockup ${className}`}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: `${Math.round(height * 0.3)}px`,
+        height: `${height}px`,
+      }}
     >
-      <img
-        src="/brand/novae-logo.png"
-        alt="novae"
-        height={height}
-        style={{ height: `${height}px`, width: "auto", objectFit: "contain", display: "block" }}
-        className="novae-logo-img"
-      />
+      <NovaeStarIcon size={height} fill="#dcff4c" />
+      <span
+        style={{
+          fontSize: `${Math.round(height * 0.72)}px`,
+          fontWeight: 700,
+          color: "#f2f7f4",
+          letterSpacing: "-0.5px",
+          fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          lineHeight: 1,
+        }}
+      >
+        reservei<span style={{ color: "#dcff4c" }}>.</span>
+      </span>
     </div>
   );
 }
+
+export const ReserveiLogo = NovaeLogo;
+

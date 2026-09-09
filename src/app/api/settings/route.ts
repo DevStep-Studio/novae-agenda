@@ -44,6 +44,11 @@ const updateSchema = z.object({
   defaultDurationMinutes: z.number().int().min(5).max(480).optional(),
   bufferMinutes: z.number().int().min(0).max(120).optional(),
   maxLeadDays: z.number().int().min(0).max(365).optional(),
+  minLeadMinutes: z.number().int().min(0).max(10080).optional(),
+  cancellationHours: z.number().int().min(0).max(720).optional(),
+  rescheduleHours: z.number().int().min(0).max(720).optional(),
+  dailyBookingLimit: z.number().int().min(0).max(500).optional(),
+  allowHolidayBookings: z.boolean().optional(),
   timezone: z.string().min(2).max(80).optional(),
 });
 
@@ -102,6 +107,16 @@ export async function PUT(request: Request) {
         );
       if (data.maxLeadDays !== undefined)
         await setCompanySetting(companyId, "maxLeadDays", data.maxLeadDays, tx);
+      if (data.minLeadMinutes !== undefined)
+        await setCompanySetting(companyId, "minLeadMinutes", data.minLeadMinutes, tx);
+      if (data.cancellationHours !== undefined)
+        await setCompanySetting(companyId, "cancellationHours", data.cancellationHours, tx);
+      if (data.rescheduleHours !== undefined)
+        await setCompanySetting(companyId, "rescheduleHours", data.rescheduleHours, tx);
+      if (data.dailyBookingLimit !== undefined)
+        await setCompanySetting(companyId, "dailyBookingLimit", data.dailyBookingLimit, tx);
+      if (data.allowHolidayBookings !== undefined)
+        await setCompanySetting(companyId, "allowHolidayBookings", data.allowHolidayBookings ? "true" : "false", tx);
 
       if (data.timezone) {
         await assertTimezoneChange(tx, companyId, data.timezone);
