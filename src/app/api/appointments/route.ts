@@ -1,3 +1,4 @@
+import { assertSubscriptionActive } from "@/lib/subscriptions";
 import { lockCompany } from "@/lib/booking/service";
 import { bookingError, sameOrigin } from "@/lib/booking/errors";
 import { and, asc, between, eq, inArray } from "drizzle-orm";
@@ -210,6 +211,8 @@ export async function POST(request: Request) {
     sameOrigin(request);
     return await db.transaction(async (tx) => {
       await lockCompany(tx, auth.user.companyId);
+      const subscription = await assertSubscriptionActive(auth.user.companyId, tx);
+      if (!subscription.ok) return Response.json({ error: subscription.reason }, { status: 403 });
       const body = await request.json().catch(() => null);
       const parsed = createSchema.safeParse(body);
       if (!parsed.success) {

@@ -18,6 +18,9 @@ import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
 } from "@/shared/types";
+import { QuickStatus, OperationsAvailability, type QuickPrefill } from "@/components/operations/quick-actions";
+import { ClientPicker } from "@/components/operations/client-picker";
+import { localDate, localTime } from "@/lib/booking/time";
 import { BookingSettings } from "@/components/booking/booking-settings";
 import { ServiceEditor } from "@/components/booking/service-editor";
 import { NovaeLogo } from "@/components/brand/novae-logo";
@@ -238,25 +241,24 @@ function DashboardPage({
   onAppointment,
   onGoToAgenda,
   onNavigate,
+  onQuickNew,
 }: {
+  onQuickNew: (prefill: QuickPrefill) => void;
   onNew: () => void;
   onAppointment: (apt: AppointmentDTO) => void;
   onGoToAgenda: () => void;
   onNavigate?: (tab: string) => void;
 }) {
-  const { stats, appointments, services, clients, employees, notify } = useStore();
-  const today = todayKey();
+  const { stats, appointments, services, clients, employees, notify, session } = useStore();
+  const today = localDate(new Date(), session?.company.timezone || "America/Sao_Paulo");
+  const nowTime = localTime(new Date(), session?.company.timezone || "America/Sao_Paulo");
   const todayApts = appointments.filter((apt) => apt.date === today).filter((apt) => !["cancelled", "no_show"].includes(apt.status));
-  const pending = todayApts.filter((apt) => apt.status !== "completed");
-  const next = pending[0];
+  const pending = todayApts.filter((apt) => apt.status !== "completed").sort((a,b) => a.startTime.localeCompare(b.startTime));
+  const next = pending.find(a => a.status === "in_progress" || a.status === "waiting") || pending.find(a => a.endTime > nowTime);
   const realized = stats?.today.realized ?? 0;
   const forecast = stats?.today.forecast ?? 0;
   const pendingAmount = Math.max(0, forecast - realized);
 
-  const totalSlotsCapacity = Math.max(1, employees.filter((e) => e.active).length * 12);
-  const activeTodayCount = todayApts.filter((a) => a.status !== "cancelled" && a.status !== "no_show").length;
-  const occupancyRate = Math.min(100, Math.round((activeTodayCount / totalSlotsCapacity) * 100));
-  const freeSlotsToday = Math.max(0, totalSlotsCapacity - activeTodayCount);
   const cancellationsToday = (stats?.today.cancelled ?? 0) + (stats?.today.noShow ?? 0);
 
   return (
@@ -274,20 +276,7 @@ function DashboardPage({
       </div>
 
       <div className="metrics-subgrid">
-        <div className="submetric-card">
-          <div>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Ocupação do dia</span>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--primary)", marginTop: 2 }}>{occupancyRate}%</div>
-          </div>
-          <Sparkles size={18} style={{ color: "var(--primary)" }} />
-        </div>
-        <div className="submetric-card">
-          <div>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Horários livres hoje</span>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)", marginTop: 2 }}>{freeSlotsToday}</div>
-          </div>
-          <Clock size={18} style={{ color: "var(--text-secondary)" }} />
-        </div>
+        <div className="submetric-card"><span>Atendimentos pendentes</span><strong>{pending.length}</strong></div>
         <div className="submetric-card">
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
@@ -301,7 +290,7 @@ function DashboardPage({
         <section className="panel next-panel">
           <SectionHeading title="Próximo atendimento" action={next ? <button className="link-button" onClick={() => onAppointment(next)}>Ver detalhes <ArrowRight size={14} /></button> : undefined} />
           {next ? (
-            <div className="next-appointment" onClick={() => onAppointment(next)}>
+            <div className="next-appointment">
               <div className="next-time">
                 <span className="next-time-badge">Próximo</span>
                 <strong>{normalizeTime(next.startTime)}</strong>
@@ -330,6 +319,7 @@ function DashboardPage({
                   <strong>{formatCurrency(next.total)}</strong>
                 </div>
                 <StatusBadge status={next.status} />
+                <QuickStatus appointment={next} onDetails={() => onAppointment(next)} />
               </div>
             </div>
           ) : (
@@ -349,9 +339,10 @@ function DashboardPage({
         </section>
       </div>
 
+      <OperationsAvailability onNew={onQuickNew} />
       <section className="panel agenda-today-panel">
         <SectionHeading title="Agenda de hoje" description="Atendimentos em ordem cronológica" action={<button className="link-button" onClick={onGoToAgenda}>Ver agenda <ArrowRight size={14} /></button>} />
-        {todayApts.length ? <div className="appointment-list">{todayApts.map((apt) => <AppointmentCard key={apt.id} appointment={apt} onClick={() => onAppointment(apt)} />)}</div> : <EmptyState title="Nenhum atendimento hoje" description="Sua agenda de hoje está vazia." action={<Button onClick={onNew}><Plus size={16} /> Novo agendamento</Button>} />}
+        {todayApts.length ? <div className="appointment-list">{[...todayApts].sort((a,b) => a.startTime.localeCompare(b.startTime)).map((apt) => <div key={apt.id}><p className="eyebrow">{apt.status === "completed" || apt.endTime < nowTime ? "Anteriores" : apt.status === "in_progress" || apt.status === "waiting" ? "Agora" : apt.id === next?.id ? "Próximo" : "Depois"}</p><AppointmentCard appointment={apt} onClick={() => onAppointment(apt)} /></div>)}</div> : <EmptyState title="Nenhum atendimento hoje" description="Sua agenda de hoje está vazia." action={<Button onClick={onNew}><Plus size={16} /> Novo agendamento</Button>} />}
         {services.length === 0 && <div className="dashboard-onboarding-hint"><ShieldCheck size={15} /><span>Cadastre serviços para começar a agendar.</span></div>}
       </section>
     </div>
@@ -366,6 +357,7 @@ function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO
     : "var(--primary)";
 
   return (
+    <article>
     <button
       className="appointment-card"
       onClick={onClick}
@@ -393,6 +385,8 @@ function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO
         <strong>{formatCurrency(appointment.total)}</strong>
       </div>
     </button>
+    <QuickStatus appointment={appointment} />
+    </article>
   );
 }
 
@@ -433,6 +427,7 @@ function ClientsPage({
   const newClientsCount = clients.filter((c) => new Date(c.createdAt) >= thirtyDaysAgo).length;
 
   const todayStr = new Date().toISOString().slice(0, 10);
+  const referenceTime = new Date(`${todayStr}T00:00:00`).getTime();
   const clientIdsWithAppointment = useMemo(() => {
     return new Set(
       appointments
@@ -449,11 +444,11 @@ function ClientsPage({
     return clients.filter((c) => {
       const refDateStr = c.lastVisit || c.createdAt;
       if (!refDateStr) return false;
-      const diffDays = Math.floor((Date.now() - new Date(refDateStr).getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.floor((referenceTime - new Date(refDateStr).getTime()) / (1000 * 60 * 60 * 24));
       const hasUpcoming = clientIdsWithAppointment.has(c.id) || Boolean(c.nextVisit);
       return diffDays >= inactiveDays && !hasUpcoming;
     });
-  }, [clients, inactiveDays, clientIdsWithAppointment]);
+  }, [clients, inactiveDays, clientIdsWithAppointment, referenceTime]);
 
   // Filtered by query & active tab
   const filtered = useMemo(() => {
@@ -478,13 +473,13 @@ function ClientsPage({
       if (activeTab === "inactive") {
         const refDateStr = client.lastVisit || client.createdAt;
         if (!refDateStr) return false;
-        const diffDays = Math.floor((Date.now() - new Date(refDateStr).getTime()) / (1000 * 60 * 60 * 24));
+        const diffDays = Math.floor((referenceTime - new Date(refDateStr).getTime()) / (1000 * 60 * 60 * 24));
         const hasUpcoming = clientIdsWithAppointment.has(client.id) || Boolean(client.nextVisit);
         return diffDays >= inactiveDays && !hasUpcoming;
       }
       return true;
     });
-  }, [clients, query, activeTab, thirtyDaysAgo, clientIdsWithAppointment, inactiveDays]);
+  }, [clients, query, activeTab, thirtyDaysAgo, clientIdsWithAppointment, inactiveDays, referenceTime]);
 
   // Sorted list
   const sorted = useMemo(() => {
@@ -2509,22 +2504,22 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                 <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                   <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Clock3 size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>1. Como configurar a agenda</strong>
-                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Defina os horários de abertura, fechamento e dias de funcionamento na aba "Funcionamento" desta tela.</p>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Defina os horários de abertura, fechamento e dias de funcionamento na aba “Funcionamento” desta tela.</p>
                 </div>
                 <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                   <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Tag size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>2. Como criar um serviço</strong>
-                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Acesse a aba Serviços no menu lateral, clique em "+ Novo serviço", defina valor, duração e profissionais.</p>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Acesse a aba Serviços no menu lateral, clique em “+ Novo serviço”, defina valor, duração e profissionais.</p>
                 </div>
                 <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                   <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Ban size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>3. Como bloquear horário</strong>
-                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Na aba Agenda, use "+ Bloquear horário" para registrar folgas, pausas para almoço ou manutenção.</p>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Na aba Agenda, use “+ Bloquear horário” para registrar folgas, pausas para almoço ou manutenção.</p>
                 </div>
                 <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                   <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Globe size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>4. Como compartilhar link</strong>
-                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Vá para "Link de agendamento" para personalizar seu slug, copiar o link ou baixar o QR Code para balcão.</p>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Vá para “Link de agendamento” para personalizar seu slug, copiar o link ou baixar o QR Code para balcão.</p>
                 </div>
                 <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                   <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><UserRound size={20} /></div>
@@ -2552,17 +2547,21 @@ function NewAppointmentModal({
   defaultEmployeeId,
   defaultStartTime,
   defaultClientId,
+  defaultServiceId,
+  defaultLocationId,
 }: {
   onClose: () => void;
   defaultDate: string;
   defaultEmployeeId?: string;
   defaultStartTime?: string;
   defaultClientId?: string;
+  defaultServiceId?: string;
+  defaultLocationId?: string;
 }) {
-  const { clients, services, employees, locations, activeLocationId, createAppointment, notify } = useStore();
+  const { services, employees, locations, activeLocationId, createAppointment, notify } = useStore();
   const [clientId, setClientId] = useState(defaultClientId || "");
-  const [locationId, setLocationId] = useState(activeLocationId || locations[0]?.id || "");
-  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [locationId, setLocationId] = useState(defaultLocationId || activeLocationId || locations[0]?.id || "");
+  const [serviceIds, setServiceIds] = useState<string[]>(defaultServiceId ? [defaultServiceId] : []);
   const [employeeId, setEmployeeId] = useState(defaultEmployeeId || "");
   const [date, setDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState(defaultStartTime || "09:00");
@@ -2575,10 +2574,17 @@ function NewAppointmentModal({
   const duration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
   const total = selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-  const eligibleEmployees = employees.filter((employee) => {
-    if (serviceIds.length === 0) return employee.active;
+  const eligibleEmployees = useMemo(() => employees.filter((employee) => {
+    if (!employee.active || (employee.locationIds?.length && !employee.locationIds.includes(locationId))) return false;
+    if (serviceIds.length === 0) return true;
     return serviceIds.every((sid) => employee.serviceIds.includes(sid));
-  });
+  }), [employees, locationId, serviceIds]);
+
+  useEffect(() => {
+    if (employeeId && eligibleEmployees.some(e => e.id === employeeId)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Resolve the only compatible professional without an extra step.
+    setEmployeeId(eligibleEmployees.length === 1 ? eligibleEmployees[0].id : "");
+  }, [eligibleEmployees, employeeId]);
 
   const toggleService = (id: string) => {
     setServiceIds((current) => (current.includes(id) ? current.filter((s) => s !== id) : [...current, id]));
@@ -2601,9 +2607,7 @@ function NewAppointmentModal({
         if (active) {
           const slots = res.slots || [];
           setAvailableSlots(slots);
-          if (slots.length > 0 && !slots.some((s) => s.startTime === startTime)) {
-            setStartTime(slots[0].startTime);
-          }
+          setStartTime((current) => slots.some((s) => s.startTime === current) ? current : (slots[0]?.startTime ?? current));
         }
       })
       .catch(() => {
@@ -2671,7 +2675,7 @@ function NewAppointmentModal({
   return (
     <Modal
       title="Novo agendamento"
-      eyebrow="Motor em tempo real"
+      eyebrow="Agendamento rápido"
       icon={CalendarPlus}
       onClose={onClose}
       wide
@@ -2679,17 +2683,7 @@ function NewAppointmentModal({
     >
       <form onSubmit={submit}>
         <div className="modal-form-grid">
-          <Field label="Cliente" icon={User}>
-            <div className="modal-input-wrap">
-              <User size={18} className="modal-input-icon" />
-              <SelectField value={clientId} onChange={(e) => setClientId(e.target.value)} required>
-                <option value="">Selecione um cliente...</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
-                ))}
-              </SelectField>
-            </div>
-          </Field>
+          <div className="field field-full"><span>Cliente</span><ClientPicker value={clientId} onChange={setClientId} /></div>
 
           <Field label="Unidade" icon={Building2}>
             <div className="modal-input-wrap">
@@ -2699,25 +2693,6 @@ function NewAppointmentModal({
                   <option key={loc.id} value={loc.id}>{loc.name}</option>
                 ))}
               </SelectField>
-            </div>
-          </Field>
-
-          <Field label="Profissional" icon={UserRound}>
-            <div className="modal-input-wrap">
-              <UserRound size={18} className="modal-input-icon" />
-              <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required>
-                <option value="">Selecione um profissional...</option>
-                {eligibleEmployees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>{employee.name}</option>
-                ))}
-              </SelectField>
-            </div>
-          </Field>
-
-          <Field label="Data" icon={Calendar}>
-            <div className="modal-input-wrap">
-              <Calendar size={18} className="modal-input-icon" />
-              <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
             </div>
           </Field>
 
@@ -2778,6 +2753,26 @@ function NewAppointmentModal({
             )}
           </Field>
 
+          <Field label="Profissional" icon={UserRound}>
+            <div className="modal-input-wrap">
+              <UserRound size={18} className="modal-input-icon" />
+              <SelectField value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} required>
+                <option value="">Selecione um profissional...</option>
+                {eligibleEmployees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>{employee.name}</option>
+                ))}
+              </SelectField>
+            </div>
+          </Field>
+
+          <Field label="Data" icon={Calendar}>
+            <div className="modal-input-wrap">
+              <Calendar size={18} className="modal-input-icon" />
+              <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
+          </Field>
+
+
           <Field label="Horário de início" icon={Clock3}>
             <div className="modal-input-wrap">
               <Clock3 size={18} className="modal-input-icon" />
@@ -2833,11 +2828,11 @@ function NewAppointmentModal({
         )}
         <div className="modal-footer">
           <span className="form-note">
-            <ShieldCheck size={16} /> Conflitos são validados pelo motor
+            <ShieldCheck size={16} /> Revise os dados antes de confirmar
           </span>
           <div className="modal-actions">
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={submitting}>
+            <Button type="submit" disabled={submitting || !clientId || !serviceIds.length || !employeeId || loadingSlots}>
               {submitting ? "Criando..." : <><Check size={16} /> Confirmar agendamento</>}
             </Button>
           </div>
@@ -3211,6 +3206,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
 
   return (
     <Modal title="Detalhes do atendimento" eyebrow={`${shortDate(appointment.date)} · ${normalizeTime(appointment.startTime)}`} onClose={onClose} wide>
+      {appointment.clientPhone && <a className="btn btn-secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${appointment.clientPhone.replace(/\D/g, "").length <= 11 ? "55" : ""}${appointment.clientPhone.replace(/\D/g, "")}`}>WhatsApp</a>}
       <div className="detail-person"><Avatar name={appointment.clientName} photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl} color={avatarColor(appointment.clientName)} size="lg" /><div><h3>{appointment.clientName}</h3><p>{appointment.clientPhone}</p></div><StatusBadge status={appointment.status} /></div>
       <div className="detail-grid">
         <div><span>Serviço</span><strong>{appointment.serviceName}</strong></div>
@@ -3356,12 +3352,7 @@ export function AppShell() {
 
   // Modals
   const [newAppointmentOpen, setNewAppointmentOpen] = useState(false);
-  const [newAppointmentPrefill, setNewAppointmentPrefill] = useState<{
-    clientId?: string;
-    employeeId?: string;
-    startTime?: string;
-    date?: string;
-  } | null>(null);
+  const [newAppointmentPrefill, setNewAppointmentPrefill] = useState<QuickPrefill | null>(null);
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newServiceOpen, setNewServiceOpen] = useState(false);
   const [newEmployeeOpen, setNewEmployeeOpen] = useState(false);
@@ -3425,7 +3416,8 @@ export function AppShell() {
       case "dashboard":
         return (
           <DashboardPage
-            onNew={() => setNewAppointmentOpen(true)}
+            onNew={() => { setNewAppointmentPrefill(null); setNewAppointmentOpen(true); }}
+            onQuickNew={prefill => { setNewAppointmentPrefill(prefill); setNewAppointmentOpen(true); }}
             onAppointment={setDetailAppointment}
             onGoToAgenda={() => navigate("agenda")}
             onNavigate={(tab) => navigate(tab as ViewKey)}
@@ -3608,6 +3600,7 @@ export function AppShell() {
           </div>
         </div>
 
+        {calMode === "day" && <OperationsAvailability date={selectedDate} onNew={prefill => { setNewAppointmentPrefill(prefill); setNewAppointmentOpen(true); }} />}
         {calMode === "day" && (
           <DayCalendar
             appointments={displayed}
@@ -3918,6 +3911,8 @@ export function AppShell() {
           defaultEmployeeId={newAppointmentPrefill?.employeeId}
           defaultStartTime={newAppointmentPrefill?.startTime}
           defaultClientId={newAppointmentPrefill?.clientId}
+          defaultServiceId={newAppointmentPrefill?.serviceId}
+          defaultLocationId={newAppointmentPrefill?.locationId}
         />
       )}
       {newClientOpen && <NewClientModal onClose={() => setNewClientOpen(false)} />}
@@ -3927,7 +3922,7 @@ export function AppShell() {
       {blockOpen && <BlockModal onClose={() => setBlockOpen(false)} defaultDate={selectedDate} />}
       {superadminOpen && <SuperadminModal onClose={() => setSuperadminOpen(false)} />}
       {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} onClose={() => setDetailAppointment(null)} />}
-      {clientDrawer && <ClientDrawer clientId={clientDrawer.id} onClose={() => setClientDrawer(null)} onNewAppointment={(client) => { setClientDrawer(null); setSelectedDate(todayKey()); setNewAppointmentOpen(true); }} />}
+      {clientDrawer && <ClientDrawer clientId={clientDrawer.id} onClose={() => setClientDrawer(null)} onNewAppointment={(client) => { setClientDrawer(null); setNewAppointmentPrefill({ clientId: client.id, date: todayKey() }); setNewAppointmentOpen(true); }} />}
       {profileDrawerOpen && session && (
         <ProfileDrawer
           onClose={() => setProfileDrawerOpen(false)}
@@ -4283,7 +4278,7 @@ function DayCalendar({
                   const isCompact = height < 50;
 
                   return (
-                    <button
+                    <div
                       key={apt.id}
                       className={`timeline-appointment ${isCancelled ? "cancelled" : ""} ${isCompact ? "compact" : ""}`}
                       style={
@@ -4295,9 +4290,10 @@ function DayCalendar({
                           "--appointment-color": accentColor,
                         } as React.CSSProperties
                       }
-                      onClick={() => onAppointment(apt)}
+                      role="group"
                       title={`${apt.clientName} · ${apt.serviceName} (${normalizeTime(apt.startTime)} – ${normalizeTime(apt.endTime)})`}
                     >
+                      <button className="timeline-open" onClick={() => onAppointment(apt)} aria-label={`Detalhes de ${apt.clientName}`}>
                       {isCompact ? (
                         <div className="timeline-compact-row">
                           <span className="timeline-time">
@@ -4336,7 +4332,9 @@ function DayCalendar({
                           )}
                         </>
                       )}
-                    </button>
+                      </button>
+                      <details className="timeline-quick"><summary>Status</summary><QuickStatus appointment={apt} contact={false} /></details>
+                    </div>
                   );
                 })}
               </div>

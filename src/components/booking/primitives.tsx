@@ -1,11 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { UserRound } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import styles from "./booking.module.css";
 export { styles as b };
+
+const darkSchemeQuery = "(prefers-color-scheme: dark)";
+
+function subscribeToColorScheme(onChange: () => void) {
+  const mediaQuery = window.matchMedia(darkSchemeQuery);
+  mediaQuery.addEventListener("change", onChange);
+  return () => mediaQuery.removeEventListener("change", onChange);
+}
+
+function prefersDarkScheme() {
+  return window.matchMedia(darkSchemeQuery).matches;
+}
 
 export function friendlyTimezone(tz?: string): string {
   if (
@@ -31,7 +43,7 @@ export function PublicFrame({
   children,
   color,
   coverUrl,
-  themeMode = "dark",
+  themeMode = "auto",
   company,
 }: {
   children: ReactNode;
@@ -47,25 +59,12 @@ export function PublicFrame({
     address?: string | null;
   };
 }) {
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(
-    themeMode === "light" ? "light" : "dark",
+  const prefersDark = useSyncExternalStore(
+    subscribeToColorScheme,
+    prefersDarkScheme,
+    () => true,
   );
-
-  useEffect(() => {
-    if (themeMode === "auto") {
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setResolvedTheme(isDark ? "dark" : "light");
-
-      const mql = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = (e: MediaQueryListEvent) => {
-        setResolvedTheme(e.matches ? "dark" : "light");
-      };
-      mql.addEventListener("change", handler);
-      return () => mql.removeEventListener("change", handler);
-    } else {
-      setResolvedTheme(themeMode);
-    }
-  }, [themeMode]);
+  const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
 
   const palette = createBrandPalette(color, resolvedTheme);
 

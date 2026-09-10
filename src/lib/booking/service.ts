@@ -1,3 +1,5 @@
+import { assertSubscriptionActive } from "@/lib/subscriptions";
+import { waitlistMatches } from "./waitlist";
 import { quoteBooking } from "./pricing";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -62,6 +64,11 @@ export async function bookingEvent(
     entityType: "booking",
     entityId: booking.id,
   });
+  if (event === "booking.cancelled") {
+    const matches = await waitlistMatches(booking.companyId, tx, localDate(booking.startsAt, booking.timezone));
+    const count = matches.filter(entry => entry.available).length;
+    if (count) await tx.insert(notifications).values({ companyId: booking.companyId, type: "waitlist.available", title: `${count} clientes aguardam um horário semelhante.`, body: "Consulte a lista de espera para ver as vagas compatíveis.", entityType: "waitlist" });
+  }
   await tx
     .insert(notificationLogs)
     .values({ bookingId: booking.id, event, revision: booking.revision })
@@ -162,6 +169,8 @@ export async function createBooking(
     const initialCompany = await publicCompany(input.slug, tx);
     await lockCompany(tx, initialCompany.id);
     const company = await publicCompany(input.slug, tx);
+    const subscription = await assertSubscriptionActive(company.id, tx);
+    if (!subscription.ok) throw new BookingError("Este estabelecimento não está recebendo novos agendamentos.", 403);
     const [existing] = await tx
       .select()
       .from(bookings)
@@ -275,6 +284,7 @@ export async function listBookingDetails(userId: string, id?: string) {
       company: {
         name: companies.name,
         address: companies.address,
+        phone: companies.phone,
         slug: companies.publicSlug,
         cancellationHours: companies.cancellationHours,
       },
@@ -389,6 +399,11 @@ export async function changeBooking(
         "O prazo para cancelar ou remarcar terminou. Entre em contato com o estabelecimento.",
         422,
       );
+    if (action === "reschedule") {
+      if (!staffCompanyId && !company.publicEnabled) throw new BookingError("Este estabelecimento não está recebendo remarcações online.", 403);
+      const subscription = await assertSubscriptionActive(company.id, tx);
+      if (!subscription.ok) throw new BookingError("Este estabelecimento não está recebendo remarcações.", 403);
+    }
     let updated: typeof bookings.$inferSelect;
     if (action === "cancel") {
       [updated] = await tx

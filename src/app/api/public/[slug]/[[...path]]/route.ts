@@ -1,9 +1,9 @@
 import { quoteBooking, quoteSchema } from "@/lib/booking/pricing";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { bookingEvents, bookingWaitlist, notifications, users } from "@/db/schema";
-import { getIdentity, hashPassword } from "@/lib/auth";
+import { getIdentity } from "@/lib/auth";
 import { publicCatalog, publicCompany } from "@/lib/booking/catalog";
 import { loadAvailability } from "@/lib/booking/engine";
 import { BookingError, bookingError, sameOrigin } from "@/lib/booking/errors";
@@ -57,9 +57,10 @@ export async function GET(request: Request, { params }: Context) {
       date: q.get("date") ?? localDate(new Date(), company.timezone),
       items,
     });
+    const groupsLimit = z.coerce.number().int().min(1).max(3).parse(q.get("groups") ?? 3);
     const days =
       action === "next-availability"
-        ? 60
+        ? 14
         : z.coerce
             .number()
             .int()
@@ -91,19 +92,68 @@ export async function GET(request: Request, { params }: Context) {
       exclude,
     );
     const dates = [];
+    const nextDays = [];
+    let firstSlotFound = null;
+    const tomorrow = shiftDate(today, 1);
+
+    const formatDayLabel = (d: string) => {
+      if (d === today) return "Hoje";
+      if (d === tomorrow) return "Amanhã";
+      try {
+        const parsed = new Date(`${d}T12:00:00Z`);
+        const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "UTC" }).format(parsed);
+        const dayMonth = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(parsed);
+        const capitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+        return `${capitalized}, ${dayMonth}`;
+      } catch {
+        return d;
+      }
+    };
+
     for (let i = 0; i < days; i++) {
-      const date = shiftDate(input.date, i),
-        slots = engine.slots(date);
-      if (action === "next-availability" && slots.length)
-        return Response.json({ data: { date, slot: publicSlot(slots[0]) } });
+      const date = shiftDate(input.date, i);
+      const slots = engine.slots(date);
       dates.push({ date, count: slots.length });
+
+      if (slots.length > 0) {
+        if (!firstSlotFound) {
+          firstSlotFound = { date, slot: publicSlot(slots[0]) };
+        }
+        if (nextDays.length < 5) {
+          nextDays.push({
+            date,
+            label: formatDayLabel(date),
+            slots: slots.filter((_, index) => index % Math.max(1, Math.floor(slots.length / 5)) === 0).slice(0, 5).map(publicSlot),
+            totalCount: slots.length,
+          });
+        }
+      }
+      if (action === "next-availability" && nextDays.length >= groupsLimit) break;
     }
+
+    if (action === "next-availability") {
+      if (!firstSlotFound) {
+        return Response.json({ data: null }, { headers: { "Cache-Control": "no-store" } });
+      }
+      return Response.json(
+        {
+          data: {
+            date: firstSlotFound.date,
+            slot: firstSlotFound.slot,
+            nextDays,
+          },
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     return Response.json(
       {
-        data:
-          action === "next-availability"
-            ? null
-            : { dates, slots: engine.slots(input.date).map(publicSlot) },
+        data: {
+          dates,
+          slots: engine.slots(input.date).map(publicSlot),
+          nextDays,
+        },
       },
       { headers: { "Cache-Control": "no-store" } },
     );
@@ -148,66 +198,26 @@ export async function POST(request: Request, { params }: Context) {
         .parse(body);
       await db.insert(bookingEvents).values({ ...data, companyId: company.id });
     } else if (path.join("/") === "waitlist") {
-      let user = await getIdentity();
-      const data = z
-        .object({
-          date: dateSchema,
-          items: selectionSchema,
-          customer: z
-            .object({
-              name: z.string().min(2),
-              phone: z.string().min(8),
-            })
-            .optional()
-            .nullable(),
-        })
-        .parse(body);
-
-      if (!user) {
-        if (data.customer?.phone) {
-          const phoneDigits = data.customer.phone.replace(/\D/g, "");
-          const cleanEmail = `${phoneDigits}@cliente.novae.app`;
-          const [found] = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, cleanEmail))
-            .limit(1);
-
-          if (found) {
-            user = found;
-          } else {
-            const dummy = await hashPassword(crypto.randomUUID());
-            const [created] = await db
-              .insert(users)
-              .values({
-                name: data.customer.name,
-                email: cleanEmail,
-                phone: data.customer.phone,
-                passwordHash: dummy,
-                role: "client",
-                emailVerified: false,
-              })
-              .returning();
-            user = created;
-          }
-        } else {
-          throw new BookingError("Entre na sua conta ou informe seus dados.", 401);
-        }
-      }
-
-      await db.insert(bookingWaitlist).values({
-        companyId: company.id,
-        userId: user.id,
-        requestedDate: data.date,
-        serviceIds: data.items.map((i) => i.serviceId),
-      });
-
-      await db.insert(notifications).values({
-        companyId: company.id,
-        type: "waitlist.joined",
-        title: "Novo cliente na lista de espera",
-        body: `${user.name} aguarda vaga para ${data.date}`,
-        entityType: "waitlist",
+      const user = await getIdentity();
+      if (!user) throw new BookingError("Entre na sua conta para registrar seu interesse.", 401);
+      const data = z.object({
+        date: dateSchema,
+        locationId: z.uuid(),
+        employeeId: z.uuid().nullable().optional(),
+        period: z.enum(["any", "morning", "afternoon", "evening"]).default("any"),
+        items: selectionSchema,
+      }).parse(body);
+      const today = localDate(new Date(), company.timezone);
+      const selection = data.items.map(i => ({ serviceId: i.serviceId, employeeId: data.employeeId || null }));
+      const engine = await loadAvailability(company, data.locationId, selection, data.date, data.date);
+      if (data.date < today || data.date > shiftDate(today, engine.settings.maxLeadDays)) throw new BookingError("Escolha um dia dentro do período de agendamento.");
+      await db.transaction(async tx => {
+        const { lockCompany } = await import("@/lib/booking/service");
+        await lockCompany(tx, company.id);
+        const existing = await tx.select().from(bookingWaitlist).where(and(eq(bookingWaitlist.companyId, company.id), eq(bookingWaitlist.userId, user.id), eq(bookingWaitlist.requestedDate, data.date), eq(bookingWaitlist.status, "waiting")));
+        if (existing.some(e => e.locationId === data.locationId && e.employeeId === (data.employeeId || null) && e.period === data.period && JSON.stringify(e.serviceIds) === JSON.stringify(selection.map(i => i.serviceId)))) return;
+        await tx.insert(bookingWaitlist).values({ companyId: company.id, userId: user.id, requestedDate: data.date, locationId: data.locationId, employeeId: data.employeeId || null, period: data.period, serviceIds: selection.map(i => i.serviceId) });
+        await tx.insert(notifications).values({ companyId: company.id, type: "waitlist.joined", title: "Novo cliente na lista de espera", body: `${user.name} aguarda vaga para ${data.date}`, entityType: "waitlist" });
       });
     } else throw new BookingError("Página não encontrada.", 404);
     return Response.json({ data: { ok: true } });

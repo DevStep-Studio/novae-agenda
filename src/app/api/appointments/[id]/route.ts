@@ -1,3 +1,5 @@
+import { assertSubscriptionActive } from "@/lib/subscriptions";
+import { waitlistMatches } from "@/lib/booking/waitlist";
 import {
   bookingEvent,
   changeBooking,
@@ -337,6 +339,9 @@ export async function PATCH(
             previousStatus: apt.status,
           },
         });
+        const matches = await waitlistMatches(auth.user.companyId, tx, apt.appointmentDate);
+        const count = matches.filter(e => e.available).length;
+        if (count) await tx.insert(notifications).values({ companyId: auth.user.companyId, type: "waitlist.available", title: `${count} clientes aguardam um horário semelhante.`, entityType: "waitlist" });
         await tx.insert(notifications).values({
           companyId: auth.user.companyId,
           type:
@@ -418,6 +423,8 @@ export async function PUT(
     }
     return await db.transaction(async (tx) => {
       await lockCompany(tx, auth.user.companyId);
+      const subscription = await assertSubscriptionActive(auth.user.companyId, tx);
+      if (!subscription.ok) return Response.json({ error: subscription.reason }, { status: 403 });
       const body = await request.json().catch(() => null);
       const parsed = rescheduleSchema.safeParse(body);
       if (!parsed.success) {

@@ -1,0 +1,88 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useStore } from "@/store/store";
+import { api } from "@/lib/api-client";
+import { localDate, shiftDate } from "@/lib/booking/time";
+import { PAYMENT_LABELS } from "@/lib/client-utils";
+import type { AppointmentDTO, AppointmentStatus, PaymentMethod } from "@/shared/types";
+
+export type QuickPrefill = { date?: string; startTime?: string; employeeId?: string; clientId?: string; serviceId?: string; locationId?: string };
+const advance: Partial<Record<AppointmentStatus, { status: AppointmentStatus; label: string }>> = {
+  waiting: { status: "in_progress", label: "Iniciar atendimento" },
+};
+export function QuickStatus({
+  appointment,
+  contact = true,
+  onDetails,
+}: {
+  appointment: AppointmentDTO;
+  contact?: boolean;
+  onDetails?: () => void;
+}) {
+  const { updateAppointmentStatus, finishAppointment, notify } = useStore();
+  const [busy, setBusy] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>("pix");
+  const [amount, setAmount] = useState(String(appointment.total));
+  const next = advance[appointment.status];
+  const phone = appointment.clientPhone?.replace(/\D/g, "");
+  const parsedAmount = Number(amount.replace(",", "."));
+  async function run(status?: AppointmentStatus) {
+    setBusy(true);
+    try {
+      if (status) await updateAppointmentStatus(appointment.id, status);
+      else await finishAppointment(appointment.id, parsedAmount, method);
+      notify(status ? "Status atualizado." : "Atendimento finalizado.");
+      setFinishing(false);
+    } catch (e) { notify((e as Error).message, "error"); }
+    finally { setBusy(false); }
+  }
+  return <div className="quick-actions">
+    {appointment.status === "scheduled" && <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => run("confirmed")}>{busy ? "Salvando…" : "Confirmar"}</button>}
+    {(appointment.status === "scheduled" || appointment.status === "confirmed") && <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run("waiting")}>{busy ? "Salvando…" : "Cliente chegou"}</button>}
+    {next && <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run(next.status)}>{busy ? "Salvando…" : next.label}</button>}
+    {appointment.status === "in_progress" && !finishing && <button type="button" className="btn btn-primary" onClick={() => setFinishing(true)}>Finalizar</button>}
+    {finishing && <div className="quick-actions"><label>Valor recebido<input className="input" aria-label="Valor recebido" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} /></label><label>Pagamento<select className="input" value={method} onChange={e => setMethod(e.target.value as PaymentMethod)}>{Object.entries(PAYMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button type="button" className="btn btn-primary" disabled={busy || !amount || !Number.isFinite(parsedAmount) || parsedAmount < 0} onClick={() => run()}>Confirmar finalização</button><button type="button" className="link-button" disabled={busy} onClick={() => setFinishing(false)}>Voltar</button></div>}
+    {contact && phone && <a className="btn btn-secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${phone.length <= 11 ? "55" : ""}${phone}`}>WhatsApp</a>}
+    {onDetails && <button type="button" className="btn btn-secondary" onClick={onDetails}>Detalhes</button>}
+  </div>;
+}
+
+type FreeDay = { date: string; slots: { startTime: string; employeeId: string }[] };
+type WaitEntry = { id: string; clientName: string; clientPhone: string | null; requestedDate: string; period: string; serviceNames: string[]; available: { startTime: string; employeeId: string } | null };
+export function OperationsAvailability({ onNew, date }: { onNew: (prefill: QuickPrefill) => void; date?: string }) {
+  const { services, locations, activeLocationId, session, appointments } = useStore();
+  const [serviceId, setServiceId] = useState("");
+  const [days, setDays] = useState<FreeDay[]>([]);
+  const [waiting, setWaiting] = useState<WaitEntry[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const selectedService = serviceId || services.find(s => s.active)?.id;
+  const locationId = activeLocationId || locations[0]?.id;
+  const today = date || localDate(new Date(), session?.company.timezone || "America/Sao_Paulo");
+  const tomorrow = shiftDate(today, 1);
+  const dayLabel = (day: string) => {
+    if (day === today) return "Hoje";
+    if (day === tomorrow) return "Amanhã";
+    const label = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${day}T12:00Z`));
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+  useEffect(() => {
+    if (!selectedService || !locationId) return;
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Invalidate availability after appointment mutations.
+    setLoading(true); setDays([]); setError("");
+    const q = new URLSearchParams({ date: today, locationId, items: JSON.stringify([{ serviceId: selectedService, employeeId: session?.role === "employee" ? session.employeeId : null }]) });
+    api<FreeDay[]>(`/api/next-availability?${q}`, { signal: controller.signal }).then(setDays).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    if (session && ["owner", "admin", "manager", "superadmin"].includes(session.role)) api<WaitEntry[]>("/api/waitlist", { signal: controller.signal }).then(setWaiting).catch(e => { if (!controller.signal.aborted) setError(e.message); });
+    return () => controller.abort();
+  }, [selectedService, locationId, today, appointments, session]);
+  return <section className="panel operations-availability">
+    <h2>Horários livres</h2>
+    <label className="quick-service">Serviço<select className="input" value={selectedService || ""} onChange={e => setServiceId(e.target.value)}><option value="" disabled>Selecione um serviço</option>{services.filter(s => s.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+    {error && <p role="alert">{error}</p>}
+    {loading ? <p role="status">Consultando vagas…</p> : days.map(day => <div key={day.date} className="quick-actions"><strong>{dayLabel(day.date)}</strong>{day.slots.map(slot => <button type="button" key={slot.startTime} className="btn btn-secondary" onClick={() => onNew({ date: day.date, startTime: slot.startTime, employeeId: slot.employeeId, serviceId: selectedService, locationId })}>{slot.startTime} · Agendar</button>)}</div>)}
+    {!loading && !days.length && <p>Nenhuma vaga encontrada nos próximos 7 dias para este serviço.</p>}
+    {waiting.length > 0 && <><h3>Lista de espera</h3><p>{waiting.filter(w => w.available).length} clientes aguardam um horário semelhante com vaga disponível.</p>{waiting.map(w => <div key={w.id} className="waitlist-row"><div><strong>{w.clientName}</strong><p>{w.requestedDate.split("-").reverse().join("/")} · {({ any: "Qualquer horário", morning: "Manhã", afternoon: "Tarde", evening: "Noite" } as Record<string,string>)[w.period]}{w.available ? ` · Vaga às ${w.available.startTime}` : " · Aguardando vaga"}</p></div>{w.clientPhone && <a className="btn btn-secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${w.clientPhone.replace(/\D/g, "").length <= 11 ? "55" : ""}${w.clientPhone.replace(/\D/g, "")}`}>WhatsApp</a>}</div>)}</>}
+  </section>;
+}

@@ -4,7 +4,6 @@
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -99,6 +98,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     settings,
   } = catalog;
 
+  const [serviceHints, setServiceHints] = useState<Record<string, { date: string; slot: AvailableSlot }>>({});
   const [items, setItems] = useState<Selection>([]);
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
   const [step, setStep] = useState(0);
@@ -107,10 +107,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [guestName, setGuestName] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
-  const [useManualLogin, setUseManualLogin] = useState(false);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [waitlistDate, setWaitlistDate] = useState(today);
+  const [waitlistPeriod, setWaitlistPeriod] = useState("any");
+  const [waitlistEmployee, setWaitlistEmployee] = useState("");
   const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [notes, setNotes] = useState("");
   const [extras, setExtras] = useState<Record<string, number>>({});
@@ -168,7 +168,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
   const [requestId, setRequestId] = useState("");
   const [sessionId, setSessionId] = useState("");
-  const heading = useRef<HTMLHeadingElement>(null);
   const storageKey = `novae-booking:${company.slug}`;
 
   function event(name: string) {
@@ -199,11 +198,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           setLocationId(draft.locationId || locations[0]?.id || "");
           setStep(draft.step || 0);
           setNotes(draft.notes || "");
+          setExtras(draft.extras || {});
+          setCoupon(draft.coupon || "");
           if (draft.requestId) setRequestId(draft.requestId);
         }
       }
     } catch {}
     setReady(true);
+    void api<Customer>("/api/my/session").then(setCustomer).catch(() => {});
     void api(`/api/public/${company.slug}/events`, {
       method: "POST",
       body: JSON.stringify({
@@ -226,6 +228,16 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         .catch((e) => setError(e.message));
     }
 
+    const repeatItems = params.get("items");
+    if (repeatItems) {
+      try {
+        const parsed = JSON.parse(repeatItems) as Selection;
+        const valid = parsed.filter(i => services.some(s => s.id === i.serviceId)).slice(0, 8);
+        if (valid.length) { setItems(valid); setDate(""); setSlot(null); setStep(1); }
+        const unit = params.get("location");
+        if (locations.some(l => l.id === unit)) setLocationId(unit!);
+      } catch { setError("Não foi possível recuperar a seleção anterior."); }
+    }
     const again = params.get("services");
     if (again) {
       const ids = again.split(",");
@@ -254,6 +266,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             locationId,
             step,
             notes,
+            extras,
+            coupon,
             requestId,
             savedAt: Date.now(),
           }),
@@ -267,6 +281,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     locationId,
     step,
     notes,
+    extras,
+    coupon,
     ready,
     bookingId,
     storageKey,
@@ -301,6 +317,30 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     return matchesSearch && matchesCategory;
   });
 
+  const hintIds = visible.slice(0, 6).map(s => s.id).join(",");
+  useEffect(() => {
+    if (step !== 0 || !locationId) return;
+    const controller = new AbortController();
+    setServiceHints({});
+    const timer = setTimeout(async () => {
+      const hints = await Promise.all(
+        hintIds.split(",").filter(Boolean).map(async (serviceId) => {
+          try {
+            const q = new URLSearchParams({ locationId, date: today, items: JSON.stringify([{ serviceId }]), groups: "1" });
+            const hint = await api<{ date: string; slot: AvailableSlot } | null>(`/api/public/${company.slug}/next-availability?${q}`, { signal: controller.signal });
+            return hint ? [serviceId, hint] as const : null;
+          } catch {
+            return null;
+          }
+        }),
+      );
+      if (!controller.signal.aborted) {
+        setServiceHints(Object.fromEntries(hints.filter((hint): hint is NonNullable<typeof hint> => Boolean(hint))));
+      }
+    }, 300);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [hintIds, locationId, today, company.slug, step]);
+
   const activeCategories = [
     ...new Set(visible.map((s) => s.category || "Serviços")),
   ];
@@ -316,7 +356,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     setStep(next);
     setBottomSheetOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" });
-    setTimeout(() => heading.current?.focus(), 0);
 
     if (next === 1) event("date_selected");
     if (next === 2) event("booking_confirmation_viewed");
@@ -325,9 +364,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   async function confirm(e?: FormEvent) {
     e?.preventDefault();
     if (busy || !slot || quoteLoading || !quote) return;
-    if (!customer && (!guestName.trim() || !guestPhone.trim())) {
+    if (!customer?.emailVerified || !customer.phone) {
       setError(
-        "Por favor, informe seu nome e WhatsApp para confirmar o agendamento.",
+        "Entre na sua conta e confirme seu e-mail para agendar.",
       );
       return;
     }
@@ -348,13 +387,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             .filter(([, quantity]) => quantity > 0)
             .map(([productId, quantity]) => ({ productId, quantity })),
           couponCode: coupon,
-          customer: customer
-            ? undefined
-            : {
-                name: guestName.trim(),
-                phone: guestPhone.trim(),
-                email: guestEmail.trim() || null,
-              },
         }),
       });
 
@@ -449,7 +481,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   ) : (
                     <label className={b.field} style={{ margin: "6px 0 0" }}>
                       <span className={b.muted} style={{ fontSize: 11 }}>
-                        Profissional
+                        Escolher profissional
                       </span>
                       <select
                         aria-label={`Profissional para ${service.name}`}
@@ -558,7 +590,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 !slot ||
                 quoteLoading ||
                 !quote ||
-                (!customer && (!guestName.trim() || !guestPhone.trim()))))
+                !customer?.emailVerified ||
+                !customer.phone))
           }
           onClick={() => {
             if (isMobileSheet) setBottomSheetOpen(false);
@@ -626,8 +659,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
             <h1 className={b.successTitle}>Agendamento confirmado!</h1>
             <p className={b.successSubtitle}>
-              {guestEmail || customer?.email
-                ? `Tudo certo. Enviamos os detalhes para ${guestEmail || customer?.email}.`
+              {customer?.email
+                ? `Tudo certo. Enviamos os detalhes para ${customer.email}.`
                 : "Seu horário foi agendado com sucesso no estabelecimento."}
             </p>
 
@@ -765,7 +798,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     : "Finalize seu agendamento"}
               </p>
 
-              <h1 ref={heading} tabIndex={-1} className={b.title}>
+              <h1 className={b.title}>
                 {
                   [
                     "Escolha seu serviço",
@@ -780,7 +813,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   [
                     "Selecione o que deseja agendar.",
                     friendlyTimezone(company.timezone),
-                    "Confira os detalhes e informe seus dados para garantir a reserva.",
+                    "Confira os detalhes para garantir a reserva.",
                   ][step]
                 }
               </p>
@@ -980,42 +1013,64 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 <div className={b.serviceActions}>
                                   <div className={b.servicePrice}>
                                     <strong>{money(service.price)}</strong>
+                                    {serviceHints[service.id] && <small className={b.muted}>Próximo horário: {serviceHints[service.id].date === today ? "Hoje" : dateLabelShort(serviceHints[service.id].date)} às {serviceHints[service.id].slot.startTime}</small>}
                                   </div>
 
-                                  <button
-                                    className={`${b.button} ${b.small} ${chosen ? "" : b.outline}`}
-                                    aria-pressed={chosen}
-                                    aria-label={`${chosen ? "Remover" : "Selecionar"} ${service.name}`}
-                                    disabled={
-                                      !eligible ||
-                                      (!chosen && items.length >= 8)
-                                    }
-                                    onClick={() => {
-                                      changeItems(
-                                        chosen
-                                          ? items.filter(
-                                              (i) =>
-                                                i.serviceId !== service.id,
-                                            )
-                                          : [
-                                              ...items,
-                                              {
-                                                serviceId: service.id,
-                                                employeeId: null,
-                                              },
-                                            ],
-                                      );
-                                      if (!chosen) event("service_selected");
-                                    }}
-                                  >
-                                    {chosen ? (
-                                      <>
-                                        <Check size={14} /> Selecionado
-                                      </>
-                                    ) : (
-                                      "Selecionar"
+                                  <div style={{ display: "flex", gap: 6 }}>
+                                    {!chosen && (
+                                      <button
+                                        type="button"
+                                        className={`${b.button} ${b.small}`}
+                                        disabled={!eligible}
+                                        onClick={() => {
+                                          changeItems([{ serviceId: service.id, employeeId: null }]);
+                                          event("service_selected");
+                                          const hint = serviceHints[service.id];
+                                          if (hint) { setDate(hint.date); setSlot(hint.slot); go(2); }
+                                          else go(1);
+                                        }}
+                                        title="Ver próximos horários disponíveis"
+                                      >
+                                        Agendar
+                                      </button>
                                     )}
-                                  </button>
+
+                                    <button
+                                      type="button"
+                                      className={`${b.button} ${b.small} ${chosen ? "" : b.outline}`}
+                                      aria-pressed={chosen}
+                                      aria-label={`${chosen ? "Remover" : "Selecionar"} ${service.name}`}
+                                      disabled={
+                                        !eligible ||
+                                        (!chosen && items.length >= 8)
+                                      }
+                                      onClick={() => {
+                                        changeItems(
+                                          chosen
+                                            ? items.filter(
+                                                (i) =>
+                                                  i.serviceId !== service.id,
+                                              )
+                                            : [
+                                                ...items,
+                                                {
+                                                  serviceId: service.id,
+                                                  employeeId: null,
+                                                },
+                                              ],
+                                        );
+                                        if (!chosen) event("service_selected");
+                                      }}
+                                    >
+                                      {chosen ? (
+                                        <>
+                                          <Check size={14} /> Selecionado
+                                        </>
+                                      ) : (
+                                        "Selecionar"
+                                      )}
+                                    </button>
+                                  </div>
                                 </div>
                               </article>
                             );
@@ -1078,120 +1133,34 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   selected={slot}
                   onSelect={(s) => {
                     setSlot(s);
-                    if (s) event("time_selected");
+                    if (s) { event("time_selected"); go(2); }
                   }}
                   waitlistStatus={waitlistStatus}
-                  onWaitlist={async () => {
-                    setWaitlistStatus("loading");
-                    try {
-                      await api(`/api/public/${company.slug}/waitlist`, {
-                        method: "POST",
-                        body: JSON.stringify({
-                          date,
-                          items,
-                          customer: customer
-                            ? { name: customer.name, phone: customer.phone }
-                            : guestName && guestPhone
-                              ? { name: guestName, phone: guestPhone }
-                              : {
-                                  name: "Cliente Interessado",
-                                  phone: "11999999999",
-                                },
-                        }),
-                      });
-                      setWaitlistStatus("success");
-                    } catch {
-                      setWaitlistStatus("error");
-                    }
-                  }}
+                  onWaitlist={() => { setWaitlistDate(date || today); setWaitlistOpen(true); }}
                 />
               )}
+
+              {step === 1 && waitlistOpen && <section className={b.detail} aria-label="Lista de espera">
+                <h2>Avise-me se surgir uma vaga</h2>
+                <label className={b.field}>Dia<input type="date" min={today} value={waitlistDate} onChange={e => setWaitlistDate(e.target.value)} /></label>
+                <label className={b.field}>Parte do dia<select value={waitlistPeriod} onChange={e => setWaitlistPeriod(e.target.value)}><option value="any">Qualquer horário</option><option value="morning">Manhã</option><option value="afternoon">Tarde</option><option value="evening">Noite</option></select></label>
+                <label className={b.field}>Profissional (opcional)<select value={waitlistEmployee} onChange={e => setWaitlistEmployee(e.target.value)}><option value="">Qualquer profissional disponível</option>{professionals.filter(p => items.every(i => p.serviceIds.includes(i.serviceId))).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+                {!customer ? <CustomerAuth onReady={onCustomer} returnTo={`/agendar/${company.slug}`} requireVerified={false} /> : <button className={b.button} disabled={waitlistStatus === "loading" || waitlistStatus === "success"} onClick={async () => {
+                  setWaitlistStatus("loading"); setError("");
+                  try {
+                    await api(`/api/public/${company.slug}/waitlist`, { method: "POST", body: JSON.stringify({ date: waitlistDate, period: waitlistPeriod, employeeId: waitlistEmployee || null, locationId, items }) });
+                    setWaitlistStatus("success");
+                  } catch (e) { setWaitlistStatus("error"); setError((e as Error).message); }
+                }}>{waitlistStatus === "success" ? "Interesse registrado" : waitlistStatus === "loading" ? "Salvando…" : "Registrar interesse"}</button>}
+                <p className={b.muted}>O estabelecimento poderá entrar em contato se surgir uma vaga. Nenhum horário será reservado automaticamente.</p>
+              </section>}
 
               {/* STEP 2: IDENTIFICATION & CONFIRMATION */}
               {step === 2 && (
                 <>
-                  {customer ? (
-                    <div className={b.note}>
-                      <div className={b.inline}>
-                        <Check size={16} style={{ color: "#dcff4c" }} />
-                        <strong>{customer.name}</strong>
-                      </div>
-                      <p>
-                        {customer.email} · {customer.phone}
-                      </p>
-                    </div>
-                  ) : useManualLogin ? (
-                    <div>
-                      <CustomerAuth
-                        returnTo={`/agendar/${company.slug}`}
-                        onReady={onCustomer}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setUseManualLogin(false)}
-                        className={b.textButton}
-                        style={{ marginTop: 12, fontSize: 13 }}
-                      >
-                        ← Voltar para agendamento rápido
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={b.card}>
-                      <h3>Seus dados para confirmação</h3>
-                      <p>
-                        Informe seus dados para contato. Você não precisa criar
-                        uma senha agora.
-                      </p>
-
-                      <label className={b.field}>
-                        Nome completo *
-                        <input
-                          type="text"
-                          required
-                          minLength={2}
-                          value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
-                          placeholder="Ex: João da Silva"
-                        />
-                      </label>
-
-                      <label className={b.field}>
-                        WhatsApp / Telefone *
-                        <input
-                          type="tel"
-                          required
-                          minLength={8}
-                          value={guestPhone}
-                          onChange={(e) => setGuestPhone(e.target.value)}
-                          placeholder="Ex: (11) 99999-9999"
-                        />
-                      </label>
-
-                      <label className={b.field}>
-                        E-mail (opcional)
-                        <input
-                          type="email"
-                          value={guestEmail}
-                          onChange={(e) => setGuestEmail(e.target.value)}
-                          placeholder="Para receber a confirmação e lembretes"
-                        />
-                      </label>
-
-                      <div style={{ marginTop: 12, textAlign: "right" }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setUseManualLogin(true);
-                            event("booking_login_started");
-                          }}
-                          className={b.textButton}
-                          style={{ fontSize: 12 }}
-                        >
-                          Já possui conta? Entrar com senha
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {customer?.emailVerified && customer.phone ? (
+                    <div className={b.note}><strong>{customer.name}</strong><p>Confira os dados e confirme seu horário.</p></div>
+                  ) : <CustomerAuth returnTo={`/agendar/${company.slug}`} onReady={onCustomer} /> }
 
                   {/* Customer phone requirement if missing */}
                   {customer && !customer.phone && (
@@ -1342,7 +1311,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       !slot ||
                       quoteLoading ||
                       !quote ||
-                      (!customer && (!guestName.trim() || !guestPhone.trim()))))
+                      !customer?.emailVerified ||
+                      !customer.phone))
                 }
                 onClick={() => {
                   if (step === 2) {

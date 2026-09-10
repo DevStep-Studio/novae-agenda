@@ -78,8 +78,8 @@ export type SubscriptionDTO = {
  * Retrieves the current subscription for a company.
  * If no subscription exists, automatically provisions a 7-day trial.
  */
-export async function getCompanySubscription(companyId: string): Promise<SubscriptionDTO> {
-  const [existing] = await db
+export async function getCompanySubscription(companyId: string, executor: import("@/lib/availability").DbExecutor = db): Promise<SubscriptionDTO> {
+  const [existing] = await executor
     .select()
     .from(subscriptions)
     .where(eq(subscriptions.companyId, companyId))
@@ -89,7 +89,7 @@ export async function getCompanySubscription(companyId: string): Promise<Subscri
 
   if (!existing) {
     const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const [created] = await db
+    const [created] = await executor
       .insert(subscriptions)
       .values({
         companyId,
@@ -151,8 +151,8 @@ export async function getCompanySubscription(companyId: string): Promise<Subscri
 /**
  * Enforces active subscription check. Returns null if allowed, or error details if blocked.
  */
-export async function assertSubscriptionActive(companyId: string): Promise<{ ok: boolean; status: SubscriptionStatus; reason?: string }> {
-  const sub = await getCompanySubscription(companyId);
+export async function assertSubscriptionActive(companyId: string, executor: import("@/lib/availability").DbExecutor = db): Promise<{ ok: boolean; status: SubscriptionStatus; reason?: string }> {
+  const sub = await getCompanySubscription(companyId, executor);
   if (!sub.isEffectiveActive) {
     const reason = sub.status === "expired"
       ? "Seu período de teste expirou. Escolha um plano para continuar utilizando a plataforma."

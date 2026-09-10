@@ -20,45 +20,7 @@ import { toSlug } from "./validation";
 export async function publicCompany(slug: string, executor: DbExecutor = db) {
   const normalizedSlug = slug.toLowerCase().trim();
 
-  // 1. Direct match on publicSlug with publicEnabled = true
-  let [company] = await executor
-    .select()
-    .from(companies)
-    .where(
-      and(eq(companies.publicSlug, normalizedSlug), eq(companies.publicEnabled, true)),
-    );
-
-  // 2. If not found, check if company exists with publicSlug matching normalizedSlug
-  if (!company) {
-    const [compBySlug] = await executor
-      .select()
-      .from(companies)
-      .where(eq(companies.publicSlug, normalizedSlug));
-
-    if (compBySlug) {
-      await executor
-        .update(companies)
-        .set({ publicEnabled: true })
-        .where(eq(companies.id, compBySlug.id));
-      company = { ...compBySlug, publicEnabled: true };
-    }
-  }
-
-  // 3. Fallback: match by company name if publicSlug was null or uninitialized
-  if (!company) {
-    const allCompanies = await executor.select().from(companies);
-    const matched = allCompanies.find(
-      (c) => toSlug(c.name) === normalizedSlug || toSlug(c.publicSlug || "") === normalizedSlug,
-    );
-    if (matched) {
-      await executor
-        .update(companies)
-        .set({ publicSlug: normalizedSlug, publicEnabled: true })
-        .where(eq(companies.id, matched.id));
-      company = { ...matched, publicSlug: normalizedSlug, publicEnabled: true };
-    }
-  }
-
+  const [company] = await executor.select().from(companies).where(and(eq(companies.publicSlug, normalizedSlug), eq(companies.publicEnabled, true)));
   if (!company)
     throw new BookingError(
       "Esta página de agendamento não está disponível.",

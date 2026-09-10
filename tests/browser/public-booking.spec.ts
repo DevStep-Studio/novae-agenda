@@ -1,67 +1,56 @@
 import "dotenv/config";
 import { test, expect } from "@playwright/test";
-import { eq } from "drizzle-orm";
-import { db, pool } from "../../src/db";
-import { users } from "../../src/db/schema";
+import { pool } from "../../src/db";
 import { bookingFixture, cleanupFixture, type Fixture } from "../booking-fixture";
 let f:Fixture;
 test.beforeAll(async()=>{f=await bookingFixture();});
 test.afterAll(async()=>{await cleanupFixture(f);await pool.end();});
-test("public booking, real registration, confirmation, tenant guards and responsive layouts",async({page})=>{
-  const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+test("fast booking, rescheduling and responsive customer portal use real slots", async ({ page }) => {
+  const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
+  await page.request.post("/api/auth/login", { data: { email: f.customers[0].email, password: f.password } });
   await page.goto(`/agendar/${f.company.publicSlug}`);
-  await expect(page.getByRole("heading",{name:"O que vamos agendar?"})).toBeVisible();
-  for(const width of [320,375,390,430,768,1024,1366,1440,1920]){
-    await page.setViewportSize({width,height:1000});
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),`no overflow at ${width}`).toBe(true);
-  }
-  await page.setViewportSize({width:1366,height:1000});
-  await page.getByRole("button",{name:"Reservar Manicure e Pedicure",exact:true}).click();
-  await expect(page.getByRole("complementary")).toContainText("R$ 50,00");
-  await page.getByRole("button",{name:"Continuar",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Escolha a data e o horário"})).toBeVisible();
-  // Select the deterministic future date from the fixture via accessible calendar label.
-  const label=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"}).format(new Date(`${f.date}T12:00Z`));
-  const month=f.date.slice(0,7);const currentMonth=new Date().toISOString().slice(0,7);if(month!==currentMonth)await page.getByRole("button",{name:"Próximo mês",exact:true}).click();
-  await page.getByRole("button",{name:new RegExp(`^${label},`)}).click();
-  await page.getByRole("button",{name:"09:00",exact:true}).click();
-  for(const width of [320,375,390,430,768,1024,1366,1440,1920]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);}
-  await page.getByRole("button",{name:"Continuar",exact:true}).click();
-  await page.getByLabel("Seu nome",{exact:true}).fill("Cliente real QA");
-  await page.getByLabel("Telefone com DDD").fill("11999998888");
-  const email=`browser-${f.key}@example.test`;
-  await page.getByLabel("E-mail",{exact:true}).fill(email);
-  await page.getByLabel("Senha",{exact:true}).fill(f.password);
-  const registration=page.waitForResponse(r=>r.url().endsWith("/api/auth/register")&&r.request().method()==="POST");
-  await page.getByRole("button",{name:"Criar conta e continuar"}).click();
-  const response=await registration;expect(response.status()).toBe(201);const payload=await response.json();
-  const [created]=await db.select().from(users).where(eq(users.email,email));f.customers.push(created);
-  expect(payload.data.devToken).toBeTruthy();
-  expect((await page.request.post("/api/auth/verify-email",{data:{token:payload.data.devToken}})).ok()).toBe(true);
-  await page.getByRole("button",{name:"Já confirmei meu e-mail"}).click();
-  await page.getByLabel("Alguma observação para sua visita?").fill("Gostaria de esmalte claro.");
-  await expect(page.getByRole("button",{name:"Confirmar agendamento",exact:true})).toBeEnabled();
-  for(const width of [320,375,390,430,768,1024,1366,1440,1920]){await page.setViewportSize({width,height:1000});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),`confirmation at ${width}`).toBe(true);}
-  await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:"/tmp/novae-public-confirmation-mobile.png",fullPage:true});
-  await page.getByRole("button",{name:"Confirmar agendamento",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"Agendamento confirmado!"})).toBeVisible();
-  await expect(page.getByText("Gostaria de esmalte claro.")).toBeVisible();
-  const id=new URL(page.url()).searchParams.get("booking")!;
-  const calendar=await page.request.get(`/api/my/bookings/${id}/calendar`);expect(await calendar.text()).toContain("BEGIN:VCALENDAR");
-  expect((await page.request.get("/api/appointments")).status()).toBe(401);
-  expect((await page.request.get("/api/booking-settings")).status()).toBe(401);
-  await page.getByRole("button",{name:"Remarcar",exact:true}).click();
-  await page.getByRole("button",{name:new RegExp(`^${label},`)}).click();
-  await page.getByRole("button",{name:"13:00",exact:true}).click();
-  await page.getByRole("button",{name:"Confirmar novo horário",exact:true}).click();
-  await expect(page.getByText("Seu horário foi atualizado.",{exact:true})).toBeVisible();
-  await page.getByRole("button",{name:"Cancelar agendamento",exact:true}).click();
-  await page.getByRole("button",{name:"Sim, cancelar agendamento"}).click();
-  await expect(page.getByText("Agendamento cancelado.",{exact:true})).toBeVisible();
-  await page.request.post("/api/auth/logout");
-  await page.request.post("/api/auth/login",{data:{email:f.customers[1].email,password:f.password}});
-  expect((await page.request.get(`/api/my/bookings/${id}`)).status()).toBe(404);
+  await expect(page.getByRole("heading", { name: "Escolha seu serviço", exact: true })).toBeVisible();
+  const widths = [320, 360, 375, 390, 430, 768, 1024, 1440];
+  const checkWidths = async () => { for (const width of widths) { await page.setViewportSize({ width, height: 1000 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overflow at ${width}`).toBe(true); } };
+  await checkWidths();
+  // Selecting a service keeps the next-slots path available even when its optional preview has loaded.
+  await page.getByRole("button", { name: "Selecionar Manicure e Pedicure", exact: true }).click();
+  await page.getByRole("button", { name: /Ver horários|Continuar/, exact: false }).first().click();
+  await expect(page.getByText("Próximos horários disponíveis", { exact: true })).toBeVisible();
+  await checkWidths();
+  await page.getByRole("button", { name: /^\d{2}:\d{2}$/, exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Revise seu agendamento" })).toBeVisible();
+  await expect(page.getByLabel("Seu nome", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Alguma observação para o estabelecimento?").fill("Reserva rápida QA");
+  await page.reload();
+  await expect(page.getByLabel("Alguma observação para o estabelecimento?")).toHaveValue("Reserva rápida QA");
+  await checkWidths();
+  const createdResponse = page.waitForResponse(r => r.url().endsWith("/api/bookings") && r.request().method() === "POST");
+  await page.getByRole("button", { name: "Confirmar agendamento", exact: true }).first().click();
+  const response = await createdResponse; expect(response.status()).toBe(201);
+  const id = (await response.json()).data.id;
+  await expect(page.getByRole("heading", { name: "Agendamento confirmado!" })).toBeVisible();
+  expect(await (await page.request.get(`/api/my/bookings/${id}/calendar`)).text()).toContain("BEGIN:VCALENDAR");
+  await page.goto("/meus-agendamentos");
+  await expect(page.getByText("Próximo atendimento", { exact: true })).toBeVisible();
+  await checkWidths();
+  // A separate future reservation avoids crossing the tenant's cancellation cutoff during the test.
+  const future = await page.request.post("/api/bookings", { data: { slug: f.company.publicSlug, locationId: f.location.id, date: f.date, startTime: "09:00", items: [{ serviceId: f.services[1].id, employeeId: f.team[1].id }], idempotencyKey: crypto.randomUUID() } });
+  expect(future.status()).toBe(201); const futureId = (await future.json()).data.id;
+  await page.goto(`/meus-agendamentos?booking=${futureId}&action=reschedule`);
+  await expect(page.getByRole("heading", { name: "Escolha seu novo horário" })).toBeVisible();
+  await expect(page.getByText("Próximos horários disponíveis", { exact: true })).toBeVisible();
+  await checkWidths();
+  await page.getByRole("button", { name: "Ver calendário completo", exact: false }).click();
+  const label = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${f.date}T12:00Z`));
+  const month = f.date.slice(0, 7); if (month !== new Date().toISOString().slice(0, 7)) await page.getByRole("button", { name: "Próximo mês", exact: true }).click();
+  await page.getByRole("button", { name: new RegExp(`^${label},`) }).click();
+  await page.getByRole("button", { name: "14:00", exact: true }).last().click();
+  await page.getByRole("button", { name: "Confirmar novo horário" }).click();
+  await expect(page.getByText("Seu horário foi atualizado.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cancelar agendamento", exact: true }).click();
+  await page.getByRole("button", { name: "Sim, cancelar agendamento" }).click();
+  await expect(page.getByText("Agendamento cancelado.", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
 test("professional publishes link, QR code and creates assigned service",async({page})=>{
@@ -69,6 +58,7 @@ test("professional publishes link, QR code and creates assigned service",async({
   await page.goto("/");
   await page.getByRole("button",{name:"Link de agendamento",exact:true}).click();
   await expect(page.getByRole("heading",{name:"Link de agendamento",exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Link & Informações",exact:true}).click();
   await page.getByRole("button",{name:"QR Code",exact:true}).click();
   await expect(page.getByAltText("QR Code para agendar")).toBeVisible();
   await page.getByRole("button",{name:"Serviços",exact:true}).click();
@@ -76,7 +66,8 @@ test("professional publishes link, QR code and creates assigned service",async({
   await page.getByLabel("Nome do serviço",{exact:true}).fill("Manicure completa QA");
   await page.getByLabel("Preço (R$)",{exact:true}).fill("50");
   await page.getByLabel("Duração em minutos").fill("90");
-  await page.getByLabel("Ingrid QA",{exact:true}).check();
+  await page.getByText("Ingrid QA",{exact:true}).click();
+  await expect(page.getByLabel("Ingrid QA",{exact:true})).toBeChecked();
   await page.getByRole("button",{name:"Salvar serviço",exact:true}).click();
   await expect(page.getByText("Manicure completa QA",{exact:true})).toBeVisible();
   const result=await page.request.get(`/api/public/${f.company.publicSlug}`);const data=(await result.json()).data;

@@ -33,9 +33,9 @@ export function toTimeString(time: string): string {
 }
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: "Agendado",
+  scheduled: "Aguardando confirmação",
   confirmed: "Confirmado",
-  waiting: "Aguardando",
+  waiting: "Cliente chegou",
   in_progress: "Em atendimento",
   completed: "Finalizado",
   cancelled: "Cancelado",

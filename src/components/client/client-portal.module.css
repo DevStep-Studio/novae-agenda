@@ -495,13 +495,17 @@
 }
 
 .companyCard {
+  width: 100%;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
   background: var(--surface-secondary);
   display: flex;
   align-items: center;
+  color: inherit;
+  font: inherit;
   gap: 12px;
+  text-align: left;
   cursor: pointer;
   transition: all 0.15s ease;
 }

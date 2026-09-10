@@ -545,33 +545,6 @@
   border-color: var(--border-strong);
   color: var(--text-primary);
 }
-  background: #0d1a13;
-  border: 1px solid rgba(220, 255, 76, 0.12);
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.viewportBtn {
-  background: none;
-  border: 0;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #8eb3a2;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.15s ease;
-}
-
-.viewportBtnActive {
-  background: #163628;
-  color: #dcff4c;
-  font-weight: 700;
-}
 
 /* Preview Frame */
 .previewFrameWrap {

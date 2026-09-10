@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, ArrowRight, Clock, CalendarDays, Sparkles, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { AvailableSlot } from "@/lib/booking/engine";
@@ -11,6 +11,13 @@ import { b, dateLabel, dateLabelShort, ErrorMessage, Skeleton } from "./primitiv
 type Availability = {
   dates: Array<{ date: string; count: number }>;
   slots: AvailableSlot[];
+};
+
+type NextDay = {
+  date: string;
+  label: string;
+  slots: AvailableSlot[];
+  totalCount: number;
 };
 
 function monthDays(month: string) {
@@ -62,20 +69,53 @@ export function AvailabilityPicker({
   const [error, setError] = useState("");
   const [period, setPeriod] = useState("Todos");
   const [nextSuggestion, setNextSuggestion] = useState<{ date: string; slot: AvailableSlot } | null>(null);
+  const [nextDays, setNextDays] = useState<NextDay[]>([]);
+  const [loadingNextDays, setLoadingNextDays] = useState(false);
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
   const [nextBusy, setNextBusy] = useState(false);
   const [reload, setReload] = useState(0);
 
   const encoded = JSON.stringify(items);
-  const query = (day: string) =>
-    new URLSearchParams({
-      locationId,
-      date: day,
-      items: encoded,
-      ...(bookingId ? { bookingId } : {}),
-    });
+  const query = useCallback(
+    (day: string) =>
+      new URLSearchParams({
+        locationId,
+        date: day,
+        items: encoded,
+        ...(bookingId ? { bookingId } : {}),
+      }),
+    [bookingId, encoded, locationId],
+  );
 
-  // Load monthly calendar availability counts
+  // Load next availability slots on mount / selection change
   useEffect(() => {
+    const controller = new AbortController();
+    setLoadingNextDays(true);
+    setNextDays([]);
+    setError("");
+
+    api<{ date: string; slot: AvailableSlot; nextDays?: NextDay[] } | null>(
+      `/api/public/${slug}/next-availability?${query(today)}`,
+      { signal: controller.signal }
+    )
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        setNextDays(res?.nextDays ?? []);
+        setLoadingNextDays(false);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) {
+          setError(e.message || "Não foi possível carregar os próximos horários.");
+          setLoadingNextDays(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [slug, today, reload, query]);
+
+  // Fetch the month only when the customer opens the calendar.
+  useEffect(() => {
+    if (!showFullCalendar) return;
     const controller = new AbortController();
     setCalendarLoading(true);
     setCounts({});
@@ -102,11 +142,11 @@ export function AvailabilityPicker({
       });
 
     return () => controller.abort();
-  }, [slug, locationId, encoded, month, bookingId, reload]);
+  }, [slug, locationId, encoded, month, bookingId, reload, showFullCalendar]);
 
   // Load time slots for selected date
   useEffect(() => {
-    if (!date) {
+    if (!date || !showFullCalendar) {
       setSlots([]);
       setLoading(false);
       setNextSuggestion(null);
@@ -153,7 +193,7 @@ export function AvailabilityPicker({
       });
 
     return () => controller.abort();
-  }, [slug, locationId, encoded, date, bookingId, reload]);
+  }, [slug, locationId, encoded, date, bookingId, reload, showFullCalendar, query]);
 
   async function handleFindNext() {
     setNextBusy(true);
@@ -203,114 +243,177 @@ export function AvailabilityPicker({
     <div className={b.pickerContainer}>
       <ErrorMessage message={error} />
 
-      {/* Calendar Header with Unified Navigation Group */}
-      <div className={b.calendarHeader}>
-        <div className={b.calendarMonthGroup}>
-          <h2 className={b.calendarMonthTitle}>
-            {new Intl.DateTimeFormat("pt-BR", {
-              month: "long",
-              year: "numeric",
-              timeZone: "UTC",
-            }).format(new Date(`${month}-01T12:00:00Z`))}
-          </h2>
-          <div className={b.calendarNavGroup}>
+      {/* QUICK NEXT AVAILABILITY SECTION (FRICTIONLESS) */}
+      {nextDays.length > 0 && (
+        <div className={b.quickNextSection}>
+          <div className={b.quickNextHeader}>
+            <h3 className={b.quickNextTitle}>
+              <Sparkles size={16} /> Próximos horários disponíveis
+            </h3>
             <button
-              className={b.calendarNavBtn}
-              aria-label="Mês anterior"
-              disabled={month <= today.slice(0, 7)}
-              onClick={() => setMonth(moveMonth(month, -1))}
+              type="button"
+              className={b.fullCalendarToggleBtn}
+              onClick={() => setShowFullCalendar((prev) => !prev)}
             >
-              <ChevronLeft size={17} />
-            </button>
-            <button
-              className={b.calendarNavBtn}
-              aria-label="Próximo mês"
-              disabled={month >= last.toISOString().slice(0, 7)}
-              onClick={() => setMonth(moveMonth(month, 1))}
-            >
-              <ChevronRight size={17} />
+              <CalendarDays size={13} />
+              <span>{showFullCalendar ? "Ocultar calendário" : "Ver calendário completo"}</span>
             </button>
           </div>
+
+          <div className={b.quickNextDaysList}>
+            {nextDays.map((nd) => (
+              <div key={nd.date} className={b.quickNextDayGroup}>
+                <span className={b.quickNextDayLabel}>
+                  {nd.label}
+                </span>
+                <div className={b.quickNextSlotsGrid}>
+                  {nd.slots.map((s) => {
+                    const isSelected = selected?.startTime === s.startTime && date === nd.date;
+                    return (
+                      <button
+                        key={`${nd.date}-${s.startTime}`}
+                        type="button"
+                        className={`${b.quickNextSlotChip} ${isSelected ? b.quickNextSlotChipActive : ""}`}
+                        onClick={() => {
+                          onDate(nd.date);
+                          onSelect(s);
+                        }}
+                      >
+                        {s.startTime}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      )}
 
-        <button
-          type="button"
-          className={b.nextAvailableLink}
-          disabled={nextBusy}
-          onClick={handleFindNext}
-        >
-          <span>{nextBusy ? "Buscando…" : "Próximo horário livre"}</span>
-          <ArrowRight size={14} />
-        </button>
-      </div>
+      {loadingNextDays && <Skeleton label="Buscando próximos horários…" />}
+      {!loadingNextDays && nextDays.length === 0 && (
+        <div className={b.empty}>
+          <p>{error ? "Tente novamente para consultar vagas reais." : "Nenhuma vaga nos próximos 14 dias."}</p>
+          {error && <button className={b.textButton} onClick={() => setReload(v => v + 1)}>Tentar novamente</button>}
+          <button className={b.textButton} onClick={() => setShowFullCalendar(true)}>Ver calendário completo</button>
+          {onWaitlist && <button className={b.button} disabled={waitlistStatus === "loading" || waitlistStatus === "success"} onClick={onWaitlist}>{waitlistStatus === "success" ? "Interesse registrado" : "Avise-me se surgir uma vaga"}</button>}
+        </div>
+      )}
+      {/* Full Month Calendar (Rendered when toggled or when no quick slots found) */}
+      {showFullCalendar && (
+        <>
+          {/* Calendar Header with Unified Navigation Group */}
+          <div className={b.calendarHeader}>
+            <div className={b.calendarMonthGroup}>
+              <h2 className={b.calendarMonthTitle}>
+                {new Intl.DateTimeFormat("pt-BR", {
+                  month: "long",
+                  year: "numeric",
+                  timeZone: "UTC",
+                }).format(new Date(`${month}-01T12:00:00Z`))}
+              </h2>
+              <div className={b.calendarNavGroup}>
+                <button
+                  type="button"
+                  className={b.calendarNavBtn}
+                  aria-label="Mês anterior"
+                  disabled={month <= today.slice(0, 7)}
+                  onClick={() => setMonth(moveMonth(month, -1))}
+                >
+                  <ChevronLeft size={17} />
+                </button>
+                <button
+                  type="button"
+                  className={b.calendarNavBtn}
+                  aria-label="Próximo mês"
+                  disabled={month >= last.toISOString().slice(0, 7)}
+                  onClick={() => setMonth(moveMonth(month, 1))}
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </div>
+            </div>
 
-      {/* Calendar Grid */}
-      <div
-        className={b.calendar}
-        aria-label="Calendário de agendamento"
-        aria-busy={calendarLoading}
-      >
-        {["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"].map((d) => (
-          <span key={d} className={b.weekday}>
-            {d}
-          </span>
-        ))}
-
-        {Array.from({ length: offset }, (_, i) => (
-          <span key={`empty-${i}`} className={b.emptyDay} />
-        ))}
-
-        {Array.from({ length: monthDays(month) }, (_, i) => {
-          const key = `${month}-${String(i + 1).padStart(2, "0")}`;
-          const count = counts[key] ?? 0;
-          const isSelected = date === key;
-          const isToday = key === today;
-          const isPast = key < today;
-          const isAvailable = !calendarLoading && count > 0 && !isPast;
-          const isFew = count > 0 && count <= 4;
-
-          return (
             <button
-              key={key}
               type="button"
-              className={`${b.day} ${isSelected ? b.daySelected : ""} ${isToday ? b.dayToday : ""} ${isAvailable ? b.dayAvailable : b.dayDisabled}`}
-              aria-label={`${dateLabel(key)}, ${calendarLoading ? "carregando" : `${count} horários disponíveis`}`}
-              aria-pressed={isSelected}
-              disabled={calendarLoading || !count || isPast}
-              onClick={() => {
-                onDate(key);
-                onSelect(null);
-              }}
+              className={b.nextAvailableLink}
+              disabled={nextBusy}
+              onClick={handleFindNext}
             >
-              <span className={b.dayNumber}>{i + 1}</span>
-              {isToday && !isSelected && <span className={b.todayBadge}>Hoje</span>}
-              {isAvailable && !isSelected && (
-                <span className={`${b.availabilityDot} ${isFew ? b.dotFew : b.dotGood}`} />
-              )}
+              <span>{nextBusy ? "Buscando…" : "Próximo horário livre"}</span>
+              <ArrowRight size={14} />
             </button>
-          );
-        })}
-      </div>
+          </div>
 
-      {/* Discrete Availability Legend */}
-      <div className={b.legend}>
-        <span className={b.legendItem}>
-          <span className={`${b.legendIndicator} ${b.dotGood}`} />
-          Boa disponibilidade
-        </span>
-        <span className={b.legendItem}>
-          <span className={`${b.legendIndicator} ${b.dotFew}`} />
-          Poucos horários
-        </span>
-        {calendarLoading && (
-          <span className={b.legendLoading} role="status">
-            Atualizando calendário…
-          </span>
-        )}
-      </div>
+          {/* Calendar Grid */}
+          <div
+            className={b.calendar}
+            aria-label="Calendário de agendamento"
+            aria-busy={calendarLoading}
+          >
+            {["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"].map((d) => (
+              <span key={d} className={b.weekday}>
+                {d}
+              </span>
+            ))}
 
-      {/* Time Slots Section (Appears Immediately Below Calendar) */}
-      <div className={b.slotsSection}>
+            {Array.from({ length: offset }, (_, i) => (
+              <span key={`empty-${i}`} className={b.emptyDay} />
+            ))}
+
+            {Array.from({ length: monthDays(month) }, (_, i) => {
+              const key = `${month}-${String(i + 1).padStart(2, "0")}`;
+              const count = counts[key] ?? 0;
+              const isSelected = date === key;
+              const isToday = key === today;
+              const isPast = key < today;
+              const isAvailable = !calendarLoading && count > 0 && !isPast;
+              const isFew = count > 0 && count <= 4;
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`${b.day} ${isSelected ? b.daySelected : ""} ${isToday ? b.dayToday : ""} ${isAvailable ? b.dayAvailable : b.dayDisabled}`}
+                  aria-label={`${dateLabel(key)}, ${calendarLoading ? "carregando" : `${count} horários disponíveis`}`}
+                  aria-pressed={isSelected}
+                  disabled={calendarLoading || !count || isPast}
+                  onClick={() => {
+                    onDate(key);
+                    onSelect(null);
+                  }}
+                >
+                  <span className={b.dayNumber}>{i + 1}</span>
+                  {isToday && !isSelected && <span className={b.todayBadge}>Hoje</span>}
+                  {isAvailable && !isSelected && (
+                    <span className={`${b.availabilityDot} ${isFew ? b.dotFew : b.dotGood}`} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Discrete Availability Legend */}
+          <div className={b.legend}>
+            <span className={b.legendItem}>
+              <span className={`${b.legendIndicator} ${b.dotGood}`} />
+              Boa disponibilidade
+            </span>
+            <span className={b.legendItem}>
+              <span className={`${b.legendIndicator} ${b.dotFew}`} />
+              Poucos horários
+            </span>
+            {calendarLoading && (
+              <span className={b.legendLoading} role="status">
+                Atualizando calendário…
+              </span>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* The detailed slot grid belongs to the expanded calendar only. */}
+      {showFullCalendar && <div className={b.slotsSection}>
         <div className={b.slotsSectionHeader}>
           <div className={b.slotsSectionTitle}>
             <Clock size={16} />
@@ -447,7 +550,7 @@ export function AvailabilityPicker({
             </div>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

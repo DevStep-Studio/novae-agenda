@@ -28,11 +28,20 @@ type Detail = Omit<BookingDetails, "startsAt" | "endsAt"> & {
   startsAt: string;
   endsAt: string;
 };
-export function MyBookings() {
-  const [user, setUser] = useState<Customer | null>(null),
+export function MyBookings({
+  embedded = false,
+  initialTab = "Próximos",
+  initialUser = null,
+}: {
+  embedded?: boolean;
+  initialTab?: string;
+  initialUser?: Customer | null;
+}) {
+  const Content = embedded ? "section" : "main";
+  const [user, setUser] = useState<Customer | null>(initialUser),
     [rows, setRows] = useState<Detail[]>([]),
     [loading, setLoading] = useState(false),
-    [tab, setTab] = useState("Próximos"),
+    [tab, setTab] = useState(initialTab),
     [error, setError] = useState(""),
     [selected, setSelected] = useState(""),
     [confirmed, setConfirmed] = useState(false),
@@ -57,6 +66,9 @@ export function MyBookings() {
     if (user) void load();
   }, [user, load]);
   useEffect(() => {
+    if (initialUser) setUser(initialUser);
+  }, [initialUser]);
+  useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     setSelected(q.get("booking") || "");
     setConfirmed(q.get("confirmed") === "1");
@@ -72,6 +84,7 @@ export function MyBookings() {
         })
         .catch((e) => setError(e.message));
   }, []);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
   const current = rows.find((r) => r.id === selected);
   async function change() {
     if (!current || !action) return;
@@ -96,12 +109,13 @@ export function MyBookings() {
       setBusy(false);
     }
   }
-  async function reschedule() {
-    if (!current) return;
+  async function reschedule(booking = current) {
+    if (!booking) return;
+    setSelected(booking.id);
     setBusy(true);
     setError("");
     try {
-      const c = await api<PublicCatalog>(`/api/public/${current.company.slug}`);
+      const c = await api<PublicCatalog>(`/api/public/${booking.company.slug}`);
       setCatalog(c);
       setDate("");
       setSlot(null);
@@ -112,6 +126,22 @@ export function MyBookings() {
       setBusy(false);
     }
   }
+  function repeat(booking: Detail) {
+    const q = new URLSearchParams({ items: JSON.stringify(booking.items.map(i => ({ serviceId: i.serviceId, employeeId: i.employeeId }))), location: booking.locationId });
+    window.location.assign(`/agendar/${booking.company.slug}?${q}`);
+  }
+  useEffect(() => {
+    if (!current) return;
+    const q = new URLSearchParams(window.location.search);
+    const requested = q.get("action");
+    if (!requested) return;
+    q.delete("action");
+    window.history.replaceState({}, "", `${window.location.pathname}?${q}`);
+    if (requested === "reschedule" && current.canChange) void reschedule(current);
+    if (requested === "repeat") repeat(current);
+    // The URL action is consumed once and removed before these functions mutate state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id]);
   const visible = rows.filter((r) =>
     tab === "Cancelados"
       ? r.status === "cancelled"
@@ -124,15 +154,14 @@ export function MyBookings() {
           r.status !== "completed" &&
           r.status !== "no_show" &&
           new Date(r.endsAt) >= new Date(),
-  );
+  ).sort((a,b) => tab === "Próximos" ? a.startsAt.localeCompare(b.startsAt) : b.startsAt.localeCompare(a.startsAt));
   const stamp = (v: string) =>
     new Date(v)
       .toISOString()
       .replace(/[-:]/g, "")
       .replace(/\.\d{3}Z$/, "Z");
-  return (
-    <PublicFrame>
-      <main className={`${b.main} ${current ? b.success : ""}`}>
+  const content = (
+      <Content className={`${b.main} ${current ? b.success : ""}`}>
         <ErrorMessage message={error} />
         {message && (
           <div className={b.note} role="status">
@@ -335,7 +364,7 @@ export function MyBookings() {
                     <button
                       className={`${b.button} ${b.outline}`}
                       disabled={busy}
-                      onClick={reschedule}
+                      onClick={() => reschedule()}
                     >
                       Remarcar
                     </button>
@@ -347,14 +376,11 @@ export function MyBookings() {
                     </button>
                   </div>
                 )}
-                {current.status === "completed" && (
-                  <a
-                    className={b.button}
-                    href={`/agendar/${current.company.slug}?services=${current.items.map((i) => i.serviceId).join(",")}${current.items.every((i) => i.employeeId === current.items[0]?.employeeId) ? `&professional=${current.items[0]?.employeeId}` : ""}`}
-                  >
-                    Agendar novamente
-                  </a>
-                )}
+                <div className={b.inline}>
+                  {current.status === "completed" && <button className={b.button} onClick={() => repeat(current)}>Agendar novamente</button>}
+                  {current.company.address && <a className={`${b.button} ${b.outline}`} target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(current.company.address)}`}>Como chegar</a>}
+                  {current.company.phone && <a className={`${b.button} ${b.outline}`} href={`tel:${current.company.phone.replace(/[^+\d]/g, "")}`}>Entrar em contato</a>}
+                </div>
               </>
             )}
             <button
@@ -376,16 +402,18 @@ export function MyBookings() {
                 <p className={b.eyebrow}>Olá, {user.name.split(" ")[0]}</p>
                 <h1 className={b.title}>Meus agendamentos</h1>
               </div>
-              <button
-                className={b.textButton}
-                onClick={async () => {
-                  await api("/api/auth/logout", { method: "POST" });
-                  setUser(null);
-                  setRows([]);
-                }}
-              >
-                Sair
-              </button>
+              {!embedded && (
+                <button
+                  className={b.textButton}
+                  onClick={async () => {
+                    await api("/api/auth/logout", { method: "POST" });
+                    setUser(null);
+                    setRows([]);
+                  }}
+                >
+                  Sair
+                </button>
+              )}
             </div>
             <div className={b.periods}>
               {["Próximos", "Anteriores", "Cancelados"].map((t) => (
@@ -399,8 +427,9 @@ export function MyBookings() {
               ))}
             </div>
             {visible.length ? (
-              visible.map((r) => (
-                <article className={b.detail} key={r.id}>
+              visible.map((r, index) => (
+                <article className={b.detail} key={r.id} style={tab === "Próximos" && index === 0 ? { borderColor: "var(--primary)", borderWidth: 2 } : undefined}>
+                  {tab === "Próximos" && index === 0 && <p className={b.eyebrow}>Próximo atendimento</p>}
                   <div className={b.row}>
                     <div>
                       <p className={b.eyebrow}>
@@ -410,6 +439,9 @@ export function MyBookings() {
                       <p className={b.muted}>
                         {r.company.name} · {r.items[0]?.startTime.slice(0, 5)}
                       </p>
+                      <p className={b.muted}>{r.items.map(i => i.employeeName).join(" · ")}</p>
+                      {r.company.address && <p className={b.muted}>{r.company.address}</p>}
+                      <p>{STATUS_LABELS[r.status as AppointmentStatus]}</p>
                       <strong>{money(r.total)}</strong>
                     </div>
                     <button
@@ -418,6 +450,13 @@ export function MyBookings() {
                     >
                       Detalhes
                     </button>
+                  </div>
+                  <div className={b.inline}>
+                    {r.canChange && <><button className={b.button} disabled={busy} onClick={() => reschedule(r)}>Remarcar</button><button className={b.textButton} onClick={() => { setSelected(r.id); setAction("cancel"); }}>Cancelar</button></>}
+                    <a className={b.textButton} href={`/api/my/bookings/${r.id}/calendar`}>Adicionar ao calendário</a>
+                    {r.company.address && <a className={b.textButton} target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.company.address)}`}>Como chegar</a>}
+                    {r.company.phone && <a className={b.textButton} href={`tel:${r.company.phone.replace(/[^+\d]/g, "")}`}>Entrar em contato</a>}
+                    {r.status === "completed" && <button className={b.button} onClick={() => repeat(r)}>Agendar novamente</button>}
                   </div>
                 </article>
               ))
@@ -432,7 +471,7 @@ export function MyBookings() {
             )}
           </>
         )}
-      </main>
-    </PublicFrame>
+      </Content>
   );
+  return embedded ? content : <PublicFrame>{content}</PublicFrame>;
 }

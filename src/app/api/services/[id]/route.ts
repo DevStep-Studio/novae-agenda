@@ -21,7 +21,7 @@ const updateSchema = z.object({
   active: z.boolean().optional(),
   employeeIds: z.array(z.uuid()).max(100).optional(),
   bufferMinutes: z.number().int().min(0).max(180).optional(),
-  imageUrl: safeImageUrl.optional(),
+  imageUrl: safeImageUrl.optional().nullable(),
   deliveryMode: z.enum(["IN_PERSON","ONLINE"]).optional(),
   paymentType: z.enum(["PAY_LATER","FULL_PAYMENT","DEPOSIT"]).optional(),
   depositAmount: z.number().min(0).optional(),

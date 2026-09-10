@@ -147,11 +147,11 @@
 .coverBannerOverlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 40%, rgba(11, 23, 18, 0.8) 100%);
+  background: var(--background);
 }
 
 .pageLight .coverBannerOverlay {
-  background: linear-gradient(180deg, transparent 40%, rgba(244, 247, 245, 0.8) 100%);
+  background: var(--background);
 }
 
 .page * {
@@ -1979,3 +1979,156 @@
     animation: none !important;
   }
 }
+
+/* =========================================================
+   QUICK NEXT AVAILABILITY SECTION (FRICTIONLESS FAST FLOW)
+   ========================================================= */
+.quickNextSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.quickNextHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.quickNextTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.quickNextTitle svg {
+  color: var(--primary);
+}
+
+.fullCalendarToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fullCalendarToggleBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--surface-secondary);
+}
+
+.quickNextDaysList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quickNextDayGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickNextDayLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quickNextSlotsGrid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quickNextSlotChip {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  font-variant-numeric: tabular-nums;
+}
+
+.quickNextSlotChip:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground, #ffffff);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.quickNextSlotChipActive {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary-foreground, #ffffff) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.serviceQuickSlotBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-soft);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+}
+
+.serviceQuickSlotBadge:hover {
+  background: var(--primary);
+  color: var(--primary-foreground, #ffffff);
+  border-color: var(--primary);
+}
+
+.quickNextHeader { flex-wrap: wrap; }
+.quickNextDayGroup, .quickNextSection { min-width: 0; }
+.quickNextSlotsGrid { display: flex; flex-wrap: wrap; }
+.quickNextSlotChip { min-height: 44px; }
+.detail .inline { flex-wrap: wrap; }
+.detail { overflow-wrap: anywhere; }

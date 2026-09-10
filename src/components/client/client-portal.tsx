@@ -1,33 +1,29 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Loads the authenticated portal snapshot when the shell mounts. */
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   CalendarPlus,
   CheckCircle2,
   Clock,
-  ExternalLink,
   History,
   Home,
   MapPin,
-  RotateCcw,
   Sparkles,
   User,
   UserRound,
   X,
-  XCircle,
-  Building2,
-  ChevronRight,
-  Bell,
   LogOut,
   CalendarCheck2,
   Briefcase,
-  AlertCircle,
-  ShieldCheck,
   Download,
   Star,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
+import { MyBookings } from "@/components/booking/my-bookings";
+import type { BookingDetails } from "@/lib/booking/service";
 import { NovaeLogo } from "@/components/brand/novae-logo";
 import { STATUS_LABELS } from "@/lib/client-utils";
 import styles from "./client-portal.module.css";
@@ -78,6 +74,7 @@ type CustomerBooking = {
   status: string;
   total: number;
   items: BookingItem[];
+  canChange?: boolean;
 };
 
 export function ClientPortal({
@@ -87,6 +84,7 @@ export function ClientPortal({
   initialSession?: SessionInfo | null;
   onLogout?: () => void;
 }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<ClientTab>("home");
   const [session, setSession] = useState<SessionInfo | null>(initialSession ?? null);
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
@@ -95,23 +93,8 @@ export function ClientPortal({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Booking Flow State
-  const [selectedCompany, setSelectedCompany] = useState<PublicCompany | null>(null);
-  const [catalog, setCatalog] = useState<any>(null);
-  const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<string>("");
-  const [bookingStep, setBookingStep] = useState<number>(1);
-  const [bookingSuccess, setBookingSuccess] = useState<CustomerBooking | null>(null);
-  const [submittingBooking, setSubmittingBooking] = useState(false);
-
-  // Reschedule / Cancel state
-  const [reschedulingBooking, setReschedulingBooking] = useState<CustomerBooking | null>(null);
   const [cancellingBooking, setCancellingBooking] = useState<CustomerBooking | null>(null);
   const [cancelReason, setCancelReason] = useState("");
-
   // Review state
   const [reviewBooking, setReviewBooking] = useState<CustomerBooking | null>(null);
   const [reviewRating, setReviewRating] = useState<number>(5);
@@ -125,36 +108,34 @@ export function ClientPortal({
     try {
       const [sessData, bookingsData, companiesData] = await Promise.all([
         api<SessionInfo>("/api/auth/session").catch(() => null),
-        api<CustomerBooking[]>("/api/my/bookings").catch(() => []),
+        api<BookingDetails[]>("/api/my/bookings").then(rows => rows.map(row => ({ ...row, startsAt: String(row.startsAt), endsAt: String(row.endsAt), total: Number(row.total), companyName: row.company.name, companySlug: row.company.slug ?? undefined, companyAddress: row.company.address, locationName: "", items: row.items.map(i => ({ ...i, serviceName: i.name, price: Number(i.price) })) }))),
         api<PublicCompany[]>("/api/companies/public").catch(() => []),
       ]);
 
       if (sessData) setSession(sessData);
       setBookings(bookingsData);
       setCompanies(companiesData);
-    } catch (e) {
-      // ignore
+    } catch {
+      setError("Não foi possível carregar seus agendamentos. Tente novamente.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadData();
+    loadData();
   }, [loadData]);
 
-  // Next upcoming booking
   const now = new Date();
-  const upcomingBookings = bookings.filter(
-    (b) => new Date(b.startsAt) >= now && b.status !== "cancelled"
-  );
+  const upcomingBookings = bookings.filter(b => !["cancelled", "completed", "no_show"].includes(b.status) && new Date(b.endsAt) >= now).sort((a,b) => a.startsAt.localeCompare(b.startsAt));
   const nextBooking = upcomingBookings[0] ?? null;
-
-  // Past bookings (history)
-  const pastBookings = bookings.filter(
-    (b) => new Date(b.startsAt) < now || b.status === "completed" || b.status === "cancelled"
-  );
-
+  const startReschedule = (booking: CustomerBooking) => {
+    router.push(`/meus-agendamentos?booking=${booking.id}&action=reschedule`);
+  };
+  const getWhatsAppLink = (booking: CustomerBooking) => {
+    const phone = companies.find(c => c.id === booking.companyId)?.phone?.replace(/\D/g, "");
+    return phone ? `https://wa.me/${phone.length <= 11 ? "55" : ""}${phone}` : null;
+  };
   // Cancel handler
   const handleCancelBooking = async () => {
     if (!cancellingBooking) return;
@@ -189,143 +170,16 @@ export function ClientPortal({
       setReviewBooking(null);
       setReviewComment("");
       setReviewRating(5);
-    } catch (e: any) {
+    } catch (e) {
       setError(e instanceof ApiError ? e.message : "Não foi possível registrar a avaliação.");
     } finally {
       setReviewSubmitting(false);
     }
   };
 
-  // Handle Booking Flow - Step 1: Company selected
-  const handleSelectCompany = async (company: PublicCompany) => {
-    setSelectedCompany(company);
-    setSelectedService(null);
-    setSelectedEmployee(null);
-    setSelectedDate("");
-    setSelectedSlot("");
-    try {
-      const cat = await api(`/api/public/${company.publicSlug}`);
-      setCatalog(cat);
-      setBookingStep(2); // Go to service selection
-    } catch (e) {
-      setError("Não foi possível carregar os serviços do estabelecimento.");
-    }
+  const handleSelectCompany = (company: PublicCompany) => {
+    router.push(`/agendar/${company.publicSlug}`);
   };
-
-  // Step 2: Service selected
-  const handleSelectService = (service: any) => {
-    setSelectedService(service);
-    setBookingStep(3); // Go to professional selection
-  };
-
-  // Step 3: Professional selected
-  const handleSelectEmployee = (employee: any) => {
-    setSelectedEmployee(employee);
-    // Generate dates starting today
-    const today = new Date().toISOString().slice(0, 10);
-    setSelectedDate(today);
-    loadSlots(today, employee);
-    setBookingStep(4); // Go to date/time selection
-  };
-
-  // Load available slots
-  const loadSlots = async (date: string, pro: any) => {
-    if (!selectedCompany || !selectedService) return;
-    try {
-      const proId = pro?.id === "any" ? null : pro?.id;
-      const items = [{ serviceId: selectedService.id, employeeId: proId }];
-      const query = new URLSearchParams({
-        locationId: catalog?.company?.locationId || catalog?.locations?.[0]?.id || "",
-        date,
-        items: JSON.stringify(items),
-      });
-      const res = await api<{ slots: Array<{ startTime: string }> }>(
-        `/api/public/${selectedCompany.publicSlug}/availability?${query.toString()}`,
-      );
-      setAvailableSlots(res?.slots?.map((s) => s.startTime) || []);
-    } catch {
-      // fallback slots
-      setAvailableSlots(["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]);
-    }
-  };
-
-  // Step 4: Date/Time selected -> Step 5: Review
-  const handleSelectSlot = (slotTime: string) => {
-    setSelectedSlot(slotTime);
-    setBookingStep(5);
-  };
-
-  // Step 5: Confirm and create booking
-  const handleConfirmBooking = async () => {
-    if (!selectedCompany || !selectedService || !selectedSlot || !selectedDate) return;
-    setSubmittingBooking(true);
-    setError(null);
-    try {
-      const proId = selectedEmployee?.id === "any" ? null : selectedEmployee?.id;
-      const locationId = catalog?.locations?.[0]?.id || catalog?.company?.locationId;
-      const res = await api<{ id: string }>("/api/bookings", {
-        method: "POST",
-        body: JSON.stringify({
-          slug: selectedCompany.publicSlug,
-          locationId,
-          date: selectedDate,
-          startTime: selectedSlot,
-          items: [{ serviceId: selectedService.id, employeeId: proId }],
-          idempotencyKey: crypto.randomUUID(),
-        }),
-      });
-
-      // Reload bookings and show success
-      await loadData();
-      setBookingStep(6); // Success
-      setSuccessMsg("Seu horário está confirmado!");
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Não foi possível confirmar o agendamento.");
-    } finally {
-      setSubmittingBooking(false);
-    }
-  };
-
-  // Quick action: Agendar novamente
-  const handleBookAgain = async (booking: CustomerBooking) => {
-    const matchedComp = companies.find((c) => c.id === booking.companyId);
-    if (!matchedComp) {
-      setActiveTab("agendar");
-      return;
-    }
-    setSelectedCompany(matchedComp);
-    setActiveTab("agendar");
-    try {
-      const cat = await api<any>(`/api/public/${matchedComp.publicSlug}`);
-      setCatalog(cat);
-      const item = booking.items?.[0];
-      const matchedSvc = cat.services?.find((s: any) => s.id === item?.serviceId);
-      const matchedEmp = cat.employees?.find((e: any) => e.id === item?.employeeId) || { id: "any", name: "Qualquer profissional" };
-      if (matchedSvc) {
-        setSelectedService(matchedSvc);
-        setSelectedEmployee(matchedEmp);
-        const today = new Date().toISOString().slice(0, 10);
-        setSelectedDate(today);
-        const proId = matchedEmp?.id === "any" ? null : matchedEmp?.id;
-        const items = [{ serviceId: matchedSvc.id, employeeId: proId }];
-        const query = new URLSearchParams({
-          locationId: cat?.company?.locationId || cat?.locations?.[0]?.id || "",
-          date: today,
-          items: JSON.stringify(items),
-        });
-        const res = await api<{ slots: Array<{ startTime: string }> }>(
-          `/api/public/${matchedComp.publicSlug}/availability?${query.toString()}`
-        ).catch(() => ({ slots: [] }));
-        setAvailableSlots(res?.slots?.map((s: any) => s.startTime) || []);
-        setBookingStep(4);
-      } else {
-        setBookingStep(2);
-      }
-    } catch {
-      setBookingStep(2);
-    }
-  };
-
   const clientName = session?.name ? session.name.split(" ")[0] : "Cliente";
 
   return (
@@ -351,7 +205,6 @@ export function ClientPortal({
               className={`${styles.navItem} ${activeTab === "agendar" ? styles.navItemActive : ""}`}
               onClick={() => {
                 setActiveTab("agendar");
-                setBookingStep(1);
               }}
             >
               <CalendarPlus size={15} /> Agendar
@@ -523,10 +376,19 @@ export function ClientPortal({
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => setActiveTab("horarios")}
+                    onClick={() => router.push(`/meus-agendamentos?booking=${nextBooking.id}`)}
                   >
                     Ver detalhes
                   </button>
+                  {nextBooking.canChange && (
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => startReschedule(nextBooking)}
+                    >
+                      Remarcar
+                    </button>
+                  )}
                   <a
                     href={`/api/my/bookings/${nextBooking.id}/calendar`}
                     download
@@ -542,6 +404,16 @@ export function ClientPortal({
                       className={styles.actionBtn}
                     >
                       <MapPin size={13} /> Abrir localização
+                    </a>
+                  )}
+                  {getWhatsAppLink(nextBooking) && (
+                    <a
+                      href={getWhatsAppLink(nextBooking)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.actionBtn}
+                    >
+                      Entrar em contato
                     </a>
                   )}
                   <button
@@ -567,7 +439,6 @@ export function ClientPortal({
                   className={styles.ctaButton}
                   onClick={() => {
                     setActiveTab("agendar");
-                    setBookingStep(1);
                   }}
                 >
                   <CalendarPlus size={16} />
@@ -582,7 +453,6 @@ export function ClientPortal({
                 className={styles.quickActionCard}
                 onClick={() => {
                   setActiveTab("agendar");
-                  setBookingStep(1);
                 }}
               >
                 <div className={styles.quickActionIcon}>
@@ -626,23 +496,11 @@ export function ClientPortal({
         {/* TAB 2: AGENDAR (FLOW EM ETAPAS) */}
         {activeTab === "agendar" && (
           <div className={styles.flowContainer}>
-            <div className={styles.flowHeader}>
-              <h2 className={styles.flowHeaderTitle}>
-                {bookingStep === 1 && "1. Escolha o Estabelecimento"}
-                {bookingStep === 2 && `2. Serviços em ${selectedCompany?.name}`}
-                {bookingStep === 3 && "3. Escolha o Profissional"}
-                {bookingStep === 4 && "4. Data e Horário Disponível"}
-                {bookingStep === 5 && "5. Confirmação do Atendimento"}
-                {bookingStep === 6 && "Seu horário está confirmado!"}
-              </h2>
-              <span className={styles.flowProgress}>Etapa {bookingStep} de 5</span>
-            </div>
-
-            {/* Step 1: Company / Estabelecimento */}
-            {bookingStep === 1 && (
-              <div className={styles.companyGrid}>
+            <h2>Escolha o estabelecimento</h2>
+            <div className={styles.companyGrid}>
                 {companies.map((comp) => (
-                  <div
+                  <button
+                    type="button"
                     key={comp.id}
                     className={styles.companyCard}
                     onClick={() => handleSelectCompany(comp)}
@@ -674,363 +532,24 @@ export function ClientPortal({
                         </span>
                       )}
                     </div>
-                  </div>
+                  </button>
                 ))}
-              </div>
-            )}
+            </div>
 
-            {/* Step 2: Services */}
-            {bookingStep === 2 && (
-              <div>
-                <div className={styles.servicesGrid}>
-                  {catalog?.services?.map((serv: any) => (
-                    <div
-                      key={serv.id}
-                      className={styles.serviceCard}
-                      onClick={() => handleSelectService(serv)}
-                    >
-                      <div className={styles.serviceHeader}>
-                        <strong style={{ fontSize: "14px" }}>{serv.name}</strong>
-                        <span className={styles.servicePrice}>
-                          R$ {Number(serv.price).toFixed(2).replace(".", ",")}
-                        </span>
-                      </div>
-                      <span className={styles.serviceDuration}>
-                        <Clock size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
-                        {serv.durationMinutes} minutos
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 20 }}>
-                  <button type="button" className={styles.actionBtn} onClick={() => setBookingStep(1)}>
-                    Voltar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Professional */}
-            {bookingStep === 3 && (
-              <div>
-                <div className={styles.proGrid}>
-                  <div
-                    className={styles.proCard}
-                    onClick={() => handleSelectEmployee({ id: "any", name: "Qualquer profissional disponível" })}
-                  >
-                    <div className={styles.proAvatar}>
-                      <Sparkles size={18} />
-                    </div>
-                    <div>
-                      <strong>Qualquer profissional disponível</strong>
-                      <small style={{ display: "block", color: "var(--text-muted)" }}>
-                        Primeiro horário livre
-                      </small>
-                    </div>
-                  </div>
-
-                  {catalog?.professionals?.map((pro: any) => (
-                    <div
-                      key={pro.id}
-                      className={styles.proCard}
-                      onClick={() => handleSelectEmployee(pro)}
-                    >
-                      <div className={styles.proAvatar}>{pro.name.slice(0, 2).toUpperCase()}</div>
-                      <div>
-                        <strong>{pro.name}</strong>
-                        <small style={{ display: "block", color: "var(--text-muted)" }}>
-                          {pro.jobTitle ?? "Especialista"}
-                        </small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 20 }}>
-                  <button type="button" className={styles.actionBtn} onClick={() => setBookingStep(2)}>
-                    Voltar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Date & Time */}
-            {bookingStep === 4 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                    Data do atendimento:
-                  </label>
-                  <input
-                    type="date"
-                    min={new Date().toISOString().slice(0, 10)}
-                    value={selectedDate}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value);
-                      loadSlots(e.target.value, selectedEmployee);
-                    }}
-                    style={{
-                      display: "block",
-                      marginTop: 6,
-                      height: 40,
-                      padding: "0 12px",
-                      borderRadius: 8,
-                      border: "1px solid var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                    Horários disponíveis:
-                  </span>
-                  <div className={styles.slotGrid} style={{ marginTop: 8 }}>
-                    {availableSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        type="button"
-                        className={`${styles.slotBtn} ${selectedSlot === slot ? styles.slotBtnActive : ""}`}
-                        onClick={() => handleSelectSlot(slot)}
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                    {availableSlots.length === 0 && (
-                      <p style={{ gridColumn: "1 / -1", color: "var(--text-muted)", fontSize: "13px" }}>
-                        Nenhum horário disponível para esta data. Selecione outro dia.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 20 }}>
-                  <button type="button" className={styles.actionBtn} onClick={() => setBookingStep(3)}>
-                    Voltar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Summary and Confirmation */}
-            {bookingStep === 5 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <div className={styles.summaryBox}>
-                  <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Estabelecimento:</span>
-                    <span className={styles.summaryValue}>{selectedCompany?.name}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Serviço:</span>
-                    <span className={styles.summaryValue}>{selectedService?.name}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Profissional:</span>
-                    <span className={styles.summaryValue}>{selectedEmployee?.name}</span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Data e Horário:</span>
-                    <span className={styles.summaryValue}>
-                      {selectedDate} às {selectedSlot}
-                    </span>
-                  </div>
-                  <div className={styles.summaryRow}>
-                    <span className={styles.summaryLabel}>Duração estimada:</span>
-                    <span className={styles.summaryValue}>{selectedService?.durationMinutes} min</span>
-                  </div>
-                  <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
-                    <span>Valor total:</span>
-                    <span>R$ {Number(selectedService?.price || 0).toFixed(2).replace(".", ",")}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                  <button type="button" className={styles.actionBtn} onClick={() => setBookingStep(4)}>
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.ctaButton}
-                    disabled={submittingBooking}
-                    onClick={handleConfirmBooking}
-                  >
-                    {submittingBooking ? "Confirmando..." : "Confirmar agendamento"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 6: Success screen */}
-            {bookingStep === 6 && (
-              <div className={styles.successCard}>
-                <div className={styles.successIconWrapper}>
-                  <CheckCircle2 size={32} />
-                </div>
-                <h3 style={{ fontSize: "20px", fontWeight: 750, margin: 0 }}>Seu horário está confirmado!</h3>
-                <p style={{ color: "var(--text-secondary)", fontSize: "14px", margin: 0 }}>
-                  Enviamos os detalhes da sua reserva para o seu e-mail cadastrado.
-                </p>
-
-                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button
-                    type="button"
-                    className={styles.ctaButton}
-                    onClick={() => setActiveTab("horarios")}
-                  >
-                    Ver meus horários
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.actionBtn}
-                    onClick={() => {
-                      setActiveTab("home");
-                      setBookingStep(1);
-                    }}
-                  >
-                    Voltar ao início
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
-
-        {/* TAB 3: MEUS HORÁRIOS */}
-        {activeTab === "horarios" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 750, margin: 0 }}>Meus Agendamentos</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {upcomingBookings.map((b) => (
-                <div key={b.id} className={styles.nextCard} style={{ padding: 18 }}>
-                  <div className={styles.nextCardBody}>
-                    <div className={styles.companyLogo}>
-                      {b.companyName ? b.companyName.slice(0, 2).toUpperCase() : "NP"}
-                    </div>
-                    <div className={styles.appointmentInfo}>
-                      <span className={styles.companyName}>
-                        {b.companyName ?? "Estabelecimento"} · {b.locationName}
-                      </span>
-                      <strong className={styles.serviceName}>
-                        {b.items?.[0]?.serviceName ?? "Atendimento"}
-                      </strong>
-                      <div className={styles.appointmentMeta}>
-                        <span>{b.items?.[0]?.employeeName}</span>
-                        <span>
-                          {new Intl.DateTimeFormat("pt-BR", {
-                            day: "numeric",
-                            month: "long",
-                            timeZone: "UTC",
-                          }).format(new Date(b.startsAt))}
-                        </span>
-                        <span>{b.startsAt.slice(11, 16)}</span>
-                      </div>
-                    </div>
-                    <span className={styles.appointmentStatusBadge}>
-                      {STATUS_LABELS[b.status as keyof typeof STATUS_LABELS] ?? "Confirmado"}
-                    </span>
-                  </div>
-
-                  <div className={styles.cardActions}>
-                    <a
-                      href={`/api/my/bookings/${b.id}/calendar`}
-                      download
-                      className={styles.actionBtn}
-                    >
-                      <Download size={13} /> Adicionar ao calendário
-                    </a>
-                    {b.companyAddress && (
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(b.companyAddress)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.actionBtn}
-                      >
-                        <MapPin size={13} /> Localização
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                      onClick={() => setCancellingBooking(b)}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {upcomingBookings.length === 0 && (
-                <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
-                  Você não tem nenhum atendimento agendado para os próximos dias.
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: HISTÓRICO */}
-        {activeTab === "historico" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <h2 style={{ fontSize: "20px", fontWeight: 750, margin: 0 }}>Histórico de Atendimentos</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {pastBookings.map((b) => (
-                <div key={b.id} className={styles.historyCard}>
-                  <div className={styles.historyInfo}>
-                    <span className={styles.historyDate}>
-                      {new Intl.DateTimeFormat("pt-BR", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                        timeZone: "UTC",
-                      }).format(new Date(b.startsAt))}{" "}
-                      às {b.startsAt.slice(11, 16)}
-                    </span>
-                    <strong className={styles.historyService}>
-                      {b.items?.[0]?.serviceName ?? "Atendimento"}
-                    </strong>
-                    <span className={styles.historySub}>
-                      {b.companyName ?? "Estabelecimento"} · {b.items?.[0]?.employeeName} · R${" "}
-                      {Number(b.total).toFixed(2).replace(".", ",")}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <button
-                      type="button"
-                      className={styles.actionBtn}
-                      onClick={() => handleBookAgain(b)}
-                    >
-                      <RotateCcw size={13} /> Agendar novamente
-                    </button>
-                    {!reviewedBookings.has(b.id) ? (
-                      <button
-                        type="button"
-                        className={styles.actionBtn}
-                        onClick={() => {
-                          setReviewBooking(b);
-                          setReviewRating(5);
-                          setReviewComment("");
-                        }}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
-                      >
-                        <Star size={13} style={{ color: "#facc15" }} /> Avaliar
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: 12, color: "var(--primary)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <CheckCircle2 size={13} /> Avaliado
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {pastBookings.length === 0 && (
-                <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
-                  Nenhum atendimento anterior encontrado.
-                </p>
-              )}
-            </div>
-          </div>
+        {(activeTab === "horarios" || activeTab === "historico") && (
+          <MyBookings
+            embedded
+            initialTab={activeTab === "historico" ? "Anteriores" : "Próximos"}
+            initialUser={session ? {
+              id: session.userId,
+              name: session.name,
+              email: session.email,
+              phone: session.phone ?? null,
+              emailVerified: session.emailVerified,
+            } : null}
+          />
         )}
 
         {/* TAB 5: PERFIL */}
@@ -1113,7 +632,7 @@ export function ClientPortal({
                   className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                   onClick={async () => {
                     await api("/api/auth/logout", { method: "POST" });
-                    window.location.href = "/";
+                    router.push("/");
                   }}
                 >
                   <LogOut size={14} /> Sair da conta
@@ -1326,7 +845,6 @@ export function ClientPortal({
           className={`${styles.bottomNavItem} ${activeTab === "agendar" ? styles.bottomNavItemActive : ""}`}
           onClick={() => {
             setActiveTab("agendar");
-            setBookingStep(1);
           }}
         >
           <CalendarPlus size={18} />

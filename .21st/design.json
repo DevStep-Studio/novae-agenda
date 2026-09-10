@@ -116,6 +116,11 @@
       "scope": "public-booking",
       "decision": "Página clara com verde escuro Novae, bordas discretas e sem gradientes; fluxo de três etapas; resumo sticky 65/35 no desktop e abaixo do conteúdo no mobile.",
       "source": "Especificação e imagens enviadas pelo usuário; componentes e marca existentes."
+    },
+    {
+      "scope": "booking-friction",
+      "decision": "Exibir vagas reais imediatamente após o serviço, manter o calendário completo como opção secundária e concentrar ações operacionais no contexto do atendimento, preservando tokens e densidade existentes.",
+      "source": "Briefing de refinamento de agendamento do usuário."
     }
   ],
   "evidence": [
