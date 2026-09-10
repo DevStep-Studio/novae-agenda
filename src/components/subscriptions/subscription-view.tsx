@@ -220,8 +220,8 @@ export function SubscriptionView() {
               fontSize: 13,
               fontWeight: billingCycle === "monthly" ? 700 : 500,
               cursor: "pointer",
-              background: billingCycle === "monthly" ? "#dcff4c" : "transparent",
-              color: billingCycle === "monthly" ? "#12231b" : "rgba(255,255,255,0.7)",
+              background: billingCycle === "monthly" ? "var(--primary)" : "transparent",
+              color: billingCycle === "monthly" ? "var(--primary-foreground, #ffffff)" : "var(--text-secondary)",
             }}
           >
             Cobrança Mensal
@@ -236,8 +236,8 @@ export function SubscriptionView() {
               fontSize: 13,
               fontWeight: billingCycle === "yearly" ? 700 : 500,
               cursor: "pointer",
-              background: billingCycle === "yearly" ? "#dcff4c" : "transparent",
-              color: billingCycle === "yearly" ? "#12231b" : "rgba(255,255,255,0.7)",
+              background: billingCycle === "yearly" ? "var(--primary)" : "transparent",
+              color: billingCycle === "yearly" ? "var(--primary-foreground, #ffffff)" : "var(--text-secondary)",
               display: "flex",
               alignItems: "center",
               gap: 6,
@@ -248,8 +248,8 @@ export function SubscriptionView() {
               style={{
                 fontSize: 10,
                 padding: "2px 6px",
-                background: billingCycle === "yearly" ? "#12231b" : "#dcff4c",
-                color: billingCycle === "yearly" ? "#dcff4c" : "#12231b",
+                background: billingCycle === "yearly" ? "var(--surface)" : "var(--primary)",
+                color: billingCycle === "yearly" ? "var(--primary)" : "var(--primary-foreground, #ffffff)",
                 borderRadius: 10,
                 fontWeight: 800,
               }}
@@ -265,22 +265,23 @@ export function SubscriptionView() {
         {/* Pro Mensal */}
         <div
           style={{
-            background: "#162a22",
-            border: billingCycle === "monthly" ? "1px solid #dcff4c" : "1px solid rgba(255,255,255,0.08)",
+            background: "var(--surface)",
+            border: billingCycle === "monthly" ? "2px solid var(--primary)" : "1px solid var(--border)",
             borderRadius: 16,
             padding: "28px 24px",
             display: "flex",
             flexDirection: "column",
+            boxShadow: "var(--shadow-sm)",
           }}
         >
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "#ffffff", margin: "0 0 6px" }}>Pro Mensal</h3>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", minHeight: 36, margin: "0 0 16px" }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Pro Mensal</h3>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", minHeight: 36, margin: "0 0 16px" }}>
             Flexibilidade mês a mês para quem quer pagar mensalmente.
           </p>
 
           <div style={{ display: "flex", alignItems: "baseline", gap: 4, margin: "16px 0 24px" }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: "#ffffff" }}>R$ 89,90</span>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>/mês</span>
+            <span style={{ fontSize: 32, fontWeight: 800, color: "var(--text-primary)" }}>R$ 89,90</span>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>/mês</span>
           </div>
 
           <button
@@ -290,9 +291,9 @@ export function SubscriptionView() {
             style={{
               width: "100%",
               padding: "12px",
-              background: billingCycle === "monthly" ? "#dcff4c" : "rgba(255,255,255,0.08)",
-              color: billingCycle === "monthly" ? "#12231b" : "#ffffff",
-              border: "none",
+              background: billingCycle === "monthly" ? "var(--primary)" : "var(--surface-secondary)",
+              color: billingCycle === "monthly" ? "var(--primary-foreground, #ffffff)" : "var(--text-primary)",
+              border: billingCycle === "monthly" ? "none" : "1px solid var(--border)",
               borderRadius: 8,
               fontSize: 14,
               fontWeight: 700,
@@ -311,8 +312,8 @@ export function SubscriptionView() {
               "Financeiro completo com comissões",
               "Relatórios operacionais",
             ].map((f) => (
-              <li key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
-                <Check size={16} color="#dcff4c" /> {f}
+              <li key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-secondary)" }}>
+                <Check size={16} color="var(--primary)" /> {f}
               </li>
             ))}
           </ul>
@@ -321,13 +322,14 @@ export function SubscriptionView() {
         {/* Pro Anual */}
         <div
           style={{
-            background: "#162a22",
-            border: billingCycle === "yearly" ? "2px solid #dcff4c" : "1px solid rgba(255,255,255,0.08)",
+            background: "var(--surface)",
+            border: billingCycle === "yearly" ? "2px solid var(--primary)" : "1px solid var(--border)",
             borderRadius: 16,
             padding: "28px 24px",
             display: "flex",
             flexDirection: "column",
             position: "relative",
+            boxShadow: "var(--shadow-sm)",
           }}
         >
           <div
@@ -335,8 +337,8 @@ export function SubscriptionView() {
               position: "absolute",
               top: -12,
               right: 20,
-              background: "#dcff4c",
-              color: "#12231b",
+              background: "var(--primary)",
+              color: "var(--primary-foreground, #ffffff)",
               fontSize: 11,
               fontWeight: 800,
               padding: "3px 10px",
@@ -347,14 +349,14 @@ export function SubscriptionView() {
             Melhor Custo-Benefício
           </div>
 
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: "#ffffff", margin: "0 0 6px" }}>Pro Anual</h3>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", minHeight: 36, margin: "0 0 16px" }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 6px" }}>Pro Anual</h3>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", minHeight: 36, margin: "0 0 16px" }}>
             Equivalente a R$ 66,58/mês. Máxima economia e tranquilidade para o ano todo.
           </p>
 
           <div style={{ display: "flex", alignItems: "baseline", gap: 4, margin: "16px 0 24px" }}>
-            <span style={{ fontSize: 32, fontWeight: 800, color: "#dcff4c" }}>R$ 799,00</span>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>/ano</span>
+            <span style={{ fontSize: 32, fontWeight: 800, color: "var(--primary)" }}>R$ 799,00</span>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>/ano</span>
           </div>
 
           <button
@@ -364,8 +366,8 @@ export function SubscriptionView() {
             style={{
               width: "100%",
               padding: "12px",
-              background: "#dcff4c",
-              color: "#12231b",
+              background: "var(--primary)",
+              color: "var(--primary-foreground, #ffffff)",
               border: "none",
               borderRadius: 8,
               fontSize: 14,
@@ -385,8 +387,8 @@ export function SubscriptionView() {
               "Exportação completa de dados (CSV)",
               "Suporte prioritário",
             ].map((f) => (
-              <li key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
-                <Check size={16} color="#dcff4c" /> {f}
+              <li key={f} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--text-secondary)" }}>
+                <Check size={16} color="var(--primary)" /> {f}
               </li>
             ))}
           </ul>

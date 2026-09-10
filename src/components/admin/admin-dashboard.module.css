@@ -1,15 +1,15 @@
 .shell {
   display: flex;
   min-height: 100vh;
-  background: #081410;
-  color: #ffffff;
+  background: var(--background);
+  color: var(--text-primary);
   font-family: var(--font-dm-sans, inherit);
 }
 
 .sidebar {
   width: 260px;
-  background: #0b1a15;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
@@ -28,9 +28,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--border);
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
@@ -55,7 +55,7 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   background: transparent;
@@ -67,13 +67,13 @@
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
 }
 
 .navItem.active {
-  background: #173d30;
-  color: #dcff4c;
+  background: var(--primary-soft);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -90,20 +90,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 32px;
-  background: #0b1a15;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .topbarTitle h1 {
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .topbarTitle p {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
   margin: 2px 0 0 0;
 }
 
@@ -121,20 +121,21 @@
 }
 
 .statCard {
-  background: #0f241d;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: var(--shadow-sm);
 }
 
 .statHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -142,32 +143,33 @@
 .statValue {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .statValueLime {
   font-size: 28px;
   font-weight: 700;
-  color: #dcff4c;
+  color: var(--primary);
 }
 
 .dataTable {
   width: 100%;
   border-collapse: collapse;
-  background: #0f241d;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .dataTable th {
   text-align: left;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-secondary);
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -175,8 +177,8 @@
 .dataTable td {
   padding: 14px 16px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
 }
 
 .dataTable tr:last-child td {
@@ -191,8 +193,8 @@
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(74, 222, 128, 0.15);
-  color: #4ade80;
+  background: var(--success-soft);
+  color: var(--success);
 }
 
 .portalSwitchBtn {
@@ -201,9 +203,9 @@
   justify-content: center;
   gap: 8px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px;
   cursor: pointer;
@@ -213,6 +215,6 @@
 }
 
 .portalSwitchBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }

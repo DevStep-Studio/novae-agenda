@@ -1,15 +1,15 @@
 .shell {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-base, #0b1d17);
-  color: var(--text-primary, #ffffff);
+  background: var(--background);
+  color: var(--text-primary);
   font-family: var(--font-dm-sans, inherit);
 }
 
 .sidebar {
   width: 260px;
-  background: #0f2920;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
@@ -28,9 +28,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(220, 255, 76, 0.12);
-  color: #dcff4c;
-  border: 1px solid rgba(220, 255, 76, 0.25);
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--border);
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -53,7 +53,7 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   background: transparent;
@@ -65,19 +65,19 @@
 }
 
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
 }
 
 .navItem.active {
-  background: #173d30;
-  color: #dcff4c;
+  background: var(--primary-soft);
+  color: var(--primary);
   font-weight: 600;
 }
 
 .sidebarFooter {
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -94,14 +94,14 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #1c4537;
-  color: #dcff4c;
+  background: var(--surface-secondary);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 13px;
-  border: 1px solid rgba(220, 255, 76, 0.3);
+  border: 1px solid var(--border);
 }
 
 .userInfo {
@@ -113,7 +113,7 @@
 .userName {
   font-size: 13px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,7 +121,7 @@
 
 .userRole {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted);
 }
 
 .portalSwitchBtn {
@@ -130,9 +130,9 @@
   justify-content: center;
   gap: 8px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px;
   cursor: pointer;
@@ -141,8 +141,8 @@
 }
 
 .portalSwitchBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .mainContent {
@@ -158,20 +158,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 32px;
-  background: #0f2920;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
 }
 
 .topbarTitle h1 {
   font-size: 20px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .topbarTitle p {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
   margin: 2px 0 0 0;
 }
 
@@ -189,20 +189,21 @@
 }
 
 .statCard {
-  background: #133328;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: var(--shadow-sm);
 }
 
 .statHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -210,14 +211,14 @@
 .statValue {
   font-size: 28px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
 }
 
 .statValueLime {
   font-size: 28px;
   font-weight: 700;
-  color: #dcff4c;
+  color: var(--primary);
   letter-spacing: -0.5px;
 }
 
@@ -231,7 +232,7 @@
 .sectionTitle {
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .appointmentsList {
@@ -241,8 +242,8 @@
 }
 
 .appointmentCard {
-  background: #133328;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -250,10 +251,11 @@
   justify-content: space-between;
   gap: 20px;
   transition: border-color 0.15s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .appointmentCard:hover {
-  border-color: rgba(220, 255, 76, 0.3);
+  border-color: var(--border-strong);
 }
 
 .aptTimeCol {
@@ -262,19 +264,19 @@
   align-items: center;
   justify-content: center;
   padding-right: 20px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--border);
   min-width: 80px;
 }
 
 .aptTime {
   font-size: 20px;
   font-weight: 700;
-  color: #dcff4c;
+  color: var(--primary);
 }
 
 .aptDuration {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted);
 }
 
 .aptInfoCol {
@@ -287,7 +289,7 @@
 .aptClientName {
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -295,7 +297,7 @@
 
 .aptServiceName {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
 }
 
 .aptMeta {

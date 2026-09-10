@@ -277,9 +277,9 @@ function DashboardPage({
         <div className="submetric-card">
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Ocupação do dia</span>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: "#dcff4c", marginTop: 2 }}>{occupancyRate}%</div>
+            <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--primary)", marginTop: 2 }}>{occupancyRate}%</div>
           </div>
-          <Sparkles size={18} style={{ color: "#dcff4c" }} />
+          <Sparkles size={18} style={{ color: "var(--primary)" }} />
         </div>
         <div className="submetric-card">
           <div>
@@ -291,9 +291,9 @@ function DashboardPage({
         <div className="submetric-card">
           <div>
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "#f87171" : "var(--text-primary)", marginTop: 2 }}>{cancellationsToday}</div>
+            <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-primary)", marginTop: 2 }}>{cancellationsToday}</div>
           </div>
-          <Ban size={18} style={{ color: cancellationsToday > 0 ? "#f87171" : "var(--text-secondary)" }} />
+          <Ban size={18} style={{ color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-secondary)" }} />
         </div>
       </div>
 
@@ -2254,7 +2254,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                     {theme === "dark" && <CheckCircle size={17} className="theme-check" />}
                   </button>
                   <button type="button" className={theme === "system" ? "theme-option active" : "theme-option"} onClick={() => setTheme("system")}>
-                    <span className="theme-preview system-preview" style={{ background: "rgba(220, 255, 76, 0.12)", color: "#dcff4c" }}><Laptop size={17} /></span>
+                    <span className="theme-preview system-preview" style={{ background: "var(--primary-soft)", color: "var(--primary)" }}><Laptop size={17} /></span>
                     <span className="theme-copy"><strong>Sistema</strong><small>Automático do SO</small></span>
                     {theme === "system" && <CheckCircle size={17} className="theme-check" />}
                   </button>
@@ -2506,33 +2506,33 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
             <section className="settings-section">
               <SectionHeading title="Central de Ajuda e Tutoriais" description="Guias práticos para dominar o seu Reservei." />
               <div className="help-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
-                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Clock3 size={20} /></div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Clock3 size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>1. Como configurar a agenda</strong>
                   <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Defina os horários de abertura, fechamento e dias de funcionamento na aba "Funcionamento" desta tela.</p>
                 </div>
-                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Tag size={20} /></div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Tag size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>2. Como criar um serviço</strong>
                   <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Acesse a aba Serviços no menu lateral, clique em "+ Novo serviço", defina valor, duração e profissionais.</p>
                 </div>
-                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Ban size={20} /></div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Ban size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>3. Como bloquear horário</strong>
                   <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Na aba Agenda, use "+ Bloquear horário" para registrar folgas, pausas para almoço ou manutenção.</p>
                 </div>
-                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><Globe size={20} /></div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Globe size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>4. Como compartilhar link</strong>
                   <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Vá para "Link de agendamento" para personalizar seu slug, copiar o link ou baixar o QR Code para balcão.</p>
                 </div>
-                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><UserRound size={20} /></div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><UserRound size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>5. Como cadastrar equipe</strong>
                   <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Na aba Equipe, cadastre os colaboradores, defina comissões percentuais ou fixas e vincule serviços.</p>
                 </div>
-                <div className="help-card" style={{ padding: "16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "10px" }}>
-                  <div className="help-icon" style={{ color: "#dcff4c", marginBottom: "8px" }}><CalendarCheck size={20} /></div>
+                <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
+                  <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><CalendarCheck size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>6. Como cancelar ou remarcar</strong>
                   <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: 0 }}>Clique no agendamento desejado para alterar o status para cancelado ou remarcar dia e horário.</p>
                 </div>

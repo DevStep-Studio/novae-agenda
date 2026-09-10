@@ -20,7 +20,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: #dcff4c;
+  color: var(--primary);
   margin: 0;
 }
 
@@ -62,9 +62,9 @@
 }
 
 .tabBtnActive {
-  color: #dcff4c;
+  color: var(--primary);
   font-weight: 600;
-  background: rgba(220, 255, 76, 0.08);
+  background: var(--primary-soft);
 }
 
 .tabBtnActive::after {
@@ -74,7 +74,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: #dcff4c;
+  background: var(--primary);
   border-radius: 2px 2px 0 0;
 }
 
@@ -502,7 +502,7 @@
 }
 
 .switchActive {
-  background: #dcff4c;
+  background: var(--primary);
 }
 
 .switchKnob {
@@ -518,7 +518,7 @@
 
 .switchKnobActive {
   transform: translateX(18px);
-  background: #0b1d17;
+  background: var(--primary-foreground, #ffffff);
 }
 
 /* Weekly Schedule Table */
@@ -558,14 +558,14 @@
   position: sticky;
   bottom: 20px;
   background: var(--surface);
-  border: 1px solid rgba(220, 255, 76, 0.25);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
   z-index: 10;
 }
 

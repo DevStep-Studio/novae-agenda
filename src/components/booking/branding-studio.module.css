@@ -74,7 +74,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: #dcff4c;
+  color: var(--primary);
   font-weight: 800;
   margin: 0 0 4px;
 }
@@ -82,14 +82,14 @@
 .title {
   font-size: 22px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0 0 6px;
   letter-spacing: -0.4px;
 }
 
 .subtitle {
   font-size: 13.5px;
-  color: #8eb3a2;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -117,13 +117,14 @@
 
 /* Cards */
 .card {
-  background: #11231a;
-  border: 1px solid rgba(220, 255, 76, 0.12);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 20px 22px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .cardHeader {
@@ -131,14 +132,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
 }
 
 .cardTitle {
   font-size: 14.5px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -146,7 +147,7 @@
 }
 
 .cardTitle svg {
-  color: #dcff4c;
+  color: var(--primary);
 }
 
 .field {
@@ -158,12 +159,12 @@
 .fieldLabel {
   font-size: 12.5px;
   font-weight: 600;
-  color: #c5dfd4;
+  color: var(--text-secondary);
 }
 
 .fieldHint {
   font-size: 11px;
-  color: #8eb3a2;
+  color: var(--text-muted);
 }
 
 /* Upload Boxes */
@@ -178,8 +179,8 @@
   width: 72px;
   height: 72px;
   border-radius: 12px;
-  background: #0d1a13;
-  border: 1.5px dashed rgba(220, 255, 76, 0.25);
+  background: var(--surface-secondary);
+  border: 1.5px dashed var(--border-strong);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -197,15 +198,15 @@
 .logoFallback {
   font-size: 24px;
   font-weight: 800;
-  color: #dcff4c;
+  color: var(--primary);
 }
 
 .coverBox {
   width: 100%;
   height: 110px;
   border-radius: 12px;
-  background: #0d1a13;
-  border: 1.5px dashed rgba(220, 255, 76, 0.25);
+  background: var(--surface-secondary);
+  border: 1.5px dashed var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,9 +235,9 @@
   min-height: 36px;
   padding: 6px 14px;
   border-radius: 8px;
-  background: #142a1f;
-  border: 1px solid rgba(220, 255, 76, 0.24);
-  color: #dcff4c;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -248,9 +249,9 @@
 }
 
 .btnUpload:hover {
-  background: #dcff4c;
-  color: #102118;
-  border-color: #dcff4c;
+  background: var(--primary);
+  color: var(--primary-foreground, #ffffff);
+  border-color: var(--primary);
 }
 
 .btnRemove {
@@ -258,8 +259,8 @@
   padding: 6px 12px;
   border-radius: 8px;
   background: transparent;
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #f87171;
+  border: 1px solid var(--danger);
+  color: var(--danger);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -271,8 +272,7 @@
 }
 
 .btnRemove:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: #f87171;
+  background: var(--danger-soft);
 }
 
 /* Color Picker */
@@ -288,7 +288,7 @@
   height: 40px;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid rgba(220, 255, 76, 0.25);
+  border: 1px solid var(--border-strong);
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -306,10 +306,10 @@
 
 .hexInput {
   min-height: 40px;
-  border: 1px solid rgba(220, 255, 76, 0.18);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #11221a;
-  color: #f1f7f4;
+  background: var(--surface);
+  color: var(--text-primary);
   padding: 8px 12px;
   font: inherit;
   font-family: monospace;
@@ -321,8 +321,8 @@
 }
 
 .hexInput:focus {
-  border-color: #dcff4c;
-  background: #142c21;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 .colorPresets {
@@ -336,7 +336,7 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--border);
   cursor: pointer;
   padding: 0;
   transition: all 0.15s ease;
@@ -344,13 +344,13 @@
 
 .presetDot:hover {
   transform: scale(1.15);
-  border-color: #ffffff;
+  border-color: var(--text-primary);
 }
 
 .presetDotActive {
-  border-color: #ffffff;
+  border-color: var(--text-primary);
   transform: scale(1.15);
-  box-shadow: 0 0 0 2px #dcff4c;
+  box-shadow: 0 0 0 2px var(--primary);
 }
 
 /* Contrast Feedback Banner */
@@ -360,14 +360,14 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: #0d1a13;
-  border: 1px solid rgba(220, 255, 76, 0.12);
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
   font-size: 11.5px;
-  color: #c5dfd4;
+  color: var(--text-secondary);
 }
 
 .contrastFeedback svg {
-  color: #dcff4c;
+  color: var(--primary);
   flex-shrink: 0;
 }
 
@@ -380,11 +380,11 @@
 
 .themeSegmentBtn {
   min-height: 44px;
-  border: 1px solid rgba(220, 255, 76, 0.14);
-  background: #0d1a13;
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
   border-radius: 10px;
   padding: 8px;
-  color: #8eb3a2;
+  color: var(--text-secondary);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -398,14 +398,14 @@
 }
 
 .themeSegmentBtn:hover {
-  border-color: rgba(220, 255, 76, 0.3);
-  color: #ffffff;
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .themeSegmentBtnActive {
-  background: #142a1f;
-  border-color: #dcff4c;
-  color: #dcff4c;
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
   font-weight: 700;
 }
 
@@ -419,18 +419,18 @@
   justify-content: space-between;
   gap: 14px;
   padding: 14px 20px;
-  background: #11231a;
-  border: 1px solid rgba(220, 255, 76, 0.3);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   margin-top: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
   backdrop-filter: blur(10px);
 }
 
 .btnReset {
   background: none;
   border: 0;
-  color: #8eb3a2;
+  color: var(--text-muted);
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
@@ -443,16 +443,16 @@
 }
 
 .btnReset:hover {
-  color: #f87171;
+  color: var(--danger);
 }
 
 .btnSave {
   min-height: 42px;
   padding: 8px 22px;
   border-radius: 10px;
-  background: #dcff4c;
-  border: 1px solid #dcff4c;
-  color: #102118;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--primary-foreground, #ffffff);
   font: inherit;
   font-size: 13.5px;
   font-weight: 700;
@@ -464,14 +464,12 @@
 }
 
 .btnSave:hover:not(:disabled) {
-  background: #e5ff70;
-  border-color: #e5ff70;
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 .btnSave:disabled {
-  background: #162f22 !important;
-  color: #557566 !important;
-  border-color: rgba(255, 255, 255, 0.05) !important;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -488,7 +486,7 @@
 .previewTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin: 0;
   display: flex;
   align-items: center;
@@ -498,6 +496,55 @@
 .viewportToggle {
   display: flex;
   gap: 4px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.viewportBtn {
+  border: 0;
+  background: transparent;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+}
+
+.viewportBtnActive {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.themeToggleBtn {
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.themeToggleBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
   background: #0d1a13;
   border: 1px solid rgba(220, 255, 76, 0.12);
   border-radius: 8px;

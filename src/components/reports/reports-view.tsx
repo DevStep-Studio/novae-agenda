@@ -230,12 +230,12 @@ export function ReportsView() {
                 style={{
                   padding: "8px 16px",
                   borderRadius: 7,
-                  border: active ? "1px solid #dcff4c" : "1px solid transparent",
+                  border: active ? "1px solid var(--primary)" : "1px solid transparent",
                   fontSize: 12,
                   fontWeight: active ? 700 : 500,
                   cursor: "pointer",
-                  background: active ? "#dcff4c" : "transparent",
-                  color: active ? "#12231b" : "var(--text-secondary)",
+                  background: active ? "var(--primary)" : "transparent",
+                  color: active ? "var(--primary-foreground, #ffffff)" : "var(--text-secondary)",
                   transition: "all 0.15s ease",
                 }}
               >
@@ -260,7 +260,7 @@ export function ReportsView() {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Calendar size={14} style={{ color: "#dcff4c" }} />
+            <Calendar size={14} style={{ color: "var(--primary)" }} />
             <span>
               {formatDateDisplay(data.fromDate)} — {formatDateDisplay(data.toDate)}
             </span>
@@ -335,7 +335,7 @@ export function ReportsView() {
               </div>
               <div className="metric-copy">
                 <p>Receita realizada</p>
-                <strong style={{ color: "#dcff4c" }}>{formatCurrency(data.metrics.realizedRevenue)}</strong>
+                <strong style={{ color: "var(--primary)" }}>{formatCurrency(data.metrics.realizedRevenue)}</strong>
                 <span className="metric-detail">Prevista: {formatCurrency(data.metrics.forecastRevenue)}</span>
               </div>
             </div>
@@ -492,9 +492,9 @@ export function ReportsView() {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Clock3 size={18} style={{ color: "#dcff4c" }} />
+                <Clock3 size={18} style={{ color: "var(--primary)" }} />
                 <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
-                  Horários e Dias de Movimento
+                  Horários de Pico
                 </h3>
               </div>
 
@@ -509,9 +509,9 @@ export function ReportsView() {
                     letterSpacing: "0.05em",
                   }}
                 >
-                  Horários com maior demanda
+                  Horários com maior volume
                 </span>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
                   {data.peakHours.length > 0 ? (
                     data.peakHours.map((p) => (
                       <span
@@ -525,8 +525,8 @@ export function ReportsView() {
                           borderRadius: 8,
                           fontSize: 12,
                           fontWeight: 600,
-                          color: "#dcff4c",
-                          border: "1px solid rgba(220, 255, 76, 0.22)",
+                          color: "var(--primary)",
+                          border: "1px solid var(--border)",
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
@@ -586,7 +586,7 @@ export function ReportsView() {
                           style={{
                             fontSize: 11,
                             fontWeight: isBusiest ? 700 : 500,
-                            color: isBusiest ? "#dcff4c" : "var(--text-muted)",
+                            color: isBusiest ? "var(--primary)" : "var(--text-muted)",
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
@@ -597,7 +597,7 @@ export function ReportsView() {
                             width: "100%",
                             maxWidth: 36,
                             height: `${heightPct}%`,
-                            background: isBusiest ? "#dcff4c" : "var(--surface-tertiary)",
+                            background: isBusiest ? "var(--primary)" : "var(--surface-tertiary)",
                             borderRadius: "4px 4px 0 0",
                             transition: "height 0.25s ease",
                           }}
@@ -633,7 +633,7 @@ export function ReportsView() {
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <UserCheck size={18} style={{ color: "#dcff4c" }} />
+                <UserCheck size={18} style={{ color: "var(--primary)" }} />
                 <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
                   Desempenho da Equipe e Comissões
                 </h3>
@@ -691,7 +691,7 @@ export function ReportsView() {
                                 height: 30,
                                 borderRadius: "50%",
                                 background: "var(--primary-soft)",
-                                color: "#dcff4c",
+                                color: "var(--primary)",
                                 display: "inline-flex",
                                 alignItems: "center",
                                 justifyContent: "center",
@@ -710,7 +710,7 @@ export function ReportsView() {
                         <td style={{ padding: "16px", color: "var(--text-primary)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                           {formatCurrency(emp.revenue)}
                         </td>
-                        <td style={{ padding: "16px", color: "#dcff4c", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "16px", color: "var(--primary)", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                           {formatCurrency(emp.commission)}
                         </td>
                         <td style={{ padding: "16px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)", fontWeight: 600 }}>
@@ -745,7 +745,7 @@ export function ReportsView() {
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <CreditCard size={18} style={{ color: "#dcff4c" }} />
+                  <CreditCard size={18} style={{ color: "var(--primary)" }} />
                   <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
                     Recebimento por Forma de Pagamento
                   </h3>
@@ -784,8 +784,8 @@ export function ReportsView() {
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
-                            color: "#12231b",
-                            background: "#dcff4c",
+                            color: "var(--primary-foreground, #ffffff)",
+                            background: "var(--primary)",
                             padding: "2px 7px",
                             borderRadius: 4,
                           }}
