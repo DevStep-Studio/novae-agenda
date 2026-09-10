@@ -308,17 +308,19 @@ function DashboardPage({
                   <span className="next-avatar-status" title={STATUS_LABELS[next.status]} />
                 </div>
                 <div className="next-person-details">
-                  <h3 className="next-client-name">{next.clientName}</h3>
+                  <h3 className="next-client-name" title={next.clientName}>{next.clientName}</h3>
                   <p className="next-service-name">{next.serviceName}</p>
                   <span className="next-professional"><UserRound size={13} /> com {next.employeeName}</span>
                 </div>
               </div>
               <div className="next-price">
-                <div className="next-price-val">
-                  <span>Valor</span>
-                  <strong>{formatCurrency(next.total)}</strong>
+                <div className="next-price-summary">
+                  <div className="next-price-val">
+                    <span>Valor</span>
+                    <strong>{formatCurrency(next.total)}</strong>
+                  </div>
+                  <StatusBadge status={next.status} />
                 </div>
-                <StatusBadge status={next.status} />
                 <QuickStatus appointment={next} onDetails={() => onAppointment(next)} />
               </div>
             </div>
