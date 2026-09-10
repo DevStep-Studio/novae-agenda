@@ -121,6 +121,11 @@
       "scope": "booking-friction",
       "decision": "Exibir vagas reais imediatamente após o serviço, manter o calendário completo como opção secundária e concentrar ações operacionais no contexto do atendimento, preservando tokens e densidade existentes.",
       "source": "Briefing de refinamento de agendamento do usuário."
+    },
+    {
+      "scope": "operations-availability",
+      "decision": "Apresentar horários livres em linhas compactas por dia, com seletor de serviço no cabeçalho e chips de hora com ação visual mínima, usando apenas tokens existentes.",
+      "source": "Pedido do usuário e referência visual do card de horários livres."
     }
   ],
   "evidence": [

@@ -5887,23 +5887,258 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .quick-actions > *, .quick-actions label { min-width: 0; max-width: 100%; }
 .quick-actions label { display: grid; gap: 5px; flex: 1 1 120px; }
 .quick-actions .btn, .operations-availability .btn { min-height: 40px; white-space: normal; }
-.operations-availability { padding: 20px; margin-bottom: 20px; }
-.operations-availability h2, .operations-availability h3 { margin: 0 0 12px; font-size: 16px; }
-.operations-availability h3 { margin-top: 24px; }
-.operations-availability p { color: var(--text-secondary); font-size: 13px; margin: 6px 0; }
-.quick-service { display: grid; gap: 6px; max-width: 340px; }
-.waitlist-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding: 12px 0; overflow-wrap: anywhere; }
+
+.operations-availability {
+  padding: 0;
+  margin-bottom: 20px;
+  overflow: hidden;
+  border-color: var(--border);
+}
+.operations-availability-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 22px;
+}
+.operations-availability-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.operations-availability-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.operations-availability h2,
+.operations-availability h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font: 600 15px/1.25 "Plus Jakarta Sans", sans-serif;
+  letter-spacing: -0.01em;
+}
+.operations-availability-heading p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.quick-service {
+  width: min(340px, 100%);
+  display: grid;
+  gap: 6px;
+  flex: 0 1 340px;
+}
+.quick-service > span:first-child {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.quick-service-control {
+  position: relative;
+  display: block;
+}
+.quick-service-control select {
+  width: 100%;
+  height: 42px;
+  appearance: none;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  background: var(--surface-secondary);
+  color: var(--text-primary);
+  padding: 0 40px 0 13px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.quick-service-control select:hover {
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+}
+.quick-service-control select:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+.quick-service-control > svg {
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.availability-days {
+  border-top: 1px solid var(--border);
+}
+.availability-day {
+  display: grid;
+  grid-template-columns: minmax(130px, 165px) minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+  min-height: 72px;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.availability-day:last-child { border-bottom: 0; }
+.availability-day-today { background: var(--surface-secondary); }
+.availability-day-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.availability-day-label strong {
+  color: var(--text-primary);
+  font: 600 13px/1.25 "Plus Jakarta Sans", sans-serif;
+}
+.availability-day-today .availability-day-label strong { color: var(--primary); }
+.availability-day-label span {
+  color: var(--text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.availability-slots {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.availability-slot {
+  min-width: 91px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.availability-slot > svg:first-child { color: var(--text-muted); }
+.availability-slot-add {
+  color: var(--primary);
+  opacity: .72;
+}
+.availability-slot:hover {
+  border-color: var(--border-strong);
+  background: var(--primary-soft);
+  color: var(--text-primary);
+}
+.availability-slot:hover .availability-slot-add { opacity: 1; }
+.availability-slot:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.operations-message,
+.operations-loading,
+.operations-empty {
+  margin: 0;
+  padding: 18px 22px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+}
+.operations-message-error { color: var(--danger); }
+.operations-loading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.operations-loading-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+.operations-empty {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.operations-empty > svg { color: var(--text-muted); flex: 0 0 auto; }
+.operations-empty div { display: grid; gap: 2px; }
+.operations-empty strong { color: var(--text-primary); font-size: 12px; }
+.operations-empty span { color: var(--text-muted); font-size: 11px; }
+.operations-waitlist {
+  padding: 18px 22px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-secondary);
+}
+.operations-waitlist-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.operations-waitlist-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.operations-waitlist-heading p,
+.waitlist-row p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.waitlist-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--border); padding: 12px 0; overflow-wrap: anywhere; }
 .client-picker, .inline-client-form { display: grid; gap: 10px; min-width: 0; }
 .inline-client-form label { display: grid; gap: 4px; }
 .client-search-result { display: grid; gap: 4px; text-align: left; color: var(--text-primary); background: var(--surface-secondary); border: 1px solid var(--border); padding: 10px; border-radius: 8px; overflow-wrap: anywhere; }
 .appointment-list > *, .next-price { min-width: 0; }
 .appointment-list .appointment-card { width: 100%; }
+@media (max-width: 700px) {
+  .operations-availability-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+  }
+  .quick-service { width: 100%; flex-basis: auto; }
+  .availability-day {
+    grid-template-columns: 1fr;
+    gap: 11px;
+    padding: 15px 18px;
+  }
+  .availability-day-label { display: flex; align-items: baseline; gap: 7px; }
+  .availability-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .availability-slot { min-width: 0; width: 100%; }
+  .operations-waitlist { padding-inline: 18px; }
+}
 @media (max-width: 430px) {
-  .operations-availability { padding: 14px; }
   .quick-actions .btn { padding: 8px 10px; font-size: 12px; }
+  .availability-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .next-appointment { flex-wrap: wrap; }
   .next-price { width: 100%; }
   .modal-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .availability-slot,
+  .quick-service-control select { transition: none; }
 }
 .timeline-open { border: 0; background: transparent; color: inherit; display: flex; flex-direction: column; align-items: stretch; width: 100%; padding: 0; text-align: left; min-width: 0; cursor: pointer; }
 .timeline-appointment:has(.timeline-quick[open]) { overflow: visible; z-index: 30; }
