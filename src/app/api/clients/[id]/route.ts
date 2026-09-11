@@ -29,9 +29,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       id: appointments.id,
       date: appointments.appointmentDate,
       startTime: appointments.startTime,
+      endTime: appointments.endTime,
       status: appointments.status,
       total: appointments.total,
+      notes: appointments.notes,
+      cancelReason: appointments.cancelReason,
+      employeeId: appointments.employeeId,
       employeeName: employees.name,
+      locationId: appointments.locationId,
       locationName: locations.name,
     })
     .from(appointments)
@@ -47,6 +52,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     ? await db
         .select({
           appointmentId: appointmentServices.appointmentId,
+          serviceId: services.id,
           serviceName: services.name,
         })
         .from(appointmentServices)
@@ -55,10 +61,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     : [];
 
   const servicesByApt = new Map<string, string[]>();
+  const serviceIdsByApt = new Map<string, string[]>();
   for (const s of serviceRows) {
     const list = servicesByApt.get(s.appointmentId) ?? [];
     list.push(s.serviceName);
     servicesByApt.set(s.appointmentId, list);
+
+    const idList = serviceIdsByApt.get(s.appointmentId) ?? [];
+    idList.push(s.serviceId);
+    serviceIdsByApt.set(s.appointmentId, idList);
   }
 
   const paymentRows = aptIds.length
@@ -77,12 +88,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     id: row.id,
     date: row.date,
     time: normalizeTime(row.startTime),
+    endTime: row.endTime ? normalizeTime(row.endTime) : null,
     service: (servicesByApt.get(row.id) ?? []).join(" + ") || "Serviço",
+    serviceIds: serviceIdsByApt.get(row.id) ?? [],
     employee: row.employeeName,
+    employeeId: row.employeeId,
+    locationId: row.locationId,
     locationName: row.locationName,
     total: centsToNumber(row.total),
     paymentMethod: paymentByApt.get(row.id) ?? null,
     status: row.status as HistoryItemDTO["status"],
+    notes: row.notes,
+    cancelledReason: row.cancelReason,
   }));
 
   const completedApts = aptRows.filter((row) => row.status === "completed");

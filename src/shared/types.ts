@@ -150,12 +150,19 @@ export type HistoryItemDTO = {
   id: string;
   date: string;
   time: string;
+  endTime?: string | null;
+  durationMinutes?: number;
   service: string;
+  serviceIds?: string[];
   employee: string;
+  employeeId?: string;
+  locationId?: string | null;
   locationName: string | null;
   total: number;
   paymentMethod: PaymentMethod | null;
   status: AppointmentStatus;
+  notes?: string | null;
+  cancelledReason?: string | null;
 };
 
 export type ClientDetailDTO = ClientDTO & {

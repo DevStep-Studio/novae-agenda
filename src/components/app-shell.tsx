@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
-  Clock, Clock3, CreditCard, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
+  Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
   ImagePlus, Menu, Moon, MoreHorizontal, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon,
@@ -1168,35 +1168,43 @@ function ClientDrawer({
   clientId,
   onClose,
   onNewAppointment,
+  onSelectAppointment,
 }: {
   clientId: string;
   onClose: () => void;
   onNewAppointment: (client: ClientDTO) => void;
+  onSelectAppointment?: (apt: AppointmentDTO) => void;
 }) {
-  const { clients, notify } = useStore();
+  const { clients, appointments, reloadAppointments, notify } = useStore();
   const [detail, setDetail] = useState<import("@/shared/types").ClientDetailDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [editingClient, setEditingClient] = useState(false);
+  const [reservationsModalOpen, setReservationsModalOpen] = useState(false);
+  const [activeResFilter, setActiveResFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
+  const [inspectingAppointment, setInspectingAppointment] = useState<AppointmentDTO | null>(null);
+
   const client = clients.find((c) => c.id === clientId);
+
+  const reloadDetail = useCallback(() => {
+    return api<import("@/shared/types").ClientDetailDTO>(`/api/clients/${clientId}`)
+      .then((data) => {
+        setDetail(data);
+        setInternalNotes(data.internalNotes || "");
+      })
+      .catch((e) => {
+        setError(e instanceof ApiError ? e.message : "Erro ao carregar.");
+      });
+  }, [clientId]);
 
   useEffect(() => {
     let active = true;
-    api<import("@/shared/types").ClientDetailDTO>(`/api/clients/${clientId}`)
-      .then((data) => {
-        if (active) {
-          setDetail(data);
-          setInternalNotes(data.internalNotes || "");
-        }
-      })
-      .catch((e) => {
-        if (active) setError(e instanceof ApiError ? e.message : "Erro ao carregar.");
-      });
+    reloadDetail();
     return () => {
       active = false;
     };
-  }, [clientId]);
+  }, [reloadDetail]);
 
   const handleSaveInternalNotes = async () => {
     setSavingNotes(true);
@@ -1213,8 +1221,67 @@ function ClientDrawer({
     }
   };
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    notify(`${label} copiado para a área de transferência!`);
+  };
+
+  const handleSelectReservation = (item: import("@/shared/types").HistoryItemDTO) => {
+    const found = appointments.find((a) => a.id === item.id);
+    const targetApt: AppointmentDTO = found || {
+      id: item.id,
+      locationId: item.locationId ?? null,
+      locationName: item.locationName ?? null,
+      date: item.date,
+      startTime: item.time,
+      endTime: item.endTime ?? item.time,
+      durationMinutes: item.durationMinutes ?? 45,
+      clientId: client?.id || clientId,
+      clientName: detail?.name ?? client?.name ?? "Cliente",
+      clientPhone: detail?.phone ?? client?.phone ?? "",
+      clientPhotoUrl: detail?.photoUrl ?? client?.photoUrl ?? null,
+      clientInitials: initials(detail?.name ?? client?.name ?? "Cliente"),
+      clientColor: avatarColor(detail?.name ?? client?.name ?? "Cliente"),
+      employeeId: item.employeeId ?? "",
+      employeeName: item.employee,
+      employeeInitials: initials(item.employee),
+      serviceId: item.serviceIds?.[0] ?? "",
+      serviceName: item.service,
+      serviceColor: null,
+      total: item.total,
+      status: item.status,
+      notes: item.notes ?? null,
+      paid: Boolean(item.paymentMethod),
+      paymentMethod: item.paymentMethod,
+    };
+
+    if (onSelectAppointment) {
+      onSelectAppointment(targetApt);
+    } else {
+      setInspectingAppointment(targetApt);
+    }
+  };
+
   if (!client) return null;
-  const phone = detail?.phone ?? client.phone ?? "";
+  const currentClient = detail ?? client;
+  const phone = currentClient.phone ?? "";
+  const history = detail?.history || [];
+
+  const completedList = history.filter((h) => h.status === "completed");
+  const upcomingList = history.filter((h) => ["scheduled", "confirmed", "waiting", "in_progress"].includes(h.status));
+  const cancelledList = history.filter((h) => ["cancelled", "no_show"].includes(h.status));
+
+  const filteredHistory = activeResFilter === "upcoming"
+    ? upcomingList
+    : activeResFilter === "completed"
+    ? completedList
+    : activeResFilter === "cancelled"
+    ? cancelledList
+    : history;
+
+  const isVip = currentClient.visits >= 3 || (currentClient.spent && currentClient.spent >= 250);
+  const isFrequent = !isVip && currentClient.visits >= 2;
+  const isNew = !isVip && !isFrequent;
 
   return (
     <div
@@ -1226,7 +1293,10 @@ function ClientDrawer({
       <aside className="profile-drawer">
         {/* Drawer Header */}
         <div className="drawer-header">
-          <span className="profile-drawer-eyebrow">Perfil do cliente</span>
+          <div className="drawer-title-group">
+            <span className="drawer-eyebrow">Ficha do Cliente</span>
+            <h3 className="drawer-title">{currentClient.name}</h3>
+          </div>
           <button
             type="button"
             className="drawer-close-btn"
@@ -1241,25 +1311,36 @@ function ClientDrawer({
         <div className="profile-hero">
           <div className="profile-avatar-wrap">
             <Avatar
-              name={detail?.name ?? client.name}
-              photoUrl={detail?.photoUrl ?? client.photoUrl}
-              color={avatarColor(detail?.name ?? client.name)}
+              name={currentClient.name}
+              photoUrl={currentClient.photoUrl}
               size="lg"
             />
           </div>
-          <h2>{detail?.name ?? client.name}</h2>
-          {detail?.createdAt && (
-            <p className="profile-since">
-              Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}
-            </p>
-          )}
+          <h2>{currentClient.name}</h2>
+          <div className="profile-meta-row">
+            {isVip && <span className="client-badge badge-vip">VIP</span>}
+            {isFrequent && <span className="client-badge badge-frequent">Frequente</span>}
+            {isNew && <span className="client-badge badge-new">Novo</span>}
+            {detail?.createdAt && (
+              <span className="profile-since">
+                <Calendar size={12} /> Desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}
+              </span>
+            )}
+          </div>
 
           <div className="profile-actions">
+            <button
+              type="button"
+              className="profile-btn-schedule"
+              onClick={() => onNewAppointment(currentClient)}
+            >
+              <CalendarPlus size={15} /> Agendar
+            </button>
             {phone && (
               <a
                 className="profile-btn-whatsapp"
                 href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(
-                  `Olá, ${detail?.name ?? client.name}! Agradecemos a sua preferência na Agenda.`,
+                  `Olá, ${currentClient.name}! Agradecemos a sua preferência na Agenda.`,
                 )}`}
                 target="_blank"
                 rel="noreferrer"
@@ -1267,13 +1348,6 @@ function ClientDrawer({
                 <WhatsAppIcon size={15} /> WhatsApp
               </a>
             )}
-            <button
-              type="button"
-              className="profile-btn-schedule"
-              onClick={() => onNewAppointment(detail ?? client)}
-            >
-              <CalendarPlus size={15} /> Agendar
-            </button>
             <button
               type="button"
               className="profile-btn-edit"
@@ -1286,19 +1360,46 @@ function ClientDrawer({
         </div>
 
         {/* Contact Info Card */}
-        {(phone || detail?.email) && (
+        {(phone || currentClient.email) && (
           <div className="profile-contact-card">
             {phone && (
-              <a href={`tel:${phone.replace(/\D/g, "")}`} className="contact-row">
+              <div className="contact-row">
                 <Phone size={14} className="contact-icon" />
-                <span>{phone}</span>
-              </a>
+                <span className="contact-text">{phone}</span>
+                <div className="contact-actions-inline">
+                  <button
+                    type="button"
+                    className="contact-action-link"
+                    title="Copiar telefone"
+                    onClick={() => copyToClipboard(phone, "Telefone")}
+                  >
+                    <Copy size={12} /> Copiar
+                  </button>
+                </div>
+              </div>
             )}
-            {detail?.email && (
-              <a href={`mailto:${detail.email}`} className="contact-row">
+            {currentClient.email && (
+              <div className="contact-row">
                 <Mail size={14} className="contact-icon" />
-                <span>{detail.email}</span>
-              </a>
+                <span className="contact-text">{currentClient.email}</span>
+                <div className="contact-actions-inline">
+                  <a
+                    href={`mailto:${currentClient.email}`}
+                    className="contact-action-link"
+                    title="Enviar e-mail"
+                  >
+                    <ExternalLink size={12} /> E-mail
+                  </a>
+                  <button
+                    type="button"
+                    className="contact-action-link"
+                    title="Copiar e-mail"
+                    onClick={() => copyToClipboard(currentClient.email!, "E-mail")}
+                  >
+                    <Copy size={12} /> Copiar
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -1306,25 +1407,37 @@ function ClientDrawer({
         {/* 2x2 Stats Grid */}
         <div className="profile-stats-grid">
           <div className="stat-box">
-            <span className="stat-label">Total gasto</span>
+            <div className="stat-box-head">
+              <span className="stat-label">Total gasto</span>
+              <CircleDollarSign size={14} className="stat-box-icon" />
+            </div>
             <strong className="stat-value highlight">
-              {formatCurrency(detail?.spent ?? client.spent)}
+              {formatCurrency(detail?.spent ?? currentClient.spent)}
             </strong>
           </div>
           <div className="stat-box">
-            <span className="stat-label">Atendimentos</span>
+            <div className="stat-box-head">
+              <span className="stat-label">Atendimentos</span>
+              <CalendarCheck size={14} className="stat-box-icon" />
+            </div>
             <strong className="stat-value">
-              {detail?.visits ?? client.visits}
+              {detail?.visits ?? currentClient.visits}
             </strong>
           </div>
           <div className="stat-box">
-            <span className="stat-label">Ticket médio</span>
+            <div className="stat-box-head">
+              <span className="stat-label">Ticket médio</span>
+              <TrendingUp size={14} className="stat-box-icon" />
+            </div>
             <strong className="stat-value highlight">
               {formatCurrency(detail?.averageTicket ?? 0)}
             </strong>
           </div>
           <div className="stat-box">
-            <span className="stat-label">Última visita</span>
+            <div className="stat-box-head">
+              <span className="stat-label">Última visita</span>
+              <Clock size={14} className="stat-box-icon" />
+            </div>
             <strong className="stat-value">
               {detail?.lastVisit ? shortDate(detail.lastVisit) : "—"}
             </strong>
@@ -1334,67 +1447,172 @@ function ClientDrawer({
         {/* Next Visit Banner */}
         {detail?.nextVisit && (
           <div className="profile-next-banner">
-            <CalendarDays size={15} />
-            <span>
-              Próximo agendamento: <strong>{detail.nextVisit}</strong>
-            </span>
+            <div className="profile-next-copy">
+              <CalendarDays size={15} />
+              <span>
+                Próximo agendamento: <strong>{detail.nextVisit}</strong>
+              </span>
+            </div>
+            {upcomingList[0] && (
+              <button
+                type="button"
+                className="profile-next-btn"
+                onClick={() => handleSelectReservation(upcomingList[0])}
+              >
+                Ver reserva →
+              </button>
+            )}
           </div>
         )}
 
-        {/* Service History Section */}
+        {/* Reservations Section */}
         <section className="profile-section">
           <div className="section-header-row">
-            <span className="section-title">Histórico de atendimentos</span>
-            {detail?.history && detail.history.length > 0 && (
-              <span className="section-count-badge">{detail.history.length}</span>
+            <div className="section-title-wrap">
+              <span className="section-title">Registro de Reservas</span>
+              <span className="section-count-badge">{history.length}</span>
+            </div>
+            {history.length > 0 && (
+              <button
+                type="button"
+                className="reservations-ledger-btn"
+                onClick={() => setReservationsModalOpen(true)}
+                title="Abrir histórico completo de reservas deste cliente"
+              >
+                <ReceiptText size={13} /> Registro completo
+              </button>
             )}
           </div>
 
-          {error && <p className="profile-error">{error}</p>}
-          {detail && !detail.history.length && (
-            <p className="profile-empty">Nenhum atendimento registrado ainda.</p>
+          {/* Filter tabs */}
+          {history.length > 0 && (
+            <div className="reservations-quick-filter-tabs">
+              <button
+                type="button"
+                className={`res-tab-pill ${activeResFilter === "all" ? "active" : ""}`}
+                onClick={() => setActiveResFilter("all")}
+              >
+                Todas ({history.length})
+              </button>
+              <button
+                type="button"
+                className={`res-tab-pill ${activeResFilter === "upcoming" ? "active" : ""}`}
+                onClick={() => setActiveResFilter("upcoming")}
+              >
+                Próximas ({upcomingList.length})
+              </button>
+              <button
+                type="button"
+                className={`res-tab-pill ${activeResFilter === "completed" ? "active" : ""}`}
+                onClick={() => setActiveResFilter("completed")}
+              >
+                Concluídas ({completedList.length})
+              </button>
+              {cancelledList.length > 0 && (
+                <button
+                  type="button"
+                  className={`res-tab-pill ${activeResFilter === "cancelled" ? "active" : ""}`}
+                  onClick={() => setActiveResFilter("cancelled")}
+                >
+                  Canceladas ({cancelledList.length})
+                </button>
+              )}
+            </div>
           )}
 
-          {detail?.history && detail.history.length > 0 && (
+          {error && <p className="profile-error">{error}</p>}
+          {detail && !history.length && (
+            <div className="profile-reservations-empty">
+              <CalendarDays size={28} className="muted-icon" />
+              <p>Nenhuma reserva registrada ainda.</p>
+              <Button variant="secondary" onClick={() => onNewAppointment(currentClient)}>
+                <CalendarPlus size={14} /> Agendar primeiro atendimento
+              </Button>
+            </div>
+          )}
+
+          {filteredHistory.length > 0 && (
             <div className="history-list-modern">
-              {detail.history.slice(0, 15).map((item) => (
-                <div key={item.id} className="history-item-card">
-                  <div className="history-item-left">
-                    <div className="history-date-pill">
-                      <CalendarDays size={12} />
-                      <span>
-                        {shortDate(item.date)} · {item.time}
-                      </span>
-                    </div>
-                    <div className="history-service-name">
-                      <strong>{item.service}</strong>
-                      {item.employee && (
-                        <span className="history-employee"> · {item.employee}</span>
+              {filteredHistory.slice(0, 10).map((item) => {
+                const isUpcoming = ["scheduled", "confirmed", "waiting", "in_progress"].includes(item.status);
+                const isCancelled = ["cancelled", "no_show"].includes(item.status);
+                return (
+                  <div
+                    key={item.id}
+                    className="history-item-card reservation-card-clickable"
+                    onClick={() => handleSelectReservation(item)}
+                    role="button"
+                    tabIndex={0}
+                    title="Clique para ver detalhes e gerenciar esta reserva"
+                  >
+                    <div className="history-item-left">
+                      <div className="history-item-topline">
+                        <div className="history-date-pill">
+                          <CalendarDays size={12} />
+                          <span>
+                            {shortDate(item.date)} · {item.time}
+                          </span>
+                        </div>
+                        <span
+                          className={`history-status-badge ${
+                            item.status === "completed"
+                              ? "paid"
+                              : isUpcoming
+                              ? "upcoming"
+                              : isCancelled
+                              ? "cancelled"
+                              : "pending"
+                          }`}
+                        >
+                          {STATUS_LABELS[item.status] || item.status}
+                        </span>
+                      </div>
+                      <div className="history-service-name">
+                        <strong>{item.service}</strong>
+                        {item.employee && (
+                          <span className="history-employee"> · {item.employee}</span>
+                        )}
+                      </div>
+                      {item.locationName && (
+                        <span className="history-location">
+                          <MapPin size={11} /> {item.locationName}
+                        </span>
                       )}
                     </div>
-                    {item.locationName && (
-                      <span className="history-location">
-                        <MapPin size={11} /> {item.locationName}
-                      </span>
-                    )}
-                  </div>
 
-                  <div className="history-item-right">
-                    <strong className="history-price">
-                      {formatCurrency(item.total)}
-                    </strong>
-                    <span
-                      className={`history-status-badge ${
-                        item.paymentMethod ? "paid" : "pending"
-                      }`}
-                    >
-                      {item.paymentMethod
-                        ? PAYMENT_LABELS[item.paymentMethod]
-                        : "Pendente"}
-                    </span>
+                    <div className="history-item-right">
+                      <strong className="history-price">
+                        {formatCurrency(item.total)}
+                      </strong>
+                      <span
+                        className={`history-status-badge ${
+                          item.paymentMethod ? "paid" : "pending"
+                        }`}
+                      >
+                        {item.paymentMethod
+                          ? PAYMENT_LABELS[item.paymentMethod]
+                          : "Pendente"}
+                      </span>
+                      <span className="history-item-action-hint">
+                        <ChevronRight size={14} />
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          )}
+
+          {filteredHistory.length === 0 && history.length > 0 && (
+            <div className="profile-reservations-empty">
+              <p>Nenhuma reserva com este filtro.</p>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setActiveResFilter("all")}
+              >
+                Mostrar todas as reservas
+              </button>
             </div>
           )}
         </section>
@@ -1408,7 +1626,7 @@ function ClientDrawer({
             <Pencil size={14} className="note-icon" />
             <span>
               {detail?.notes ||
-                client.notes ||
+                currentClient.notes ||
                 "Nenhuma observação informada pelo cliente."}
             </span>
           </div>
@@ -1447,21 +1665,43 @@ function ClientDrawer({
       {editingClient && (
         <EditClientModal
           client={{
-            ...client,
-            name: detail?.name ?? client.name,
-            phone: detail?.phone ?? client.phone,
-            email: detail?.email ?? client.email,
-            photoUrl: detail?.photoUrl ?? client.photoUrl,
-            notes: detail?.notes ?? client.notes,
+            ...currentClient,
+            name: detail?.name ?? currentClient.name,
+            phone: detail?.phone ?? currentClient.phone,
+            email: detail?.email ?? currentClient.email,
+            photoUrl: detail?.photoUrl ?? currentClient.photoUrl,
+            notes: detail?.notes ?? currentClient.notes,
           }}
           onClose={() => setEditingClient(false)}
           onUpdated={() => {
-            api<import("@/shared/types").ClientDetailDTO>(`/api/clients/${clientId}`)
-              .then((data) => {
-                setDetail(data);
-                setInternalNotes(data.internalNotes || "");
-              })
-              .catch(() => {});
+            reloadDetail();
+          }}
+        />
+      )}
+
+      {reservationsModalOpen && (
+        <ClientReservationsModal
+          client={currentClient}
+          history={history}
+          onClose={() => setReservationsModalOpen(false)}
+          onSelectReservation={(item) => {
+            setReservationsModalOpen(false);
+            handleSelectReservation(item);
+          }}
+          onNewAppointment={() => {
+            setReservationsModalOpen(false);
+            onNewAppointment(currentClient);
+          }}
+        />
+      )}
+
+      {inspectingAppointment && (
+        <AppointmentDetailModal
+          appointment={inspectingAppointment}
+          onClose={() => {
+            setInspectingAppointment(null);
+            reloadDetail();
+            reloadAppointments();
           }}
         />
       )}
@@ -3833,6 +4073,240 @@ function EditClientModal({
   );
 }
 
+function ClientReservationsModal({
+  client,
+  history,
+  onClose,
+  onSelectReservation,
+  onNewAppointment,
+}: {
+  client: ClientDTO;
+  history: import("@/shared/types").HistoryItemDTO[];
+  onClose: () => void;
+  onSelectReservation: (item: import("@/shared/types").HistoryItemDTO) => void;
+  onNewAppointment: () => void;
+}) {
+  const [filter, setFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
+  const [search, setSearch] = useState("");
+
+  const completed = useMemo(() => history.filter((h) => h.status === "completed"), [history]);
+  const upcoming = useMemo(
+    () => history.filter((h) => ["scheduled", "confirmed", "waiting", "in_progress"].includes(h.status)),
+    [history],
+  );
+  const cancelled = useMemo(
+    () => history.filter((h) => ["cancelled", "no_show"].includes(h.status)),
+    [history],
+  );
+
+  const totalSpent = useMemo(
+    () => completed.reduce((acc, h) => acc + h.total, 0),
+    [completed],
+  );
+
+  const attendanceRate = useMemo(() => {
+    const finishedCount = completed.length + cancelled.length;
+    if (finishedCount === 0) return 100;
+    return Math.round((completed.length / finishedCount) * 100);
+  }, [completed.length, cancelled.length]);
+
+  const filtered = useMemo(() => {
+    let list = history;
+    if (filter === "upcoming") list = upcoming;
+    else if (filter === "completed") list = completed;
+    else if (filter === "cancelled") list = cancelled;
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (h) =>
+          h.service.toLowerCase().includes(q) ||
+          h.employee.toLowerCase().includes(q) ||
+          (h.locationName && h.locationName.toLowerCase().includes(q)),
+      );
+    }
+    return list;
+  }, [history, filter, upcoming, completed, cancelled, search]);
+
+  return (
+    <Modal
+      title="Registro de Reservas"
+      eyebrow={`Histórico completo · ${client.name}`}
+      icon={ReceiptText}
+      onClose={onClose}
+      wide
+    >
+      <div className="client-reservations-modal-body">
+        {/* KPI Strip */}
+        <div className="reservations-kpi-grid">
+          <div className="reservations-kpi-card">
+            <span className="reservations-kpi-label">Total de reservas</span>
+            <strong className="reservations-kpi-value">{history.length}</strong>
+          </div>
+          <div className="reservations-kpi-card">
+            <span className="reservations-kpi-label">Atendimentos concluídos</span>
+            <strong className="reservations-kpi-value highlight-success">{completed.length}</strong>
+          </div>
+          <div className="reservations-kpi-card">
+            <span className="reservations-kpi-label">Total investido</span>
+            <strong className="reservations-kpi-value highlight-primary">{formatCurrency(totalSpent)}</strong>
+          </div>
+          <div className="reservations-kpi-card">
+            <span className="reservations-kpi-label">Taxa de comparecimento</span>
+            <strong className="reservations-kpi-value">{attendanceRate}%</strong>
+          </div>
+        </div>
+
+        {/* Toolbar: Filter Tabs + Search */}
+        <div className="reservations-toolbar">
+          <div className="reservations-filter-pills">
+            <button
+              type="button"
+              className={`reservation-filter-pill ${filter === "all" ? "active" : ""}`}
+              onClick={() => setFilter("all")}
+            >
+              Todas <span className="pill-count">{history.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`reservation-filter-pill ${filter === "upcoming" ? "active" : ""}`}
+              onClick={() => setFilter("upcoming")}
+            >
+              Próximas <span className="pill-count">{upcoming.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`reservation-filter-pill ${filter === "completed" ? "active" : ""}`}
+              onClick={() => setFilter("completed")}
+            >
+              Concluídas <span className="pill-count">{completed.length}</span>
+            </button>
+            <button
+              type="button"
+              className={`reservation-filter-pill ${filter === "cancelled" ? "active" : ""}`}
+              onClick={() => setFilter("cancelled")}
+            >
+              Canceladas <span className="pill-count">{cancelled.length}</span>
+            </button>
+          </div>
+
+          <div className="reservations-search-wrap">
+            <Search size={15} className="reservations-search-icon" />
+            <input
+              className="input reservations-search-input"
+              placeholder="Buscar serviço ou profissional..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Reservations List */}
+        {filtered.length > 0 ? (
+          <div className="reservations-table-wrap">
+            <table className="data-table reservations-table">
+              <thead>
+                <tr>
+                  <th>Data & Horário</th>
+                  <th>Serviço(s)</th>
+                  <th>Profissional</th>
+                  <th>Unidade</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: "right" }}>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item) => {
+                  const isUpcoming = ["scheduled", "confirmed", "waiting", "in_progress"].includes(item.status);
+                  const isCancelled = ["cancelled", "no_show"].includes(item.status);
+                  return (
+                    <tr
+                      key={item.id}
+                      className="reservation-row-clickable"
+                      onClick={() => onSelectReservation(item)}
+                    >
+                      <td>
+                        <div className="reservation-date-cell">
+                          <span className="res-date">{shortDate(item.date)}</span>
+                          <span className="res-time">{item.time}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong className="reservation-service-text">{item.service}</strong>
+                      </td>
+                      <td>
+                        <span className="reservation-employee-text">{item.employee}</span>
+                      </td>
+                      <td>
+                        <span className="reservation-location-text">{item.locationName || "—"}</span>
+                      </td>
+                      <td>
+                        <div className="reservation-price-cell">
+                          <strong className="res-price">{formatCurrency(item.total)}</strong>
+                          <span className="res-method">
+                            {item.paymentMethod ? PAYMENT_LABELS[item.paymentMethod] : "Pendente"}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          className={`history-status-badge ${
+                            item.status === "completed"
+                              ? "paid"
+                              : isUpcoming
+                              ? "upcoming"
+                              : isCancelled
+                              ? "cancelled"
+                              : "pending"
+                          }`}
+                        >
+                          {STATUS_LABELS[item.status] || item.status}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          className="button button-ghost button-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectReservation(item);
+                          }}
+                        >
+                          Ver detalhes →
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="reservations-empty-state">
+            <ReceiptText size={32} className="muted-icon" />
+            <p>Nenhuma reserva encontrada para este filtro.</p>
+            {filter !== "all" && (
+              <Button variant="secondary" onClick={() => { setFilter("all"); setSearch(""); }}>
+                Ver todas as reservas
+              </Button>
+            )}
+          </div>
+        )}
+
+        <div className="modal-footer" style={{ marginTop: 20 }}>
+          <Button variant="secondary" onClick={onNewAppointment}>
+            <CalendarPlus size={16} /> Nova reserva para {client.name.split(" ")[0]}
+          </Button>
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button variant="ghost" onClick={onClose}>Fechar</Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function NewServiceModal({ onClose }: { onClose: () => void }) {
   return <Modal title="Novo serviço" eyebrow="Seu catálogo de atendimentos" onClose={onClose} wide><ServiceEditor onDone={onClose}/></Modal>;
 }
@@ -5317,8 +5791,18 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       {newLocationOpen && <NewLocationModal onClose={() => setNewLocationOpen(false)} />}
       {blockOpen && <BlockModal onClose={() => setBlockOpen(false)} defaultDate={selectedDate} />}
       {superadminOpen && <SuperadminModal onClose={() => setSuperadminOpen(false)} />}
-      {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} onClose={() => setDetailAppointment(null)} />}
-      {clientDrawer && <ClientDrawer clientId={clientDrawer.id} onClose={() => setClientDrawer(null)} onNewAppointment={(client) => { setClientDrawer(null); setNewAppointmentPrefill({ clientId: client.id, date: todayKey() }); setNewAppointmentOpen(true); }} />}
+      {clientDrawer && (
+        <ClientDrawer
+          clientId={clientDrawer.id}
+          onClose={() => setClientDrawer(null)}
+          onNewAppointment={(client) => {
+            setClientDrawer(null);
+            setNewAppointmentPrefill({ clientId: client.id, date: todayKey() });
+            setNewAppointmentOpen(true);
+          }}
+          onSelectAppointment={(apt) => setDetailAppointment(apt)}
+        />
+      )}
 
       {paywallOpen && (subStatus === "expired" || subStatus === "cancelled") && (
         <SubscriptionPaywallModal
