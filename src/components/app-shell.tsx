@@ -5134,6 +5134,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     session, appointments, employees, locations, activeLocationId, setActiveLocationId,
     blocks, deleteBlock,
     notifications, unreadCount, markAllNotificationsRead, markNotificationRead, logout, toasts, dismissToast,
+    reloadAppointments,
   } = useStore();
 
   const [view, setView] = useState<ViewKey>(() => {
@@ -5807,6 +5808,16 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             setNewAppointmentOpen(true);
           }}
           onSelectAppointment={(apt) => setDetailAppointment(apt)}
+        />
+      )}
+
+      {detailAppointment && (
+        <AppointmentDetailModal
+          appointment={detailAppointment}
+          onClose={() => {
+            setDetailAppointment(null);
+            reloadAppointments();
+          }}
         />
       )}
 
