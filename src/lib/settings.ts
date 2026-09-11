@@ -101,3 +101,31 @@ export async function setCompanySetting(
       set: { value: strVal, updatedAt: new Date() },
     });
 }
+
+export async function setRawCompanySetting(
+  companyId: string,
+  rawKey: string,
+  value: string,
+  executor: any = db,
+): Promise<void> {
+  await executor
+    .insert(companySettings)
+    .values({ id: crypto.randomUUID(), companyId, key: rawKey, value })
+    .onDuplicateKeyUpdate({
+      set: { value, updatedAt: new Date() },
+    });
+}
+
+export async function getRawCompanySetting(
+  companyId: string,
+  rawKey: string,
+  executor: any = db,
+): Promise<string | null> {
+  const [row] = await executor
+    .select({ value: companySettings.value })
+    .from(companySettings)
+    .where(eq(companySettings.companyId, companyId))
+    .where(eq(companySettings.key, rawKey))
+    .limit(1);
+  return row?.value ?? null;
+}

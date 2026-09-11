@@ -20,6 +20,17 @@ export type CompanyMembershipDTO = {
   isPrimary?: boolean;
 };
 
+export type DashboardPreferences = {
+  showBanner?: boolean;
+  showChecklist?: boolean;
+  showKpis?: boolean;
+  showSubmetrics?: boolean;
+  showNextAppointment?: boolean;
+  showDaySummary?: boolean;
+  showQuickSlots?: boolean;
+  showTodayAppointments?: boolean;
+};
+
 export type Company = {
   id: string;
   name: string;
@@ -34,6 +45,9 @@ export type Company = {
   currency: string;
   primaryColor: string;
   secondaryColor: string;
+  logoUrl?: string | null;
+  bannerUrl?: string | null;
+  dashboardPreferences?: DashboardPreferences;
   onboarded: boolean;
 };
 
@@ -57,6 +71,7 @@ export type SessionInfo = {
   name: string;
   email: string;
   phone?: string | null;
+  avatarUrl?: string | null;
   emailVerified: boolean;
   isSuperadmin: boolean;
   createdAt: string;

@@ -47,12 +47,27 @@ async function seed() {
         currency: "BRL",
         primaryColor: "#dcff4c",
         secondaryColor: "#162a22",
+        publicSlug: "studio-prime",
+        publicEnabled: true,
         onboarded: true,
       });
     [company] = await db
       .select()
       .from(companies)
       .where(eq(companies.id, companyId))
+      .limit(1);
+  } else {
+    await db
+      .update(companies)
+      .set({
+        publicSlug: "studio-prime",
+        publicEnabled: true,
+      })
+      .where(eq(companies.id, company.id));
+    [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, company.id))
       .limit(1);
   }
 

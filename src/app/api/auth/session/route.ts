@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, locations, users } from "@/db/schema";
+import { companies, companySettings, locations, users } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import type { LocationDTO, SessionInfo } from "@/shared/types";
 
@@ -19,6 +19,29 @@ export async function GET() {
         .where(eq(companies.id, user.companyId))
         .limit(1)
     : [];
+
+  let bannerUrl: string | null = null;
+  let dashboardPreferences: Record<string, boolean> | undefined = undefined;
+
+  if (user.companyId) {
+    const [bannerRow] = await db
+      .select({ value: companySettings.value })
+      .from(companySettings)
+      .where(and(eq(companySettings.companyId, user.companyId), eq(companySettings.key, "banner_url")))
+      .limit(1);
+    if (bannerRow?.value) bannerUrl = bannerRow.value;
+
+    const [dashRow] = await db
+      .select({ value: companySettings.value })
+      .from(companySettings)
+      .where(and(eq(companySettings.companyId, user.companyId), eq(companySettings.key, "dashboard_preferences")))
+      .limit(1);
+    if (dashRow?.value) {
+      try {
+        dashboardPreferences = JSON.parse(dashRow.value);
+      } catch {}
+    }
+  }
 
   const [row] = await db
     .select({ createdAt: users.createdAt, phone: users.phone })
@@ -128,6 +151,18 @@ export async function GET() {
           currency: company.currency,
           primaryColor: company.primaryColor,
           secondaryColor: company.secondaryColor,
+          logoUrl: company.logoUrl ?? null,
+          bannerUrl: bannerUrl ?? null,
+          dashboardPreferences: dashboardPreferences ?? {
+            showBanner: true,
+            showChecklist: true,
+            showKpis: true,
+            showSubmetrics: true,
+            showNextAppointment: true,
+            showDaySummary: true,
+            showQuickSlots: true,
+            showTodayAppointments: true,
+          },
           onboarded: company.onboarded,
         }
       : {
@@ -144,6 +179,18 @@ export async function GET() {
           currency: "BRL",
           primaryColor: "#dcff4c",
           secondaryColor: "#162a22",
+          logoUrl: null,
+          bannerUrl: null,
+          dashboardPreferences: {
+            showBanner: true,
+            showChecklist: true,
+            showKpis: true,
+            showSubmetrics: true,
+            showNextAppointment: true,
+            showDaySummary: true,
+            showQuickSlots: true,
+            showTodayAppointments: true,
+          },
           onboarded: true,
         },
     locations: locationDTOs,

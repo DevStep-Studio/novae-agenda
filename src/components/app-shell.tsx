@@ -6,14 +6,15 @@ import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, FileText, Globe, Home, Laptop, LogOut, Mail, MapPin,
-  ImagePlus, Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
-  Settings2, ShieldCheck, Sparkles, Star, Sun, Tag, TrendingUp, User, UserPlus,
-  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap,
+  ImagePlus, Menu, MessageCircle, Moon, MoreHorizontal, Palette, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
+  Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
+  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon,
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
+import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor } from "@/lib/theme-utils";
 import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
@@ -241,11 +242,11 @@ function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string
 
 /* ---------- Pages ---------- */
 function DashboardPage({
+  onQuickNew,
   onNew,
   onAppointment,
   onGoToAgenda,
   onNavigate,
-  onQuickNew,
 }: {
   onQuickNew: (prefill: QuickPrefill) => void;
   onNew: () => void;
@@ -253,7 +254,20 @@ function DashboardPage({
   onGoToAgenda: () => void;
   onNavigate?: (tab: string) => void;
 }) {
-  const { stats, appointments, services, clients, employees, notify, session } = useStore();
+  const { stats, appointments, services, clients, employees, notify, session, updateDashboardPreferences } = useStore();
+  const [customizing, setCustomizing] = useState(false);
+
+  const prefs = useMemo(() => ({
+    showBanner: session?.company.dashboardPreferences?.showBanner ?? true,
+    showChecklist: session?.company.dashboardPreferences?.showChecklist ?? true,
+    showKpis: session?.company.dashboardPreferences?.showKpis ?? true,
+    showSubmetrics: session?.company.dashboardPreferences?.showSubmetrics ?? true,
+    showNextAppointment: session?.company.dashboardPreferences?.showNextAppointment ?? true,
+    showDaySummary: session?.company.dashboardPreferences?.showDaySummary ?? true,
+    showQuickSlots: session?.company.dashboardPreferences?.showQuickSlots ?? true,
+    showTodayAppointments: session?.company.dashboardPreferences?.showTodayAppointments ?? true,
+  }), [session?.company.dashboardPreferences]);
+
   const today = localDate(new Date(), session?.company.timezone || "America/Sao_Paulo");
   const nowTime = localTime(new Date(), session?.company.timezone || "America/Sao_Paulo");
   const todayApts = appointments.filter((apt) => apt.date === today).filter((apt) => !["cancelled", "no_show"].includes(apt.status));
@@ -264,93 +278,387 @@ function DashboardPage({
   const pendingAmount = Math.max(0, forecast - realized);
 
   const cancellationsToday = (stats?.today.cancelled ?? 0) + (stats?.today.noShow ?? 0);
+  const firstName = session?.name ? session.name.split(" ")[0] : "você";
 
   return (
     <div className="page-content dashboard-page">
-      <div className="page-intro"><div><p className="eyebrow">{pageTitles.dashboard.eyebrow}</p><h1>Olá! Aqui está seu dia</h1><p className="intro-copy">Acompanhe os atendimentos e a receita do seu estabelecimento hoje.</p></div><Button onClick={onNew}><Plus size={17} /> Novo agendamento</Button></div>
-
-      <OnboardingChecklistCard onNavigate={onNavigate || onGoToAgenda} onToast={notify} />
-
-      <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
-        <div className="metric-card"><div className="metric-icon metric-teal"><CalendarDays size={18} /></div><div className="metric-copy"><p>Atendimentos hoje</p><strong>{stats?.today.appointments ?? 0}</strong><span className="metric-detail">agendados para hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-teal"><TrendingUp size={18} /></div><div className="metric-copy"><p>Receita prevista</p><strong>{formatCurrency(forecast)}</strong><span className="metric-detail">para hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-teal"><WalletCards size={18} /></div><div className="metric-copy"><p>Receita realizada</p><strong>{formatCurrency(realized)}</strong><span className="metric-detail">já recebida hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-teal"><CircleDollarSign size={18} /></div><div className="metric-copy"><p>Receita pendente</p><strong>{formatCurrency(pendingAmount)}</strong><span className="metric-detail">a receber hoje</span></div></div>
-        <div className="metric-card"><div className="metric-icon metric-teal"><Users size={18} /></div><div className="metric-copy"><p>Clientes atendidos</p><strong>{stats?.today.clientsServed ?? 0}</strong><span className="metric-detail">finalizados hoje</span></div></div>
-      </div>
-
-      <div className="metrics-subgrid">
-        <div className="submetric-card"><span>Atendimentos pendentes</span><strong>{pending.length}</strong></div>
-        <div className="submetric-card">
-          <div>
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
-            <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-primary)", marginTop: 2 }}>{cancellationsToday}</div>
-          </div>
-          <Ban size={18} style={{ color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-secondary)" }} />
+      <div className="page-intro">
+        <div>
+          <p className="eyebrow">{pageTitles.dashboard.eyebrow}</p>
+          <h1>Olá! Aqui está seu dia</h1>
+          <p className="intro-copy">Acompanhe os atendimentos e a receita do seu estabelecimento hoje.</p>
+        </div>
+        <div className="dashboard-header-actions">
+          <button
+            type="button"
+            className="customize-toggle-btn"
+            onClick={() => setCustomizing(true)}
+            title="Personalizar seções visíveis na página inicial"
+          >
+            <SlidersHorizontal size={14} />
+            <span>Personalizar início</span>
+          </button>
+          <Button onClick={onNew}>
+            <Plus size={17} /> Novo agendamento
+          </Button>
         </div>
       </div>
 
-      <div className="dashboard-grid">
-        <section className="panel next-panel">
-          <SectionHeading title="Próximo atendimento" action={next ? <button className="link-button" onClick={() => onAppointment(next)}>Ver detalhes <ArrowRight size={14} /></button> : undefined} />
-          {next ? (
-            <div className="next-appointment">
-              <div className="next-time">
-                <span className="next-time-badge">Próximo</span>
-                <strong>{normalizeTime(next.startTime)}</strong>
-                <small>{timeToMinutes(next.endTime) - timeToMinutes(next.startTime)} min</small>
+      {prefs.showBanner && (
+        <div className={`dashboard-banner-card ${session?.company.bannerUrl ? "" : "dashboard-banner-noimg"}`}>
+          {session?.company.bannerUrl && (
+            <div
+              className="dashboard-banner-bg"
+              style={{ backgroundImage: `url('${session.company.bannerUrl}')` }}
+            />
+          )}
+          <div className="dashboard-banner-content">
+            <div className="dashboard-banner-info">
+              <span className="dashboard-banner-tag">
+                <Sparkles size={11} /> {session?.company.name || "Seu Estabelecimento"}
+              </span>
+              <h2>Bom trabalho, {firstName}!</h2>
+              <p>
+                {todayApts.length === 0
+                  ? "Sua agenda está livre hoje. Pronto para receber novos clientes!"
+                  : `Você tem ${todayApts.length} atendimento${todayApts.length === 1 ? "" : "s"} agendado${todayApts.length === 1 ? "" : "s"} hoje (${pending.length} pendente${pending.length === 1 ? "" : "s"}).`}
+              </p>
+            </div>
+            {session?.company.logoUrl && (
+              <div className="dashboard-banner-avatar-wrap">
+                <Avatar
+                  name={session.company.name}
+                  photoUrl={session.company.logoUrl}
+                  color="var(--primary)"
+                  size="lg"
+                />
               </div>
-              <div className="next-person">
-                <div className="next-avatar-wrap">
-                  <Avatar
-                    name={next.clientName}
-                    photoUrl={next.clientPhotoUrl || clients.find((c) => c.id === next.clientId)?.photoUrl}
-                    color={avatarColor(next.clientName)}
-                    size="lg"
-                    className="next-client-avatar"
-                  />
-                  <span className="next-avatar-status" title={STATUS_LABELS[next.status]} />
-                </div>
-                <div className="next-person-details">
-                  <h3 className="next-client-name" title={next.clientName}>{next.clientName}</h3>
-                  <p className="next-service-name">{next.serviceName}</p>
-                  <span className="next-professional"><UserRound size={13} /> com {next.employeeName}</span>
-                </div>
-              </div>
-              <div className="next-price">
-                <div className="next-price-summary">
-                  <div className="next-price-val">
-                    <span>Valor</span>
-                    <strong>{formatCurrency(next.total)}</strong>
-                  </div>
-                  <StatusBadge status={next.status} />
-                </div>
-                <QuickStatus appointment={next} onDetails={() => onAppointment(next)} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {prefs.showChecklist && (
+        <OnboardingChecklistCard onNavigate={onNavigate || onGoToAgenda} onToast={notify} />
+      )}
+
+      {prefs.showKpis && (
+        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          <div className="metric-card">
+            <div className="metric-icon metric-teal"><CalendarDays size={18} /></div>
+            <div className="metric-copy">
+              <p>Atendimentos hoje</p>
+              <strong>{stats?.today.appointments ?? 0}</strong>
+              <span className="metric-detail">agendados para hoje</span>
+            </div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon metric-teal"><TrendingUp size={18} /></div>
+            <div className="metric-copy">
+              <p>Receita prevista</p>
+              <strong>{formatCurrency(forecast)}</strong>
+              <span className="metric-detail">para hoje</span>
+            </div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon metric-teal"><WalletCards size={18} /></div>
+            <div className="metric-copy">
+              <p>Receita realizada</p>
+              <strong>{formatCurrency(realized)}</strong>
+              <span className="metric-detail">já recebida hoje</span>
+            </div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon metric-teal"><CircleDollarSign size={18} /></div>
+            <div className="metric-copy">
+              <p>Receita pendente</p>
+              <strong>{formatCurrency(pendingAmount)}</strong>
+              <span className="metric-detail">a receber hoje</span>
+            </div>
+          </div>
+          <div className="metric-card">
+            <div className="metric-icon metric-teal"><Users size={18} /></div>
+            <div className="metric-copy">
+              <p>Clientes atendidos</p>
+              <strong>{stats?.today.clientsServed ?? 0}</strong>
+              <span className="metric-detail">finalizados hoje</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {prefs.showSubmetrics && (
+        <div className="metrics-subgrid">
+          <div className="submetric-card">
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Atendimentos pendentes</span>
+            <strong style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)" }}>{pending.length}</strong>
+          </div>
+          <div className="submetric-card">
+            <div>
+              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
+              <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-primary)", marginTop: 2 }}>
+                {cancellationsToday}
               </div>
             </div>
+            <Ban size={18} style={{ color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-secondary)" }} />
+          </div>
+        </div>
+      )}
+
+      {(prefs.showNextAppointment || prefs.showDaySummary) && (
+        <div className="dashboard-grid" style={{ gridTemplateColumns: prefs.showNextAppointment && prefs.showDaySummary ? "1.5fr 1fr" : "1fr" }}>
+          {prefs.showNextAppointment && (
+            <section className="panel next-panel">
+              <SectionHeading
+                title="Próximo atendimento"
+                action={next ? <button className="link-button" onClick={() => onAppointment(next)}>Ver detalhes <ArrowRight size={14} /></button> : undefined}
+              />
+              {next ? (
+                <div className="next-appointment">
+                  <div className="next-time">
+                    <span className="next-time-badge">Próximo</span>
+                    <strong>{normalizeTime(next.startTime)}</strong>
+                    <small>{timeToMinutes(next.endTime) - timeToMinutes(next.startTime)} min</small>
+                  </div>
+                  <div className="next-person">
+                    <div className="next-avatar-wrap">
+                      <Avatar
+                        name={next.clientName}
+                        photoUrl={next.clientPhotoUrl || clients.find((c) => c.id === next.clientId)?.photoUrl}
+                        color={avatarColor(next.clientName)}
+                        size="lg"
+                        className="next-client-avatar"
+                      />
+                      <span className="next-avatar-status" title={STATUS_LABELS[next.status]} />
+                    </div>
+                    <div className="next-person-details">
+                      <h3 className="next-client-name" title={next.clientName}>{next.clientName}</h3>
+                      <p className="next-service-name">{next.serviceName}</p>
+                      <span className="next-professional"><UserRound size={13} /> com {next.employeeName}</span>
+                    </div>
+                  </div>
+                  <div className="next-price">
+                    <div className="next-price-summary">
+                      <div className="next-price-val">
+                        <span>Valor</span>
+                        <strong>{formatCurrency(next.total)}</strong>
+                      </div>
+                      <StatusBadge status={next.status} />
+                    </div>
+                    <QuickStatus appointment={next} onDetails={() => onAppointment(next)} />
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  title="Agenda livre hoje"
+                  description="Você ainda não tem atendimentos para hoje."
+                  action={<Button onClick={onNew}><Plus size={16} /> Criar atendimento</Button>}
+                />
+              )}
+            </section>
+          )}
+
+          {prefs.showDaySummary && (
+            <section className="panel day-summary-panel">
+              <SectionHeading title="Resumo do dia" />
+              <div className="summary-list">
+                <div>
+                  <span className="summary-icon green"><CheckCheck size={15} /></span>
+                  <span>Confirmados</span>
+                  <strong>{todayApts.filter((a) => a.status === "confirmed").length}</strong>
+                </div>
+                <div>
+                  <span className="summary-icon yellow"><Clock3 size={15} /></span>
+                  <span>Aguardando</span>
+                  <strong>{todayApts.filter((a) => a.status === "waiting").length}</strong>
+                </div>
+                <div>
+                  <span className="summary-icon blue"><Zap size={15} /></span>
+                  <span>Em atendimento</span>
+                  <strong>{todayApts.filter((a) => a.status === "in_progress").length}</strong>
+                </div>
+                <div>
+                  <span className="summary-icon green"><Check size={15} /></span>
+                  <span>Finalizados</span>
+                  <strong>{todayApts.filter((a) => a.status === "completed").length}</strong>
+                </div>
+              </div>
+              <button className="summary-footer" onClick={onGoToAgenda}>
+                <CalendarPlus size={15} /> Abrir agenda completa <ArrowRight size={14} />
+              </button>
+            </section>
+          )}
+        </div>
+      )}
+
+      {prefs.showQuickSlots && (
+        <OperationsAvailability onNew={onQuickNew} />
+      )}
+
+      {prefs.showTodayAppointments && (
+        <section className="panel agenda-today-panel">
+          <SectionHeading
+            title="Agenda de hoje"
+            description="Atendimentos em ordem cronológica"
+            action={<button className="link-button" onClick={onGoToAgenda}>Ver agenda <ArrowRight size={14} /></button>}
+          />
+          {todayApts.length ? (
+            <div className="appointment-list">
+              {[...todayApts]
+                .sort((a,b) => a.startTime.localeCompare(b.startTime))
+                .map((apt) => (
+                  <div key={apt.id}>
+                    <p className="eyebrow">
+                      {apt.status === "completed" || apt.endTime < nowTime
+                        ? "Anteriores"
+                        : apt.status === "in_progress" || apt.status === "waiting"
+                        ? "Agora"
+                        : apt.id === next?.id
+                        ? "Próximo"
+                        : "Depois"}
+                    </p>
+                    <AppointmentCard appointment={apt} onClick={() => onAppointment(apt)} />
+                  </div>
+                ))}
+            </div>
           ) : (
-            <EmptyState title="Agenda livre hoje" description="Você ainda não tem atendimentos para hoje." action={<Button onClick={onNew}><Plus size={16} /> Criar atendimento</Button>} />
+            <EmptyState
+              title="Nenhum atendimento hoje"
+              description="Sua agenda de hoje está vazia."
+              action={<Button onClick={onNew}><Plus size={16} /> Novo agendamento</Button>}
+            />
+          )}
+          {services.length === 0 && (
+            <div className="dashboard-onboarding-hint">
+              <ShieldCheck size={15} />
+              <span>Cadastre serviços para começar a agendar.</span>
+            </div>
           )}
         </section>
+      )}
 
-        <section className="panel day-summary-panel">
-          <SectionHeading title="Resumo do dia" />
-          <div className="summary-list">
-            <div><span className="summary-icon green"><CheckCheck size={15} /></span><span>Confirmados</span><strong>{todayApts.filter((a) => a.status === "confirmed").length}</strong></div>
-            <div><span className="summary-icon yellow"><Clock3 size={15} /></span><span>Aguardando</span><strong>{todayApts.filter((a) => a.status === "waiting").length}</strong></div>
-            <div><span className="summary-icon blue"><Zap size={15} /></span><span>Em atendimento</span><strong>{todayApts.filter((a) => a.status === "in_progress").length}</strong></div>
-            <div><span className="summary-icon green"><Check size={15} /></span><span>Finalizados</span><strong>{todayApts.filter((a) => a.status === "completed").length}</strong></div>
+      {customizing && (
+        <DashboardCustomizerModal
+          currentPrefs={prefs}
+          onClose={() => setCustomizing(false)}
+          onSave={async (newPrefs) => {
+            await updateDashboardPreferences(newPrefs);
+            notify("Personalização do painel salva com sucesso!");
+            setCustomizing(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DashboardCustomizerModal({
+  currentPrefs,
+  onClose,
+  onSave,
+}: {
+  currentPrefs: {
+    showBanner: boolean;
+    showChecklist: boolean;
+    showKpis: boolean;
+    showSubmetrics: boolean;
+    showNextAppointment: boolean;
+    showDaySummary: boolean;
+    showQuickSlots: boolean;
+    showTodayAppointments: boolean;
+  };
+  onClose: () => void;
+  onSave: (prefs: typeof currentPrefs) => Promise<void>;
+}) {
+  const [prefs, setPrefs] = useState(currentPrefs);
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (key: keyof typeof currentPrefs) => {
+    setPrefs((cur) => ({ ...cur, [key]: !cur[key] }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(prefs);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const restoreDefaults = () => {
+    setPrefs({
+      showBanner: true,
+      showChecklist: true,
+      showKpis: true,
+      showSubmetrics: true,
+      showNextAppointment: true,
+      showDaySummary: true,
+      showQuickSlots: true,
+      showTodayAppointments: true,
+    });
+  };
+
+  const items = [
+    { key: "showBanner" as const, label: "Banner e Boas-vindas", desc: "Cartão de destaque com saudação e imagem de capa da empresa" },
+    { key: "showChecklist" as const, label: "Checklist de Configuração", desc: "Passo a passo inicial para ativar seu agendamento" },
+    { key: "showKpis" as const, label: "Indicadores Principais", desc: "Métricas de atendimentos e receitas previstas/realizadas do dia" },
+    { key: "showSubmetrics" as const, label: "Atendimentos Pendentes e Cancelamentos", desc: "Cards compactos de contagem operacional" },
+    { key: "showNextAppointment" as const, label: "Próximo Atendimento em Destaque", desc: "Card hero com dados do próximo cliente e botões rápidos" },
+    { key: "showDaySummary" as const, label: "Resumo do Dia por Status", desc: "Contagem de atendimentos confirmados, aguardando e em andamento" },
+    { key: "showQuickSlots" as const, label: "Horários Livres / Encaixe Rápido", desc: "Grade de horários livres sugeridos para encaixes de última hora" },
+    { key: "showTodayAppointments" as const, label: "Agenda Cronológica de Hoje", desc: "Lista de todos os agendamentos do dia em ordem de horário" },
+  ];
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal" style={{ maxWidth: "560px" }}>
+        <div className="modal-header">
+          <div>
+            <span className="eyebrow">Personalização</span>
+            <h2>Personalizar Painel Inicial</h2>
+            <p style={{ margin: "4px 0 0", color: "var(--text-secondary)", fontSize: "12px" }}>
+              Selecione quais seções deseja exibir na sua tela inicial para deixar a interface do seu jeito.
+            </p>
           </div>
-          <button className="summary-footer" onClick={onGoToAgenda}><CalendarPlus size={15} /> Abrir agenda completa <ArrowRight size={14} /></button>
-        </section>
-      </div>
+          <IconButton label="Fechar" onClick={onClose}><X size={18} /></IconButton>
+        </div>
 
-      <OperationsAvailability onNew={onQuickNew} />
-      <section className="panel agenda-today-panel">
-        <SectionHeading title="Agenda de hoje" description="Atendimentos em ordem cronológica" action={<button className="link-button" onClick={onGoToAgenda}>Ver agenda <ArrowRight size={14} /></button>} />
-        {todayApts.length ? <div className="appointment-list">{[...todayApts].sort((a,b) => a.startTime.localeCompare(b.startTime)).map((apt) => <div key={apt.id}><p className="eyebrow">{apt.status === "completed" || apt.endTime < nowTime ? "Anteriores" : apt.status === "in_progress" || apt.status === "waiting" ? "Agora" : apt.id === next?.id ? "Próximo" : "Depois"}</p><AppointmentCard appointment={apt} onClick={() => onAppointment(apt)} /></div>)}</div> : <EmptyState title="Nenhum atendimento hoje" description="Sua agenda de hoje está vazia." action={<Button onClick={onNew}><Plus size={16} /> Novo agendamento</Button>} />}
-        {services.length === 0 && <div className="dashboard-onboarding-hint"><ShieldCheck size={15} /><span>Cadastre serviços para começar a agendar.</span></div>}
-      </section>
+        <div style={{ padding: "16px 20px", maxHeight: "60vh", overflowY: "auto" }}>
+          {items.map(({ key, label, desc }) => (
+            <div className="customize-item-row" key={key}>
+              <div className="customize-item-info">
+                <strong>{label}</strong>
+                <span>{desc}</span>
+              </div>
+              <label className="switch-control">
+                <input
+                  type="checkbox"
+                  checked={prefs[key]}
+                  onChange={() => toggle(key)}
+                />
+                <span className="switch-slider" />
+              </label>
+            </div>
+          ))}
+        </div>
+
+        <div className="modal-footer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+          <button
+            type="button"
+            className="link-button"
+            onClick={restoreDefaults}
+          >
+            Restaurar padrão
+          </button>
+          <div className="modal-actions" style={{ display: "flex", gap: "8px" }}>
+            <Button variant="secondary" onClick={onClose} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar preferências"}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2063,7 +2371,7 @@ function FinancialPage() {
 }
 
 function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setTheme: (t: Theme) => void; onNewLocation: () => void }) {
-  const { session, notify, locations, settings, updateSettings } = useStore();
+  const { session, notify, locations, settings, updateSettings, updateProfile } = useStore();
   const company = session?.company;
   const [activeTab, setActiveTab] = useState<"empresa" | "unidades" | "funcionamento" | "notificacoes" | "seguranca" | "ajuda">("empresa");
 
@@ -2082,6 +2390,12 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
   const [address, setAddress] = useState(company?.address ?? "");
   const [instagram, setInstagram] = useState(company?.instagram ?? "");
   const [savingCompany, setSavingCompany] = useState(false);
+
+  // Branding & Primary Color
+  const [brandingLogo, setBrandingLogo] = useState(company?.logoUrl ?? "");
+  const [brandingBanner, setBrandingBanner] = useState(company?.bannerUrl ?? "");
+  const [brandingPrimaryColor, setBrandingPrimaryColor] = useState(company?.primaryColor ?? "#dcff4c");
+  const [savingBranding, setSavingBranding] = useState(false);
 
   // Operational settings fields
   const [openTime, setOpenTime] = useState(settings?.openTime ?? "08:00");
@@ -2125,6 +2439,27 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
       notify(e instanceof ApiError ? e.message : "Erro ao salvar.", "error");
     } finally {
       setSavingCompany(false);
+    }
+  };
+
+  const handlePrimaryColorSelect = (hex: string) => {
+    setBrandingPrimaryColor(hex);
+    applyPrimaryColor(hex);
+  };
+
+  const saveBranding = async () => {
+    setSavingBranding(true);
+    try {
+      await updateProfile({
+        avatarUrl: brandingLogo.trim() || null,
+        bannerUrl: brandingBanner.trim() || null,
+        primaryColor: brandingPrimaryColor.trim() || undefined,
+      });
+      notify("Identidade visual e cores salvas com sucesso!");
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao salvar identidade visual.", "error");
+    } finally {
+      setSavingBranding(false);
     }
   };
 
@@ -2253,6 +2588,123 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                   <Field label="E-mail"><input className="input" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
                   <Field label="Endereço"><div className="input-with-icon"><MapPin size={16} /><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} /></div></Field>
                   <Field label="Instagram"><div className="input-with-icon"><span className="at-symbol">@</span><input className="input" value={instagram} onChange={(e) => setInstagram(e.target.value)} /></div></Field>
+                </div>
+              </section>
+
+              <section className="settings-section">
+                <SectionHeading
+                  title="Identidade visual & cores da marca"
+                  description="Personalize o banner, logotipo e a cor de destaque principal do sistema."
+                  action={
+                    <Button onClick={saveBranding} disabled={savingBranding}>
+                      {savingBranding ? "Salvando..." : (
+                        <>
+                          <Check size={16} />
+                          <span>Salvar identidade</span>
+                        </>
+                      )}
+                    </Button>
+                  }
+                />
+                <div className="settings-form" style={{ gridTemplateColumns: "1fr" }}>
+                  <Field label="Cor primária do sistema (substitui o verde)" hint="Altera botões, links, badges e detalhes em todo o painel.">
+                    <div className="color-palette-grid">
+                      {PRIMARY_COLOR_PRESETS.map((preset) => {
+                        const isActive = brandingPrimaryColor.toLowerCase() === preset.hex.toLowerCase();
+                        return (
+                          <button
+                            type="button"
+                            key={preset.id}
+                            className={`color-palette-btn ${isActive ? "active" : ""}`}
+                            onClick={() => handlePrimaryColorSelect(preset.hex)}
+                          >
+                            <span className="color-swatch-circle" style={{ background: preset.hex }} />
+                            <span>{preset.name}</span>
+                            {isActive && <Check size={14} style={{ marginLeft: "auto", color: "var(--primary)" }} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="custom-color-row">
+                      <input
+                        type="color"
+                        value={brandingPrimaryColor.startsWith("#") ? brandingPrimaryColor : "#dcff4c"}
+                        onChange={(e) => handlePrimaryColorSelect(e.target.value)}
+                        className="custom-color-picker-input"
+                        title="Escolher cor personalizada"
+                      />
+                      <input
+                        className="input"
+                        style={{ maxWidth: "160px" }}
+                        value={brandingPrimaryColor}
+                        onChange={(e) => handlePrimaryColorSelect(e.target.value)}
+                        placeholder="#dcff4c"
+                      />
+                      <Button
+                        variant="secondary"
+                        onClick={() => handlePrimaryColorSelect("#dcff4c")}
+                      >
+                        Restaurar verde
+                      </Button>
+                    </div>
+                  </Field>
+
+                  <Field label="Banner de capa" hint="Imagem no topo do dashboard e na capa do perfil.">
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <input
+                        className="input"
+                        value={brandingBanner}
+                        onChange={(e) => setBrandingBanner(e.target.value)}
+                        placeholder="https://exemplo.com/banner.jpg"
+                      />
+                      {brandingBanner && (
+                        <Button variant="secondary" onClick={() => setBrandingBanner("")}>
+                          Limpar
+                        </Button>
+                      )}
+                    </div>
+                    <div className="banner-presets-row" style={{ marginTop: "8px" }}>
+                      {BANNER_PRESETS.map((preset) => (
+                        <div
+                          key={preset.id}
+                          className={`banner-preset-card ${brandingBanner === preset.url ? "active" : ""}`}
+                          style={{ backgroundImage: `url(${preset.url})` }}
+                          onClick={() => setBrandingBanner(preset.url)}
+                        >
+                          <span>{preset.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field label="Logotipo / Foto de perfil" hint="Exibido na barra superior e agendamentos.">
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <input
+                        className="input"
+                        value={brandingLogo}
+                        onChange={(e) => setBrandingLogo(e.target.value)}
+                        placeholder="https://exemplo.com/logo.jpg"
+                      />
+                      {brandingLogo && (
+                        <Button variant="secondary" onClick={() => setBrandingLogo("")}>
+                          Limpar
+                        </Button>
+                      )}
+                    </div>
+                    <div className="avatar-presets-row" style={{ marginTop: "8px" }}>
+                      {AVATAR_PRESETS.map((preset) => (
+                        <button
+                          type="button"
+                          key={preset.id}
+                          className={`avatar-preset-btn ${brandingLogo === preset.url ? "active" : ""}`}
+                          onClick={() => setBrandingLogo(preset.url)}
+                          title={preset.name}
+                        >
+                          <img src={preset.url} alt={preset.name} />
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
                 </div>
               </section>
 
@@ -4250,54 +4702,294 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 }
 
 function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }: { onClose: () => void; session: import("@/shared/types").SessionInfo; onSettings: () => void; onSuperadmin?: () => void; onLogout: () => void }) {
+  const { updateProfile, notify } = useStore();
+  const [activeTab, setActiveTab] = useState<"visual" | "dados" | "atalhos">("visual");
+
+  const [name, setName] = useState(session?.name ?? "");
+  const [phone, setPhone] = useState(session?.phone ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(session?.company.logoUrl ?? "");
+  const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
+  const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#dcff4c");
+  const [saving, setSaving] = useState(false);
+
+  const handleColorChange = (hex: string) => {
+    setPrimaryColor(hex);
+    applyPrimaryColor(hex);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateProfile({
+        name: name.trim() || undefined,
+        phone: phone.trim() || undefined,
+        avatarUrl: avatarUrl.trim() || null,
+        bannerUrl: bannerUrl.trim() || null,
+        primaryColor: primaryColor.trim() || undefined,
+      });
+      notify("Perfil e preferências atualizados com sucesso!");
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao salvar perfil.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="drawer-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <aside className="profile-drawer">
-        <div className="drawer-header"><span className="eyebrow">Sua conta</span><IconButton label="Fechar perfil" onClick={onClose}><X size={19} /></IconButton></div>
-
-        <div className="profile-hero">
-          <span className="profile-avatar-large">{initials(session?.name ?? "U")}</span>
-          <h2>{session?.name}</h2>
-          <p className="profile-role">{roleLabel(session?.role)}</p>
-          <p className="profile-company">{session?.company.name}</p>
+        <div className="drawer-header">
+          <span className="profile-drawer-eyebrow">Perfil & Customização</span>
+          <button type="button" className="drawer-close-btn" onClick={onClose} aria-label="Fechar perfil">
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="profile-info">
-          <div className="info-item"><span className="info-label">E-mail</span><strong>{session?.email || "não informado"}</strong></div>
-          <div className="info-item"><span className="info-label">Acesso desde</span><strong>{session?.createdAt ? new Date(session.createdAt).toLocaleDateString("pt-BR") : "—"}</strong></div>
-        </div>
-
-        <div className="profile-actions-drawer">
-          <a
-            href="/cliente"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              padding: "10px 16px",
-              background: "rgba(220, 255, 76, 0.12)",
-              color: "#dcff4c",
-              border: "1px solid rgba(220, 255, 76, 0.25)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              fontSize: "14px",
-              textDecoration: "none",
-              marginBottom: "8px",
-            }}
-          >
-            <UserRound size={16} /> Alternar para Área do Cliente
-          </a>
-          {onSuperadmin && (
-            <Button onClick={() => { onSuperadmin(); onClose(); }} className="full-width" variant="secondary">
-              <Sparkles size={16} /> Painel Superadmin Reservei
-            </Button>
+        {/* Banner Cover and Profile Avatar Header */}
+        <div className="profile-drawer-cover">
+          {bannerUrl ? (
+            <>
+              <img src={bannerUrl} alt="Capa" />
+              <div className="profile-drawer-cover-overlay" />
+            </>
+          ) : (
+            <div style={{ width: "100%", height: "100%", background: "var(--surface-secondary)" }} />
           )}
-          <Button onClick={() => { onSettings(); onClose(); }} className="full-width"><Settings2 size={16} /> Configurações da conta</Button>
-          <Button variant="secondary" onClick={() => { onLogout(); onClose(); }} className="full-width"><LogOut size={16} /> Sair da conta</Button>
         </div>
 
-        <div className="profile-footer"><span className="profile-version">Reservei SaaS v2.0 · Comercial</span></div>
+        <div className="profile-drawer-head-content">
+          <div className="profile-drawer-avatar-wrap">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={name} />
+            ) : (
+              <span>{initials(name || "U")}</span>
+            )}
+          </div>
+          <div className="profile-drawer-meta">
+            <h2>{name || session?.name}</h2>
+            <p>{roleLabel(session?.role)} · {session?.company.name}</p>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="profile-drawer-tabs">
+          <button
+            type="button"
+            className={`profile-drawer-tab ${activeTab === "visual" ? "active" : ""}`}
+            onClick={() => setActiveTab("visual")}
+          >
+            <Palette size={15} />
+            <span>Cores & Capa</span>
+          </button>
+          <button
+            type="button"
+            className={`profile-drawer-tab ${activeTab === "dados" ? "active" : ""}`}
+            onClick={() => setActiveTab("dados")}
+          >
+            <User size={15} />
+            <span>Dados da Conta</span>
+          </button>
+          <button
+            type="button"
+            className={`profile-drawer-tab ${activeTab === "atalhos" ? "active" : ""}`}
+            onClick={() => setActiveTab("atalhos")}
+          >
+            <Settings2 size={15} />
+            <span>Ações & Links</span>
+          </button>
+        </div>
+
+        {/* Drawer Body Content */}
+        <div className="profile-drawer-body">
+          {activeTab === "visual" && (
+            <>
+              {/* Primary Color Customizer */}
+              <div className="profile-section-card">
+                <h3><Palette size={16} /> Cor Primária do Sistema</h3>
+                <p className="section-sub">
+                  Substitua a cor verde por qualquer tom de destaque. Afeta todos os botões, badges, status e links do Reservei.
+                </p>
+                <div className="color-palette-grid">
+                  {PRIMARY_COLOR_PRESETS.map((preset) => {
+                    const isActive = primaryColor.toLowerCase() === preset.hex.toLowerCase();
+                    return (
+                      <button
+                        type="button"
+                        key={preset.id}
+                        className={`color-palette-btn ${isActive ? "active" : ""}`}
+                        onClick={() => handleColorChange(preset.hex)}
+                      >
+                        <span className="color-swatch-circle" style={{ background: preset.hex }} />
+                        <span>{preset.name}</span>
+                        {isActive && <Check size={13} style={{ marginLeft: "auto", color: "var(--primary)" }} />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="custom-color-row">
+                  <input
+                    type="color"
+                    value={primaryColor.startsWith("#") ? primaryColor : "#dcff4c"}
+                    onChange={(e) => handleColorChange(e.target.value)}
+                    className="custom-color-picker-input"
+                    title="Escolher cor personalizada"
+                  />
+                  <input
+                    className="input"
+                    style={{ maxWidth: "140px" }}
+                    value={primaryColor}
+                    onChange={(e) => handleColorChange(e.target.value)}
+                    placeholder="#dcff4c"
+                  />
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleColorChange("#dcff4c")}
+                  >
+                    Restaurar verde
+                  </Button>
+                </div>
+              </div>
+
+              {/* Banner Cover Customizer */}
+              <div className="profile-section-card">
+                <h3><ImageIcon size={16} /> Banner de Capa</h3>
+                <p className="section-sub">
+                  Imagem decorativa aplicada no topo da Home e na sua capa.
+                </p>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    className="input"
+                    value={bannerUrl}
+                    onChange={(e) => setBannerUrl(e.target.value)}
+                    placeholder="https://exemplo.com/banner.jpg"
+                  />
+                  {bannerUrl && (
+                    <Button variant="secondary" onClick={() => setBannerUrl("")}>
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+                <div className="banner-presets-row">
+                  {BANNER_PRESETS.map((preset) => (
+                    <div
+                      key={preset.id}
+                      className={`banner-preset-card ${bannerUrl === preset.url ? "active" : ""}`}
+                      style={{ backgroundImage: `url(${preset.url})` }}
+                      onClick={() => setBannerUrl(preset.url)}
+                    >
+                      <span>{preset.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Avatar / Photo Customizer */}
+              <div className="profile-section-card">
+                <h3><UserRound size={16} /> Foto / Avatar de Perfil</h3>
+                <p className="section-sub">
+                  Sua foto exibida na barra de navegação, agendamentos e perfil.
+                </p>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <input
+                    className="input"
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder="https://exemplo.com/foto.jpg"
+                  />
+                  {avatarUrl && (
+                    <Button variant="secondary" onClick={() => setAvatarUrl("")}>
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+                <div className="avatar-presets-row">
+                  {AVATAR_PRESETS.map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.id}
+                      className={`avatar-preset-btn ${avatarUrl === preset.url ? "active" : ""}`}
+                      onClick={() => setAvatarUrl(preset.url)}
+                      title={preset.name}
+                    >
+                      <img src={preset.url} alt={preset.name} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === "dados" && (
+            <div className="profile-section-card">
+              <h3><User size={16} /> Dados Pessoais</h3>
+              <Field label="Nome completo">
+                <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+              </Field>
+              <Field label="Telefone / WhatsApp">
+                <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+              </Field>
+              <Field label="E-mail (acesso principal)">
+                <input className="input" value={session?.email ?? ""} disabled style={{ opacity: 0.7 }} />
+              </Field>
+              <Field label="Estabelecimento vinculado">
+                <input className="input" value={session?.company.name ?? ""} disabled style={{ opacity: 0.7 }} />
+              </Field>
+            </div>
+          )}
+
+          {activeTab === "atalhos" && (
+            <div className="profile-section-card" style={{ gap: "10px" }}>
+              <h3><Sparkles size={16} /> Navegação e Acesso</h3>
+              <a
+                href="/cliente"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "10px 16px",
+                  background: "var(--primary-soft)",
+                  color: "var(--primary)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  textDecoration: "none",
+                }}
+              >
+                <UserRound size={16} /> Alternar para Área do Cliente
+              </a>
+              {onSuperadmin && (
+                <Button onClick={() => { onSuperadmin(); onClose(); }} className="full-width" variant="secondary">
+                  <Sparkles size={16} /> Painel Superadmin Reservei
+                </Button>
+              )}
+              <Button onClick={() => { onSettings(); onClose(); }} className="full-width" variant="secondary">
+                <Settings2 size={16} /> Configurações Gerais da Conta
+              </Button>
+              <Button variant="secondary" onClick={() => { onLogout(); onClose(); }} className="full-width" style={{ color: "#ef4444" }}>
+                <LogOut size={16} /> Sair da conta
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky Footer with Save Action */}
+        <div className="profile-drawer-footer">
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            Fechar
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? (
+              "Salvando..."
+            ) : (
+              <>
+                <Check size={16} />
+                <span>Salvar alterações</span>
+              </>
+            )}
+          </Button>
+        </div>
       </aside>
     </div>
   );

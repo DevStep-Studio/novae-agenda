@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "@/lib/api-client";
+import { applyPrimaryColor } from "@/lib/theme-utils";
 import type {
   AppointmentDTO,
   AppointmentStatus,
@@ -68,6 +69,15 @@ type Store = DataState & {
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: () => Promise<void>;
   updateSettings: (input: Partial<CompanySettingsDTO>) => Promise<void>;
+  updateProfile: (input: {
+    name?: string;
+    phone?: string;
+    avatarUrl?: string | null;
+    bannerUrl?: string | null;
+    primaryColor?: string;
+    dashboardPreferences?: import("@/shared/types").DashboardPreferences;
+  }) => Promise<void>;
+  updateDashboardPreferences: (prefs: import("@/shared/types").DashboardPreferences) => Promise<void>;
   notify: (message: string, tone?: "success" | "error") => void;
   dismissToast: (id: string) => void;
   logout: () => Promise<void>;
@@ -282,6 +292,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await reloadSettings();
   }, [reloadSettings]);
 
+  const updateProfile = useCallback(async (input: {
+    name?: string;
+    phone?: string;
+    avatarUrl?: string | null;
+    bannerUrl?: string | null;
+    primaryColor?: string;
+    dashboardPreferences?: import("@/shared/types").DashboardPreferences;
+  }) => {
+    await api("/api/profile", { method: "PATCH", body: JSON.stringify(input) });
+    if (input.primaryColor) {
+      applyPrimaryColor(input.primaryColor);
+    }
+    await reloadSession();
+  }, []);
+
+  const updateDashboardPreferences = useCallback(async (prefs: import("@/shared/types").DashboardPreferences) => {
+    // Optimistic update
+    setSession((cur) => {
+      if (!cur) return cur;
+      return {
+        ...cur,
+        company: {
+          ...cur.company,
+          dashboardPreferences: {
+            ...(cur.company.dashboardPreferences ?? {}),
+            ...prefs,
+          },
+        },
+      };
+    });
+    try {
+      localStorage.setItem("novae_dashboard_preferences", JSON.stringify(prefs));
+    } catch {}
+    await api("/api/profile", { method: "PATCH", body: JSON.stringify({ dashboardPreferences: prefs }) });
+  }, []);
+
   const logout = useCallback(async () => {
     await api("/api/auth/logout", { method: "POST" });
     window.location.reload();
@@ -292,6 +338,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const data = await api<SessionInfo>("/api/auth/session");
       setSession(data);
       if (data) {
+        if (data.company?.primaryColor) {
+          applyPrimaryColor(data.company.primaryColor);
+        }
         if (data.locations?.length) {
           setLocations(data.locations);
           setActiveLocationId((cur) => cur ?? data.locations[0].id);
@@ -310,6 +359,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Bootstrap session + data
   const booted = useRef(false);
   useEffect(() => {
+    // Restore cached primary color immediately to avoid flicker
+    try {
+      const cachedColor = localStorage.getItem("novae_primary_color");
+      if (cachedColor) applyPrimaryColor(cachedColor);
+    } catch {}
+
     if (booted.current) return;
     booted.current = true;
     (async () => {
@@ -373,6 +428,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     markNotificationRead,
     markAllNotificationsRead,
     updateSettings,
+    updateProfile,
+    updateDashboardPreferences,
     notify,
     dismissToast,
     logout,
@@ -380,7 +437,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     session, booting, locations, activeLocationId, clients, services, categories, employees, appointments, blocks, notifications, unreadCount, settings, stats, toasts,
     setActiveLocationId, reloadSession, reloadLocations, reloadClients, reloadServices, reloadEmployees, reloadAppointments, reloadBlocks, reloadNotifications, reloadSettings, reloadStats, refreshAll,
     createLocation, updateLocation, createClient, updateClient, createService, toggleService, createEmployee, createAppointment,
-    updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, notify, dismissToast, logout,
+    updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, updateProfile, updateDashboardPreferences, notify, dismissToast, logout,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
