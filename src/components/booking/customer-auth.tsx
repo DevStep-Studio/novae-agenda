@@ -219,6 +219,30 @@ export function CustomerAuth({
               ? "Criar conta e continuar"
               : "Entrar e continuar"}
         </button>
+
+        <button
+          type="button"
+          className={b.textButton}
+          style={{ marginTop: "10px", width: "100%", padding: "8px", border: "1px dashed var(--primary-soft, #dcff4c40)", borderRadius: "8px", color: "var(--primary, #dcff4c)", fontSize: "12px" }}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              await api("/api/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ email: "cliente@email.com", password: "senha123" }),
+              });
+              await refresh();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Erro no login demo.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          ⚡ Demo: Entrar como Carlos Silva (1-clique)
+        </button>
+
         {mode === "login" && (
           <button
             type="button"

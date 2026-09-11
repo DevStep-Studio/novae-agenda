@@ -65,6 +65,9 @@ export async function POST(request: Request) {
       });
       await tx.insert(locations).values({id: crypto.randomUUID(), companyId, name: "Unidade Principal", openTime: "08:00", closeTime: "19:00", active: true});
     }
+    const isDevOrDemo = process.env.NODE_ENV !== "production" || process.env.DEMO_MODE === "true";
+    const autoVerify = isDevOrDemo && parsed.data.accountType === "customer";
+
     const userId = crypto.randomUUID();
     await tx.insert(users).values({
       id: userId,
@@ -75,9 +78,10 @@ export async function POST(request: Request) {
       phone: parsed.data.phone,
       role: companyId ? "owner" : "customer",
       active: true,
-      emailVerified: false,
+      emailVerified: autoVerify ? true : false,
+      emailVerifiedAt: autoVerify ? new Date() : null,
     });
-    return { id: userId, companyId, name: name.trim(), email: normalizedEmail };
+    return { id: userId, companyId, name: name.trim(), email: normalizedEmail, emailVerified: autoVerify };
   });
   if (!user) return NextResponse.json({error:"Este e-mail já está em uso."},{status:409});
 
@@ -90,7 +94,7 @@ export async function POST(request: Request) {
   await sendMail({ ...mail, to: normalizedEmail });
 
   return NextResponse.json(
-    { data: { userId: user.id, onboarded: false, emailVerified: false, ...devTokenField(token) } },
+    { data: { userId: user.id, onboarded: false, emailVerified: user.emailVerified ?? false, ...devTokenField(token) } },
     { status: 201 },
   );
 }

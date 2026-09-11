@@ -203,38 +203,66 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
           </p>
         </div>
 
-        {unreadTotal > 0 && (
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button
             type="button"
-            onClick={handleMarkAllRead}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await fetch("/api/notifications/simulate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ type: "reminder_2h" }),
+                });
+                await reloadNotifications();
+              } finally {
+                setLoading(false);
+              }
+            }}
             disabled={loading}
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "9px 16px",
-              background: "var(--surface)",
+              gap: 6,
+              padding: "9px 14px",
+              background: "rgba(220, 255, 76, 0.1)",
               border: "1px solid var(--border)",
               borderRadius: 8,
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--text-primary)",
+              color: "var(--primary)",
               cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--border-strong)";
-              e.currentTarget.style.background = "var(--surface-hover)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border)";
-              e.currentTarget.style.background = "var(--surface)";
             }}
           >
-            <CheckCheck size={16} style={{ color: "var(--primary)" }} />
-            <span>Marcar todas como lidas</span>
+            <Sparkles size={14} />
+            <span>Simular Lembrete 2h (QA)</span>
           </button>
-        )}
+
+          {unreadTotal > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllRead}
+              disabled={loading}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "9px 16px",
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <CheckCheck size={16} style={{ color: "var(--primary)" }} />
+              <span>Marcar todas como lidas</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter Tabs */}
