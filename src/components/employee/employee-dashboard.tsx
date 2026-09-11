@@ -17,7 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
 import { api } from "@/lib/api-client";
 import type { AppointmentDTO, AppointmentStatus } from "@/shared/types";
@@ -99,7 +99,7 @@ export function EmployeeDashboard() {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.logoArea}>
-          <NovaeLogo size={32} />
+          <ReserveiLogo size={32} />
         </div>
 
         <div className={styles.employeeBadge}>
@@ -157,7 +157,7 @@ export function EmployeeDashboard() {
             </div>
             <div className={styles.userInfo}>
               <span className={styles.userName}>{session?.name ?? "Profissional"}</span>
-              <span className={styles.userRole}>Equipe Nova(e)</span>
+              <span className={styles.userRole}>Equipe Reservei</span>
             </div>
           </div>
 

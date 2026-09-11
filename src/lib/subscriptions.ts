@@ -36,7 +36,7 @@ export const PLANS: Record<PlanKey, PlanDetails> = {
     interval: "mês",
     description: "Ideal para estabilidade com cobrança mensal flexível.",
     features: [
-      "Todos os recursos do Nova(e)",
+      "Todos os recursos do Reservei",
       "Agendamentos e clientes ilimitados",
       "Gestão financeira e comissões da equipe",
       "CRM com histórico e notas internas",

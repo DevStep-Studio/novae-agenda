@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles, Check, Lock, ArrowRight } from "lucide-react";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 
 type Props = {
   daysRemaining?: number;
@@ -38,7 +38,7 @@ export function SubscriptionPaywallModal({ onSelectPlan, onLogout }: Props) {
         }}
       >
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
-          <NovaeLogo size={40} />
+          <ReserveiLogo size={40} />
         </div>
 
         <div
@@ -60,7 +60,7 @@ export function SubscriptionPaywallModal({ onSelectPlan, onLogout }: Props) {
         </div>
 
         <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 10px" }}>
-          Continue gerenciando seu negócio com o Nova(e)
+          Continue gerenciando seu negócio com o Reservei
         </h1>
 
         <p style={{ fontSize: 14, color: "var(--text-secondary)", maxWidth: 520, margin: "0 auto 28px", lineHeight: 1.6 }}>

@@ -17,7 +17,7 @@ import {
   CreditCard,
   FileText,
 } from "lucide-react";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
 import { api } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -58,7 +58,7 @@ export function AdminDashboard() {
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.logoArea}>
-          <NovaeLogo size={32} />
+          <ReserveiLogo size={32} />
         </div>
 
         <div className={styles.adminBadge}>
@@ -137,7 +137,7 @@ export function AdminDashboard() {
       <main className={styles.mainContent}>
         <header className={styles.topbar}>
           <div className={styles.topbarTitle}>
-            <h1>Painel Superadmin Nova(e)</h1>
+            <h1>Painel Superadmin Reservei</h1>
             <p>Gerenciamento global de tenants, status e métricas da infraestrutura.</p>
           </div>
         </header>

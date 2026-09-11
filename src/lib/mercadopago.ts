@@ -54,7 +54,7 @@ export async function createSubscriptionCheckout(input: CheckoutSessionInput): P
         items: [
           {
             id: input.planKey,
-            title: `Assinatura Nova(e) - ${plan.name}`,
+            title: `Assinatura Reservei - ${plan.name}`,
             description: plan.description,
             quantity: 1,
             unit_price: plan.price,
@@ -75,7 +75,7 @@ export async function createSubscriptionCheckout(input: CheckoutSessionInput): P
           companyId: input.companyId,
           planKey: input.planKey,
         }),
-        notification_url: `${(process.env.APP_URL ?? "https://novae.app").replace(/\/$/, "")}/api/webhooks/mercadopago`,
+        notification_url: `${(process.env.APP_URL ?? "https://reservei.com.br").replace(/\/$/, "")}/api/webhooks/mercadopago`,
       }),
     });
 

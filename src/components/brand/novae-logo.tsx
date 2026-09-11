@@ -2,25 +2,32 @@
 
 import React from "react";
 
-interface NovaeLogoProps {
+export interface ReserveiLogoProps {
   variant?: "full" | "symbol" | "wordmark";
   size?: "sm" | "md" | "lg" | "xl" | number;
+  color?: "lime" | "white" | "black" | "auto";
   className?: string;
-  useImage?: boolean;
+  style?: React.CSSProperties;
+  priority?: boolean;
+  alt?: string;
 }
 
+export type NovaeLogoProps = ReserveiLogoProps;
+
 /**
- * Novae Star Symbol SVG (Exact origami geometry vectorized from original asset).
+ * Reservei Origami Star Symbol SVG.
  * ViewBox: 0 0 142 144
  */
-export function NovaeStarIcon({
+export function ReserveiStarIcon({
   className = "",
   size = 24,
-  fill = "currentColor",
+  fill = "#dcff4c",
+  style,
 }: {
   className?: string;
   size?: number;
   fill?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <svg
@@ -30,7 +37,7 @@ export function NovaeStarIcon({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
-      style={{ display: "inline-block", verticalAlign: "middle" }}
+      style={{ display: "inline-block", verticalAlign: "middle", ...style }}
     >
       <path
         d="M 96,0 L 74,31 L 74,35 L 89,43 L 0,71 L 34,87 L 42,95 L 45,102 L 45,143 L 68,111 L 54,99 L 141,72 L 107,56 L 100,49 L 96,39 Z"
@@ -40,76 +47,94 @@ export function NovaeStarIcon({
   );
 }
 
+export const NovaeStarIcon = ReserveiStarIcon;
+
 /**
- * Novae Brand Logo Component
- * Supports 'full' (wordmark + star), 'symbol' (star icon only), and 'wordmark' (novae text).
+ * Reservei Brand Logo Component
+ * Uses the official visual identity assets from /public (logo.png, symbol.png, etc.)
  */
-export function NovaeLogo({
+export function ReserveiLogo({
   variant = "full",
   size = "md",
+  color = "auto",
   className = "",
-}: NovaeLogoProps) {
+  style,
+  priority = false,
+  alt = "Reservei",
+}: ReserveiLogoProps) {
   const height =
     typeof size === "number"
       ? size
       : size === "sm"
-      ? 20
+      ? 22
       : size === "md"
       ? 28
       : size === "lg"
-      ? 38
-      : 52;
+      ? 36
+      : 48;
 
   if (variant === "symbol") {
-    return <NovaeStarIcon size={height} className={className} fill="#dcff4c" />;
-  }
+    const symbolSrc =
+      color === "white"
+        ? "/symbol-white.png"
+        : color === "black"
+        ? "/symbol-black.png"
+        : "/symbol.png";
 
-  if (variant === "wordmark") {
     return (
-      <span
-        className={`novae-brand-wordmark ${className}`}
+      <img
+        src={symbolSrc}
+        alt={alt}
+        width={height}
+        height={height}
+        className={`reservei-symbol-img ${className}`}
         style={{
-          fontSize: `${Math.round(height * 0.78)}px`,
-          fontWeight: 800,
-          color: "#ffffff",
-          letterSpacing: "-0.8px",
-          display: "inline-flex",
-          alignItems: "center",
-          fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+          height: `${height}px`,
+          width: `${height}px`,
+          objectFit: "contain",
+          display: "inline-block",
+          verticalAlign: "middle",
+          flexShrink: 0,
+          ...style,
         }}
-      >
-        Nova<span style={{ color: "#dcff4c" }}>(e)</span>
-      </span>
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+      />
     );
   }
 
-  // Full lockup
+  // Full Logo (or Wordmark) - uses official /logo.png (aspect ratio ~ 2.3686)
+  const logoSrc =
+    color === "white"
+      ? "/logo-white.png"
+      : color === "black"
+      ? "/logo-black.png"
+      : "/logo.png";
+
+  const width = Math.round(height * (1947 / 822));
+
   return (
-    <div
-      className={`novae-brand-lockup ${className}`}
+    <img
+      src={logoSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      className={`reservei-logo-img ${className}`}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "8px",
         height: `${height}px`,
+        width: "auto",
+        maxWidth: "100%",
+        objectFit: "contain",
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+        ...style,
       }}
-    >
-      <NovaeStarIcon size={height} fill="#dcff4c" />
-      <span
-        style={{
-          fontSize: `${Math.round(height * 0.78)}px`,
-          fontWeight: 800,
-          color: "#ffffff",
-          letterSpacing: "-0.8px",
-          fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-          lineHeight: 1,
-        }}
-      >
-        Nova<span style={{ color: "#dcff4c" }}>(e)</span>
-      </span>
-    </div>
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+    />
   );
 }
 
-export const ReserveiLogo = NovaeLogo;
-
+// Alias for backward compatibility
+export const NovaeLogo = ReserveiLogo;

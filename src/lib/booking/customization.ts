@@ -28,7 +28,7 @@ export const COPY_OVERRIDE_DEFAULTS: Record<CopyOverrideKey, string> = {
   trustLine: "Seus dados estão protegidos",
   ctaContinue: "Continuar",
   ctaConfirm: "Confirmar agendamento",
-  footerLine1: "Agendamento online seguro com Nova(e)",
+  footerLine1: "Agendamento online seguro com Reservei",
   footerLine2: "Seu tempo bem cuidado",
 };
 

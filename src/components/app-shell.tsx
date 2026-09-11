@@ -24,7 +24,7 @@ import { ClientPicker } from "@/components/operations/client-picker";
 import { localDate, localTime } from "@/lib/booking/time";
 import { BookingSettings } from "@/components/booking/booking-settings";
 import { ServiceEditor } from "@/components/booking/service-editor";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { ReportsView } from "@/components/reports/reports-view";
 import { SubscriptionView } from "@/components/subscriptions/subscription-view";
 import { SubscriptionPaywallModal } from "@/components/subscriptions/subscription-paywall-modal";
@@ -148,9 +148,9 @@ function Logo({ collapsed = false, onClick }: { collapsed?: boolean; onClick?: (
       title={collapsed ? "Expandir menu lateral" : undefined}
     >
       {collapsed ? (
-        <NovaeLogo variant="symbol" size={28} />
+        <ReserveiLogo variant="symbol" size={28} priority />
       ) : (
-        <NovaeLogo variant="full" size={28} />
+        <ReserveiLogo variant="full" size={28} priority />
       )}
     </div>
   );

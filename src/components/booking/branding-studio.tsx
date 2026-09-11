@@ -236,7 +236,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
 
   // Restore Defaults
   const handleRestoreDefaults = () => {
-    if (confirm("Deseja restaurar as cores e identidade visual padrão do Nova(e)?")) {
+    if (confirm("Deseja restaurar as cores e identidade visual padrão do Reservei?")) {
       setPrimaryColor(DEFAULT_BRAND_COLOR);
       setBookingThemeMode("auto");
       setCoverUrl(null);
@@ -773,7 +773,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                 <div className={styles.windowDot} />
               </div>
               <span className={styles.windowUrl}>
-                novae.app/agendar/{slug || "studio-prime"}
+                reservei.com.br/agendar/{slug || "studio-prime"}
               </span>
               <span style={{ fontSize: 10, color: "#8eb3a2" }}>
                 {previewTheme.toUpperCase()}

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useStore } from "@/store/store";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 
 type Mode = "login" | "register" | "forgot-password";
 type RecoveryStep = "request_email" | "email_sent";
@@ -146,7 +146,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        <NovaeLogo size={40} />
+        <ReserveiLogo size={40} priority />
       </div>
 
       <div className="auth-card">
@@ -437,7 +437,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
           </div>
         )}
       </div>
-      <p className="auth-footer">novae · gestão e agendamento comercial</p>
+      <p className="auth-footer">reservei · gestão e agendamento inteligente</p>
     </div>
   );
 }

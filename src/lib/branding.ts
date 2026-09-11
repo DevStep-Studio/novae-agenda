@@ -16,7 +16,7 @@ export type BrandPalette = {
 };
 
 export const BRAND_PRESETS = [
-  { name: "Lima Nova(e)", hex: "#dcff4c" },
+  { name: "Lima Reservei", hex: "#dcff4c" },
   { name: "Esmeralda", hex: "#10b981" },
   { name: "Azul Royal", hex: "#2563eb" },
   { name: "Roxo", hex: "#7c3aed" },

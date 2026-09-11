@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const metadata = {
-  title: "Política de Privacidade | Nova(e)",
-  description: "Conformidade com a LGPD e tratamento de dados pessoais na plataforma Nova(e).",
+  title: "Política de Privacidade | Reservei",
+  description: "Conformidade com a LGPD e tratamento de dados pessoais na plataforma Reservei.",
 };
 
 export default function PrivacidadePage() {
@@ -12,7 +12,7 @@ export default function PrivacidadePage() {
     <div style={{ minHeight: "100vh", background: "#080808", color: "#f5f5f5", padding: "40px 20px" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
-          <NovaeLogo size={32} />
+          <ReserveiLogo size={32} />
           <Link
             href="/"
             style={{
@@ -57,7 +57,7 @@ export default function PrivacidadePage() {
             1. Dados Coletados e Finalidade
           </h2>
           <p>
-            O Nova(e) coleta exclusivamente os dados indispensáveis para a prestação dos serviços de agendamento e gestão:
+            O Reservei coleta exclusivamente os dados indispensáveis para a prestação dos serviços de agendamento e gestão:
           </p>
           <ul style={{ paddingLeft: 20, margin: "12px 0" }}>
             <li><strong>Clientes Finais:</strong> Nome, telefone para contato via WhatsApp/SMS e e-mail para confirmações e lembretes de agendamentos.</li>
@@ -91,7 +91,7 @@ export default function PrivacidadePage() {
           </h2>
           <p>
             Para exercer seus direitos ou esclarecer dúvidas sobre o tratamento de dados pessoais, entre em contato pelo e-mail
-            <strong> privacidade@novae.app</strong>.
+            <strong> privacidade@reservei.com.br</strong>.
           </p>
         </article>
       </div>

@@ -69,7 +69,7 @@ export type FontPack = {
 export const FONT_PACKS: Record<FontPackId, FontPack> = {
   "modern-sans": {
     label: "Moderno",
-    description: "Padrão Nova(e) — geométrico e limpo.",
+    description: "Padrão Reservei — geométrico e limpo.",
     heading: plusJakartaSans.style.fontFamily,
     body: dmSans.style.fontFamily,
   },

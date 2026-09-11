@@ -25,7 +25,7 @@ import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api, ApiError } from "@/lib/api-client";
 import { MyBookings } from "@/components/booking/my-bookings";
 import type { BookingDetails } from "@/lib/booking/service";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { STATUS_LABELS } from "@/lib/client-utils";
 import styles from "./client-portal.module.css";
 import type { SessionInfo } from "@/shared/types";
@@ -189,7 +189,7 @@ export function ClientPortal({
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.brand}>
-            <NovaeLogo variant="full" size={24} />
+            <ReserveiLogo variant="full" size={24} />
             <span>Cliente</span>
           </div>
 

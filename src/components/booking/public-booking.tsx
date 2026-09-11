@@ -62,11 +62,11 @@ function downloadBookingIcs(booking: {
   const icsContent = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Novae Agenda//Agendamento Online//PT",
+    "PRODID:-//Reservei//Agendamento Online//PT",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${crypto.randomUUID()}@novae.app`,
+    `UID:${crypto.randomUUID()}@reservei.com.br`,
     `DTSTAMP:${nowIso}`,
     `DTSTART:${startIso}`,
     `DTEND:${endIso}`,

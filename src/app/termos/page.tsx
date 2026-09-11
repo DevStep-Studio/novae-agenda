@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Termos de Uso | Nova(e)",
-  description: "Termos e condições gerais de uso da plataforma SaaS Nova(e).",
+  title: "Termos de Uso | Reservei",
+  description: "Termos e condições gerais de uso da plataforma SaaS Reservei.",
 };
 
 export default function TermosPage() {
@@ -12,7 +12,7 @@ export default function TermosPage() {
     <div style={{ minHeight: "100vh", background: "#080808", color: "#f5f5f5", padding: "40px 20px" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
-          <NovaeLogo size={32} />
+          <ReserveiLogo size={32} />
           <Link
             href="/"
             style={{
@@ -40,7 +40,7 @@ export default function TermosPage() {
           }}
         >
           <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 8, color: "#ffffff" }}>
-            Termos de Uso do Nova(e)
+            Termos de Uso do Reservei
           </h1>
           <p style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: 13, marginBottom: 28 }}>
             Última atualização: Setembro de 2026
@@ -50,7 +50,7 @@ export default function TermosPage() {
             1. Objeto e Aceitação
           </h2>
           <p>
-            O Nova(e) é uma plataforma de software como serviço (SaaS) destinada ao agendamento de horários, gestão
+            O Reservei é uma plataforma de software como serviço (SaaS) destinada ao agendamento de horários, gestão
             operacional, controle de clientes, gestão de equipes e métricas financeiras para estabelecimentos comerciais. Ao
             criar uma conta ou agendar por meio da plataforma, você concorda plenamente com estes termos.
           </p>
@@ -60,7 +60,7 @@ export default function TermosPage() {
           </h2>
           <p>
             O usuário é responsável pela confidencialidade de suas credenciais e por todas as operações realizadas sob sua
-            conta. O Nova(e) utiliza criptografia padrão de mercado (Bcrypt, JWT com assinatura criptográfica e conexões
+            conta. O Reservei utiliza criptografia padrão de mercado (Bcrypt, JWT com assinatura criptográfica e conexões
             HTTPS seguras) para salvaguardar os dados dos usuários.
           </p>
 

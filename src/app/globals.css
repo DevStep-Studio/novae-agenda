@@ -128,8 +128,8 @@ a { color: inherit; text-decoration: none; }
 .sidebar-collapsed .sidebar-top { justify-content: center; padding: 0; }
 .brand-lockup { display: inline-flex; align-items: center; gap: 9px; min-width: 0; text-decoration: none; }
 .brand-lockup--collapsed { justify-content: center; width: 100%; }
-.novae-logo-img { display: block; height: 26px; width: auto; max-width: 160px; object-fit: contain; }
-.novae-brand-symbol { display: block; height: 26px; width: auto; object-fit: contain; }
+.novae-logo-img, .reservei-logo-img { display: block; height: 26px; width: auto; max-width: 160px; object-fit: contain; }
+.novae-brand-symbol, .reservei-symbol-img { display: block; height: 26px; width: auto; object-fit: contain; }
 .brand-mark { width: 29px; height: 29px; display: grid; place-items: center; flex: 0 0 auto; }
 .icon-button { width: 34px; height: 34px; border: 1px solid transparent; background: transparent; border-radius: 8px; color: var(--text-secondary); display: inline-grid; place-items: center; padding: 0; transition: background .15s, color .15s, border-color .15s; }
 .icon-button:hover { background: var(--surface-tertiary); color: var(--text-primary); border-color: var(--border); }

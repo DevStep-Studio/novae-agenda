@@ -6,6 +6,7 @@ import { UserRound } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import styles from "./booking.module.css";
 export { styles as b };
 
@@ -110,8 +111,8 @@ export function PublicFrame({
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerBrandGroup}>
-            <Link className={styles.brand} href="/" title="Novae Agenda">
-              Nova<span>(e)</span>
+            <Link className={styles.brand} href="/" title="Reservei">
+              <ReserveiLogo size={22} />
             </Link>
             {company && (
               <>

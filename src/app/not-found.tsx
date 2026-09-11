@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NovaeLogo } from "@/components/brand/novae-logo";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
@@ -22,7 +22,7 @@ export default function NotFound() {
         gap: 20,
       }}
     >
-      <NovaeLogo size={36} />
+      <ReserveiLogo size={36} />
       <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Página não encontrada.</h1>
       <p style={{ color: "#9db8ac", fontSize: 15, maxWidth: 420, margin: 0 }}>
         O endereço que você acessou não existe ou foi movido.

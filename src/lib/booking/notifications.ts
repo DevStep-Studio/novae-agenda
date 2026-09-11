@@ -28,7 +28,7 @@ export const emailChannel: BookingChannel = {
       };
     return sendMail({
       ...message,
-      html: `<div style="font-family:Arial;line-height:1.7;max-width:600px"><h2>Novae</h2><p>${escape(message.text).replace(/\n/g, "<br>")}</p></div>`,
+      html: `<div style="font-family:Arial;line-height:1.7;max-width:600px"><h2>Reservei</h2><p>${escape(message.text).replace(/\n/g, "<br>")}</p></div>`,
     });
   },
 };
