@@ -3495,29 +3495,59 @@ a[style*="--brand-lime"] svg,
   box-shadow: 0 0 0 3px rgba(31, 111, 102, 0.18) !important;
 }
 
-/* Custom Select Dropdown Chevron */
+/* Custom Select Dropdown Chevron (Global & Modals) */
+select,
 select.select-input,
+select.input,
+.select,
 .modal-input-wrap select,
-.input-with-icon select {
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a94a6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+.input-with-icon select,
+.field select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: right 14px center !important;
-  padding-right: 40px !important;
-  cursor: pointer;
+  background-size: 16px !important;
+  padding-right: 42px !important;
+  cursor: pointer !important;
 }
 
+select:focus,
 select.select-input:focus,
+select.input:focus,
+.select:focus,
 .modal-input-wrap select:focus,
-.input-with-icon select:focus {
+.input-with-icon select:focus,
+.field select:focus {
+  border-color: var(--primary, #dcff4c) !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23dcff4c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
 }
 
+:root:not([data-theme="dark"]) select:focus,
 :root:not([data-theme="dark"]) select.select-input:focus,
+:root:not([data-theme="dark"]) select.input:focus,
+:root:not([data-theme="dark"]) .select:focus,
 :root:not([data-theme="dark"]) .modal-input-wrap select:focus,
-:root:not([data-theme="dark"]) .input-with-icon select:focus {
+:root:not([data-theme="dark"]) .input-with-icon select:focus,
+:root:not([data-theme="dark"]) .field select:focus {
+  border-color: #1f6f66 !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231f6f66' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+/* Global Select Options */
+select option,
+.select option {
+  background: var(--surface-secondary, #181818) !important;
+  color: var(--text-primary, #ffffff) !important;
+  padding: 10px 14px !important;
+}
+
+:root:not([data-theme="dark"]) select option,
+:root:not([data-theme="dark"]) .select option {
+  background: #ffffff !important;
+  color: #122820 !important;
 }
 
 /* Native Date & Time picker indicator */
