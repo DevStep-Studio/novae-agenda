@@ -99,7 +99,18 @@ export function EmployeeDashboard() {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.logoArea}>
-          <ReserveiLogo size={32} />
+          {session?.company.logoUrl ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img
+                src={session.company.logoUrl}
+                alt={session.company.name}
+                style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover", border: "1px solid var(--border)" }}
+              />
+              <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{session.company.name}</span>
+            </div>
+          ) : (
+            <ReserveiLogo size={32} />
+          )}
         </div>
 
         <div className={styles.employeeBadge}>
@@ -190,6 +201,66 @@ export function EmployeeDashboard() {
         <div className={styles.contentBody}>
           {activeTab === "hoje" && (
             <>
+              {session?.company.bannerUrl && (
+                <div
+                  style={{
+                    position: "relative",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    marginBottom: "20px",
+                    border: "1px solid var(--border)",
+                    minHeight: "110px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundImage: `url('${session.company.bannerUrl}')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      filter: "brightness(0.4) saturate(1.1)",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "relative",
+                      zIndex: 1,
+                      padding: "20px 24px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%",
+                      background: "linear-gradient(90deg, rgba(14, 16, 20, 0.88) 0%, rgba(14, 16, 20, 0.5) 100%)",
+                      backdropFilter: "blur(4px)",
+                      gap: "16px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        {session?.company.name}
+                      </span>
+                      <h2 style={{ margin: "4px 0 0", fontSize: "19px", fontWeight: 700, color: "var(--text-primary)" }}>
+                        Bom trabalho, {session?.name?.split(" ")[0]}!
+                      </h2>
+                      <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--text-secondary)" }}>
+                        {todayApts.length === 0 ? "Você não tem atendimentos agendados para hoje." : `Você tem ${todayApts.length} atendimento(s) agendado(s) para hoje.`}
+                      </p>
+                    </div>
+                    {session?.company.logoUrl && (
+                      <img
+                        src={session.company.logoUrl}
+                        alt={session.company.name}
+                        style={{ width: "56px", height: "56px", borderRadius: "14px", objectFit: "cover", border: "2px solid rgba(255, 255, 255, 0.2)" }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Metric Cards */}
               <div className={styles.statsGrid}>
                 <div className={styles.statCard}>

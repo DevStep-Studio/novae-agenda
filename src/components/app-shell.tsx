@@ -34,7 +34,7 @@ import { prepareImageUpload } from "@/lib/image-upload-client";
 import { NotificationsView } from "@/components/notifications/notifications-view";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 
-type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes" | "notificacoes";
+type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes" | "notificacoes" | "perfil";
 type CalendarMode = "day" | "week" | "month";
 
 const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
@@ -46,6 +46,7 @@ const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
   { id: "financeiro", label: "Financeiro", icon: WalletCards },
   { id: "relatorios", label: "Relatórios", icon: BarChart3 },
   { id: "notificacoes", label: "Notificações", icon: Bell },
+  { id: "perfil", label: "Meu Perfil", icon: User },
   { id: "link-agendamento", label: "Link de agendamento", icon: Globe },
   { id: "assinatura", label: "Minha assinatura", icon: Sparkles },
   { id: "configuracoes", label: "Configurações", icon: Settings2 },
@@ -61,6 +62,7 @@ const pageTitles: Record<ViewKey, { title: string; eyebrow: string }> = {
   financeiro: { title: "Financeiro", eyebrow: "Acompanhe a saúde do seu negócio" },
   relatorios: { title: "Relatórios", eyebrow: "Desempenho e indicadores do estabelecimento" },
   notificacoes: { title: "Notificações", eyebrow: "Central de avisos e novidades" },
+  perfil: { title: "Meu Perfil & Personalização", eyebrow: "Identidade visual da empresa e dados da conta" },
   assinatura: { title: "Minha assinatura", eyebrow: "Planos e faturamento SaaS" },
   configuracoes: { title: "Configurações", eyebrow: "Deixe a Agenda com a sua cara" },
 };
@@ -4427,7 +4429,6 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   });
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const [collapsed, setCollapsed] = useState(false);
-  const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [calMode, setCalMode] = useState<CalendarMode>("day");
@@ -4511,7 +4512,17 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             onAppointment={setDetailAppointment}
             onGoToAgenda={() => navigate("agenda")}
             onNavigate={(tab) => navigate(tab as ViewKey)}
-            onOpenProfile={() => setProfileDrawerOpen(true)}
+            onOpenProfile={() => navigate("perfil")}
+          />
+        );
+      case "perfil":
+        return (
+          <ProfilePage
+            session={session}
+            onSettings={() => navigate("configuracoes")}
+            onSuperadmin={session?.isSuperadmin ? () => setSuperadminOpen(true) : undefined}
+            onLogout={logout}
+            onNavigate={(tab) => navigate(tab as ViewKey)}
           />
         );
       case "clientes":
@@ -4821,7 +4832,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
         </nav>
 
         <div className="sidebar-bottom">
-          <button className="profile-nav" onClick={() => setProfileDrawerOpen(true)}>
+          <button className={`profile-nav ${view === "perfil" ? "active" : ""}`} onClick={() => navigate("perfil")}>
             <span className="profile-avatar">{initials(session?.name ?? "U")}</span>
             {!collapsed && <span><strong>{session?.name}</strong><small>{roleLabel(session?.role)}</small></span>}
             <MoreHorizontal size={17} />
@@ -5027,7 +5038,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
               <span>Agendar</span>
             </button>
 
-            <button className="topbar-profile-button" onClick={() => setProfileDrawerOpen(true)} aria-label="Perfil">
+            <button className="topbar-profile-button" onClick={() => navigate("perfil")} aria-label="Perfil">
               <span className="topbar-avatar-wrap">
                 <span className="topbar-avatar">{initials(session?.name ?? "U")}</span>
                 <span className="topbar-online-dot" title="Online" />
@@ -5065,15 +5076,6 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       {superadminOpen && <SuperadminModal onClose={() => setSuperadminOpen(false)} />}
       {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} onClose={() => setDetailAppointment(null)} />}
       {clientDrawer && <ClientDrawer clientId={clientDrawer.id} onClose={() => setClientDrawer(null)} onNewAppointment={(client) => { setClientDrawer(null); setNewAppointmentPrefill({ clientId: client.id, date: todayKey() }); setNewAppointmentOpen(true); }} />}
-      {profileDrawerOpen && session && (
-        <ProfileDrawer
-          onClose={() => setProfileDrawerOpen(false)}
-          session={session}
-          onSettings={() => navigate("configuracoes")}
-          onSuperadmin={session.isSuperadmin ? () => setSuperadminOpen(true) : undefined}
-          onLogout={logout}
-        />
-      )}
 
       {paywallOpen && (subStatus === "expired" || subStatus === "cancelled") && (
         <SubscriptionPaywallModal
@@ -5089,20 +5091,52 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   );
 }
 
-function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }: { onClose: () => void; session: import("@/shared/types").SessionInfo; onSettings: () => void; onSuperadmin?: () => void; onLogout: () => void }) {
+function ProfilePage({
+  session,
+  onSettings,
+  onSuperadmin,
+  onLogout,
+  onNavigate,
+}: {
+  session: import("@/shared/types").SessionInfo | null;
+  onSettings: () => void;
+  onSuperadmin?: () => void;
+  onLogout: () => void;
+  onNavigate: (tab: ViewKey) => void;
+}) {
   const { updateProfile, notify } = useStore();
-  const [activeTab, setActiveTab] = useState<"visual" | "dados" | "atalhos">("visual");
+  const [activeTab, setActiveTab] = useState<"visual" | "dados" | "widgets" | "atalhos">("visual");
 
   const [name, setName] = useState(session?.name ?? "");
   const [phone, setPhone] = useState(session?.phone ?? "");
   const [avatarUrl, setAvatarUrl] = useState(session?.company.logoUrl ?? "");
   const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
   const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#dcff4c");
+  const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
+    showBanner: session?.company.dashboardPreferences?.showBanner ?? true,
+    showChecklist: session?.company.dashboardPreferences?.showChecklist ?? true,
+    showKpis: session?.company.dashboardPreferences?.showKpis ?? true,
+    showSubmetrics: session?.company.dashboardPreferences?.showSubmetrics ?? true,
+    showNextAppointment: session?.company.dashboardPreferences?.showNextAppointment ?? true,
+    showDaySummary: session?.company.dashboardPreferences?.showDaySummary ?? true,
+    showQuickSlots: session?.company.dashboardPreferences?.showQuickSlots ?? true,
+    showTodayAppointments: session?.company.dashboardPreferences?.showTodayAppointments ?? true,
+  }));
   const [saving, setSaving] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (session) {
+      setName(session.name);
+      setPhone(session.phone ?? "");
+      if (session.company.logoUrl) setAvatarUrl(session.company.logoUrl);
+      if (session.company.bannerUrl) setBannerUrl(session.company.bannerUrl);
+      if (session.company.primaryColor) setPrimaryColor(session.company.primaryColor);
+    }
+  }, [session]);
 
   const handleBannerUpload = async (file?: File) => {
     if (!file) return;
@@ -5110,7 +5144,7 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
     try {
       const dataUrl = await prepareImageUpload(file, { maxDimension: 1600, square: false });
       setBannerUrl(dataUrl);
-      notify("Banner carregado! Clique em 'Salvar alterações' para aplicar.");
+      notify("Banner carregado! Clique em 'Salvar alterações' para aplicar a todos os usuários.");
     } catch (err) {
       notify(err instanceof Error ? err.message : "Erro ao carregar banner.", "error");
     } finally {
@@ -5125,7 +5159,7 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
     try {
       const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
       setAvatarUrl(dataUrl);
-      notify("Logo / foto carregada! Clique em 'Salvar alterações' para aplicar.");
+      notify("Logo / foto carregada! Clique em 'Salvar alterações' para aplicar a todos os usuários.");
     } catch (err) {
       notify(err instanceof Error ? err.message : "Erro ao carregar foto/logo.", "error");
     } finally {
@@ -5148,174 +5182,220 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
         avatarUrl: avatarUrl.trim() || null,
         bannerUrl: bannerUrl.trim() || null,
         primaryColor: primaryColor.trim() || undefined,
+        dashboardPreferences: dashboardPrefs,
       });
-      notify("Perfil e preferências atualizados com sucesso!");
+      notify("Identidade visual e preferências da empresa salvas com sucesso!");
     } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Erro ao salvar perfil.", "error");
+      notify(e instanceof ApiError ? e.message : "Erro ao salvar perfil e identidade.", "error");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="drawer-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <aside className="profile-drawer">
-        <div className="drawer-header">
-          <span className="profile-drawer-eyebrow">Perfil & Customização</span>
-          <button type="button" className="drawer-close-btn" onClick={onClose} aria-label="Fechar perfil">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Banner Cover and Profile Avatar Header */}
-        <div className="profile-drawer-cover">
-          {bannerUrl ? (
-            <>
-              <img src={bannerUrl} alt="Capa" />
-              <div className="profile-drawer-cover-overlay" />
-            </>
-          ) : (
-            <div style={{ width: "100%", height: "100%", background: "var(--surface-secondary)" }} />
-          )}
-        </div>
-
-        <div className="profile-drawer-head-content">
-          <div className="profile-drawer-avatar-wrap">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={name} />
-            ) : (
-              <span>{initials(name || "U")}</span>
-            )}
+    <div className="page-container">
+      <div className="profile-page">
+        {/* Notice for Owner & Shared Identity */}
+        <div className="profile-identity-notice-banner">
+          <div className="notice-icon">
+            <ShieldCheck size={20} />
           </div>
-          <div className="profile-drawer-meta">
-            <h2>{name || session?.name}</h2>
-            <p>{roleLabel(session?.role)} · {session?.company.name}</p>
+          <div className="notice-content">
+            <strong>Identidade Visual Compartilhada para Toda a Equipe</strong>
+            <p>
+              Você está editando as preferências visuais de <strong>{session?.company.name}</strong>. Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
+            </p>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="profile-drawer-tabs">
+        {/* Live Preview Hero Card */}
+        <div className="profile-hero-card">
+          <div
+            className="profile-hero-cover"
+            style={{
+              backgroundImage: bannerUrl ? `url('${bannerUrl}')` : undefined,
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+              backgroundColor: "var(--surface-secondary)",
+            }}
+          >
+            <div className="profile-hero-cover-overlay" />
+          </div>
+
+          <div className="profile-hero-content">
+            <div className="profile-hero-left">
+              <div className="profile-hero-avatar-wrap">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={session?.company.name} />
+                ) : (
+                  <span className="profile-hero-avatar-fallback">{initials(name || session?.company.name || "U")}</span>
+                )}
+              </div>
+              <div className="profile-hero-details">
+                <h2>{name || session?.name}</h2>
+                <p>{session?.company.name} · {roleLabel(session?.role)}</p>
+                <div className="profile-hero-badge">
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: primaryColor }} />
+                  <span>Cor ativa: {primaryColor}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <Button variant="secondary" onClick={() => onNavigate("link-agendamento")}>
+                <Globe size={15} />
+                <span>Página de Agendamento</span>
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? (
+                  "Salvando..."
+                ) : (
+                  <>
+                    <Check size={16} />
+                    <span>Salvar alterações</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="profile-page-nav-tabs">
           <button
             type="button"
-            className={`profile-drawer-tab ${activeTab === "visual" ? "active" : ""}`}
+            className={`profile-page-tab-btn ${activeTab === "visual" ? "active" : ""}`}
             onClick={() => setActiveTab("visual")}
           >
-            <Palette size={15} />
-            <span>Cores & Capa</span>
+            <Palette size={16} />
+            <span>Identidade Visual & Cores</span>
           </button>
           <button
             type="button"
-            className={`profile-drawer-tab ${activeTab === "dados" ? "active" : ""}`}
+            className={`profile-page-tab-btn ${activeTab === "dados" ? "active" : ""}`}
             onClick={() => setActiveTab("dados")}
           >
-            <User size={15} />
-            <span>Dados da Conta</span>
+            <User size={16} />
+            <span>Dados da Conta & Empresa</span>
           </button>
           <button
             type="button"
-            className={`profile-drawer-tab ${activeTab === "atalhos" ? "active" : ""}`}
+            className={`profile-page-tab-btn ${activeTab === "widgets" ? "active" : ""}`}
+            onClick={() => setActiveTab("widgets")}
+          >
+            <SlidersHorizontal size={16} />
+            <span>Widgets do Início</span>
+          </button>
+          <button
+            type="button"
+            className={`profile-page-tab-btn ${activeTab === "atalhos" ? "active" : ""}`}
             onClick={() => setActiveTab("atalhos")}
           >
-            <Settings2 size={15} />
+            <Sparkles size={16} />
             <span>Ações & Links</span>
           </button>
         </div>
 
-        {/* Drawer Body Content */}
-        <div className="profile-drawer-body">
-          {activeTab === "visual" && (
-            <>
-              {/* Primary Color Customizer */}
-              <div className="profile-section-card">
-                <h3><Palette size={16} /> Cor Primária do Sistema</h3>
-                <p className="section-sub">
-                  Substitua a cor verde por qualquer tom de destaque. Afeta todos os botões, badges, status e links do Reservei.
-                </p>
-                <div className="color-palette-grid">
-                  {PRIMARY_COLOR_PRESETS.map((preset) => {
-                    const isActive = primaryColor.toLowerCase() === preset.hex.toLowerCase();
-                    return (
-                      <button
-                        type="button"
-                        key={preset.id}
-                        className={`color-palette-btn ${isActive ? "active" : ""}`}
-                        onClick={() => handleColorChange(preset.hex)}
-                      >
-                        <span className="color-swatch-circle" style={{ background: preset.hex }} />
-                        <span>{preset.name}</span>
-                        {isActive && <Check size={13} style={{ marginLeft: "auto", color: "var(--primary)" }} />}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="custom-color-row">
-                  <input
-                    type="color"
-                    value={primaryColor.startsWith("#") ? primaryColor : "#dcff4c"}
-                    onChange={(e) => handleColorChange(e.target.value)}
-                    className="custom-color-picker-input"
-                    title="Escolher cor personalizada"
-                  />
-                  <input
-                    className="input"
-                    style={{ maxWidth: "140px" }}
-                    value={primaryColor}
-                    onChange={(e) => handleColorChange(e.target.value)}
-                    placeholder="#dcff4c"
-                  />
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleColorChange("#dcff4c")}
-                  >
-                    Restaurar verde
-                  </Button>
-                </div>
+        {/* Tab 1: Visual Identity */}
+        {activeTab === "visual" && (
+          <div className="profile-page-grid">
+            {/* Primary Color Card */}
+            <div className="profile-card-large">
+              <h3><Palette size={18} /> Cor Primária do Sistema</h3>
+              <p className="section-sub">
+                Substitua a cor de destaque do Reservei. Afeta botões, badges, status e links para você e todos os profissionais da sua empresa.
+              </p>
+
+              <div className="color-palette-grid">
+                {PRIMARY_COLOR_PRESETS.map((preset) => {
+                  const isSelected = primaryColor.toLowerCase() === preset.hex.toLowerCase();
+                  return (
+                    <button
+                      type="button"
+                      key={preset.hex}
+                      className={`color-palette-btn ${isSelected ? "active" : ""}`}
+                      onClick={() => handleColorChange(preset.hex)}
+                    >
+                      <span className="color-swatch-circle" style={{ background: preset.hex }} />
+                      <span>{preset.name}</span>
+                      {isSelected && <Check size={13} style={{ marginLeft: "auto", color: "var(--primary)" }} />}
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Banner Cover Customizer */}
-              <div className="profile-section-card">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-                  <h3 style={{ margin: 0 }}><ImageIcon size={16} /> Banner de Capa</h3>
-                  <input
-                    ref={bannerFileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/avif"
-                    style={{ display: "none" }}
-                    onChange={(e) => handleBannerUpload(e.target.files?.[0])}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => bannerFileInputRef.current?.click()}
-                    disabled={uploadingBanner}
-                    style={{ padding: "4px 10px", fontSize: "12px", height: "30px" }}
-                  >
-                    <Upload size={13} />
-                    <span>{uploadingBanner ? "Processando..." : "Upload do Computador"}</span>
+              <div className="custom-color-row">
+                <input
+                  type="color"
+                  className="custom-color-picker-input"
+                  value={primaryColor.startsWith("#") && primaryColor.length === 7 ? primaryColor : "#dcff4c"}
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  title="Escolher cor personalizada"
+                />
+                <input
+                  className="input"
+                  style={{ maxWidth: "140px" }}
+                  value={primaryColor}
+                  onChange={(e) => handleColorChange(e.target.value)}
+                  placeholder="#dcff4c"
+                  maxLength={9}
+                />
+                <Button variant="secondary" onClick={() => handleColorChange("#dcff4c")}>
+                  Restaurar verde
+                </Button>
+              </div>
+            </div>
+
+            {/* Banner Cover Card */}
+            <div className="profile-card-large">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                <h3 style={{ margin: 0 }}><ImagePlus size={18} /> Banner de Capa</h3>
+                <input
+                  ref={bannerFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleBannerUpload(e.target.files?.[0])}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => bannerFileInputRef.current?.click()}
+                  disabled={uploadingBanner}
+                >
+                  <Upload size={14} />
+                  <span>{uploadingBanner ? "Processando..." : "Upload do Computador"}</span>
+                </Button>
+              </div>
+
+              <p className="section-sub">
+                Imagem decorativa de destaque exibida no topo do painel inicial para você e toda a equipe.
+              </p>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  className="input"
+                  value={bannerUrl}
+                  onChange={(e) => setBannerUrl(e.target.value)}
+                  placeholder="https://exemplo.com/banner.jpg ou faça upload acima"
+                />
+                {bannerUrl && (
+                  <Button variant="secondary" onClick={() => setBannerUrl("")}>
+                    Limpar
                   </Button>
-                </div>
-                <p className="section-sub">
-                  Imagem decorativa aplicada no topo da Home (card de boas-vindas) e na capa do seu perfil.
-                </p>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <input
-                    className="input"
-                    value={bannerUrl}
-                    onChange={(e) => setBannerUrl(e.target.value)}
-                    placeholder="https://exemplo.com/banner.jpg ou faça upload acima"
-                  />
-                  {bannerUrl && (
-                    <Button variant="secondary" onClick={() => setBannerUrl("")}>
-                      Limpar
-                    </Button>
-                  )}
-                </div>
+                )}
+              </div>
+
+              <div>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 8 }}>
+                  Sugestões de Capas Profissionais:
+                </span>
                 <div className="banner-presets-row">
                   {BANNER_PRESETS.map((preset) => (
                     <div
                       key={preset.id}
                       className={`banner-preset-card ${bannerUrl === preset.url ? "active" : ""}`}
-                      style={{ backgroundImage: `url(${preset.url})` }}
+                      style={{ backgroundImage: `url('${preset.url}')` }}
                       onClick={() => setBannerUrl(preset.url)}
                     >
                       <span>{preset.name}</span>
@@ -5323,45 +5403,52 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
                   ))}
                 </div>
               </div>
+            </div>
 
-              {/* Avatar / Photo / Logo Customizer */}
-              <div className="profile-section-card">
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-                  <h3 style={{ margin: 0 }}><UserRound size={16} /> Foto / Logo do Estabelecimento</h3>
-                  <input
-                    ref={avatarFileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/avif,image/svg+xml"
-                    style={{ display: "none" }}
-                    onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => avatarFileInputRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    style={{ padding: "4px 10px", fontSize: "12px", height: "30px" }}
-                  >
-                    <Upload size={13} />
-                    <span>{uploadingAvatar ? "Processando..." : "Upload da Logo / Foto"}</span>
+            {/* Establishment Logo / Avatar Card */}
+            <div className="profile-card-large" style={{ gridColumn: "1 / -1" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                <h3 style={{ margin: 0 }}><ImageIcon size={18} /> Logomarca da Empresa / Foto</h3>
+                <input
+                  ref={avatarFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => avatarFileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                >
+                  <Upload size={14} />
+                  <span>{uploadingAvatar ? "Processando..." : "Upload da Logo / Foto"}</span>
+                </Button>
+              </div>
+
+              <p className="section-sub">
+                Logotipo ou foto principal exibida no topo do menu lateral, banner de boas-vindas e página de agendamento online.
+              </p>
+
+              <div style={{ display: "flex", gap: "8px", maxWidth: "600px" }}>
+                <input
+                  className="input"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://exemplo.com/foto.jpg ou faça upload acima"
+                />
+                {avatarUrl && (
+                  <Button variant="secondary" onClick={() => setAvatarUrl("")}>
+                    Limpar
                   </Button>
-                </div>
-                <p className="section-sub">
-                  Logo ou foto exibida no card do banner inicial, topo e perfil da empresa.
-                </p>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <input
-                    className="input"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://exemplo.com/foto.jpg ou faça upload acima"
-                  />
-                  {avatarUrl && (
-                    <Button variant="secondary" onClick={() => setAvatarUrl("")}>
-                      Limpar
-                    </Button>
-                  )}
-                </div>
+                )}
+              </div>
+
+              <div>
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 8 }}>
+                  Avatares e Ícones Sugeridos:
+                </span>
                 <div className="avatar-presets-row">
                   {AVATAR_PRESETS.map((preset) => (
                     <button
@@ -5376,69 +5463,206 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
                   ))}
                 </div>
               </div>
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-          {activeTab === "dados" && (
-            <div className="profile-section-card">
-              <h3><User size={16} /> Dados Pessoais</h3>
+        {/* Tab 2: Personal & Company Info */}
+        {activeTab === "dados" && (
+          <div className="profile-page-grid">
+            <div className="profile-card-large">
+              <h3><User size={18} /> Dados Pessoais do Administrador</h3>
+              <p className="section-sub">Informações de contato e identificação do proprietário da conta.</p>
+
               <Field label="Nome completo">
-                <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
+                <input
+                  className="input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome completo"
+                />
               </Field>
+
               <Field label="Telefone / WhatsApp">
-                <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+                <input
+                  className="input"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(11) 99999-9999"
+                />
               </Field>
-              <Field label="E-mail (acesso principal)">
-                <input className="input" value={session?.email ?? ""} disabled style={{ opacity: 0.7 }} />
-              </Field>
-              <Field label="Estabelecimento vinculado">
-                <input className="input" value={session?.company.name ?? ""} disabled style={{ opacity: 0.7 }} />
+
+              <Field label="E-mail de acesso (login)">
+                <input
+                  className="input"
+                  value={session?.email ?? ""}
+                  disabled
+                  style={{ opacity: 0.7, cursor: "not-allowed" }}
+                />
               </Field>
             </div>
-          )}
 
-          {activeTab === "atalhos" && (
-            <div className="profile-section-card" style={{ gap: "10px" }}>
-              <h3><Sparkles size={16} /> Navegação e Acesso</h3>
+            <div className="profile-card-large">
+              <h3><Building2 size={18} /> Dados do Estabelecimento</h3>
+              <p className="section-sub">Informações da empresa registrada no sistema Reservei.</p>
+
+              <Field label="Nome da empresa">
+                <input
+                  className="input"
+                  value={session?.company.name ?? ""}
+                  disabled
+                  style={{ opacity: 0.7, cursor: "not-allowed" }}
+                />
+              </Field>
+
+              <Field label="Segmento de atuação">
+                <input
+                  className="input"
+                  value={session?.company.businessType ?? "Serviços & Atendimento"}
+                  disabled
+                  style={{ opacity: 0.7, cursor: "not-allowed" }}
+                />
+              </Field>
+
+              <Field label="Nível de permissão">
+                <input
+                  className="input"
+                  value={`${roleLabel(session?.role)} · Acesso Total e Gerenciamento`}
+                  disabled
+                  style={{ opacity: 0.7, cursor: "not-allowed" }}
+                />
+              </Field>
+
+              <div style={{ marginTop: 8 }}>
+                <Button variant="secondary" onClick={onSettings}>
+                  <Settings2 size={16} />
+                  <span>Configurações completas da empresa</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Dashboard Widgets */}
+        {activeTab === "widgets" && (
+          <div className="profile-card-large">
+            <h3><SlidersHorizontal size={18} /> Visibilidade de Módulos no Painel Inicial</h3>
+            <p className="section-sub">
+              Escolha quais seções e blocos devem ser visíveis no Dashboard geral da empresa.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+              {[
+                { key: "showBanner", label: "Banner e Saudação no Topo", desc: "Exibe a imagem de capa e cumprimento diário" },
+                { key: "showChecklist", label: "Checklist de Primeiros Passos", desc: "Guia interativo para configurar a agenda" },
+                { key: "showKpis", label: "Cards de Indicadores (KPIs)", desc: "Métricas de faturamento, reservas e taxa de ocupação" },
+                { key: "showSubmetrics", label: "Submétricas Financeiras", desc: "Detalhamento de recebidos e pendentes" },
+                { key: "showNextAppointment", label: "Próximo Atendimento em Destaque", desc: "Card rápido do cliente que está chegando" },
+                { key: "showDaySummary", label: "Resumo do Dia por Status", desc: "Gráfico e contadores de agendamentos de hoje" },
+                { key: "showQuickSlots", label: "Horários Livres para Encaixe", desc: "Acesso direto a slots vagos da agenda" },
+                { key: "showTodayAppointments", label: "Tabela de Atendimentos de Hoje", desc: "Lista completa de clientes agendados" },
+              ].map(({ key, label, desc }) => {
+                const isChecked = Boolean((dashboardPrefs as any)[key]);
+                return (
+                  <label
+                    key={key}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "12px",
+                      padding: "14px 16px",
+                      borderRadius: "10px",
+                      border: "1px solid var(--border)",
+                      background: isChecked ? "var(--surface-secondary)" : "var(--surface)",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(e) =>
+                        setDashboardPrefs((prev) => ({
+                          ...prev,
+                          [key]: e.target.checked,
+                        }))
+                      }
+                      style={{ marginTop: "3px", width: 16, height: 16, accentColor: "var(--primary)" }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "14px", color: "var(--text-primary)" }}>{label}</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "2px" }}>{desc}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 4: Quick Actions & Links */}
+        {activeTab === "atalhos" && (
+          <div className="profile-card-large" style={{ maxWidth: "650px" }}>
+            <h3><Sparkles size={18} /> Ações Rápidas e Acesso</h3>
+            <p className="section-sub">Atalhos para navegação externa e ferramentas administrativas.</p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <a
                 href="/cliente"
+                target="_blank"
+                rel="noreferrer"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  padding: "10px 16px",
+                  justifyContent: "space-between",
+                  padding: "14px 18px",
                   background: "var(--primary-soft)",
                   color: "var(--primary)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
+                  border: "1px solid rgba(220, 255, 76, 0.25)",
+                  borderRadius: "10px",
                   fontWeight: 600,
                   fontSize: "14px",
                   textDecoration: "none",
                 }}
               >
-                <UserRound size={16} /> Alternar para Área do Cliente
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <UserRound size={18} />
+                  <span>Abrir Portal do Cliente (Agendamento Online)</span>
+                </div>
+                <ArrowRight size={16} />
               </a>
+
               {onSuperadmin && (
-                <Button onClick={() => { onSuperadmin(); onClose(); }} className="full-width" variant="secondary">
-                  <Sparkles size={16} /> Painel Superadmin Reservei
+                <Button onClick={onSuperadmin} className="full-width" variant="secondary" style={{ justifyContent: "flex-start", padding: "14px 18px" }}>
+                  <Sparkles size={18} />
+                  <span>Painel Superadmin Reservei</span>
                 </Button>
               )}
-              <Button onClick={() => { onSettings(); onClose(); }} className="full-width" variant="secondary">
-                <Settings2 size={16} /> Configurações Gerais da Conta
+
+              <Button onClick={onSettings} className="full-width" variant="secondary" style={{ justifyContent: "flex-start", padding: "14px 18px" }}>
+                <Settings2 size={18} />
+                <span>Configurações Gerais da Conta</span>
               </Button>
-              <Button variant="secondary" onClick={() => { onLogout(); onClose(); }} className="full-width" style={{ color: "#ef4444" }}>
-                <LogOut size={16} /> Sair da conta
+
+              <Button
+                variant="secondary"
+                onClick={onLogout}
+                className="full-width"
+                style={{ color: "#ef4444", justifyContent: "flex-start", padding: "14px 18px" }}
+              >
+                <LogOut size={18} />
+                <span>Sair da conta</span>
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Sticky Footer with Save Action */}
-        <div className="profile-drawer-footer">
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Fechar
-          </Button>
+        {/* Sticky Save Bar */}
+        <div className="profile-save-bar">
+          <div className="profile-save-bar-info">
+            <ShieldCheck size={18} style={{ color: "var(--primary)" }} />
+            <span>As personalizações aplicadas aqui valem para você e todos os profissionais desta empresa.</span>
+          </div>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
               "Salvando..."
@@ -5450,7 +5674,7 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
             )}
           </Button>
         </div>
-      </aside>
+      </div>
     </div>
   );
 }
