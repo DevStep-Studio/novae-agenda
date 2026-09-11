@@ -347,7 +347,7 @@ export function BookingSettings() {
           <div className={styles.heroCard}>
         <div className={styles.heroCardHeader}>
           <div className={styles.heroCardTitle}>
-            <Globe size={18} style={{ color: "#dcff4c" }} />
+            <Globe size={18} style={{ color: "var(--primary)" }} />
             <span>Seu link público</span>
           </div>
           {publicEnabled ? (
@@ -391,7 +391,7 @@ export function BookingSettings() {
               type="button"
               className={styles.btnSecondary}
               onClick={() => setShowQr(!showQr)}
-              style={showQr ? { background: "rgba(220, 255, 76, 0.15)", color: "#dcff4c" } : {}}
+              style={showQr ? { background: "var(--primary-soft)", color: "var(--primary)" } : {}}
             >
               <QrCode size={14} />
               QR Code
@@ -468,12 +468,12 @@ export function BookingSettings() {
           </div>
           <div style={{ padding: "12px", background: "var(--surface-secondary)", borderRadius: "8px", border: "1px solid var(--border)" }}>
             <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block" }}>Agendamentos</span>
-            <strong style={{ fontSize: "18px", color: "#dcff4c" }}>{data.funnel.find((f) => f.event === "booking_completed" || f.event === "booking_created")?.count ?? 0}</strong>
+            <strong style={{ fontSize: "18px", color: "var(--primary)" }}>{data.funnel.find((f) => f.event === "booking_completed" || f.event === "booking_created")?.count ?? 0}</strong>
             <small style={{ display: "block", fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>reservas confirmadas</small>
           </div>
-          <div style={{ padding: "12px", background: "rgba(220, 255, 76, 0.08)", borderRadius: "8px", border: "1px solid rgba(220, 255, 76, 0.2)" }}>
+          <div style={{ padding: "12px", background: "var(--primary-soft)", borderRadius: "8px", border: "1px solid var(--border)" }}>
             <span style={{ fontSize: "11px", color: "var(--text-secondary)", display: "block" }}>Conversão estimada</span>
-            <strong style={{ fontSize: "18px", color: "#dcff4c" }}>
+            <strong style={{ fontSize: "18px", color: "var(--primary)" }}>
               {(() => {
                 const v = data.funnel.find((f) => f.event === "view" || f.event === "page_view")?.count ?? 0;
                 const b = data.funnel.find((f) => f.event === "booking_completed" || f.event === "booking_created")?.count ?? 0;
@@ -492,7 +492,7 @@ export function BookingSettings() {
           <div className={styles.cardHeader}>
             <div>
               <h2 className={styles.cardTitle}>
-                <Building2 size={18} style={{ color: "#dcff4c" }} />
+                <Building2 size={18} style={{ color: "var(--primary)" }} />
                 Identificação do Estabelecimento
               </h2>
               <p className={styles.cardSubtitle}>
@@ -586,7 +586,7 @@ export function BookingSettings() {
           <div className={styles.cardHeader}>
             <div>
               <h2 className={styles.cardTitle}>
-                <Phone size={18} style={{ color: "#dcff4c" }} />
+                <Phone size={18} style={{ color: "var(--primary)" }} />
                 Contato e Redes Sociais
               </h2>
               <p className={styles.cardSubtitle}>
@@ -661,7 +661,7 @@ export function BookingSettings() {
           <div className={styles.cardHeader}>
             <div>
               <h2 className={styles.cardTitle}>
-                <Palette size={18} style={{ color: "#dcff4c" }} />
+                <Palette size={18} style={{ color: "var(--primary)" }} />
                 Identidade Visual e Políticas
               </h2>
               <p className={styles.cardSubtitle}>
@@ -808,7 +808,7 @@ export function BookingSettings() {
           <div className={styles.cardHeader}>
             <div>
               <h2 className={styles.cardTitle}>
-                <Clock size={18} style={{ color: "#dcff4c" }} />
+                <Clock size={18} style={{ color: "var(--primary)" }} />
                 Jornada e Horários da Equipe
               </h2>
               <p className={styles.cardSubtitle}>
@@ -1023,7 +1023,7 @@ export function BookingSettings() {
             <div className={styles.cardHeader}>
               <div>
                 <h2 className={styles.cardTitle}>
-                  <ShoppingBag size={18} style={{ color: "#dcff4c" }} />
+                  <ShoppingBag size={18} style={{ color: "var(--primary)" }} />
                   Produtos Complementares
                 </h2>
                 <p className={styles.cardSubtitle}>
@@ -1049,7 +1049,7 @@ export function BookingSettings() {
               >
                 <div>
                   <strong style={{ fontSize: 14, color: "var(--text-primary)" }}>{p.name}</strong>
-                  <span style={{ marginLeft: 12, color: "#dcff4c", fontWeight: 600 }}>{money(p.price)}</span>
+                  <span style={{ marginLeft: 12, color: "var(--primary)", fontWeight: 600 }}>{money(p.price)}</span>
                 </div>
                 <button
                   type="button"
@@ -1100,7 +1100,7 @@ export function BookingSettings() {
         <div className={styles.cardHeader}>
           <div>
             <h2 className={styles.cardTitle}>
-              <Tag size={18} style={{ color: "#dcff4c" }} />
+              <Tag size={18} style={{ color: "var(--primary)" }} />
               Cupons de Desconto
             </h2>
             <p className={styles.cardSubtitle}>
@@ -1125,7 +1125,7 @@ export function BookingSettings() {
                 }}
               >
                 <div>
-                  <code style={{ fontSize: 13, background: "rgba(220, 255, 76, 0.1)", color: "#dcff4c", padding: "3px 8px", borderRadius: 4 }}>
+                  <code style={{ fontSize: 13, background: "var(--primary-soft)", color: "var(--primary)", padding: "3px 8px", borderRadius: 4 }}>
                     {coupon.code}
                   </code>
                   <span style={{ marginLeft: 12, color: "var(--text-secondary)", fontSize: 13 }}>

@@ -166,7 +166,7 @@ export function AdminDashboard() {
             <div className={styles.statCard}>
               <div className={styles.statHeader}>
                 <span>Assinaturas Ativas / Trials</span>
-                <Sparkles size={16} color="#dcff4c" />
+                <Sparkles size={16} color="var(--primary)" />
               </div>
               <div className={styles.statValue}>
                 {stats?.activeSubscriptions ?? 0} <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>ativas</span> · {stats?.trialSubscriptions ?? 0} <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>trials</span>
@@ -218,7 +218,7 @@ export function AdminDashboard() {
                 <tbody>
                   {filteredCompanies.map((c) => (
                     <tr key={c.id}>
-                      <td style={{ fontWeight: 600, color: "#ffffff" }}>{c.name}</td>
+                      <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.name}</td>
                       <td>{c.email || "—"}</td>
                       <td>{c.employeesCount}</td>
                       <td>{c.appointmentsCount}</td>
@@ -226,8 +226,8 @@ export function AdminDashboard() {
                         <span
                           className={styles.statusPill}
                           style={{
-                            borderColor: c.subscriptionStatus === "active" ? "#4ade80" : "#dcff4c",
-                            color: c.subscriptionStatus === "active" ? "#4ade80" : "#dcff4c",
+                            borderColor: c.subscriptionStatus === "active" ? "#4ade80" : "var(--primary)",
+                            color: c.subscriptionStatus === "active" ? "#4ade80" : "var(--primary)",
                           }}
                         >
                           <CheckCircle2 size={11} /> {c.subscriptionStatus?.toUpperCase() ?? "TRIAL"}

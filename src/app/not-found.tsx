@@ -34,7 +34,7 @@ export default function NotFound() {
           alignItems: "center",
           gap: 8,
           fontSize: 14,
-          color: "#dcff4c",
+          color: "var(--primary)",
           textDecoration: "none",
           fontWeight: 600,
           marginTop: 8,

@@ -75,18 +75,27 @@ export function applyPrimaryColor(hex: string) {
   const soft = `rgba(${r}, ${g}, ${b}, 0.15)`;
   const softHover = `rgba(${r}, ${g}, ${b}, 0.25)`;
   const borderSubtle = `rgba(${r}, ${g}, ${b}, 0.3)`;
+  const borderFocus = `rgba(${r}, ${g}, ${b}, 0.5)`;
+
+  // Generate slightly darker/lighter hover tone
+  const hoverR = Math.max(0, Math.min(255, isLight ? Math.round(r * 0.88) : Math.round(r * 1.15)));
+  const hoverG = Math.max(0, Math.min(255, isLight ? Math.round(g * 0.88) : Math.round(g * 1.15)));
+  const hoverB = Math.max(0, Math.min(255, isLight ? Math.round(b * 0.88) : Math.round(b * 1.15)));
+  const hoverHex = `#${((1 << 24) + (hoverR << 16) + (hoverG << 8) + hoverB).toString(16).slice(1)}`;
 
   const root = document.documentElement;
   root.style.setProperty("--primary", hex);
-  root.style.setProperty("--primary-hover", hex);
+  root.style.setProperty("--primary-hover", hoverHex);
   root.style.setProperty("--primary-soft", soft);
   root.style.setProperty("--primary-soft-hover", softHover);
   root.style.setProperty("--primary-foreground", foreground);
+  root.style.setProperty("--primary-rgb", `${r}, ${g}, ${b}`);
   root.style.setProperty("--brand-lime", hex);
-  root.style.setProperty("--brand-lime-hover", hex);
+  root.style.setProperty("--brand-lime-hover", hoverHex);
   root.style.setProperty("--brand-accent", hex);
   root.style.setProperty("--brand-accent-text", hex);
   root.style.setProperty("--brand-border-subtle", borderSubtle);
+  root.style.setProperty("--brand-border-focus", borderFocus);
 
   // Save to localStorage for instant non-flicker restoration on page load
   try {

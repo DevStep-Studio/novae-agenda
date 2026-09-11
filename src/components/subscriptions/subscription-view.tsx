@@ -87,7 +87,7 @@ export function SubscriptionView() {
 
   const sub = data?.subscription;
   const statusLabels: Record<string, { label: string; color: string }> = {
-    trialing: { label: "Período de Teste (7 dias)", color: "#dcff4c" },
+    trialing: { label: "Período de Teste (7 dias)", color: "var(--primary)" },
     active: { label: "Assinatura Ativa", color: "#4ade80" },
     past_due: { label: "Pagamento Pendente", color: "#fb923c" },
     cancelled: { label: "Cancelada", color: "#94a3b8" },
@@ -134,7 +134,7 @@ export function SubscriptionView() {
               </span>
             </div>
 
-            <h2 style={{ fontSize: 20, fontWeight: 700, color: "#ffffff", margin: "4px 0" }}>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: "4px 0" }}>
               {sub.status === "trialing"
                 ? `${sub.daysRemaining} dias restantes de teste grátis`
                 : sub.status === "active"
@@ -142,7 +142,7 @@ export function SubscriptionView() {
                   : "Assinatura requer renovação"}
             </h2>
 
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", margin: 0 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
               {sub.currentPeriodEnd
                 ? `Próxima renovação em ${new Date(sub.currentPeriodEnd).toLocaleDateString("pt-BR")}`
                 : `Trial expira em ${new Date(sub.trialEndsAt).toLocaleDateString("pt-BR")}`}
@@ -160,10 +160,10 @@ export function SubscriptionView() {
                   alignItems: "center",
                   gap: 8,
                   padding: "10px 18px",
-                  background: "#dcff4c",
+                  background: "var(--primary)",
                   border: "none",
                   borderRadius: 8,
-                  color: "#080808",
+                  color: "var(--primary-foreground)",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",

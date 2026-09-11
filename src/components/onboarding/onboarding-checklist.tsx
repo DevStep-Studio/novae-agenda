@@ -79,11 +79,11 @@ export function OnboardingChecklistCard({
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: "rgba(220, 255, 76, 0.15)",
+              background: "var(--primary-soft)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#dcff4c",
+              color: "var(--primary)",
             }}
           >
             <Sparkles size={20} />
@@ -94,7 +94,7 @@ export function OnboardingChecklistCard({
                 margin: 0,
                 fontSize: "14px",
                 fontWeight: 600,
-                color: "#f5f5f5",
+                color: "var(--text-primary, #f5f5f5)",
               }}
             >
               Seu perfil Reservei está pronto para receber agendamentos!
@@ -119,8 +119,8 @@ export function OnboardingChecklistCard({
               display: "inline-flex",
               alignItems: "center",
               gap: "7px",
-              background: "#dcff4c",
-              color: "#080808",
+              background: "var(--primary)",
+              color: "var(--primary-foreground, #080808)",
               border: "none",
               borderRadius: "8px",
               padding: "8px 16px",
@@ -163,11 +163,11 @@ export function OnboardingChecklistCard({
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: "rgba(220, 255, 76, 0.12)",
+              background: "var(--primary-soft)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#dcff4c",
+              color: "var(--primary)",
               fontWeight: 700,
               fontSize: "12px",
             }}
@@ -180,7 +180,7 @@ export function OnboardingChecklistCard({
                 margin: 0,
                 fontSize: "14px",
                 fontWeight: 600,
-                color: "#f2f7f4",
+                color: "var(--text-primary, #f2f7f4)",
               }}
             >
               Seu Reservei está {data.percentage}% configurado
@@ -227,7 +227,7 @@ export function OnboardingChecklistCard({
           style={{
             width: `${data.percentage}%`,
             height: "100%",
-            background: "#dcff4c",
+            background: "var(--primary)",
             borderRadius: "3px",
             transition: "width 0.4s ease",
           }}
@@ -262,21 +262,21 @@ export function OnboardingChecklistCard({
               title={step.completed ? "Etapa concluída" : "Clique para configurar"}
             >
               {step.completed ? (
-                <CheckCircle2 size={16} style={{ color: "#dcff4c", flexShrink: 0 }} />
+                <CheckCircle2 size={16} style={{ color: "var(--primary)", flexShrink: 0 }} />
               ) : (
                 <Circle size={16} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
               )}
               <span
                 style={{
                   fontSize: "12px",
-                  color: step.completed ? "#f2f7f4" : "var(--text-secondary)",
+                  color: step.completed ? "var(--text-primary, #f2f7f4)" : "var(--text-secondary)",
                   fontWeight: step.completed ? 600 : 400,
                   flex: 1,
                 }}
               >
                 {step.label}
               </span>
-              <ArrowRight size={13} style={{ color: step.completed ? "#dcff4c" : "var(--text-muted)" }} />
+              <ArrowRight size={13} style={{ color: step.completed ? "var(--primary)" : "var(--text-muted)" }} />
             </div>
           ))}
         </div>

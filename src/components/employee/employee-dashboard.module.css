@@ -345,23 +345,23 @@
 }
 
 .btnStart {
-  background: rgba(220, 255, 76, 0.15);
-  color: #dcff4c;
-  border: 1px solid rgba(220, 255, 76, 0.3);
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--brand-border-subtle);
 }
 
 .btnStart:hover {
-  background: rgba(220, 255, 76, 0.25);
+  background: var(--primary-soft-hover);
 }
 
 .btnFinish {
-  background: #dcff4c;
-  color: #080808;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-weight: 700;
 }
 
 .btnFinish:hover {
-  background: #cbf03b;
+  background: var(--primary-hover);
 }
 
 .btnWhatsapp {
@@ -396,8 +396,8 @@
 }
 
 .statusInProgress {
-  background: rgba(220, 255, 76, 0.15);
-  color: #dcff4c;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .statusCompleted {

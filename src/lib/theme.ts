@@ -1,3 +1,5 @@
+import { applyPrimaryColor } from "@/lib/theme-utils";
+
 export type Theme = "light" | "dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
@@ -34,6 +36,14 @@ export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = resolved;
   document.documentElement.dataset.themeMode = theme;
 
+  // Restore dynamic primary color if user customized it
+  try {
+    const cachedColor = window.localStorage.getItem("novae_primary_color");
+    if (cachedColor) {
+      applyPrimaryColor(cachedColor);
+    }
+  } catch {}
+
   // Persist preference
   window.localStorage.setItem(THEME_KEY, theme);
 
@@ -50,6 +60,10 @@ export function applyTheme(theme: Theme) {
     mediaQueryListener = (e: MediaQueryListEvent) => {
       const nextResolved = e.matches ? "dark" : "light";
       document.documentElement.dataset.theme = nextResolved;
+      try {
+        const cachedColor = window.localStorage.getItem("novae_primary_color");
+        if (cachedColor) applyPrimaryColor(cachedColor);
+      } catch {}
     };
     mql.addEventListener("change", mediaQueryListener);
   }

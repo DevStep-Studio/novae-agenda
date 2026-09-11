@@ -294,9 +294,9 @@ export function ClientPortal({
             style={{
               padding: "12px 16px",
               borderRadius: "10px",
-              background: "rgba(220, 255, 76, 0.12)",
-              color: "#dcff4c",
-              border: "1px solid rgba(220, 255, 76, 0.25)",
+              background: "var(--primary-soft)",
+              color: "var(--primary)",
+              border: "1px solid var(--border)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
