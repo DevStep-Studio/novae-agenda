@@ -3,15 +3,23 @@
 import React, { useState, useMemo } from "react";
 import {
   Bell,
+  BellRing,
   CheckCheck,
   Check,
   Calendar,
-  DollarSign,
-  Info,
+  CalendarPlus,
+  CalendarClock,
+  CalendarX,
+  CircleDollarSign,
   Clock,
   ExternalLink,
-  Sparkles,
+  Info,
   Loader2,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  UserCheck,
+  Users,
 } from "lucide-react";
 import { useStore } from "@/store/store";
 import type { NotificationDTO } from "@/shared/types";
@@ -23,20 +31,65 @@ interface NotificationsViewProps {
   onNavigateToAgenda?: () => void;
 }
 
+type NotificationMeta = {
+  icon: React.ReactNode;
+  badgeLabel: string;
+  badgeClass: string;
+  iconBgClass: string;
+};
+
 export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda }: NotificationsViewProps) {
   const { notifications, reloadNotifications, markNotificationRead, markAllNotificationsRead, notify } = useStore();
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
   const [loading, setLoading] = useState(false);
   const [simulating, setSimulating] = useState(false);
 
-  // Filter notifications on state or filter change
-  const filteredList = useMemo(() => {
-    let result = [...notifications];
+  // Counts by category for filter pills
+  const counts = useMemo(() => {
+    let unread = 0;
+    let agendamentos = 0;
+    let financeiro = 0;
+    let sistema = 0;
 
+    for (const n of notifications) {
+      if (!n.readAt) unread++;
+
+      const isBooking =
+        n.type.startsWith("booking.") ||
+        n.type.startsWith("waitlist.") ||
+        n.type.startsWith("customer.") ||
+        n.type.startsWith("appointment_") ||
+        n.type.startsWith("reminder") ||
+        n.entityType === "appointment" ||
+        n.entityType === "waitlist";
+
+      const isFin =
+        n.type.startsWith("payment.") ||
+        n.type.startsWith("financial.") ||
+        n.type.startsWith("subscription.") ||
+        n.type === "appointment_completed" ||
+        n.entityType === "financial" ||
+        n.entityType === "subscription";
+
+      if (isBooking) {
+        agendamentos++;
+      } else if (isFin) {
+        financeiro++;
+      } else {
+        sistema++;
+      }
+    }
+
+    return { total: notifications.length, unread, agendamentos, financeiro, sistema };
+  }, [notifications]);
+
+  // Filter list based on selected tab
+  const filteredList = useMemo(() => {
     if (activeFilter === "unread") {
-      result = result.filter((n) => !n.readAt);
-    } else if (activeFilter === "agendamentos") {
-      result = result.filter(
+      return notifications.filter((n) => !n.readAt);
+    }
+    if (activeFilter === "agendamentos") {
+      return notifications.filter(
         (n) =>
           n.type.startsWith("booking.") ||
           n.type.startsWith("waitlist.") ||
@@ -46,8 +99,9 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
           n.entityType === "appointment" ||
           n.entityType === "waitlist"
       );
-    } else if (activeFilter === "financeiro") {
-      result = result.filter(
+    }
+    if (activeFilter === "financeiro") {
+      return notifications.filter(
         (n) =>
           n.type.startsWith("payment.") ||
           n.type.startsWith("financial.") ||
@@ -56,22 +110,27 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
           n.entityType === "financial" ||
           n.entityType === "subscription"
       );
-    } else if (activeFilter === "sistema") {
-      result = result.filter(
+    }
+    if (activeFilter === "sistema") {
+      return notifications.filter(
         (n) =>
           n.type.startsWith("system.") ||
           n.type.startsWith("plan.") ||
-          n.entityType === "system"
+          n.type.startsWith("review.") ||
+          n.entityType === "system" ||
+          (!n.type.startsWith("booking.") &&
+            !n.type.startsWith("payment.") &&
+            !n.type.startsWith("financial.") &&
+            !n.type.startsWith("subscription.") &&
+            n.entityType !== "appointment" &&
+            n.entityType !== "financial")
       );
     }
-
-    return result;
+    return notifications;
   }, [notifications, activeFilter]);
 
-  const unreadTotal = useMemo(() => notifications.filter((n) => !n.readAt).length, [notifications]);
-
   const handleMarkAllRead = async () => {
-    if (unreadTotal === 0) return;
+    if (counts.unread === 0) return;
     setLoading(true);
     try {
       await markAllNotificationsRead();
@@ -95,7 +154,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
       if (!res.ok) {
         throw new Error(data.error || "Falha na simulação de notificação.");
       }
-      
+
       const label =
         type === "reminder_2h"
           ? "Lembrete de 2h simulado com sucesso!"
@@ -138,29 +197,115 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     }
   };
 
-  const getCategoryIcon = (type: string, entityType: string | null) => {
-    if (
-      type.startsWith("payment.") ||
-      type.startsWith("financial.") ||
-      type.startsWith("subscription.") ||
-      type === "appointment_completed" ||
-      entityType === "financial" ||
-      entityType === "subscription"
-    ) {
-      return <DollarSign size={18} />;
+  const getNotificationMeta = (item: NotificationDTO): NotificationMeta => {
+    const t = item.type.toLowerCase();
+    const title = item.title.toLowerCase();
+    const entity = item.entityType?.toLowerCase() || "";
+
+    // 1. Reviews / Feedback
+    if (t.startsWith("review.") || title.includes("avaliação") || title.includes("estrelas") || title.includes("nota")) {
+      return {
+        icon: <Star size={17} />,
+        badgeLabel: "Avaliação",
+        badgeClass: "badge-notif-rating",
+        iconBgClass: "icon-notif-rating",
+      };
     }
+
+    // 2. Payments & Financial
     if (
-      type.startsWith("booking.") ||
-      type.startsWith("waitlist.") ||
-      type.startsWith("customer.") ||
-      type.startsWith("appointment_") ||
-      type.startsWith("reminder") ||
-      entityType === "appointment" ||
-      entityType === "waitlist"
+      t.startsWith("payment.") ||
+      t.startsWith("financial.") ||
+      entity === "financial" ||
+      title.includes("pagamento") ||
+      title.includes("recebimento") ||
+      title.includes("pix")
     ) {
-      return <Calendar size={18} />;
+      return {
+        icon: <CircleDollarSign size={17} />,
+        badgeLabel: "Financeiro",
+        badgeClass: "badge-notif-payment",
+        iconBgClass: "icon-notif-payment",
+      };
     }
-    return <Info size={18} />;
+
+    // 3. Rescheduled
+    if (t === "booking.rescheduled" || title.includes("remarcad") || title.includes("horário")) {
+      return {
+        icon: <CalendarClock size={17} />,
+        badgeLabel: "Remarcação",
+        badgeClass: "badge-notif-reschedule",
+        iconBgClass: "icon-notif-reschedule",
+      };
+    }
+
+    // 4. Cancelled
+    if (t === "booking.cancelled" || title.includes("cancelad")) {
+      return {
+        icon: <CalendarX size={17} />,
+        badgeLabel: "Cancelamento",
+        badgeClass: "badge-notif-cancel",
+        iconBgClass: "icon-notif-cancel",
+      };
+    }
+
+    // 5. Booking Reminder
+    if (t.startsWith("reminder") || t === "booking.reminder" || title.includes("lembrete")) {
+      return {
+        icon: <BellRing size={17} />,
+        badgeLabel: "Lembrete",
+        badgeClass: "badge-notif-reminder",
+        iconBgClass: "icon-notif-reminder",
+      };
+    }
+
+    // 6. New Booking
+    if (t === "booking.created" || t.startsWith("booking.") || entity === "appointment" || title.includes("agendamento")) {
+      return {
+        icon: <CalendarPlus size={17} />,
+        badgeLabel: "Agendamento",
+        badgeClass: "badge-notif-booking",
+        iconBgClass: "icon-notif-booking",
+      };
+    }
+
+    // 7. Subscriptions / Pro Plans
+    if (t.startsWith("subscription.") || t.startsWith("plan.") || entity === "subscription" || title.includes("assinatura") || title.includes("plano")) {
+      return {
+        icon: <ShieldCheck size={17} />,
+        badgeLabel: "Assinatura",
+        badgeClass: "badge-notif-subscription",
+        iconBgClass: "icon-notif-subscription",
+      };
+    }
+
+    // 8. Waitlist
+    if (t.startsWith("waitlist.") || entity === "waitlist" || title.includes("espera")) {
+      return {
+        icon: <Users size={17} />,
+        badgeLabel: "Fila de Espera",
+        badgeClass: "badge-notif-waitlist",
+        iconBgClass: "icon-notif-waitlist",
+      };
+    }
+
+    // 9. Customer Arrived
+    if (t === "customer.arrived" || title.includes("recepção") || title.includes("chegou")) {
+      return {
+        icon: <UserCheck size={17} />,
+        badgeLabel: "Recepção",
+        badgeClass: "badge-notif-reception",
+        iconBgClass: "icon-notif-reception",
+      };
+    }
+
+    // 10. Default / System
+    return {
+      icon: <Info size={17} />,
+      badgeLabel: "Sistema",
+      badgeClass: "badge-notif-system",
+      iconBgClass: "icon-notif-system",
+    };
   };
 
   const formatTimestamp = (dateStr: string) => {
@@ -182,150 +327,50 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     }
   };
 
-  const getCategoryBadgeLabel = (type: string, entityType: string | null) => {
-    if (type.startsWith("booking.") || type.startsWith("appointment_") || type.startsWith("reminder") || entityType === "appointment") {
-      return "Agendamento";
-    }
-    if (type.startsWith("payment.") || entityType === "financial") {
-      return "Financeiro";
-    }
-    if (type.startsWith("subscription.") || entityType === "subscription") {
-      return "Assinatura";
-    }
-    if (type.startsWith("waitlist.") || entityType === "waitlist") {
-      return "Fila de Espera";
-    }
-    return "Sistema";
-  };
-
   return (
-    <div className="page-content notifications-page-content" style={{ maxWidth: 980, margin: "0 auto", padding: "28px 24px 80px" }}>
+    <div className="page-content notif-page-container">
       {/* Top Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          gap: 16,
-          marginBottom: 28,
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: "rgba(220, 255, 76, 0.15)",
-                color: "var(--primary, #dcff4c)",
-              }}
-            >
+      <div className="notif-page-header">
+        <div className="notif-header-info">
+          <div className="notif-title-row">
+            <span className="notif-header-icon-wrap">
               <Bell size={18} />
             </span>
-            <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-              Central de Notificações
-            </h1>
-            {unreadTotal > 0 && (
-              <span
-                style={{
-                  background: "var(--primary, #dcff4c)",
-                  color: "#080808",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  padding: "2px 8px",
-                  borderRadius: 12,
-                }}
-              >
-                {unreadTotal} nova{unreadTotal > 1 ? "s" : ""}
+            <h1 className="notif-page-title">Central de Notificações</h1>
+            {counts.unread > 0 && (
+              <span className="notif-header-unread-badge">
+                {counts.unread} {counts.unread === 1 ? "nova" : "novas"}
               </span>
             )}
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>
+          <p className="notif-page-subtitle">
             Histórico completo de eventos, novos agendamentos, clientes e alertas da sua empresa.
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
+        <div className="notif-header-actions">
           {/* Simulate Action Button */}
           <button
             type="button"
+            className="notif-action-btn simulate"
             onClick={() => handleSimulate("reminder_2h")}
             disabled={simulating}
-            title="Disparar lembrete automático de 2h antes do atendimento"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "9px 14px",
-              background: "rgba(220, 255, 76, 0.12)",
-              border: "1px solid rgba(220, 255, 76, 0.3)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 700,
-              color: "var(--primary, #dcff4c)",
-              cursor: simulating ? "not-allowed" : "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              if (!simulating) {
-                e.currentTarget.style.background = "rgba(220, 255, 76, 0.22)";
-                e.currentTarget.style.transform = "translateY(-1px)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!simulating) {
-                e.currentTarget.style.background = "rgba(220, 255, 76, 0.12)";
-                e.currentTarget.style.transform = "none";
-              }
-            }}
+            title="Disparar lembrete automático de teste"
           >
             {simulating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
             <span>{simulating ? "Simulando..." : "Simular Lembrete 2h (QA)"}</span>
           </button>
 
           {/* Mark All Read Button */}
-          {unreadTotal > 0 && (
+          {counts.unread > 0 && (
             <button
               type="button"
+              className="notif-action-btn mark-all"
               onClick={handleMarkAllRead}
               disabled={loading}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "9px 16px",
-                background: "var(--surface, #121212)",
-                border: "1px solid var(--border, #262626)",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--text-primary, #ffffff)",
-                cursor: loading ? "not-allowed" : "pointer",
-                transition: "all 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.borderColor = "var(--primary, #dcff4c)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.borderColor = "var(--border, #262626)";
-                  e.currentTarget.style.transform = "none";
-                }
-              }}
+              title="Marcar todas as notificações como lidas"
             >
-              {loading ? (
-                <Loader2 size={15} className="spin" />
-              ) : (
-                <CheckCheck size={16} style={{ color: "var(--primary, #dcff4c)" }} />
-              )}
+              {loading ? <Loader2 size={14} className="spin" /> : <CheckCheck size={15} />}
               <span>Marcar todas como lidas</span>
             </button>
           )}
@@ -333,261 +378,100 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
       </div>
 
       {/* Filter Tabs */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          overflowX: "auto",
-          paddingBottom: 4,
-          marginBottom: 24,
-          borderBottom: "1px solid var(--border, #262626)",
-        }}
-      >
+      <div className="notif-filter-bar">
         <button
           type="button"
+          className={`notif-tab-pill ${activeFilter === "all" ? "active" : ""}`}
           onClick={() => setActiveFilter("all")}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: activeFilter === "all" ? 700 : 500,
-            border: activeFilter === "all" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
-            background: activeFilter === "all" ? "rgba(220, 255, 76, 0.1)" : "transparent",
-            color: activeFilter === "all" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            whiteSpace: "nowrap",
-            transition: "all 0.15s ease",
-          }}
         >
-          Todas
-          <span style={{ fontSize: 11, opacity: 0.8 }}>({notifications.length})</span>
+          <span>Todas</span>
+          <span className="pill-count">{counts.total}</span>
         </button>
 
         <button
           type="button"
+          className={`notif-tab-pill ${activeFilter === "unread" ? "active" : ""}`}
           onClick={() => setActiveFilter("unread")}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: activeFilter === "unread" ? 700 : 500,
-            border: activeFilter === "unread" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
-            background: activeFilter === "unread" ? "rgba(220, 255, 76, 0.1)" : "transparent",
-            color: activeFilter === "unread" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            whiteSpace: "nowrap",
-            transition: "all 0.15s ease",
-          }}
         >
-          Não lidas
-          {unreadTotal > 0 && (
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                background: "var(--primary, #dcff4c)",
-                color: "#080808",
-                borderRadius: 10,
-                padding: "1px 6px",
-              }}
-            >
-              {unreadTotal}
-            </span>
-          )}
+          <span>Não lidas</span>
+          {counts.unread > 0 && <span className="pill-count highlight">{counts.unread}</span>}
         </button>
 
         <button
           type="button"
+          className={`notif-tab-pill ${activeFilter === "agendamentos" ? "active" : ""}`}
           onClick={() => setActiveFilter("agendamentos")}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: activeFilter === "agendamentos" ? 700 : 500,
-            border: activeFilter === "agendamentos" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
-            background: activeFilter === "agendamentos" ? "rgba(220, 255, 76, 0.1)" : "transparent",
-            color: activeFilter === "agendamentos" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            whiteSpace: "nowrap",
-            transition: "all 0.15s ease",
-          }}
         >
-          <Calendar size={14} />
-          Agendamentos
+          <Calendar size={13} />
+          <span>Agendamentos</span>
+          {counts.agendamentos > 0 && <span className="pill-count">{counts.agendamentos}</span>}
         </button>
 
         <button
           type="button"
+          className={`notif-tab-pill ${activeFilter === "financeiro" ? "active" : ""}`}
           onClick={() => setActiveFilter("financeiro")}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: activeFilter === "financeiro" ? 700 : 500,
-            border: activeFilter === "financeiro" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
-            background: activeFilter === "financeiro" ? "rgba(220, 255, 76, 0.1)" : "transparent",
-            color: activeFilter === "financeiro" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            whiteSpace: "nowrap",
-            transition: "all 0.15s ease",
-          }}
         >
-          <DollarSign size={14} />
-          Financeiro
+          <CircleDollarSign size={13} />
+          <span>Financeiro</span>
+          {counts.financeiro > 0 && <span className="pill-count">{counts.financeiro}</span>}
         </button>
 
         <button
           type="button"
+          className={`notif-tab-pill ${activeFilter === "sistema" ? "active" : ""}`}
           onClick={() => setActiveFilter("sistema")}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 8,
-            fontSize: 13,
-            fontWeight: activeFilter === "sistema" ? 700 : 500,
-            border: activeFilter === "sistema" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
-            background: activeFilter === "sistema" ? "rgba(220, 255, 76, 0.1)" : "transparent",
-            color: activeFilter === "sistema" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            whiteSpace: "nowrap",
-            transition: "all 0.15s ease",
-          }}
         >
-          <Info size={14} />
-          Sistema
+          <Info size={13} />
+          <span>Sistema</span>
+          {counts.sistema > 0 && <span className="pill-count">{counts.sistema}</span>}
         </button>
       </div>
 
       {/* Notifications List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="notif-cards-list">
         {filteredList.length > 0 ? (
           filteredList.map((item) => {
             const isUnread = !item.readAt;
+            const meta = getNotificationMeta(item);
+
             return (
               <div
                 key={item.id}
+                className={`notif-card ${isUnread ? "unread" : "read"}`}
                 onClick={() => handleNotificationClick(item)}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 16,
-                  padding: "16px 20px",
-                  borderRadius: 12,
-                  background: isUnread ? "var(--surface, #121212)" : "var(--surface-secondary, #181818)",
-                  border: isUnread ? "1px solid rgba(220, 255, 76, 0.35)" : "1px solid var(--border, #262626)",
-                  boxShadow: isUnread ? "0 4px 16px rgba(0,0,0,0.3)" : "none",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  position: "relative",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.borderColor = "var(--primary, #dcff4c)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "none";
-                  e.currentTarget.style.borderColor = isUnread ? "rgba(220, 255, 76, 0.35)" : "var(--border, #262626)";
-                }}
+                role="button"
+                tabIndex={0}
               >
-                {/* Unread indicator dot */}
-                {isUnread && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: 8,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: "var(--primary, #dcff4c)",
-                      boxShadow: "0 0 8px var(--primary, #dcff4c)",
-                    }}
-                  />
-                )}
+                {/* Visual Unread Indicator Dot */}
+                {isUnread && <span className="notif-unread-dot" />}
 
                 {/* Category Icon */}
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    background: isUnread ? "rgba(220, 255, 76, 0.14)" : "var(--surface-tertiary, #222222)",
-                    color: isUnread ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
-                    display: "grid",
-                    placeItems: "center",
-                    flex: "0 0 auto",
-                  }}
-                >
-                  {getCategoryIcon(item.type, item.entityType)}
+                <div className={`notif-icon-box ${meta.iconBgClass}`}>
+                  {meta.icon}
                 </div>
 
-                {/* Main Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: isUnread ? 700 : 600,
-                        color: "var(--text-primary, #ffffff)",
-                      }}
-                    >
-                      {item.title}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                        background: "var(--surface-tertiary, #222222)",
-                        color: "var(--text-muted, #737373)",
-                        border: "1px solid var(--border, #262626)",
-                      }}
-                    >
-                      {getCategoryBadgeLabel(item.type, item.entityType)}
+                {/* Card Main Body */}
+                <div className="notif-content-wrap">
+                  <div className="notif-headline-row">
+                    <strong className="notif-card-title">{item.title}</strong>
+                    <span className={`notif-category-badge ${meta.badgeClass}`}>
+                      {meta.badgeLabel}
                     </span>
                   </div>
 
                   {item.body && (
-                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #a3a3a3)", lineHeight: 1.5 }}>
-                      {item.body}
-                    </p>
+                    <p className="notif-card-body-text">{item.body}</p>
                   )}
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--text-muted, #737373)" }}>
-                      <Clock size={12} />
+                  <div className="notif-footer-row">
+                    <span className="notif-time-text">
+                      <Clock size={11} />
                       {formatTimestamp(item.createdAt)}
                     </span>
 
                     {item.entityType === "appointment" && item.entityId && (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: "var(--primary, #dcff4c)",
-                        }}
-                      >
+                      <span className="notif-action-link">
                         <ExternalLink size={11} />
                         Ver na agenda
                       </span>
@@ -595,93 +479,42 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                   </div>
                 </div>
 
-                {/* Mark as read quick action */}
+                {/* Mark as read button */}
                 {isUnread && (
                   <button
                     type="button"
+                    className="notif-mark-single-btn"
                     onClick={(e) => handleSingleMarkRead(e, item)}
                     title="Marcar como lida"
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      color: "var(--text-muted, #737373)",
-                      padding: 6,
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      display: "grid",
-                      placeItems: "center",
-                      flex: "0 0 auto",
-                      transition: "all 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--primary, #dcff4c)";
-                      e.currentTarget.style.background = "rgba(220, 255, 76, 0.12)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "var(--text-muted, #737373)";
-                      e.currentTarget.style.background = "transparent";
-                    }}
+                    aria-label="Marcar notificação como lida"
                   >
-                    <Check size={16} />
+                    <Check size={15} />
                   </button>
                 )}
               </div>
             );
           })
         ) : (
-          <div
-            style={{
-              padding: "48px 24px",
-              textAlign: "center",
-              background: "var(--surface, #121212)",
-              borderRadius: 16,
-              border: "1px solid var(--border, #262626)",
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                background: "var(--surface-secondary, #181818)",
-                color: "var(--text-muted, #737373)",
-                display: "grid",
-                placeItems: "center",
-                margin: "0 auto 16px",
-              }}
-            >
+          <div className="notif-empty-state">
+            <div className="notif-empty-icon-wrap">
               <Bell size={22} />
             </div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", color: "var(--text-primary, #ffffff)" }}>
-              {activeFilter === "unread"
-                ? "Tudo em dia!"
-                : "Nenhuma notificação encontrada"}
+            <h3 className="notif-empty-title">
+              {activeFilter === "unread" ? "Tudo em dia!" : "Nenhuma notificação encontrada"}
             </h3>
-            <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-secondary, #a3a3a3)", maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
+            <p className="notif-empty-desc">
               {activeFilter === "unread"
-                ? "Você já leu todas as notificações recentes."
+                ? "Você já visualizou todas as notificações recentes."
                 : "Quando ocorrerem agendamentos, pagamentos ou novidades no sistema, eles aparecerão aqui."}
             </p>
             <button
               type="button"
+              className="notif-action-btn simulate"
               onClick={() => handleSimulate("reminder_2h")}
               disabled={simulating}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 14px",
-                borderRadius: 8,
-                background: "rgba(220, 255, 76, 0.12)",
-                border: "1px solid rgba(220, 255, 76, 0.3)",
-                color: "var(--primary, #dcff4c)",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
             >
               <Sparkles size={14} />
-              Simular Notificação de Teste
+              <span>Simular Notificação de Teste</span>
             </button>
           </div>
         )}

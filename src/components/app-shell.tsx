@@ -13,7 +13,7 @@ import {
 import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
-import { applyTheme, getStoredTheme, type Theme } from "@/lib/theme";
+import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
 import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor } from "@/lib/theme-utils";
 import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
@@ -5658,11 +5658,17 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
               )}
             </div>
 
-            <IconButton label="Alternar tema" onClick={() => setTheme((t) => {
-              const next = t === "light" ? "dark" : "light";
-              applyTheme(next);
-              return next;
-            })}>{theme === "light" ? <Moon size={18} /> : <Sun size={18} />}</IconButton>
+            <IconButton
+              label={resolveTheme(theme) === "light" ? "Mudar para tema escuro" : "Mudar para tema claro"}
+              onClick={() => {
+                const currentResolved = resolveTheme(theme);
+                const nextTheme: Theme = currentResolved === "light" ? "dark" : "light";
+                applyTheme(nextTheme);
+                setTheme(nextTheme);
+              }}
+            >
+              {resolveTheme(theme) === "light" ? <Moon size={18} /> : <Sun size={18} />}
+            </IconButton>
 
             {/* Notifications Popover */}
             <div className="popover-container">
