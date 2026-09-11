@@ -10,6 +10,7 @@ import {
   employeeSchedules,
   employeeServices,
   employees,
+  locations,
   notifications,
   payments,
   reviews,
@@ -85,6 +86,21 @@ async function seed() {
       })
       .where(eq(companies.id, company.id));
     [company] = await db.select().from(companies).where(eq(companies.id, company.id)).limit(1);
+  }
+
+  // Location for Studio Prime
+  const [primeLoc] = await db.select().from(locations).where(eq(locations.companyId, company.id)).limit(1);
+  if (!primeLoc) {
+    await db.insert(locations).values({
+      id: crypto.randomUUID(),
+      companyId: company.id,
+      name: "Unidade Principal",
+      address: "Rua Harmonia, 284 - Vila Madalena, São Paulo - SP",
+      phone: "(11) 3042-1980",
+      openTime: "08:00:00",
+      closeTime: "19:00:00",
+      active: true,
+    });
   }
 
   // Settings for Studio Prime
@@ -537,6 +553,21 @@ async function seed() {
         onboarded: true,
       })
       .where(eq(companies.id, bellaCompany.id));
+  }
+
+  // Location for Studio Bella
+  const [bellaLoc] = await db.select().from(locations).where(eq(locations.companyId, bellaCompany.id)).limit(1);
+  if (!bellaLoc) {
+    await db.insert(locations).values({
+      id: crypto.randomUUID(),
+      companyId: bellaCompany.id,
+      name: "Unidade Jardins / Paulista",
+      address: "Av. Paulista, 1000 - Bela Vista, São Paulo - SP",
+      phone: "(11) 3210-5500",
+      openTime: "08:00:00",
+      closeTime: "19:00:00",
+      active: true,
+    });
   }
 
   // Owner for Studio Bella

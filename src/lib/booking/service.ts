@@ -15,6 +15,7 @@ import {
   companies,
   coupons,
   employees,
+  locations,
   notificationLogs,
   notifications,
   products,
@@ -258,6 +259,35 @@ export async function createBooking(
       },
       tx,
     );
+    let effectiveLocationId = input.locationId;
+    if (!effectiveLocationId) {
+      const [firstLoc] = await tx
+        .select()
+        .from(locations)
+        .where(
+          and(
+            eq(locations.companyId, company.id),
+            eq(locations.active, true),
+          ),
+        )
+        .limit(1);
+      if (firstLoc) {
+        effectiveLocationId = firstLoc.id;
+      } else {
+        const newLocId = crypto.randomUUID();
+        await tx.insert(locations).values({
+          id: newLocId,
+          companyId: company.id,
+          name: "Unidade Principal",
+          address: company.address || "Endereço Principal",
+          phone: company.phone || null,
+          openTime: "08:00:00",
+          closeTime: "19:00:00",
+          active: true,
+        });
+        effectiveLocationId = newLocId;
+      }
+    }
     const extras = quote.extras;
     const bookingId = crypto.randomUUID();
     const startsAt = localInstant(input.date, input.startTime, company.timezone);
@@ -267,7 +297,7 @@ export async function createBooking(
       .values({
         id: bookingId,
         companyId: company.id,
-        locationId: input.locationId,
+        locationId: effectiveLocationId,
         userId: user.id,
         clientId: client.id,
         startsAt,
@@ -284,7 +314,7 @@ export async function createBooking(
     const booking = {
       id: bookingId,
       companyId: company.id,
-      locationId: input.locationId,
+      locationId: effectiveLocationId,
       userId: user.id,
       clientId: client.id,
       startsAt,

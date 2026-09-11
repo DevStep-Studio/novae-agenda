@@ -56,7 +56,7 @@ export type AvailableSlot = {
 };
 export async function loadAvailability(
   company: typeof companies.$inferSelect,
-  locationId: string,
+  locationId: string | undefined | null,
   selection: Selection,
   from: string,
   to: string,
@@ -64,17 +64,48 @@ export async function loadAvailability(
   excludeBookingId?: string,
 ) {
   const settings = await getCompanySettings(company.id, executor);
-  const [location] = await executor
-    .select()
-    .from(locations)
-    .where(
-      and(
-        eq(locations.id, locationId),
-        eq(locations.companyId, company.id),
-        eq(locations.active, true),
-      ),
-    );
-  if (!location) throw new BookingError("Unidade não encontrada.", 404);
+  let location: typeof locations.$inferSelect | undefined;
+  if (locationId) {
+    const [found] = await executor
+      .select()
+      .from(locations)
+      .where(
+        and(
+          eq(locations.id, locationId),
+          eq(locations.companyId, company.id),
+          eq(locations.active, true),
+        ),
+      );
+    if (!found) throw new BookingError("Unidade não encontrada.", 404);
+    location = found;
+  } else {
+    const [first] = await executor
+      .select()
+      .from(locations)
+      .where(
+        and(
+          eq(locations.companyId, company.id),
+          eq(locations.active, true),
+        ),
+      )
+      .limit(1);
+    location = first;
+  }
+  if (!location) {
+    location = {
+      id: "default",
+      companyId: company.id,
+      name: "Unidade Principal",
+      address: company.address || "Endereço Principal",
+      phone: company.phone || null,
+      openTime: "08:00:00",
+      closeTime: "19:00:00",
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+  const effectiveLocationId = location.id;
   const defs = await executor
     .select()
     .from(services)
@@ -153,7 +184,7 @@ export async function loadAvailability(
               .where(
                 and(
                   inArray(employeeLocations.employeeId, empIds),
-                  eq(employeeLocations.locationId, locationId),
+                  eq(employeeLocations.locationId, effectiveLocationId),
                 ),
               ),
           () =>
@@ -165,7 +196,7 @@ export async function loadAvailability(
                   inArray(employeeSchedules.employeeId, empIds),
                   eq(employeeSchedules.active, true),
                   or(
-                    eq(employeeSchedules.locationId, locationId),
+                    eq(employeeSchedules.locationId, effectiveLocationId),
                     isNull(employeeSchedules.locationId),
                   ),
                 ),
@@ -206,7 +237,7 @@ export async function loadAvailability(
                   ),
                   or(
                     isNull(scheduleBlocks.locationId),
-                    eq(scheduleBlocks.locationId, locationId),
+                    eq(scheduleBlocks.locationId, effectiveLocationId),
                   ),
                 ),
               ),
