@@ -4271,50 +4271,37 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
           <span className="detail-card-label"><CircleDollarSign size={13} /> Valor previsto</span>
           <strong className="detail-card-value">{formatCurrency(appointment.total)}</strong>
         </div>
-        <div className="detail-card-item detail-card-full">
+        <div className="detail-card-item detail-card-full detail-card-payment">
           <span className="detail-card-label"><CreditCard size={13} /> Status do Pagamento</span>
-          <strong className="detail-card-value" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div className="detail-payment-content">
             {appointment.paid ? (
-              <span style={{ color: "var(--success, #22c55e)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <CheckCircle2 size={15} /> Recebido ({appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "Presencial"})
+              <span className="payment-chip payment-chip-paid">
+                <CheckCircle2 size={14} /> Recebido ({appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "Presencial"})
               </span>
             ) : (
-              <span style={{ color: "var(--warning, #f59e0b)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                <CircleAlert size={15} /> Pagamento pendente no estabelecimento
+              <span className="payment-chip payment-chip-pending">
+                <CircleAlert size={14} /> Pagamento pendente no estabelecimento
               </span>
             )}
-          </strong>
+          </div>
         </div>
+        {appointment.notes && (
+          <div className="detail-card-item detail-card-full detail-card-note">
+            <span className="detail-card-label"><FileText size={13} /> Observações do agendamento</span>
+            <p className="detail-note-text">{appointment.notes}</p>
+          </div>
+        )}
       </div>
 
-      {appointment.notes && (
-        <div className="detail-note">
-          <FileText size={16} />
-          <div>
-            <strong style={{ display: "block", fontSize: "10px", fontWeight: 700, marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.6px", opacity: 0.85 }}>Observações do agendamento</strong>
-            <span>{appointment.notes}</span>
-          </div>
-        </div>
-      )}
-
-      {(canManageAppointment || appointment.clientPhone) && (
+      {canManageAppointment && (
         <div className="detail-actions-inline">
           <div className="detail-status-actions">
-            {canManageAppointment && (
-              <>
-                {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={14} /> Confirmar</Button>}
-                {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={14} /> Cliente chegou</Button>}
-                {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={14} /> Iniciar</Button>}
-                <Button variant="danger" onClick={cancel}><X size={14} /> Cancelar</Button>
-                {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={14} /> Não compareceu</Button>}
-              </>
-            )}
+            {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={14} /> Confirmar</Button>}
+            {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={14} /> Cliente chegou</Button>}
+            {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={14} /> Iniciar</Button>}
+            <Button variant="danger" onClick={cancel}><X size={14} /> Cancelar</Button>
+            {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={14} /> Não compareceu</Button>}
           </div>
-          {appointment.clientPhone && (
-            <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer">
-              <WhatsAppIcon size={15} /> WhatsApp
-            </a>
-          )}
         </div>
       )}
 
@@ -4364,7 +4351,14 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
           </div>
         </>
       )}
-      <div className="modal-footer"><Button variant="ghost" onClick={onClose}>Fechar</Button></div>
+      <div className="modal-footer detail-modal-footer">
+        <Button variant="ghost" onClick={onClose}>Fechar</Button>
+        {appointment.clientPhone && (
+          <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer">
+            <WhatsAppIcon size={14} /> Contatar no WhatsApp
+          </a>
+        )}
+      </div>
     </Modal>
   );
 }
