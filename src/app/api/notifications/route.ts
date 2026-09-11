@@ -34,7 +34,11 @@ export async function POST() {
   const auth = await requireAuth();
   if (!auth) return unauthorized();
 
-  await NotificationService.markAllAsRead(auth.user.companyId, auth.user.userId);
+  const isStrictEmployee = auth.user.role === "employee" && !auth.user.isSuperadmin;
+  await NotificationService.markAllAsRead(
+    auth.user.companyId,
+    isStrictEmployee ? auth.user.userId : null
+  );
 
   return Response.json({ data: { ok: true } });
 }

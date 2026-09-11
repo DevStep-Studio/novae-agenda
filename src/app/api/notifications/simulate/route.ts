@@ -1,51 +1,53 @@
 import { and, desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { appointments, bookings, companies, notificationLogs, notifications, users } from "@/db/schema";
-import { getIdentity } from "@/lib/auth";
+import { appointments, clients, notifications } from "@/db/schema";
+import { requireAuth, unauthorized } from "@/lib/auth";
 import { processBookingNotifications } from "@/lib/booking/notifications";
+import { NotificationService } from "@/lib/notifications/service";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
-    const user = await getIdentity();
-    if (!user) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (!auth) return unauthorized();
 
-    const companyId = user.companyId;
+    const companyId = auth.user.companyId;
     if (!companyId) {
-      return NextResponse.json({ error: "Empresa não encontrada para o usuário." }, { status: 400 });
+      return NextResponse.json({ error: "Empresa não encontrada para a sessão atual." }, { status: 400 });
     }
 
     const body = await request.json().catch(() => ({}));
     const type = body.type || "reminder_2h"; // 'reminder_2h' | 'new_booking' | 'cancellation' | 'payment'
 
     if (type === "reminder_2h") {
-      // Find latest confirmed appointment or booking
+      // Find latest appointment
       const [apt] = await db
-        .select()
+        .select({
+          id: appointments.id,
+          startTime: appointments.startTime,
+          clientName: clients.name,
+        })
         .from(appointments)
-        .where(and(eq(appointments.companyId, companyId), eq(appointments.status, "confirmed")))
+        .leftJoin(clients, eq(appointments.clientId, clients.id))
+        .where(eq(appointments.companyId, companyId))
         .orderBy(desc(appointments.appointmentDate))
         .limit(1);
 
+      const timeFormatted = apt?.startTime ? apt.startTime.slice(0, 5) : "15:00";
+      const customer = apt?.clientName || "Cliente VIP";
       const title = "⏰ Lembrete de Agendamento (Simulação)";
-      const messageBody = apt
-        ? `Lembrete automático: Atendimento agendado para hoje às ${apt.startTime.slice(0, 5)}.`
-        : "Lembrete automático: Você possui agendamentos programados para hoje.";
+      const messageBody = `Lembrete automático: ${customer} possui agendamento hoje às ${timeFormatted}.`;
 
-      // Insert in-app notification
-      const notifId = crypto.randomUUID();
-      await db.insert(notifications).values({
-        id: notifId,
+      const notifId = await NotificationService.createNotification({
         companyId,
-        userId: user.id,
-        type: "reminder",
+        userId: auth.user.userId,
+        type: "booking.reminder",
         title,
         body: messageBody,
-        createdAt: new Date(),
+        entityType: "appointment",
+        entityId: apt?.id || null,
       });
 
       // Force-process any pending notification logs
@@ -57,6 +59,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         data: {
           ok: true,
+          id: notifId,
           type: "reminder_2h",
           title,
           body: messageBody,
@@ -67,22 +70,21 @@ export async function POST(request: Request) {
     }
 
     if (type === "new_booking") {
-      const notifId = crypto.randomUUID();
       const title = "📅 Novo agendamento online";
       const messageBody = "Um cliente acabou de agendar um horário pelo seu link público!";
-      await db.insert(notifications).values({
-        id: notifId,
+      const notifId = await NotificationService.createNotification({
         companyId,
-        userId: user.id,
+        userId: auth.user.userId,
         type: "booking.created",
         title,
         body: messageBody,
-        createdAt: new Date(),
+        entityType: "appointment",
       });
 
       return NextResponse.json({
         data: {
           ok: true,
+          id: notifId,
           type: "new_booking",
           title,
           body: messageBody,
@@ -91,9 +93,43 @@ export async function POST(request: Request) {
       });
     }
 
+    if (type === "payment") {
+      const title = "💰 Pagamento confirmado";
+      const messageBody = "Recebimento de R$ 120,00 via PIX confirmado com sucesso.";
+      const notifId = await NotificationService.createNotification({
+        companyId,
+        userId: auth.user.userId,
+        type: "payment.received",
+        title,
+        body: messageBody,
+        entityType: "financial",
+      });
+
+      return NextResponse.json({
+        data: {
+          ok: true,
+          id: notifId,
+          type: "payment",
+          title,
+          body: messageBody,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    }
+
+    const notifId = await NotificationService.createNotification({
+      companyId,
+      userId: auth.user.userId,
+      type: "system.alert",
+      title: "🔔 Alerta do Sistema",
+      body: "Simulação de notificação do sistema executada com sucesso.",
+      entityType: "system",
+    });
+
     return NextResponse.json({
       data: {
         ok: true,
+        id: notifId,
         message: "Simulação executada com sucesso.",
       },
     });

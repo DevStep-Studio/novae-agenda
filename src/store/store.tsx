@@ -299,13 +299,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [reloadBlocks]);
 
   const markNotificationRead = useCallback(async (id: string) => {
-    await api(`/api/notifications/${id}/read`, { method: "PATCH" });
-    await reloadNotifications();
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, readAt: n.readAt || new Date().toISOString() } : n))
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+    try {
+      await api(`/api/notifications/${id}/read`, { method: "PATCH" });
+    } finally {
+      await reloadNotifications();
+    }
   }, [reloadNotifications]);
 
   const markAllNotificationsRead = useCallback(async () => {
-    await api("/api/notifications", { method: "POST" });
-    await reloadNotifications();
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, readAt: n.readAt || new Date().toISOString() }))
+    );
+    setUnreadCount(0);
+    try {
+      await api("/api/notifications", { method: "POST" });
+    } finally {
+      await reloadNotifications();
+    }
   }, [reloadNotifications]);
 
   const updateSettings = useCallback(async (input: Partial<CompanySettingsDTO>) => {

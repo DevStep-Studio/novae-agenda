@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Bell,
   CheckCheck,
@@ -10,8 +10,8 @@ import {
   Info,
   Clock,
   ExternalLink,
-  Filter,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useStore } from "@/store/store";
 import type { NotificationDTO } from "@/shared/types";
@@ -24,13 +24,13 @@ interface NotificationsViewProps {
 }
 
 export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda }: NotificationsViewProps) {
-  const { notifications, reloadNotifications, markNotificationRead, markAllNotificationsRead } = useStore();
+  const { notifications, reloadNotifications, markNotificationRead, markAllNotificationsRead, notify } = useStore();
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
   const [loading, setLoading] = useState(false);
-  const [filteredList, setFilteredList] = useState<NotificationDTO[]>([]);
+  const [simulating, setSimulating] = useState(false);
 
   // Filter notifications on state or filter change
-  useEffect(() => {
+  const filteredList = useMemo(() => {
     let result = [...notifications];
 
     if (activeFilter === "unread") {
@@ -42,6 +42,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
           n.type.startsWith("waitlist.") ||
           n.type.startsWith("customer.") ||
           n.type.startsWith("appointment_") ||
+          n.type.startsWith("reminder") ||
           n.entityType === "appointment" ||
           n.entityType === "waitlist"
       );
@@ -64,17 +65,52 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
       );
     }
 
-    setFilteredList(result);
+    return result;
   }, [notifications, activeFilter]);
 
-  const unreadTotal = notifications.filter((n) => !n.readAt).length;
+  const unreadTotal = useMemo(() => notifications.filter((n) => !n.readAt).length, [notifications]);
 
   const handleMarkAllRead = async () => {
+    if (unreadTotal === 0) return;
     setLoading(true);
     try {
       await markAllNotificationsRead();
+      notify("Todas as notificações foram marcadas como lidas!", "success");
+    } catch {
+      notify("Erro ao marcar notificações como lidas.", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSimulate = async (type: string = "reminder_2h") => {
+    setSimulating(true);
+    try {
+      const res = await fetch("/api/notifications/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Falha na simulação de notificação.");
+      }
+      
+      const label =
+        type === "reminder_2h"
+          ? "Lembrete de 2h simulado com sucesso!"
+          : type === "new_booking"
+          ? "Novo agendamento simulado com sucesso!"
+          : type === "payment"
+          ? "Pagamento simulado com sucesso!"
+          : "Notificação simulada com sucesso!";
+
+      notify(label, "success");
+      await reloadNotifications();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Erro ao simular notificação", "error");
+    } finally {
+      setSimulating(false);
     }
   };
 
@@ -89,6 +125,16 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
       } else if (onNavigateToAgenda) {
         onNavigateToAgenda();
       }
+    }
+  };
+
+  const handleSingleMarkRead = async (e: React.MouseEvent, item: NotificationDTO) => {
+    e.stopPropagation();
+    try {
+      await markNotificationRead(item.id);
+      notify("Notificação marcada como lida.", "success");
+    } catch {
+      notify("Não foi possível atualizar a notificação.", "error");
     }
   };
 
@@ -108,6 +154,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
       type.startsWith("waitlist.") ||
       type.startsWith("customer.") ||
       type.startsWith("appointment_") ||
+      type.startsWith("reminder") ||
       entityType === "appointment" ||
       entityType === "waitlist"
     ) {
@@ -136,7 +183,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
   };
 
   const getCategoryBadgeLabel = (type: string, entityType: string | null) => {
-    if (type.startsWith("booking.") || type.startsWith("appointment_") || entityType === "appointment") {
+    if (type.startsWith("booking.") || type.startsWith("appointment_") || type.startsWith("reminder") || entityType === "appointment") {
       return "Agendamento";
     }
     if (type.startsWith("payment.") || entityType === "financial") {
@@ -175,7 +222,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                 height: 32,
                 borderRadius: 8,
                 background: "rgba(220, 255, 76, 0.15)",
-                color: "var(--primary)",
+                color: "var(--primary, #dcff4c)",
               }}
             >
               <Bell size={18} />
@@ -186,8 +233,8 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             {unreadTotal > 0 && (
               <span
                 style={{
-                  background: "var(--primary)",
-                  color: "var(--primary-foreground, #080808)",
+                  background: "var(--primary, #dcff4c)",
+                  color: "#080808",
                   fontSize: 11,
                   fontWeight: 800,
                   padding: "2px 8px",
@@ -203,41 +250,45 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
+          {/* Simulate Action Button */}
           <button
             type="button"
-            onClick={async () => {
-              setLoading(true);
-              try {
-                await fetch("/api/notifications/simulate", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ type: "reminder_2h" }),
-                });
-                await reloadNotifications();
-              } finally {
-                setLoading(false);
-              }
-            }}
-            disabled={loading}
+            onClick={() => handleSimulate("reminder_2h")}
+            disabled={simulating}
+            title="Disparar lembrete automático de 2h antes do atendimento"
             style={{
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
               padding: "9px 14px",
-              background: "rgba(220, 255, 76, 0.1)",
-              border: "1px solid var(--border)",
+              background: "rgba(220, 255, 76, 0.12)",
+              border: "1px solid rgba(220, 255, 76, 0.3)",
               borderRadius: 8,
               fontSize: 12,
-              fontWeight: 600,
-              color: "var(--primary)",
-              cursor: "pointer",
+              fontWeight: 700,
+              color: "var(--primary, #dcff4c)",
+              cursor: simulating ? "not-allowed" : "pointer",
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              if (!simulating) {
+                e.currentTarget.style.background = "rgba(220, 255, 76, 0.22)";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!simulating) {
+                e.currentTarget.style.background = "rgba(220, 255, 76, 0.12)";
+                e.currentTarget.style.transform = "none";
+              }
             }}
           >
-            <Sparkles size={14} />
-            <span>Simular Lembrete 2h (QA)</span>
+            {simulating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+            <span>{simulating ? "Simulando..." : "Simular Lembrete 2h (QA)"}</span>
           </button>
 
+          {/* Mark All Read Button */}
           {unreadTotal > 0 && (
             <button
               type="button"
@@ -248,17 +299,33 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                 alignItems: "center",
                 gap: 8,
                 padding: "9px 16px",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
+                background: "var(--surface, #121212)",
+                border: "1px solid var(--border, #262626)",
                 borderRadius: 8,
                 fontSize: 12,
                 fontWeight: 600,
-                color: "var(--text-primary)",
-                cursor: "pointer",
+                color: "var(--text-primary, #ffffff)",
+                cursor: loading ? "not-allowed" : "pointer",
                 transition: "all 0.15s ease",
               }}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.borderColor = "var(--primary, #dcff4c)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.borderColor = "var(--border, #262626)";
+                  e.currentTarget.style.transform = "none";
+                }
+              }}
             >
-              <CheckCheck size={16} style={{ color: "var(--primary)" }} />
+              {loading ? (
+                <Loader2 size={15} className="spin" />
+              ) : (
+                <CheckCheck size={16} style={{ color: "var(--primary, #dcff4c)" }} />
+              )}
               <span>Marcar todas como lidas</span>
             </button>
           )}
@@ -273,7 +340,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
           overflowX: "auto",
           paddingBottom: 4,
           marginBottom: 24,
-          borderBottom: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border, #262626)",
         }}
       >
         <button
@@ -284,18 +351,19 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             borderRadius: 8,
             fontSize: 13,
             fontWeight: activeFilter === "all" ? 700 : 500,
-            border: "none",
-            background: activeFilter === "all" ? "var(--surface-active, var(--surface))" : "transparent",
-            color: activeFilter === "all" ? "var(--primary)" : "var(--text-secondary)",
+            border: activeFilter === "all" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
+            background: activeFilter === "all" ? "rgba(220, 255, 76, 0.1)" : "transparent",
+            color: activeFilter === "all" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: 6,
             whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
           }}
         >
           Todas
-          <span style={{ fontSize: 11, opacity: 0.7 }}>({notifications.length})</span>
+          <span style={{ fontSize: 11, opacity: 0.8 }}>({notifications.length})</span>
         </button>
 
         <button
@@ -306,14 +374,15 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             borderRadius: 8,
             fontSize: 13,
             fontWeight: activeFilter === "unread" ? 700 : 500,
-            border: "none",
-            background: activeFilter === "unread" ? "var(--surface-active, var(--surface))" : "transparent",
-            color: activeFilter === "unread" ? "var(--primary)" : "var(--text-secondary)",
+            border: activeFilter === "unread" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
+            background: activeFilter === "unread" ? "rgba(220, 255, 76, 0.1)" : "transparent",
+            color: activeFilter === "unread" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: 6,
             whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
           }}
         >
           Não lidas
@@ -322,8 +391,8 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
               style={{
                 fontSize: 10,
                 fontWeight: 800,
-                background: "var(--primary)",
-                color: "var(--primary-foreground, #080808)",
+                background: "var(--primary, #dcff4c)",
+                color: "#080808",
                 borderRadius: 10,
                 padding: "1px 6px",
               }}
@@ -341,14 +410,15 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             borderRadius: 8,
             fontSize: 13,
             fontWeight: activeFilter === "agendamentos" ? 700 : 500,
-            border: "none",
-            background: activeFilter === "agendamentos" ? "var(--surface-active, var(--surface))" : "transparent",
-            color: activeFilter === "agendamentos" ? "var(--primary)" : "var(--text-secondary)",
+            border: activeFilter === "agendamentos" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
+            background: activeFilter === "agendamentos" ? "rgba(220, 255, 76, 0.1)" : "transparent",
+            color: activeFilter === "agendamentos" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: 6,
             whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
           }}
         >
           <Calendar size={14} />
@@ -363,14 +433,15 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             borderRadius: 8,
             fontSize: 13,
             fontWeight: activeFilter === "financeiro" ? 700 : 500,
-            border: "none",
-            background: activeFilter === "financeiro" ? "var(--surface-active, var(--surface))" : "transparent",
-            color: activeFilter === "financeiro" ? "var(--primary)" : "var(--text-secondary)",
+            border: activeFilter === "financeiro" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
+            background: activeFilter === "financeiro" ? "rgba(220, 255, 76, 0.1)" : "transparent",
+            color: activeFilter === "financeiro" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: 6,
             whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
           }}
         >
           <DollarSign size={14} />
@@ -385,14 +456,15 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             borderRadius: 8,
             fontSize: 13,
             fontWeight: activeFilter === "sistema" ? 700 : 500,
-            border: "none",
-            background: activeFilter === "sistema" ? "var(--surface-active, var(--surface))" : "transparent",
-            color: activeFilter === "sistema" ? "var(--primary)" : "var(--text-secondary)",
+            border: activeFilter === "sistema" ? "1px solid rgba(220, 255, 76, 0.4)" : "1px solid transparent",
+            background: activeFilter === "sistema" ? "rgba(220, 255, 76, 0.1)" : "transparent",
+            color: activeFilter === "sistema" ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: 6,
             whiteSpace: "nowrap",
+            transition: "all 0.15s ease",
           }}
         >
           <Info size={14} />
@@ -415,20 +487,20 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                   gap: 16,
                   padding: "16px 20px",
                   borderRadius: 12,
-                  background: isUnread ? "var(--surface)" : "var(--surface-secondary)",
-                  border: isUnread ? "1px solid rgba(220, 255, 76, 0.28)" : "1px solid var(--border)",
-                  boxShadow: isUnread ? "0 2px 10px rgba(0,0,0,0.15)" : "none",
+                  background: isUnread ? "var(--surface, #121212)" : "var(--surface-secondary, #181818)",
+                  border: isUnread ? "1px solid rgba(220, 255, 76, 0.35)" : "1px solid var(--border, #262626)",
+                  boxShadow: isUnread ? "0 4px 16px rgba(0,0,0,0.3)" : "none",
                   cursor: "pointer",
                   transition: "all 0.15s ease",
                   position: "relative",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.borderColor = "var(--primary)";
+                  e.currentTarget.style.borderColor = "var(--primary, #dcff4c)";
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "none";
-                  e.currentTarget.style.borderColor = isUnread ? "rgba(220, 255, 76, 0.28)" : "var(--border)";
+                  e.currentTarget.style.borderColor = isUnread ? "rgba(220, 255, 76, 0.35)" : "var(--border, #262626)";
                 }}
               >
                 {/* Unread indicator dot */}
@@ -442,8 +514,8 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                       width: 6,
                       height: 6,
                       borderRadius: "50%",
-                      background: "var(--primary)",
-                      boxShadow: "0 0 8px var(--primary)",
+                      background: "var(--primary, #dcff4c)",
+                      boxShadow: "0 0 8px var(--primary, #dcff4c)",
                     }}
                   />
                 )}
@@ -454,8 +526,8 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                     width: 38,
                     height: 38,
                     borderRadius: 10,
-                    background: isUnread ? "rgba(220, 255, 76, 0.14)" : "var(--surface-tertiary)",
-                    color: isUnread ? "var(--primary)" : "var(--text-secondary)",
+                    background: isUnread ? "rgba(220, 255, 76, 0.14)" : "var(--surface-tertiary, #222222)",
+                    color: isUnread ? "var(--primary, #dcff4c)" : "var(--text-secondary)",
                     display: "grid",
                     placeItems: "center",
                     flex: "0 0 auto",
@@ -471,7 +543,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                       style={{
                         fontSize: 14,
                         fontWeight: isUnread ? 700 : 600,
-                        color: "var(--text-primary)",
+                        color: "var(--text-primary, #ffffff)",
                       }}
                     >
                       {item.title}
@@ -484,8 +556,9 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                         letterSpacing: "0.04em",
                         padding: "2px 6px",
                         borderRadius: 4,
-                        background: "var(--surface-tertiary)",
-                        color: "var(--text-muted)",
+                        background: "var(--surface-tertiary, #222222)",
+                        color: "var(--text-muted, #737373)",
+                        border: "1px solid var(--border, #262626)",
                       }}
                     >
                       {getCategoryBadgeLabel(item.type, item.entityType)}
@@ -493,13 +566,13 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                   </div>
 
                   {item.body && (
-                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary, #a3a3a3)", lineHeight: 1.5 }}>
                       {item.body}
                     </p>
                   )}
 
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--text-muted)" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--text-muted, #737373)" }}>
                       <Clock size={12} />
                       {formatTimestamp(item.createdAt)}
                     </span>
@@ -512,7 +585,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                           gap: 4,
                           fontSize: 11,
                           fontWeight: 600,
-                          color: "var(--primary)",
+                          color: "var(--primary, #dcff4c)",
                         }}
                       >
                         <ExternalLink size={11} />
@@ -526,28 +599,27 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                 {isUnread && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void markNotificationRead(item.id);
-                    }}
+                    onClick={(e) => handleSingleMarkRead(e, item)}
                     title="Marcar como lida"
                     style={{
                       border: "none",
                       background: "transparent",
-                      color: "var(--text-muted)",
+                      color: "var(--text-muted, #737373)",
                       padding: 6,
                       borderRadius: 6,
                       cursor: "pointer",
                       display: "grid",
                       placeItems: "center",
                       flex: "0 0 auto",
-                      transition: "color 0.15s ease",
+                      transition: "all 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--primary)";
+                      e.currentTarget.style.color = "var(--primary, #dcff4c)";
+                      e.currentTarget.style.background = "rgba(220, 255, 76, 0.12)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "var(--text-muted)";
+                      e.currentTarget.style.color = "var(--text-muted, #737373)";
+                      e.currentTarget.style.background = "transparent";
                     }}
                   >
                     <Check size={16} />
@@ -561,9 +633,9 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             style={{
               padding: "48px 24px",
               textAlign: "center",
-              background: "var(--surface)",
+              background: "var(--surface, #121212)",
               borderRadius: 16,
-              border: "1px solid var(--border)",
+              border: "1px solid var(--border, #262626)",
             }}
           >
             <div
@@ -571,8 +643,8 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                 width: 48,
                 height: 48,
                 borderRadius: "50%",
-                background: "var(--surface-secondary)",
-                color: "var(--text-muted)",
+                background: "var(--surface-secondary, #181818)",
+                color: "var(--text-muted, #737373)",
                 display: "grid",
                 placeItems: "center",
                 margin: "0 auto 16px",
@@ -580,16 +652,37 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             >
               <Bell size={22} />
             </div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", color: "var(--text-primary)" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px", color: "var(--text-primary, #ffffff)" }}>
               {activeFilter === "unread"
                 ? "Tudo em dia!"
                 : "Nenhuma notificação encontrada"}
             </h3>
-            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)", maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-secondary, #a3a3a3)", maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
               {activeFilter === "unread"
                 ? "Você já leu todas as notificações recentes."
                 : "Quando ocorrerem agendamentos, pagamentos ou novidades no sistema, eles aparecerão aqui."}
             </p>
+            <button
+              type="button"
+              onClick={() => handleSimulate("reminder_2h")}
+              disabled={simulating}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                borderRadius: 8,
+                background: "rgba(220, 255, 76, 0.12)",
+                border: "1px solid rgba(220, 255, 76, 0.3)",
+                color: "var(--primary, #dcff4c)",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <Sparkles size={14} />
+              Simular Notificação de Teste
+            </button>
           </div>
         )}
       </div>
