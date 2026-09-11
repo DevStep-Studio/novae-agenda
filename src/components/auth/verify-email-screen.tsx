@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, LogOut, MailCheck, RotateCcw } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 
 type Props = {
   /** Present when the user arrived from a "?verify=" e-mail link. */
@@ -62,12 +63,7 @@ export function VerifyEmailScreen({ token, email, authenticated, onVerified, onL
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        <div className="auth-brand-mark">
-          <MailCheck size={18} strokeWidth={2.4} />
-        </div>
-        <span className="auth-brand-name">
-          Nova<span>(e)</span>
-        </span>
+        <ReserveiLogo size={40} priority />
       </div>
 
       <div className="auth-card">
@@ -141,7 +137,7 @@ export function VerifyEmailScreen({ token, email, authenticated, onVerified, onL
           )}
         </div>
       </div>
-      <p className="auth-footer">Nova(e) · gestão de agenda para o seu negócio</p>
+      <p className="auth-footer">reservei · gestão e agendamento inteligente</p>
     </div>
   );
 }

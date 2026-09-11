@@ -286,7 +286,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
           /* ========================================================= */
           <div className="auth-view-animated">
             <h1>
-              {mode === "login" ? "Bem-vindo ao Nova(e)" : "Crie sua conta"}
+              {mode === "login" ? "Bem-vindo ao Reservei" : "Crie sua conta"}
             </h1>
             <p className="auth-subtitle">
               {mode === "login"

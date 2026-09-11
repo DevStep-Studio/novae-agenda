@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 
+import { ReserveiLogo } from "@/components/brand/novae-logo";
+
 export function ResetPasswordScreen({ token, onDone }: { token: string; onDone: () => void }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,12 +42,7 @@ export function ResetPasswordScreen({ token, onDone }: { token: string; onDone: 
   return (
     <div className="auth-shell">
       <div className="auth-brand">
-        <div className="auth-brand-mark">
-          <KeyRound size={18} strokeWidth={2.4} />
-        </div>
-        <span className="auth-brand-name">
-          Nova<span>(e)</span>
-        </span>
+        <ReserveiLogo size={40} priority />
       </div>
 
       <div className="auth-card">
@@ -133,7 +130,7 @@ export function ResetPasswordScreen({ token, onDone }: { token: string; onDone: 
           )}
         </div>
       </div>
-      <p className="auth-footer">Nova(e) · gestão de agenda para o seu negócio</p>
+      <p className="auth-footer">reservei · gestão e agendamento inteligente</p>
     </div>
   );
 }
