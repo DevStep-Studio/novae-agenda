@@ -120,6 +120,7 @@
 .pageLight .service,
 .pageLight .successCard,
 .pageLight .slotsSection,
+.pageLight .quickNextSection,
 .pageLight .bottomSheet {
   background: var(--paper);
   border-color: var(--line);
@@ -132,7 +133,8 @@
 .pageLight .profile h2,
 .pageLight .serviceDetails h3,
 .pageLight .successTitle,
-.pageLight .slotsSectionTitle {
+.pageLight .slotsSectionTitle,
+.pageLight .quickNextTitle {
   color: var(--booking-text);
 }
 
@@ -152,9 +154,26 @@
   background: transparent;
 }
 
-.pageLight .slotChip {
+.pageLight .slotChip,
+.pageLight .quickNextSlotChip {
   background: var(--paper);
   border-color: rgba(18, 35, 27, 0.12);
+  color: var(--booking-text);
+}
+
+.pageLight .quickNextDayLabel {
+  color: var(--booking-text-muted);
+}
+
+.pageLight .fullCalendarToggleBtn {
+  background: var(--booking-surface-secondary);
+  border-color: rgba(18, 35, 27, 0.14);
+  color: var(--booking-text-secondary);
+}
+
+.pageLight .fullCalendarToggleBtn:hover {
+  background: var(--booking-surface-hover);
+  border-color: rgba(18, 35, 27, 0.25);
   color: var(--booking-text);
 }
 
@@ -2287,7 +2306,7 @@
   padding: var(--booking-space-4);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   margin-bottom: 16px;
   box-shadow: var(--shadow-sm);
 }
@@ -2298,7 +2317,7 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--line-subtle);
 }
 
@@ -2306,56 +2325,58 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--booking-text);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .quickNextTitle svg {
   color: var(--accent);
+  flex-shrink: 0;
 }
 
 .fullCalendarToggleBtn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 5px 10px;
+  background: var(--booking-surface-secondary);
+  border: 1px solid var(--booking-border);
+  border-radius: 8px;
+  padding: 6px 12px;
   font: inherit;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--muted-light);
+  color: var(--booking-text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .fullCalendarToggleBtn:hover {
   border-color: var(--booking-border-strong);
-  color: var(--ink);
-  background: var(--paper-hover);
+  color: var(--booking-text);
+  background: var(--booking-surface-hover);
 }
 
 .quickNextDaysList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .quickNextDayGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .quickNextDayLabel {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--text-secondary);
+  color: var(--booking-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2364,19 +2385,19 @@
 .quickNextSlotsGrid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--booking-space-2);
+  gap: 8px;
 }
 
 .quickNextSlotChip {
   width: 100%;
   min-height: 44px;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-radius: 8px;
-  background: var(--paper-card);
-  border: 1px solid var(--line);
-  color: var(--ink);
+  background: var(--booking-surface-secondary);
+  border: 1px solid var(--booking-border);
+  color: var(--booking-text);
   font: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
@@ -2384,19 +2405,26 @@
   justify-content: center;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .quickNextSlotChip:hover {
-  background: var(--paper-hover);
+  background: var(--booking-surface-hover);
   border-color: var(--accent);
-  color: var(--ink);
+  color: var(--booking-text);
+  transform: translateY(-1px);
+}
+
+.quickNextSlotChip:active {
+  transform: translateY(0);
 }
 
 .quickNextSlotChipActive {
   background: var(--accent) !important;
   border-color: var(--accent) !important;
   color: var(--accent-contrast) !important;
-  box-shadow: var(--booking-shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  font-weight: 800 !important;
 }
 
 .serviceQuickSlotBadge {
