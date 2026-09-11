@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
-  Clock, Clock3, FileText, Globe, Home, Laptop, LogOut, Mail, MapPin,
+  Clock, Clock3, CreditCard, FileText, Globe, Home, Laptop, LogOut, Mail, MapPin,
   ImagePlus, Menu, MessageCircle, Moon, MoreHorizontal, Palette, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon,
@@ -3902,38 +3902,110 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   const canManageAppointment = appointment.status !== "completed" && appointment.status !== "cancelled" && appointment.status !== "no_show";
 
   return (
-    <Modal title="Detalhes do atendimento" eyebrow={`${shortDate(appointment.date)} · ${normalizeTime(appointment.startTime)}`} onClose={onClose} wide>
-      <div className="detail-person"><Avatar name={appointment.clientName} photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl} color={avatarColor(appointment.clientName)} size="lg" /><div><h3>{appointment.clientName}</h3><p>{appointment.clientPhone}</p></div><StatusBadge status={appointment.status} /></div>
-      <div className="detail-grid">
-        <div><span>Serviço</span><strong>{appointment.serviceName}</strong></div>
-        <div><span>Profissional</span><strong>{appointment.employeeName}</strong></div>
-        <div><span>Unidade</span><strong>{appointment.locationName ?? "Unidade Principal"}</strong></div>
-        <div><span>Horário</span><strong>{normalizeTime(appointment.startTime)} – {normalizeTime(appointment.endTime)}</strong></div>
-        <div><span>Duração</span><strong>{appointment.durationMinutes} minutos</strong></div>
-        <div><span>Valor previsto</span><strong>{formatCurrency(appointment.total)}</strong></div>
-        <div><span>Pagamento</span><strong>{appointment.paid ? `Recebido (${appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "OK"})` : "Pendente"}</strong></div>
+    <Modal
+      title="Detalhes do atendimento"
+      eyebrow={`${shortDate(appointment.date)} · ${normalizeTime(appointment.startTime)}`}
+      onClose={onClose}
+      wide
+    >
+      <div className="detail-person">
+        <Avatar
+          name={appointment.clientName}
+          photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl}
+          color={avatarColor(appointment.clientName)}
+          size="lg"
+        />
+        <div className="detail-person-info">
+          <h3>{appointment.clientName}</h3>
+          <p>
+            <Phone size={13} />
+            {appointment.clientPhone || "Sem telefone cadastrado"}
+          </p>
+        </div>
+        <StatusBadge status={appointment.status} />
       </div>
-      {appointment.notes && <div className="detail-note"><FileText size={15} /><span>{appointment.notes}</span></div>}
+
+      <div className="detail-grid">
+        <div className="detail-card-item">
+          <span className="detail-card-label"><Scissors size={13} /> Serviço</span>
+          <strong className="detail-card-value">{appointment.serviceName}</strong>
+        </div>
+        <div className="detail-card-item">
+          <span className="detail-card-label"><UserRound size={13} /> Profissional</span>
+          <strong className="detail-card-value">{appointment.employeeName}</strong>
+        </div>
+        <div className="detail-card-item">
+          <span className="detail-card-label"><MapPin size={13} /> Unidade</span>
+          <strong className="detail-card-value">{appointment.locationName ?? "Unidade Principal"}</strong>
+        </div>
+        <div className="detail-card-item">
+          <span className="detail-card-label"><Clock3 size={13} /> Horário</span>
+          <strong className="detail-card-value">{normalizeTime(appointment.startTime)} – {normalizeTime(appointment.endTime)}</strong>
+        </div>
+        <div className="detail-card-item">
+          <span className="detail-card-label"><Clock size={13} /> Duração</span>
+          <strong className="detail-card-value">{appointment.durationMinutes} minutos</strong>
+        </div>
+        <div className="detail-card-item">
+          <span className="detail-card-label"><CircleDollarSign size={13} /> Valor previsto</span>
+          <strong className="detail-card-value">{formatCurrency(appointment.total)}</strong>
+        </div>
+        <div className="detail-card-item detail-card-full">
+          <span className="detail-card-label"><CreditCard size={13} /> Status do Pagamento</span>
+          <strong className="detail-card-value" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {appointment.paid ? (
+              <span style={{ color: "var(--success, #22c55e)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <CheckCircle2 size={15} /> Recebido ({appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "Presencial"})
+              </span>
+            ) : (
+              <span style={{ color: "var(--warning, #f59e0b)", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                <CircleAlert size={15} /> Pagamento pendente no estabelecimento
+              </span>
+            )}
+          </strong>
+        </div>
+      </div>
+
+      {appointment.notes && (
+        <div className="detail-note">
+          <FileText size={16} />
+          <div>
+            <strong style={{ display: "block", fontSize: "10px", fontWeight: 700, marginBottom: "2px", textTransform: "uppercase", letterSpacing: "0.6px", opacity: 0.85 }}>Observações do agendamento</strong>
+            <span>{appointment.notes}</span>
+          </div>
+        </div>
+      )}
 
       {(canManageAppointment || appointment.clientPhone) && (
         <div className="detail-actions-inline">
-          {canManageAppointment && (
-            <>
-              {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={15} /> Confirmar</Button>}
-              {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={15} /> Cliente chegou</Button>}
-              {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={15} /> Iniciar</Button>}
-              <Button variant="danger" onClick={cancel}><X size={15} /> Cancelar</Button>
-              {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={15} /> Não compareceu</Button>}
-            </>
+          <div className="detail-status-actions">
+            {canManageAppointment && (
+              <>
+                {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={14} /> Confirmar</Button>}
+                {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={14} /> Cliente chegou</Button>}
+                {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={14} /> Iniciar</Button>}
+                <Button variant="danger" onClick={cancel}><X size={14} /> Cancelar</Button>
+                {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={14} /> Não compareceu</Button>}
+              </>
+            )}
+          </div>
+          {appointment.clientPhone && (
+            <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer">
+              <MessageCircle size={15} /> WhatsApp
+            </a>
           )}
-          {appointment.clientPhone && <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}
         </div>
       )}
 
       {canManageAppointment && (
         <>
           <div className="detail-section">
-            <div className="detail-section-head"><h3>Finalizar atendimento e receber</h3><Button onClick={doFinish} disabled={finishing}>{finishing ? "Processando..." : <><CheckCheck size={16} /> Finalizar e registrar {formatCurrency(finalCharge)}</>}</Button></div>
+            <div className="detail-section-head">
+              <h3>Finalizar atendimento e registrar pagamento</h3>
+              <Button onClick={doFinish} disabled={finishing}>
+                {finishing ? "Processando..." : <><CheckCheck size={15} /> Finalizar e registrar {formatCurrency(finalCharge)}</>}
+              </Button>
+            </div>
             <div className="finish-fields">
               <Field label="Valor original"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div></Field>
               <Field label="Desconto opcional"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} /></div></Field>
@@ -3943,15 +4015,20 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
           </div>
 
           <div className="detail-section">
-            <div className="detail-section-head"><h3>Reagendar</h3><Button variant="secondary" onClick={doReschedule} disabled={rescheduling}>{rescheduling ? "Reagendando..." : <><CalendarDays size={15} /> Reagendar</>}</Button></div>
+            <div className="detail-section-head">
+              <h3>Reagendar atendimento</h3>
+              <Button variant="secondary" onClick={doReschedule} disabled={rescheduling}>
+                {rescheduling ? "Reagendando..." : <><CalendarDays size={15} /> Reagendar</>}
+              </Button>
+            </div>
             <div className="finish-fields">
               <Field label="Nova data"><input className="input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} /></Field>
               <Field label="Profissional"><SelectField value={newEmployee} onChange={(e) => setNewEmployee(e.target.value)}>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
-              <Field label="Novo horário">
+              <Field label="Novo horário" className="field-full">
                 <input className="input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
                 {rescheduleSlots.length > 0 && (
                   <div className="slot-chips-wrap">
-                    <span className="slot-chips-label">Horários livres:</span>
+                    <span className="slot-chips-label">Horários livres sugeridos:</span>
                     <div className="slot-chips-grid">
                       {rescheduleSlots.slice(0, 10).map((s) => (
                         <button type="button" key={s.startTime} className={`slot-chip ${newTime === s.startTime ? "active" : ""}`} onClick={() => setNewTime(s.startTime)}>
