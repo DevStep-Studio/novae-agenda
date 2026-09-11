@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { appointments, clients, payments } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, normalizePhoneDigits } from "@/lib/domain";
+import { saveClientImage } from "@/lib/storage";
 import type { ClientDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -110,7 +111,8 @@ export async function GET(request: Request) {
 const createSchema = z.object({
   name: z.string().min(2, "Informe o nome do cliente.").max(120),
   phone: z.string().min(8, "Informe um telefone válido.").max(20),
-  email: z.string().email("E-mail inválido.").optional().or(z.literal("")),
+  email: z.string().email("E-mail inválido.").optional().or(z.literal("")).nullable(),
+  photoUrl: z.string().optional().nullable(),
   notes: z.string().max(2000).optional(),
 });
 
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
-  const { name, phone, email, notes } = parsed.data;
+  const { name, phone, email, photoUrl, notes } = parsed.data;
 
   // Different formats of the same number ("(21) 99999-9999" vs "21999999999")
   // must not create two client records — compare on normalized digits rather
@@ -143,10 +145,22 @@ export async function POST(request: Request) {
     );
   }
 
+  let savedPhotoUrl: string | null = null;
+  if (photoUrl && photoUrl.trim()) {
+    try {
+      savedPhotoUrl = await saveClientImage(photoUrl);
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : "Imagem do cliente inválida." },
+        { status: 400 },
+      );
+    }
+  }
+
   const clientId = crypto.randomUUID();
   const trimmedName = name.trim();
   const trimmedPhone = phone.trim();
-  const trimmedEmail = email?.trim() || null;
+  const trimmedEmail = email && email.trim() ? email.trim().toLowerCase() : null;
   const trimmedNotes = notes?.trim() || null;
   const createdAt = new Date();
 
@@ -156,6 +170,7 @@ export async function POST(request: Request) {
       id: clientId,
       companyId: auth.user.companyId,
       name: trimmedName,
+      photoUrl: savedPhotoUrl,
       phone: trimmedPhone,
       email: trimmedEmail,
       notes: trimmedNotes,
@@ -168,6 +183,7 @@ export async function POST(request: Request) {
     name: trimmedName,
     phone: trimmedPhone,
     email: trimmedEmail,
+    photoUrl: savedPhotoUrl,
     notes: trimmedNotes,
     active: true,
     initials: initials(trimmedName),

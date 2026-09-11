@@ -3660,6 +3660,75 @@ a[style*="--brand-lime"] svg,
   margin-top: 6px;
 }
 
+/* ===== Client Photo Field Card ===== */
+.client-photo-field {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  margin: 16px 24px 0;
+  background: var(--surface-secondary, #14161a);
+  border: 1px solid var(--border, #242731);
+  border-radius: 12px;
+}
+:root:not([data-theme="dark"]) .client-photo-field {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.client-photo-preview {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 50%;
+  background: var(--surface-tertiary, #1f232b);
+  border: 1px solid var(--border-strong, #333846);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--primary, #dcff4c);
+  font-size: 16px;
+  font-weight: 700;
+}
+:root:not([data-theme="dark"]) .client-photo-preview {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #1f6f66;
+}
+.client-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.client-photo-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.client-photo-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #f5f5f5);
+}
+.client-photo-copy span {
+  font-size: 11px;
+  color: var(--text-muted, #737373);
+}
+.client-photo-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.client-photo-actions .button {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
 /* Field Container & Label */
 .field {
   display: flex;
@@ -5392,6 +5461,29 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .profile-btn-schedule:hover {
   background: var(--primary-hover, #cbfa33);
   border-color: var(--primary-hover, #cbfa33);
+  transform: translateY(-1px);
+}
+
+.profile-btn-edit {
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  background: var(--surface-secondary, #181818);
+  border: 1px solid var(--border, #2a2a2a);
+  color: var(--text-primary, #ffffff);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profile-btn-edit:hover {
+  background: var(--surface-tertiary, #222222);
+  border-color: var(--border-strong, #3a3a3a);
   transform: translateY(-1px);
 }
 

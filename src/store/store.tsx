@@ -55,8 +55,8 @@ type Store = DataState & {
   refreshAll: () => Promise<void>;
   createLocation: (input: { name: string; address?: string; phone?: string; openTime?: string; closeTime?: string }) => Promise<LocationDTO>;
   updateLocation: (id: string, input: { name?: string; address?: string; phone?: string; openTime?: string; closeTime?: string }) => Promise<void>;
-  createClient: (input: { name: string; phone: string; email?: string; notes?: string }) => Promise<ClientDTO>;
-  updateClient: (id: string, input: { name: string; phone: string; email?: string; notes?: string }) => Promise<void>;
+  createClient: (input: { name: string; phone: string; email?: string; photoUrl?: string | null; notes?: string }) => Promise<ClientDTO>;
+  updateClient: (id: string, input: { name?: string; phone?: string; email?: string | null; photoUrl?: string | null; notes?: string | null; internalNotes?: string | null }) => Promise<void>;
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
   createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
@@ -215,13 +215,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await reloadLocations();
   }, [reloadLocations]);
 
-  const createClient = useCallback(async (input: { name: string; phone: string; email?: string; notes?: string }) => {
+  const createClient = useCallback(async (input: { name: string; phone: string; email?: string; photoUrl?: string | null; notes?: string }) => {
     const data = await api<ClientDTO>("/api/clients", { method: "POST", body: JSON.stringify(input) });
     await reloadClients();
     return data;
   }, [reloadClients]);
 
-  const updateClient = useCallback(async (id: string, input: { name: string; phone: string; email?: string; notes?: string }) => {
+  const updateClient = useCallback(async (id: string, input: { name?: string; phone?: string; email?: string | null; photoUrl?: string | null; notes?: string | null; internalNotes?: string | null }) => {
     await api(`/api/clients/${id}`, { method: "PATCH", body: JSON.stringify(input) });
     await reloadClients();
   }, [reloadClients]);

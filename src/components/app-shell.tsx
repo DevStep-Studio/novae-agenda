@@ -1178,6 +1178,7 @@ function ClientDrawer({
   const [error, setError] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [editingClient, setEditingClient] = useState(false);
   const client = clients.find((c) => c.id === clientId);
 
   useEffect(() => {
@@ -1240,13 +1241,13 @@ function ClientDrawer({
         <div className="profile-hero">
           <div className="profile-avatar-wrap">
             <Avatar
-              name={client.name}
+              name={detail?.name ?? client.name}
               photoUrl={detail?.photoUrl ?? client.photoUrl}
-              color={avatarColor(client.name)}
+              color={avatarColor(detail?.name ?? client.name)}
               size="lg"
             />
           </div>
-          <h2>{client.name}</h2>
+          <h2>{detail?.name ?? client.name}</h2>
           {detail?.createdAt && (
             <p className="profile-since">
               Cliente desde {new Date(detail.createdAt).toLocaleDateString("pt-BR")}
@@ -1258,7 +1259,7 @@ function ClientDrawer({
               <a
                 className="profile-btn-whatsapp"
                 href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(
-                  `Olá, ${client.name}! Agradecemos a sua preferência na Agenda.`,
+                  `Olá, ${detail?.name ?? client.name}! Agradecemos a sua preferência na Agenda.`,
                 )}`}
                 target="_blank"
                 rel="noreferrer"
@@ -1269,9 +1270,17 @@ function ClientDrawer({
             <button
               type="button"
               className="profile-btn-schedule"
-              onClick={() => onNewAppointment(client)}
+              onClick={() => onNewAppointment(detail ?? client)}
             >
               <CalendarPlus size={15} /> Agendar
+            </button>
+            <button
+              type="button"
+              className="profile-btn-edit"
+              onClick={() => setEditingClient(true)}
+              title="Editar dados e foto do cliente"
+            >
+              <Pencil size={15} /> Editar
             </button>
           </div>
         </div>
@@ -1434,6 +1443,28 @@ function ClientDrawer({
           </div>
         </section>
       </aside>
+
+      {editingClient && (
+        <EditClientModal
+          client={{
+            ...client,
+            name: detail?.name ?? client.name,
+            phone: detail?.phone ?? client.phone,
+            email: detail?.email ?? client.email,
+            photoUrl: detail?.photoUrl ?? client.photoUrl,
+            notes: detail?.notes ?? client.notes,
+          }}
+          onClose={() => setEditingClient(false)}
+          onUpdated={() => {
+            api<import("@/shared/types").ClientDetailDTO>(`/api/clients/${clientId}`)
+              .then((data) => {
+                setDetail(data);
+                setInternalNotes(data.internalNotes || "");
+              })
+              .catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -3519,7 +3550,10 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -3533,6 +3567,19 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     return digits.length >= 10 && digits.length <= 11;
   };
 
+  const handlePhoto = async (file?: File) => {
+    if (!file) return;
+    setPreparingPhoto(true);
+    try {
+      setPhotoUrl(await prepareImageUpload(file, { maxDimension: 512, square: true }));
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Não foi possível preparar a foto.", "error");
+    } finally {
+      setPreparingPhoto(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const nextPhone = formatPhone(phone);
@@ -3541,9 +3588,21 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       return;
     }
 
+    const trimmedEmail = email.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      notify("Digite um e-mail válido ou deixe o campo vazio.", "error");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await createClient({ name, phone: nextPhone, email: email || undefined, notes: notes || undefined });
+      await createClient({
+        name: name.trim(),
+        phone: nextPhone,
+        email: trimmedEmail || undefined,
+        photoUrl,
+        notes: notes.trim() || undefined,
+      });
       notify("Cliente cadastrado com sucesso.");
       onClose();
     } catch (e) {
@@ -3556,6 +3615,38 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Novo cliente" eyebrow="Adicionar à sua base" icon={UserPlus} onClose={onClose}>
       <form onSubmit={submit} noValidate>
+        <div className="client-photo-field">
+          <div className="client-photo-preview" aria-hidden="true">
+            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Cliente")}</span>}
+          </div>
+          <div className="client-photo-copy">
+            <strong>Foto do cliente</strong>
+            <span>JPG, PNG ou WEBP · opcional</span>
+            <div className="client-photo-actions">
+              <input
+                ref={photoInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={(e) => void handlePhoto(e.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={preparingPhoto}
+                onClick={() => photoInput.current?.click()}
+              >
+                <ImagePlus size={15} /> {preparingPhoto ? "Preparando…" : photoUrl ? "Alterar foto" : "Adicionar foto"}
+              </Button>
+              {photoUrl && (
+                <Button type="button" variant="ghost" onClick={() => setPhotoUrl(null)}>
+                  <Trash2 size={14} /> Remover
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="modal-form-grid single">
           <Field label="Nome completo" icon={User}>
             <div className="modal-input-wrap">
@@ -3586,6 +3677,155 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
           <div className="modal-actions" style={{ marginLeft: "auto" }}>
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Cadastrar cliente</>}</Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditClientModal({
+  client,
+  onClose,
+  onUpdated,
+}: {
+  client: ClientDTO;
+  onClose: () => void;
+  onUpdated?: () => void;
+}) {
+  const { updateClient, notify } = useStore();
+  const [name, setName] = useState(client.name);
+  const [phone, setPhone] = useState(client.phone || "");
+  const [email, setEmail] = useState(client.email || "");
+  const [notes, setNotes] = useState(client.notes || "");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(client.photoUrl ?? null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits ? `(${digits}` : "";
+    if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const isValidPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    return digits.length >= 10 && digits.length <= 11;
+  };
+
+  const handlePhoto = async (file?: File) => {
+    if (!file) return;
+    setPreparingPhoto(true);
+    try {
+      setPhotoUrl(await prepareImageUpload(file, { maxDimension: 512, square: true }));
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Não foi possível preparar a foto.", "error");
+    } finally {
+      setPreparingPhoto(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const nextPhone = formatPhone(phone);
+    if (!isValidPhone(nextPhone)) {
+      notify("Digite um telefone celular válido.", "error");
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      notify("Digite um e-mail válido ou deixe o campo vazio.", "error");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateClient(client.id, {
+        name: name.trim(),
+        phone: nextPhone,
+        email: trimmedEmail || null,
+        photoUrl,
+        notes: notes.trim() || null,
+      });
+      notify("Dados do cliente atualizados com sucesso!");
+      onUpdated?.();
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Não foi possível atualizar o cliente.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal title="Editar cliente" eyebrow="Ficha cadastral" icon={Pencil} onClose={onClose}>
+      <form onSubmit={submit} noValidate>
+        <div className="client-photo-field">
+          <div className="client-photo-preview" aria-hidden="true">
+            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Cliente")}</span>}
+          </div>
+          <div className="client-photo-copy">
+            <strong>Foto do cliente</strong>
+            <span>JPG, PNG ou WEBP · opcional</span>
+            <div className="client-photo-actions">
+              <input
+                ref={photoInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={(e) => void handlePhoto(e.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={preparingPhoto}
+                onClick={() => photoInput.current?.click()}
+              >
+                <ImagePlus size={15} /> {preparingPhoto ? "Preparando…" : photoUrl ? "Alterar foto" : "Adicionar foto"}
+              </Button>
+              {photoUrl && (
+                <Button type="button" variant="ghost" onClick={() => setPhotoUrl(null)}>
+                  <Trash2 size={14} /> Remover
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-form-grid single">
+          <Field label="Nome completo" icon={User}>
+            <div className="modal-input-wrap">
+              <User size={18} className="modal-input-icon" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Fernanda Almeida" required minLength={2} />
+            </div>
+          </Field>
+          <Field label="Telefone / WhatsApp" icon={Phone}>
+            <div className="modal-input-wrap">
+              <Phone size={18} className="modal-input-icon" />
+              <input className="input" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" inputMode="numeric" required />
+            </div>
+          </Field>
+          <Field label="E-mail (opcional)" icon={Mail}>
+            <div className="modal-input-wrap">
+              <Mail size={18} className="modal-input-icon" />
+              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@dominio.com" />
+            </div>
+          </Field>
+          <Field label="Observações (opcional)" icon={FileText}>
+            <div className="modal-input-wrap textarea-wrap">
+              <FileText size={18} className="modal-input-icon" />
+              <textarea className="input textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Preferências ou dados relevantes do cliente..." rows={3} />
+            </div>
+          </Field>
+        </div>
+        <div className="modal-footer">
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : "Salvar alterações"}</Button>
           </div>
         </div>
       </form>

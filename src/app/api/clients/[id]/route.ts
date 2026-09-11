@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { appointments, clients, employees, locations, services, appointmentServices, payments } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
+import { deleteClientImage, saveClientImage } from "@/lib/storage";
 import type { ClientDetailDTO, HistoryItemDTO, PaymentMethod } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -141,7 +142,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 const updateSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   phone: z.string().min(8).max(20).optional(),
-  email: z.string().email().optional().or(z.literal("")).nullable(),
+  email: z.string().email("E-mail inválido.").optional().or(z.literal("")).nullable(),
+  photoUrl: z.string().optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
   internalNotes: z.string().max(4000).optional().nullable(),
 });
@@ -159,20 +161,38 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
 
-  const { name, phone, email, notes, internalNotes } = parsed.data;
-  const updateData: Record<string, any> = {};
-  if (name !== undefined) updateData.name = name.trim();
-  if (phone !== undefined) updateData.phone = phone.trim();
-  if (email !== undefined) updateData.email = email?.trim() || null;
-  if (notes !== undefined) updateData.notes = notes?.trim() || null;
-  if (internalNotes !== undefined) updateData.internalNotes = internalNotes?.trim() || null;
-
   const [existing] = await db
-    .select({ id: clients.id })
+    .select({ id: clients.id, photoUrl: clients.photoUrl })
     .from(clients)
     .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
 
   if (!existing) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
+
+  const { name, phone, email, photoUrl, notes, internalNotes } = parsed.data;
+  const updateData: Record<string, any> = {};
+  if (name !== undefined) updateData.name = name.trim();
+  if (phone !== undefined) updateData.phone = phone.trim();
+  if (email !== undefined) updateData.email = email && email.trim() ? email.trim().toLowerCase() : null;
+  if (notes !== undefined) updateData.notes = notes?.trim() || null;
+  if (internalNotes !== undefined) updateData.internalNotes = internalNotes?.trim() || null;
+
+  if (photoUrl !== undefined) {
+    if (photoUrl && photoUrl.trim()) {
+      try {
+        updateData.photoUrl = await saveClientImage(photoUrl, existing.photoUrl);
+      } catch (error) {
+        return Response.json(
+          { error: error instanceof Error ? error.message : "Imagem do cliente inválida." },
+          { status: 400 },
+        );
+      }
+    } else {
+      if (existing.photoUrl) {
+        await deleteClientImage(existing.photoUrl);
+      }
+      updateData.photoUrl = null;
+    }
+  }
 
   await db
     .update(clients)
