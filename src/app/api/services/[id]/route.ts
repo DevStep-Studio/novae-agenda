@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { employeeServices, employees, serviceCategories, services } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { centsToNumber, isUuid } from "@/lib/domain";
+import { saveServiceImage, deleteServiceImage } from "@/lib/storage";
 import type { ServiceDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (data.active !== undefined) patch.active = data.active;
   if (data.categoryId !== undefined) patch.categoryId = data.categoryId;
 
-  for (const key of ["bufferMinutes","imageUrl","deliveryMode","paymentType","cancellationPolicy"] as const) if (data[key] !== undefined) patch[key] = data[key];
+  for (const key of ["bufferMinutes","deliveryMode","paymentType","cancellationPolicy"] as const) if (data[key] !== undefined) patch[key] = data[key];
   if (data.depositAmount !== undefined) patch.depositAmount = data.depositAmount.toFixed(2);
   let updated;
   try {
@@ -59,6 +60,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       await lockCompany(tx, auth.user.companyId);
       const [existing] = await tx.select().from(services).where(and(eq(services.id, id), eq(services.companyId, auth.user.companyId)));
       if (!existing) throw new BookingError("Serviço não encontrado.", 404);
+
+      if (data.imageUrl !== undefined) {
+        if (data.imageUrl) {
+          patch.imageUrl = await saveServiceImage(data.imageUrl, existing.imageUrl);
+        } else {
+          if (existing.imageUrl) await deleteServiceImage(existing.imageUrl);
+          patch.imageUrl = null;
+        }
+      }
       if ((data.depositAmount ?? Number(existing.depositAmount)) > (data.price ?? Number(existing.price))) throw new BookingError("O sinal não pode exceder o preço.");
       if (data.categoryId) {
         const [category] = await tx.select().from(serviceCategories).where(and(eq(serviceCategories.id, data.categoryId), eq(serviceCategories.companyId, auth.user.companyId)));

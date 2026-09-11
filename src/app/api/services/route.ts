@@ -1,12 +1,13 @@
-import { bookingError, BookingError } from "@/lib/booking/errors";
-import { safeImageUrl } from "@/lib/booking/validation";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { employeeServices, employees, serviceCategories, services } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { BookingError, bookingError } from "@/lib/booking/errors";
+import { safeImageUrl } from "@/lib/booking/validation";
 import { centsToNumber } from "@/lib/domain";
+import { saveServiceImage } from "@/lib/storage";
 import type { ServiceDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +96,11 @@ export async function POST(request: Request) {
       const team = employeeIds.length ? await tx.select().from(employees).where(and(eq(employees.companyId, auth.user.companyId), inArray(employees.id, employeeIds))) : [];
       if (team.length !== employeeIds.length) throw new BookingError("Profissional inválido.");
 
+      let savedImageUrl: string | null = null;
+      if (parsed.data.imageUrl) {
+        savedImageUrl = await saveServiceImage(parsed.data.imageUrl);
+      }
+
       const serviceId = crypto.randomUUID();
       await tx
         .insert(services)
@@ -109,7 +115,7 @@ export async function POST(request: Request) {
           color: color || null,
           active: true,
           bufferMinutes: parsed.data.bufferMinutes,
-          imageUrl: parsed.data.imageUrl || null,
+          imageUrl: savedImageUrl,
           deliveryMode: parsed.data.deliveryMode,
           paymentType: parsed.data.paymentType,
           depositAmount: parsed.data.depositAmount.toFixed(2),

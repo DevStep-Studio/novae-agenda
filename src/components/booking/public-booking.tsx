@@ -125,6 +125,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [bookingId, setBookingId] = useState("");
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   const [quote, setQuote] = useState<{
     subtotal: number;
@@ -447,13 +448,28 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               <div key={service.id} className={b.summaryItem}>
                 <div className={b.summaryItemRow}>
                   <div className={b.summaryItemLeft}>
-                    {service.imageUrl && (
+                    {service.imageUrl && !failedImages[service.id] ? (
                       <img
                         className={b.summaryItemThumb}
                         src={service.imageUrl}
-                        alt=""
+                        alt={service.name}
                         loading="lazy"
+                        onError={() => setFailedImages((prev) => ({ ...prev, [service.id]: true }))}
                       />
+                    ) : (
+                      <span
+                        className={b.summaryItemThumb}
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          background: "var(--booking-surface-elevated)",
+                          color: "var(--accent, #dcff4c)",
+                          fontWeight: 700,
+                          fontSize: 13,
+                        }}
+                      >
+                        {service.name.slice(0, 1).toUpperCase()}
+                      </span>
                     )}
                     <div className={b.summaryItemInfo}>
                       <h3>{service.name}</h3>
@@ -967,16 +983,17 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                   )}
 
                                   <div className={b.serviceBody}>
-                                    {service.imageUrl ? (
+                                    {service.imageUrl && !failedImages[service.id] ? (
                                       <img
                                         className={b.serviceImage}
                                         src={service.imageUrl}
-                                        alt=""
+                                        alt={service.name}
                                         loading="lazy"
+                                        onError={() => setFailedImages((prev) => ({ ...prev, [service.id]: true }))}
                                       />
                                     ) : (
                                       <span className={b.serviceImagePlaceholder}>
-                                        {service.name.slice(0, 1)}
+                                        {service.name.slice(0, 1).toUpperCase()}
                                       </span>
                                     )}
 

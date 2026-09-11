@@ -77,10 +77,14 @@ export const createBookingSchema = searchSchema.extend({
 export type Selection = z.infer<typeof selectionSchema>;
 export const safeImageUrl = z
   .string()
-  .max(1000)
+  .max(10_000_000)
   .refine(
-    (v) => !v || /^https:\/\//.test(v) || /^\/(?!\/)/.test(v),
-    "Use uma imagem HTTPS ou um caminho local.",
+    (v) =>
+      !v ||
+      /^https?:\/\//.test(v) ||
+      /^\/(?!\/)/.test(v) ||
+      /^data:image\/(webp|jpeg|png|jpg|svg\+xml);base64,/i.test(v),
+    "Use uma imagem válida (HTTPS, caminho local ou arquivo enviado).",
   );
 export function accessibleColor(hex: string) {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return false;

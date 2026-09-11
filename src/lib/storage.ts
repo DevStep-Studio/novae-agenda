@@ -3,7 +3,7 @@ import path from "path";
 import crypto from "crypto";
 
 const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
-type UploadFolder = "branding" | "professionals";
+type UploadFolder = "branding" | "professionals" | "services";
 
 async function ensureUploadsDir(folder: UploadFolder) {
   await fs.mkdir(path.join(UPLOADS_ROOT, folder), { recursive: true });
@@ -22,6 +22,17 @@ export async function saveProfessionalImage(
   previousUrl?: string | null,
 ): Promise<string> {
   return saveUploadedImage(imageInput, { folder: "professionals", previousUrl });
+}
+
+export async function saveServiceImage(
+  imageInput: string,
+  previousUrl?: string | null,
+): Promise<string> {
+  return saveUploadedImage(imageInput, { folder: "services", previousUrl });
+}
+
+export async function deleteServiceImage(fileUrl: string) {
+  return deleteUploadedImage(fileUrl, "services");
 }
 
 async function saveUploadedImage(
