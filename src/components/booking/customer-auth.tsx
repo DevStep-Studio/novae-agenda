@@ -2,6 +2,16 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api-client";
 import { b, ErrorMessage } from "./primitives";
+import {
+  Mail,
+  CheckCircle2,
+  RefreshCw,
+  Send,
+  LogOut,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+
 export type Customer = {
   id: string;
   name: string;
@@ -9,6 +19,7 @@ export type Customer = {
   phone: string | null;
   emailVerified: boolean;
 };
+
 export function CustomerAuth({
   onReady,
   returnTo = "/meus-agendamentos",
@@ -24,12 +35,14 @@ export function CustomerAuth({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [message, setMessage] = useState("");
+
   async function refresh() {
     const identity = await api<Customer | null>("/api/my/session");
     setUser(identity);
     if (identity && (!requireVerified || identity.emailVerified))
       onReady(identity);
   }
+
   useEffect(() => {
     let active = true;
     api<Customer | null>("/api/my/session")
@@ -48,10 +61,12 @@ export function CustomerAuth({
       active = false;
     };
   }, [onReady, requireVerified]);
+
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
     setError("");
+    setMessage("");
     const data = new FormData(e.currentTarget);
     try {
       const password = String(data.get("password"));
@@ -78,34 +93,75 @@ export function CustomerAuth({
       setBusy(false);
     }
   }
+
   if (loading)
     return (
-      <p className={b.muted} role="status">
-        Verificando sua conta…
-      </p>
+      <div className={b.authLoading} role="status">
+        <RefreshCw className={b.spin} size={16} />
+        <span>Verificando sua conta…</span>
+      </div>
     );
-  if (user)
+
+  if (user) {
+    const firstName = user.name ? user.name.split(" ")[0] : "Cliente";
+
     return (
-      <div className={b.auth}>
-        <h3>Olá, {user.name.split(" ")[0]}.</h3>
-        <p className={b.muted}>
-          Enviamos um link para:
-        </p>
-        <strong className={b.authEmail}>{user.email}</strong>
-        <p className={b.muted}>Confirme seu e-mail para concluir a reserva. Sua seleção está salva neste navegador.</p>
+      <div className={b.authVerifyCard}>
+        <div className={b.authVerifyHeader}>
+          <div className={b.authVerifyIconBadge}>
+            <Mail size={22} />
+          </div>
+          <div className={b.authVerifyHeaderText}>
+            <span className={b.authVerifyTag}>
+              <Sparkles size={11} /> Quase pronto
+            </span>
+            <h3 className={b.authVerifyTitle}>Olá, {firstName}</h3>
+          </div>
+        </div>
+
+        <div className={b.authEmailBox}>
+          <div className={b.authEmailInfo}>
+            <span className={b.authEmailLabel}>Link de confirmação enviado para</span>
+            <strong className={b.authEmailValue}>{user.email}</strong>
+          </div>
+          <span className={b.authEmailStatusBadge}>
+            Enviado
+          </span>
+        </div>
+
+        <div className={b.authInfoNotice}>
+          <ShieldCheck size={16} className={b.authInfoNoticeIcon} />
+          <p>
+            Confirme seu e-mail para concluir a reserva. Sua seleção de serviços e horários está salva neste navegador.
+          </p>
+        </div>
+
         <ErrorMessage message={error} />
-        {message && <p role="status">{message}</p>}
+        {message && (
+          <div className={b.authStatusBanner} role="status">
+            <CheckCircle2 size={16} />
+            <span>{message}</span>
+          </div>
+        )}
+
         <button
           type="button"
           className={`${b.button} ${b.wide}`}
           disabled={busy}
           onClick={async () => {
             setBusy(true);
+            setError("");
+            setMessage("");
             try {
-              await refresh();
-              setMessage(
-                "Se já confirmou, sua conta será atualizada. Você também pode abrir o link recebido por e-mail.",
-              );
+              const identity = await api<Customer | null>("/api/my/session");
+              setUser(identity);
+              if (identity?.emailVerified) {
+                onReady(identity);
+              } else {
+                setMessage(
+                  "E-mail ainda não verificado. Abra a mensagem recebida na sua caixa de entrada e clique no link de ativação.",
+                );
+              }
             } catch (e) {
               setError((e as Error).message);
             } finally {
@@ -113,21 +169,34 @@ export function CustomerAuth({
             }
           }}
         >
-          Já confirmei meu e-mail
+          {busy ? (
+            <>
+              <RefreshCw size={15} className={b.spin} />
+              <span>Verificando…</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={16} />
+              <span>Já confirmei meu e-mail</span>
+            </>
+          )}
         </button>
+
         <div className={b.authSecondaryActions}>
           <button
             type="button"
-            className={b.textButton}
+            className={b.authSecondaryBtn}
             disabled={busy}
             onClick={async () => {
               setBusy(true);
+              setError("");
+              setMessage("");
               try {
                 await api("/api/auth/resend-verification", {
                   method: "POST",
                   body: JSON.stringify({ returnTo }),
                 });
-                setMessage("Um novo link de confirmação foi enviado.");
+                setMessage("Um novo link de confirmação foi enviado para seu e-mail.");
               } catch (e) {
                 setError((e as Error).message);
               } finally {
@@ -135,26 +204,30 @@ export function CustomerAuth({
               }
             }}
           >
-            Reenviar confirmação
+            <Send size={13} />
+            <span>Reenviar confirmação</span>
           </button>
-          <span aria-hidden="true">·</span>
           <button
             type="button"
-            className={b.textButton}
+            className={b.authSecondaryBtn}
             onClick={async () => {
               await api("/api/auth/logout", { method: "POST" });
               setUser(null);
             }}
           >
-            Entrar com outra conta
+            <LogOut size={13} />
+            <span>Entrar com outra conta</span>
           </button>
         </div>
       </div>
     );
+  }
+
   return (
     <div className={b.auth}>
       <div className={b.authTabs}>
         <button
+          type="button"
           className={mode === "register" ? b.activeTab : ""}
           onClick={() => setMode("register")}
         >

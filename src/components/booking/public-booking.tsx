@@ -24,6 +24,7 @@ import {
   X,
   Sparkles,
   ChevronUp,
+  Phone,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import type { PublicCatalog } from "@/lib/booking/catalog";
@@ -1187,40 +1188,54 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 <>
                   {customer?.emailVerified && customer.phone ? (
                     <div className={b.note}><strong>{customer.name}</strong><p>Confira os dados e confirme seu horário.</p></div>
-                  ) : <CustomerAuth returnTo={`/agendar/${company.slug}`} onReady={onCustomer} /> }
-
-                  {/* Customer phone requirement if missing */}
-                  {customer && !customer.phone && (
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        const phone = new FormData(e.currentTarget).get(
-                          "phone",
-                        );
-                        try {
-                          setCustomer(
-                            await api<Customer>("/api/my/session", {
-                              method: "PATCH",
-                              body: JSON.stringify({ phone }),
-                            }),
+                  ) : customer && customer.emailVerified && !customer.phone ? (
+                    <div className={b.authPhoneCard}>
+                      <div className={b.authVerifyHeader}>
+                        <div className={b.authVerifyIconBadge}>
+                          <Phone size={20} />
+                        </div>
+                        <div className={b.authVerifyHeaderText}>
+                          <span className={b.authVerifyTag}>Contato</span>
+                          <h3 className={b.authVerifyTitle}>Telefone para contato</h3>
+                        </div>
+                      </div>
+                      <p className={b.muted} style={{ margin: 0, fontSize: "13px" }}>
+                        Informe seu número com DDD (WhatsApp) para receber lembretes e confirmações do seu agendamento.
+                      </p>
+                      <form
+                        className={b.authPhoneForm}
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const phone = new FormData(e.currentTarget).get(
+                            "phone",
                           );
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      <label className={b.field}>
-                        Telefone para contato
-                        <input
-                          name="phone"
-                          type="tel"
-                          required
-                          minLength={8}
-                          maxLength={25}
-                        />
-                      </label>
-                      <button className={b.button}>Salvar telefone</button>
-                    </form>
+                          try {
+                            setCustomer(
+                              await api<Customer>("/api/my/session", {
+                                method: "PATCH",
+                                body: JSON.stringify({ phone }),
+                              }),
+                            );
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        <label className={b.field}>
+                          <input
+                            name="phone"
+                            type="tel"
+                            required
+                            minLength={8}
+                            maxLength={25}
+                            placeholder="(11) 99999-9999"
+                          />
+                        </label>
+                        <button className={`${b.button} ${b.wide}`}>Salvar telefone e prosseguir</button>
+                      </form>
+                    </div>
+                  ) : (
+                    <CustomerAuth returnTo={`/agendar/${company.slug}`} onReady={onCustomer} />
                   )}
 
                   {/* Payment method — chosen here only to tell the establishment how
