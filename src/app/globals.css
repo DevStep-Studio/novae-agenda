@@ -7501,60 +7501,128 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .service-ranking-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   margin-top: 14px;
 }
+
 .team-rank-item,
 .service-rank-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--surface-secondary);
-  border: 1px solid var(--border);
-  transition: all 0.15s ease;
-}
-.team-rank-item:hover,
-.service-rank-item:hover {
-  background: var(--surface);
-  border-color: var(--border-strong);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--surface-secondary, #14171d);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  box-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.team-rank-left,
+.team-rank-item:hover,
+.service-rank-item:hover {
+  background: var(--surface-tertiary, #1a1f29);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.18));
+  box-shadow: none !important;
+}
+
+:root:not([data-theme="dark"]) .team-rank-item,
+:root:not([data-theme="dark"]) .service-rank-item {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: none !important;
+}
+
+:root:not([data-theme="dark"]) .team-rank-item:hover,
+:root:not([data-theme="dark"]) .service-rank-item:hover {
+  background: #f8fafc;
+  border-color: var(--border-strong, #cbd5e1);
+  box-shadow: none !important;
+}
+
+.team-rank-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 175px;
+  flex: 0 0 175px;
+}
+
 .service-rank-left {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 170px;
+  min-width: 155px;
+  flex: 0 0 155px;
 }
+
 .rank-podium,
 .service-rank-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
-  width: 22px;
+  flex-shrink: 0;
+  box-shadow: none !important;
 }
-.rank-1 { color: #f59e0b; }
-.rank-2 { color: #94a3b8; }
-.rank-3 { color: #b45309; }
+
+.rank-podium.rank-1,
+.service-ranking-list .service-rank-item:first-child .service-rank-num {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+:root:not([data-theme="dark"]) .rank-podium,
+:root:not([data-theme="dark"]) .service-rank-num {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+:root:not([data-theme="dark"]) .rank-podium.rank-1,
+:root:not([data-theme="dark"]) .service-ranking-list .service-rank-item:first-child .service-rank-num {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
 
 .team-rank-info,
 .service-rank-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
 }
+
 .team-rank-info strong,
 .service-rank-info strong {
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
 }
+
 .team-rank-info small,
 .service-rank-info small {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .team-rank-center,
@@ -7562,31 +7630,47 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 4px;
-  min-width: 100px;
+  min-width: 80px;
 }
+
 .team-rank-bar-wrap,
 .service-rank-bar-wrap {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
   overflow: hidden;
 }
+
+:root:not([data-theme="dark"]) .team-rank-bar-wrap,
+:root:not([data-theme="dark"]) .service-rank-bar-wrap {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .team-rank-bar,
 .service-rank-bar {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--primary);
+  box-shadow: none !important;
   transition: width 0.3s ease;
 }
+
 .team-rank-meta {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
+
 .commission-text {
-  color: #fbbf24;
+  color: #f59e0b;
   font-weight: 600;
 }
+
 :root:not([data-theme="dark"]) .commission-text {
   color: #d97706;
 }
@@ -7596,19 +7680,26 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
-  min-width: 80px;
+  justify-content: center;
+  gap: 1px;
+  min-width: 75px;
+  flex-shrink: 0;
 }
+
 .team-rank-revenue,
 .service-rank-revenue {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
+
 .team-rank-net {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 /* Payment Methods Grid */
@@ -7619,56 +7710,88 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   margin-top: 14px;
 }
 .payment-method-card {
-  padding: 14px 16px;
-  border-radius: 10px;
-  background: var(--surface-secondary);
-  border: 1px solid var(--border);
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--surface-secondary, #14171d);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: all 0.15s ease;
+  box-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
+
 .payment-method-card:hover {
-  background: var(--surface);
-  border-color: var(--border-strong);
+  background: var(--surface-tertiary, #1a1f29);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.18));
+  box-shadow: none !important;
 }
+
+:root:not([data-theme="dark"]) .payment-method-card {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: none !important;
+}
+
+:root:not([data-theme="dark"]) .payment-method-card:hover {
+  background: #f8fafc;
+  border-color: var(--border-strong, #cbd5e1);
+  box-shadow: none !important;
+}
+
 .payment-method-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 .payment-method-name {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: capitalize;
 }
+
 .payment-method-pct {
   font-size: 10px;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: var(--surface);
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--primary);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+:root:not([data-theme="dark"]) .payment-method-pct {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
 .payment-method-val {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
+
 .payment-method-track {
-  height: 5px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
   overflow: hidden;
 }
+
+:root:not([data-theme="dark"]) .payment-method-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
 .payment-method-bar {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--primary);
+  box-shadow: none !important;
 }
+
 .payment-method-count {
   font-size: 10px;
   color: var(--text-muted);
