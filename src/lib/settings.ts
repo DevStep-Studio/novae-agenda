@@ -91,14 +91,13 @@ export async function setCompanySetting(
   companyId: string,
   key: keyof CompanySettings,
   value: string | number | number[],
-  executor: Pick<typeof db,"insert"> = db,
+  executor: any = db,
 ): Promise<void> {
   const strVal = typeof value === "object" ? JSON.stringify(value) : String(value);
   await executor
     .insert(companySettings)
-    .values({ companyId, key: KEY_MAP[key], value: strVal })
-    .onConflictDoUpdate({
-      target: [companySettings.companyId, companySettings.key],
+    .values({ id: crypto.randomUUID(), companyId, key: KEY_MAP[key], value: strVal })
+    .onDuplicateKeyUpdate({
       set: { value: strVal, updatedAt: new Date() },
     });
 }

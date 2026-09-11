@@ -1,8 +1,8 @@
 import "dotenv/config";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
+import { and, eq } from "drizzle-orm";
+import { db, pool } from "@/db";
 import {
   companies,
   subscriptions,
@@ -38,80 +38,82 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
 
   before(async () => {
     // 1. Create a test company
-    const [comp] = await db
+    testCompanyId = crypto.randomUUID();
+    await db
       .insert(companies)
       .values({
+        id: testCompanyId,
         name: "SaaS Studio Test",
         publicSlug: `test-slug-${Date.now()}`,
-      })
-      .returning();
-    testCompanyId = comp.id;
+      });
 
     // 2. Create user (cross-tenant client has companyId: null)
-    const [usr] = await db
+    testUserId = crypto.randomUUID();
+    await db
       .insert(users)
       .values({
+        id: testUserId,
         companyId: null,
         name: "Cliente Waitlist",
         email: `client-waitlist-${Date.now()}@example.com`,
         passwordHash: "$2a$10$dummyHashForTestingPurposesOnlyXXXXXXXXXXXX",
-        role: "client",
-      })
-      .returning();
-    testUserId = usr.id;
+        role: "customer",
+      });
 
     // 3. Create location
-    const [loc] = await db
+    testLocationId = crypto.randomUUID();
+    await db
       .insert(locations)
       .values({
+        id: testLocationId,
         companyId: testCompanyId,
         name: "Unidade Central",
         openTime: "08:00",
         closeTime: "18:00",
-      })
-      .returning();
-    testLocationId = loc.id;
+      });
 
     // 4. Create employee
-    const [emp] = await db
+    testEmployeeId = crypto.randomUUID();
+    await db
       .insert(employees)
       .values({
+        id: testEmployeeId,
         companyId: testCompanyId,
         name: "Profissional Alpha",
         commissionType: "percentage",
         commissionValue: "40.00",
-      })
-      .returning();
-    testEmployeeId = emp.id;
+      });
 
     // 5. Create service
-    const [srv] = await db
+    testServiceId = crypto.randomUUID();
+    await db
       .insert(services)
       .values({
+        id: testServiceId,
         companyId: testCompanyId,
         name: "Corte & Barba Premium",
         price: "120.00",
         durationMinutes: 45,
-      })
-      .returning();
-    testServiceId = srv.id;
+      });
 
     // 6. Create client
-    const [cli] = await db
+    testClientId = crypto.randomUUID();
+    await db
       .insert(clients)
       .values({
+        id: testClientId,
         companyId: testCompanyId,
         name: "Cliente Fidelidade",
         phone: "11999998888",
         email: "cliente.fidelidade@example.com",
-      })
-      .returning();
-    testClientId = cli.id;
+      });
 
     // 7. Create completed appointment for review tests
-    const [apt] = await db
+    testAppointmentId = crypto.randomUUID();
+    await db
       .insert(appointments)
       .values({
+        id: testAppointmentId,
         companyId: testCompanyId,
         locationId: testLocationId,
         employeeId: testEmployeeId,
@@ -121,9 +123,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
         endTime: "10:45",
         total: "120.00",
         status: "completed",
-      })
-      .returning();
-    testAppointmentId = apt.id;
+      });
   });
 
   after(async () => {
@@ -142,6 +142,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
       await db.delete(users).where(eq(users.id, testUserId)).catch(() => {});
       await db.delete(companies).where(eq(companies.id, testCompanyId)).catch(() => {});
     }
+    await pool.end();
   });
 
   describe("1. Subscription Lifecycle & Paywall Engine", () => {
@@ -221,9 +222,11 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
 
   describe("2. Client Reviews & Feedback System", () => {
     it("should create a verified review for a completed appointment", async () => {
-      const [rev] = await db
+      const reviewId = crypto.randomUUID();
+      await db
         .insert(reviews)
         .values({
+          id: reviewId,
           companyId: testCompanyId,
           appointmentId: testAppointmentId,
           clientId: testClientId,
@@ -232,9 +235,9 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
           rating: 5,
           comment: "Excelente atendimento, corte impecável!",
           status: "approved",
-        })
-        .returning();
+        });
 
+      const [rev] = await db.select().from(reviews).where(eq(reviews.id, reviewId));
       assert.ok(rev);
       assert.equal(rev.rating, 5);
       assert.equal(rev.comment, "Excelente atendimento, corte impecável!");
@@ -245,6 +248,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
       let threw = false;
       try {
         await db.insert(reviews).values({
+          id: crypto.randomUUID(),
           companyId: testCompanyId,
           appointmentId: testAppointmentId,
           clientId: testClientId,
@@ -261,33 +265,37 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
 
   describe("3. Waitlist & Real-Time Owner Notification", () => {
     it("should register client in waitlist and create notification for owner", async () => {
-      const [entry] = await db
+      const entryId = crypto.randomUUID();
+      await db
         .insert(bookingWaitlist)
         .values({
+          id: entryId,
           companyId: testCompanyId,
           userId: testUserId,
           requestedDate: "2026-03-15",
           serviceIds: [testServiceId],
           status: "waiting",
-        })
-        .returning();
+        });
 
+      const [entry] = await db.select().from(bookingWaitlist).where(eq(bookingWaitlist.id, entryId));
       assert.ok(entry);
       assert.equal(entry.status, "waiting");
 
       // Insert corresponding notification
-      const [notif] = await db
+      const notifId = crypto.randomUUID();
+      await db
         .insert(notifications)
         .values({
+          id: notifId,
           companyId: testCompanyId,
           type: "waitlist_entry",
           title: "Novo cliente na lista de espera",
           body: `Cliente entrou na lista de espera para 15/03/2026.`,
           entityType: "waitlist",
           entityId: entry.id,
-        })
-        .returning();
+        });
 
+      const [notif] = await db.select().from(notifications).where(eq(notifications.id, notifId));
       assert.ok(notif);
       assert.equal(notif.type, "waitlist_entry");
       assert.equal(notif.companyId, testCompanyId);

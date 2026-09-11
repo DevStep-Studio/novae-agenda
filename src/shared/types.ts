@@ -80,6 +80,7 @@ export type EmployeeDTO = {
   services: string[];
   serviceIds: string[];
   locationIds?: string[];
+  hasLogin: boolean;
 };
 
 export type ServiceDTO = {

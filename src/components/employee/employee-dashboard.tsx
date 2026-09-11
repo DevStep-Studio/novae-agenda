@@ -284,7 +284,7 @@ export function EmployeeDashboard() {
                             href={`https://wa.me/55${apt.clientPhone.replace(/\D/g, "")}?text=Olá%20${encodeURIComponent(apt.clientName)},%20confirmamos%20seu%20atendimento%20hoje%20às%20${apt.startTime}.`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className={`${styles.actionBtn} ${styles.btnWhatsapp}`}
+                            className={`${styles.actionBtn} whatsapp-button`}
                           >
                             <MessageCircle size={14} />
                             WhatsApp

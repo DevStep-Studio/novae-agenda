@@ -63,7 +63,9 @@ Mudança de timezone após haver atendimentos é bloqueada nas configurações: 
 2. Executar `npm ci` e `npm run db:migrate`.
 3. Executar `npm run build` e `npm start`.
 4. Para entregar verificação de e-mail e notificações, configurar `EMAIL_TRANSPORT=resend`, `RESEND_API_KEY` e `EMAIL_FROM` com remetente verificado. O transporte console é apenas desenvolvimento; ele não entrega e-mails.
-5. Agendar `npm run bookings:notifications` a cada minuto, na mesma configuração de ambiente da aplicação. O worker pode rodar em processo/cron separado. Exemplo: `* * * * * cd /caminho/novae-agenda && npm run bookings:notifications`.
+5. Disparar o worker periodicamente — **isto não acontece sozinho**, precisa de um gatilho externo. Duas formas equivalentes (escolha uma):
+   - **VPS com crontab**: `npm run bookings:notifications` a cada minuto, na mesma configuração de ambiente da aplicação. Exemplo: `* * * * * cd /caminho/novae-agenda && npm run bookings:notifications`.
+   - **Serverless (Vercel ou qualquer host sem crontab)**: use a rota `GET/POST /api/cron/booking-notifications?secret=$CRON_SECRET` (ou header `Authorization: Bearer $CRON_SECRET`). Defina `CRON_SECRET` no `.env`. Com Vercel, adicione um `vercel.json` com `crons` apontando pra essa rota (a cada 5 min é suficiente pra um lembrete de 2h); sem Vercel, qualquer pinger externo (cron-job.org, GitHub Actions `schedule`, UptimeRobot) chamando essa URL funciona.
 6. Monitorar registros `failed` em `notification_logs`. Após corrigir a causa, reprocessar explicitamente o registro mantendo seu ID/chave de idempotência.
 
 O worker usa `FOR UPDATE SKIP LOCKED`, tentativas com recuo e uma chave de idempotência no provedor. Lembretes de 24h e 2h são criados apenas se ainda futuros. Revisões obsoletas e lembretes de reservas canceladas não são enviados. A confirmação visual independe do envio de e-mail; o outbox persiste em caso de indisponibilidade do provedor. Tokens de autenticação só aparecem nas respostas em desenvolvimento, nunca no build de produção.

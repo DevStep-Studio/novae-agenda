@@ -10,11 +10,16 @@ test("fast booking, rescheduling and responsive customer portal use real slots",
   await page.request.post("/api/auth/login", { data: { email: f.customers[0].email, password: f.password } });
   await page.goto(`/agendar/${f.company.publicSlug}`);
   await expect(page.getByRole("heading", { name: "Escolha seu serviço", exact: true })).toBeVisible();
-  const widths = [320, 360, 375, 390, 430, 768, 1024, 1440];
+  const widths = [320, 360, 375, 390, 412, 430, 768, 820, 1024, 1280, 1440, 1920];
   const checkWidths = async () => { for (const width of widths) { await page.setViewportSize({ width, height: 1000 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `overflow at ${width}`).toBe(true); } };
   await checkWidths();
   // Selecting a service keeps the next-slots path available even when its optional preview has loaded.
   await page.getByRole("button", { name: "Selecionar Manicure e Pedicure", exact: true }).click();
+  await page.getByRole("button", { name: /Qualquer profissional disponível/ }).click();
+  await expect(page.getByRole("dialog", { name: "Profissional" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Ingrid QA/ })).toBeVisible();
+  await page.getByRole("button", { name: /Ingrid QA/ }).click();
+  await expect(page.getByRole("button", { name: /Ingrid QA/ })).toBeVisible();
   await page.getByRole("button", { name: /Ver horários|Continuar/, exact: false }).first().click();
   await expect(page.getByText("Próximos horários disponíveis", { exact: true })).toBeVisible();
   await checkWidths();
@@ -32,7 +37,7 @@ test("fast booking, rescheduling and responsive customer portal use real slots",
   await expect(page.getByRole("heading", { name: "Agendamento confirmado!" })).toBeVisible();
   expect(await (await page.request.get(`/api/my/bookings/${id}/calendar`)).text()).toContain("BEGIN:VCALENDAR");
   await page.goto("/meus-agendamentos");
-  await expect(page.getByText("Próximo atendimento", { exact: true })).toBeVisible();
+  await expect(page.getByText("Próximo agendamento", { exact: true })).toBeVisible();
   await checkWidths();
   // A separate future reservation avoids crossing the tenant's cancellation cutoff during the test.
   const future = await page.request.post("/api/bookings", { data: { slug: f.company.publicSlug, locationId: f.location.id, date: f.date, startTime: "09:00", items: [{ serviceId: f.services[1].id, employeeId: f.team[1].id }], idempotencyKey: crypto.randomUUID() } });
@@ -72,6 +77,48 @@ test("professional publishes link, QR code and creates assigned service",async({
   await expect(page.getByText("Manicure completa QA",{exact:true})).toBeVisible();
   const result=await page.request.get(`/api/public/${f.company.publicSlug}`);const data=(await result.json()).data;
   expect(data.services.find((s:{name:string})=>s.name==="Manicure completa QA")).toMatchObject({price:50,durationMinutes:90});
+});
+
+test("visual regression covers booking and professional selector themes", async ({ page }) => {
+  await page.addInitScript(() => sessionStorage.clear());
+  await page.route("**/next-availability?**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: null }) });
+  });
+  const scenarios = [
+    { viewport: "desktop", width: 1440, height: 1000 },
+    { viewport: "mobile", width: 390, height: 844 },
+  ] as const;
+
+  for (const theme of ["dark", "light"] as const) {
+    await page.emulateMedia({ colorScheme: theme });
+    for (const scenario of scenarios) {
+      await page.setViewportSize({ width: scenario.width, height: scenario.height });
+      await page.goto(`/agendar/${f.company.publicSlug}`);
+      await expect(page.getByRole("heading", { name: "Escolha seu serviço", exact: true })).toBeVisible();
+      await page.addStyleTag({ content: '[class*="servicePrice"] small,[class*="professionalNextSlot"]{visibility:hidden!important}' });
+      await page.evaluate(() => document.fonts.ready);
+      const dynamicCompanyName = page.getByText(f.company.name, { exact: true });
+      await expect(page).toHaveScreenshot(`booking-services-${scenario.viewport}-${theme}.png`, {
+        animations: "disabled",
+        fullPage: true,
+        mask: [dynamicCompanyName],
+        maxDiffPixelRatio: 0.01,
+      });
+
+      await page.getByRole("button", { name: "Selecionar Manicure e Pedicure", exact: true }).click();
+      if (scenario.viewport === "mobile") {
+        await page.getByRole("button", { name: "Abrir resumo do agendamento" }).click();
+      }
+      await page.getByRole("button", { name: /Qualquer profissional disponível/ }).click();
+      await expect(page.getByRole("dialog", { name: "Profissional" })).toBeVisible();
+      await expect(page).toHaveScreenshot(`professional-selector-${scenario.viewport}-${theme}.png`, {
+        animations: "disabled",
+        fullPage: true,
+        mask: [dynamicCompanyName],
+        maxDiffPixelRatio: 0.01,
+      });
+    }
+  }
 });
 
 test("HTTP concurrency and professional reschedule/completion update the customer booking",async({playwright})=>{

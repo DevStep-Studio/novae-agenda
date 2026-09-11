@@ -55,28 +55,35 @@ export async function GET() {
 
     // If company has no locations yet, ensure the default location exists
     if (locationRows.length === 0 && company) {
-      const [defaultLoc] = await db
+      const locId = crypto.randomUUID();
+      const locName = "Unidade Principal";
+      const locAddress = company.address ?? "Sede";
+      const locPhone = company.phone ?? null;
+      const openTime = "08:00";
+      const closeTime = "19:00";
+
+      await db
         .insert(locations)
         .values({
+          id: locId,
           companyId: user.companyId,
-          name: "Unidade Principal",
-          address: company.address ?? "Sede",
-          phone: company.phone ?? null,
-          openTime: "08:00",
-          closeTime: "19:00",
+          name: locName,
+          address: locAddress,
+          phone: locPhone,
+          openTime,
+          closeTime,
           active: true,
-        })
-        .returning();
+        });
 
       locationRows = [{
-        id: defaultLoc.id,
-        companyId: defaultLoc.companyId,
-        name: defaultLoc.name,
-        address: defaultLoc.address,
-        phone: defaultLoc.phone,
-        openTime: defaultLoc.openTime,
-        closeTime: defaultLoc.closeTime,
-        active: defaultLoc.active,
+        id: locId,
+        companyId: user.companyId,
+        name: locName,
+        address: locAddress,
+        phone: locPhone,
+        openTime,
+        closeTime,
+        active: true,
       }];
     }
   }

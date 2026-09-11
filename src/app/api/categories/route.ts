@@ -40,10 +40,11 @@ export async function POST(request: Request) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
 
-  const [created] = await db
+  const categoryId = crypto.randomUUID();
+  const trimmedName = parsed.data.name.trim();
+  await db
     .insert(serviceCategories)
-    .values({ companyId: auth.user.companyId, name: parsed.data.name.trim() })
-    .returning();
+    .values({ id: categoryId, companyId: auth.user.companyId, name: trimmedName });
 
-  return Response.json({ data: { id: created.id, name: created.name, count: 0 } }, { status: 201 });
+  return Response.json({ data: { id: categoryId, name: trimmedName, count: 0 } }, { status: 201 });
 }

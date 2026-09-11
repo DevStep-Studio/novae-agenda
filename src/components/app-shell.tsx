@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, FileText, Globe, Home, Laptop, LogOut, Mail, MapPin,
-  Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
+  ImagePlus, Menu, MessageCircle, Moon, MoreHorizontal, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, Sparkles, Star, Sun, Tag, TrendingUp, User, UserPlus,
-  UserRound, Users, WalletCards, X, XCircle, Zap,
+  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap,
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
@@ -29,8 +29,10 @@ import { SubscriptionView } from "@/components/subscriptions/subscription-view";
 import { SubscriptionPaywallModal } from "@/components/subscriptions/subscription-paywall-modal";
 import { CashClosingModal } from "@/components/financial/cash-closing-modal";
 import { OnboardingChecklistCard } from "@/components/onboarding/onboarding-checklist";
+import { prepareImageUpload } from "@/lib/image-upload-client";
+import { NotificationsView } from "@/components/notifications/notifications-view";
 
-type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes";
+type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes" | "notificacoes";
 type CalendarMode = "day" | "week" | "month";
 
 const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
@@ -41,6 +43,7 @@ const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
   { id: "equipe", label: "Equipe", icon: UserRound },
   { id: "financeiro", label: "Financeiro", icon: WalletCards },
   { id: "relatorios", label: "Relatórios", icon: BarChart3 },
+  { id: "notificacoes", label: "Notificações", icon: Bell },
   { id: "link-agendamento", label: "Link de agendamento", icon: Globe },
   { id: "assinatura", label: "Minha assinatura", icon: Sparkles },
   { id: "configuracoes", label: "Configurações", icon: Settings2 },
@@ -55,6 +58,7 @@ const pageTitles: Record<ViewKey, { title: string; eyebrow: string }> = {
   equipe: { title: "Equipe", eyebrow: "Profissionais e disponibilidade" },
   financeiro: { title: "Financeiro", eyebrow: "Acompanhe a saúde do seu negócio" },
   relatorios: { title: "Relatórios", eyebrow: "Desempenho e indicadores do estabelecimento" },
+  notificacoes: { title: "Notificações", eyebrow: "Central de avisos e novidades" },
   assinatura: { title: "Minha assinatura", eyebrow: "Planos e faturamento SaaS" },
   configuracoes: { title: "Configurações", eyebrow: "Deixe a Agenda com a sua cara" },
 };
@@ -710,7 +714,7 @@ function ClientsPage({
                               )}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="client-whatsapp-btn"
+                              className="client-whatsapp-btn whatsapp-button"
                               title={activeTab === "inactive" ? "Enviar mensagem de reativação no WhatsApp" : "Abrir WhatsApp com o cliente"}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -905,7 +909,7 @@ function ClientDrawer({
           <div className="profile-actions">
             {phone && (
               <a
-                className="profile-btn-whatsapp"
+                className="profile-btn-whatsapp whatsapp-button"
                 href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(
                   `Olá, ${client.name}! Agradecemos a sua preferência na Agenda.`,
                 )}`}
@@ -2061,7 +2065,14 @@ function FinancialPage() {
 function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setTheme: (t: Theme) => void; onNewLocation: () => void }) {
   const { session, notify, locations, settings, updateSettings } = useStore();
   const company = session?.company;
-  const [activeTab, setActiveTab] = useState<"empresa" | "unidades" | "funcionamento" | "seguranca" | "ajuda">("empresa");
+  const [activeTab, setActiveTab] = useState<"empresa" | "unidades" | "funcionamento" | "notificacoes" | "seguranca" | "ajuda">("empresa");
+
+  // Notification preferences
+  const [notifyNewBooking, setNotifyNewBooking] = useState(true);
+  const [notifyCancellation, setNotifyCancellation] = useState(true);
+  const [notifyCustomerArrival, setNotifyCustomerArrival] = useState(true);
+  const [notifyPayment, setNotifyPayment] = useState(true);
+  const [notifyWaitlist, setNotifyWaitlist] = useState(true);
 
   // Company profile fields
   const [name, setName] = useState(company?.name ?? "");
@@ -2190,6 +2201,14 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
           >
             <Clock3 size={16} />
             <span>Funcionamento</span>
+          </button>
+          <button
+            type="button"
+            className={activeTab === "notificacoes" ? "active" : ""}
+            onClick={() => setActiveTab("notificacoes")}
+          >
+            <Bell size={16} />
+            <span>Notificações</span>
           </button>
           <button
             type="button"
@@ -2455,6 +2474,136 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                       Atendimento das <strong>{openTime}</strong> às <strong>{closeTime}</strong> nos dias selecionados ({workingDays.length} dias). Slots gerados a cada <strong>{slotInterval} min</strong> com buffer de <strong>{bufferMinutes} min</strong> entre atendimentos.
                     </span>
                   </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeTab === "notificacoes" && (
+            <section className="settings-section">
+              <SectionHeading
+                title="Canais e Alertas de Notificação"
+                description="Configure como você e sua equipe recebem alertas sobre reservas, clientes e finanças."
+                action={
+                  <Button onClick={() => notify("Preferências de notificação salvas com sucesso.")}>
+                    <Check size={16} /> Salvar preferências
+                  </Button>
+                }
+              />
+              <div style={{ display: "grid", gap: 14, marginTop: 20 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Novos agendamentos</strong>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Notificações em tempo real e e-mail sempre que um cliente reservar um serviço.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyNewBooking}
+                    onChange={(e) => setNotifyNewBooking(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Cancelamentos e remarcações</strong>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Avisos imediatos quando um horário for cancelado ou remarcado.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyCancellation}
+                    onChange={(e) => setNotifyCancellation(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Recepção: Chegada de clientes</strong>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Avisar o profissional responsável assim que o cliente chegar ao estabelecimento.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyCustomerArrival}
+                    onChange={(e) => setNotifyCustomerArrival(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Pagamentos e financeiro</strong>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Alertas de faturamento, fechamento de caixa e cobranças SaaS.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyPayment}
+                    onChange={(e) => setNotifyPayment(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Fila de espera inteligente</strong>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Notificar quando clientes entrarem na fila ou vagas compatíveis surgirem.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={notifyWaitlist}
+                    onChange={(e) => setNotifyWaitlist(e.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
                 </div>
               </div>
             </section>
@@ -2934,14 +3083,46 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   const [jobTitle, setJobTitle] = useState("Profissional");
   const [phone, setPhone] = useState("");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [grantAccess, setGrantAccess] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  const handlePhoto = async (file?: File) => {
+    if (!file) return;
+    setPreparingPhoto(true);
+    try {
+      setPhotoUrl(await prepareImageUpload(file, { maxDimension: 512, square: true }));
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Não foi possível preparar a foto.", "error");
+    } finally {
+      setPreparingPhoto(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await createEmployee({ name, jobTitle, phone: phone || undefined, serviceIds });
-      notify("Profissional adicionado e horários configurados.");
+      await createEmployee({
+        name,
+        jobTitle,
+        phone: phone || undefined,
+        serviceIds,
+        photoUrl,
+        grantAccess,
+        email: grantAccess ? email : undefined,
+        password: grantAccess ? password : undefined,
+      });
+      notify(
+        grantAccess
+          ? "Profissional adicionado com acesso ao sistema liberado."
+          : "Profissional adicionado e horários configurados.",
+      );
       onClose();
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Não foi possível adicionar o profissional.", "error");
@@ -2953,6 +3134,28 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Adicionar profissional" eyebrow="Pessoas e horários" onClose={onClose} wide>
       <form onSubmit={submit}>
+        <div className="employee-photo-field">
+          <div className="employee-photo-preview" aria-hidden="true">
+            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Profissional")}</span>}
+          </div>
+          <div className="employee-photo-copy">
+            <strong>Foto do profissional</strong>
+            <span>JPG, JPEG, PNG ou WEBP · até 5MB</span>
+            <div className="employee-photo-actions">
+              <input
+                ref={photoInput}
+                className="visually-hidden"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={event => void handlePhoto(event.target.files?.[0])}
+              />
+              <Button type="button" variant="secondary" disabled={preparingPhoto} onClick={() => photoInput.current?.click()}>
+                <ImagePlus size={16} /> {preparingPhoto ? "Preparando…" : photoUrl ? "Alterar foto" : "Adicionar foto"}
+              </Button>
+              {photoUrl && <Button type="button" variant="ghost" onClick={() => setPhotoUrl(null)}><Trash2 size={15} /> Remover</Button>}
+            </div>
+          </div>
+        </div>
         <div className="modal-form-grid">
           <Field label="Nome completo"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Beatriz Ramos" required minLength={2} /></Field>
           <Field label="Cargo ou especialidade"><input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} /></Field>
@@ -2967,6 +3170,44 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
               {services.length === 0 && <span className="field-hint">Cadastre serviços primeiro.</span>}
             </div>
           </Field>
+        </div>
+        <div className="modal-form-grid">
+          <Field label="Acesso ao sistema">
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
+              <input
+                type="checkbox"
+                checked={grantAccess}
+                onChange={(e) => setGrantAccess(e.target.checked)}
+              />
+              Permitir que este profissional acesse o sistema com login próprio
+            </label>
+          </Field>
+          {grantAccess && (
+            <>
+              <Field label="E-mail de acesso">
+                <input
+                  className="input"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="profissional@empresa.com"
+                  required={grantAccess}
+                />
+              </Field>
+              <Field label="Senha inicial">
+                <input
+                  className="input"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  minLength={8}
+                  required={grantAccess}
+                />
+                <span className="field-hint">O profissional poderá trocar a senha depois. Compartilhe esta credencial com segurança.</span>
+              </Field>
+            </>
+          )}
         </div>
         <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Adicionar</>}</Button></div></div>
       </form>
@@ -3206,9 +3447,10 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
     }
   };
 
+  const canManageAppointment = appointment.status !== "completed" && appointment.status !== "cancelled" && appointment.status !== "no_show";
+
   return (
     <Modal title="Detalhes do atendimento" eyebrow={`${shortDate(appointment.date)} · ${normalizeTime(appointment.startTime)}`} onClose={onClose} wide>
-      {appointment.clientPhone && <a className="btn btn-secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${appointment.clientPhone.replace(/\D/g, "").length <= 11 ? "55" : ""}${appointment.clientPhone.replace(/\D/g, "")}`}>WhatsApp</a>}
       <div className="detail-person"><Avatar name={appointment.clientName} photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl} color={avatarColor(appointment.clientName)} size="lg" /><div><h3>{appointment.clientName}</h3><p>{appointment.clientPhone}</p></div><StatusBadge status={appointment.status} /></div>
       <div className="detail-grid">
         <div><span>Serviço</span><strong>{appointment.serviceName}</strong></div>
@@ -3221,17 +3463,23 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
       </div>
       {appointment.notes && <div className="detail-note"><FileText size={15} /><span>{appointment.notes}</span></div>}
 
-      {appointment.status !== "completed" && appointment.status !== "cancelled" && appointment.status !== "no_show" && (
-        <>
-          <div className="detail-actions-inline">
-            {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={15} /> Confirmar</Button>}
-            {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={15} /> Cliente chegou</Button>}
-            {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={15} /> Iniciar</Button>}
-            <Button variant="danger" onClick={cancel}><X size={15} /> Cancelar</Button>
-            {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={15} /> Não compareceu</Button>}
-            {appointment.clientPhone && <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}
-          </div>
+      {(canManageAppointment || appointment.clientPhone) && (
+        <div className="detail-actions-inline">
+          {canManageAppointment && (
+            <>
+              {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={15} /> Confirmar</Button>}
+              {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={15} /> Cliente chegou</Button>}
+              {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={15} /> Iniciar</Button>}
+              <Button variant="danger" onClick={cancel}><X size={15} /> Cancelar</Button>
+              {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={15} /> Não compareceu</Button>}
+            </>
+          )}
+          {appointment.clientPhone && <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer"><MessageCircle size={16} /> WhatsApp</a>}
+        </div>
+      )}
 
+      {canManageAppointment && (
+        <>
           <div className="detail-section">
             <div className="detail-section-head"><h3>Finalizar atendimento e receber</h3><Button onClick={doFinish} disabled={finishing}>{finishing ? "Processando..." : <><CheckCheck size={16} /> Finalizar e registrar {formatCurrency(finalCharge)}</>}</Button></div>
             <div className="finish-fields">
@@ -3323,7 +3571,7 @@ function SuperadminModal({ onClose }: { onClose: () => void }) {
 }
 
 /* ---------- Main shell ---------- */
-export function AppShell() {
+export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   const {
     session, appointments, employees, locations, activeLocationId, setActiveLocationId,
     blocks, deleteBlock,
@@ -3331,6 +3579,7 @@ export function AppShell() {
   } = useStore();
 
   const [view, setView] = useState<ViewKey>(() => {
+    if (initialView) return initialView;
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("agenda-view");
       return (saved as ViewKey) || "dashboard";
@@ -3457,6 +3706,20 @@ export function AppShell() {
         return <SubscriptionView />;
       case "link-agendamento":
         return <BookingSettings />;
+      case "notificacoes":
+        return (
+          <NotificationsView
+            onNavigateToAppointment={(id) => {
+              const apt = appointments.find((a) => a.id === id);
+              if (apt) {
+                setDetailAppointment(apt);
+              } else {
+                navigate("agenda");
+              }
+            }}
+            onNavigateToAgenda={() => navigate("agenda")}
+          />
+        );
       case "configuracoes":
         return <SettingsPage theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} />;
       case "agenda":
@@ -3841,7 +4104,11 @@ export function AppShell() {
                 onClick={() => setNotificationsOpen((v) => !v)}
               >
                 <Bell size={18} />
-                {unreadCount > 0 && <i />}
+                {unreadCount > 0 && (
+                  <span className="topbar-notification-badge">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
 
               {notificationsOpen && (
@@ -3852,11 +4119,21 @@ export function AppShell() {
                   </div>
                   <div className="popover-body">
                     {notifications.length > 0 ? (
-                      notifications.map((n) => (
+                      notifications.slice(0, 8).map((n) => (
                         <button
                           key={n.id}
                           className={`notification-item ${!n.readAt ? "unread" : ""}`}
-                          onClick={() => markNotificationRead(n.id)}
+                          onClick={() => {
+                            void markNotificationRead(n.id);
+                            setNotificationsOpen(false);
+                            if (n.entityType === "appointment" && n.entityId) {
+                              const apt = appointments.find((a) => a.id === n.entityId);
+                              if (apt) setDetailAppointment(apt);
+                              else navigate("agenda");
+                            } else {
+                              navigate("notificacoes");
+                            }
+                          }}
                         >
                           <div className="notification-item-top">
                             <span className="notification-item-title">{n.title}</span>
@@ -3868,6 +4145,29 @@ export function AppShell() {
                     ) : (
                       <div className="popover-empty">Nenhuma notificação no momento.</div>
                     )}
+                  </div>
+                  <div style={{ padding: "10px 14px", borderTop: "1px solid var(--border)", background: "var(--surface-secondary)", textAlign: "center" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotificationsOpen(false);
+                        navigate("notificacoes");
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "var(--primary)",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <span>Ver todas na Central</span>
+                      <ArrowRight size={13} />
+                    </button>
                   </div>
                 </div>
               )}

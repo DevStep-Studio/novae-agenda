@@ -46,6 +46,18 @@ export function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
+/**
+ * Digits-only canonical form of a Brazilian phone number, for comparing two
+ * differently-formatted numbers as the same person — e.g. "(21) 99999-9999",
+ * "21999999999" and "+55 21 99999-9999" all normalize to "5521999999999".
+ * Does not reformat anything for display; only used for equality checks.
+ */
+export function normalizePhoneDigits(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits;
+}
+
 export function isValidDateKey(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(new Date(`${value}T12:00:00Z`).getTime()) && new Date(`${value}T12:00:00Z`).toISOString().slice(0, 10) === value;
 }

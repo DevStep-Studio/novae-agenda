@@ -194,10 +194,10 @@ export function AdminDashboard() {
                   placeholder="Buscar empresa por nome ou e-mail..."
                   style={{
                     padding: "8px 14px",
-                    background: "#0f1f18",
-                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "var(--surface-secondary)",
+                    border: "1px solid var(--border)",
                     borderRadius: 8,
-                    color: "#ffffff",
+                    color: "var(--text-primary)",
                     fontSize: 13,
                     width: 280,
                   }}
@@ -328,8 +328,8 @@ export function AdminDashboard() {
           {activeTab === "status" && (
             <div className={styles.statCard} style={{ maxWidth: 640 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Saúde da Infraestrutura</h2>
-              <p><strong>Banco de Dados:</strong> PostgreSQL com Drizzle ORM (Conectado)</p>
-              <p><strong>Anti-Collision:</strong> Locks transacionais via `pg_advisory_xact_lock`</p>
+              <p><strong>Banco de Dados:</strong> MySQL 8.0 com Drizzle ORM (Conectado)</p>
+              <p><strong>Anti-Collision:</strong> Locks transacionais via MySQL InnoDB `FOR UPDATE`</p>
               <p><strong>Gateway de Pagamento:</strong> Mercado Pago Webhook `/api/webhooks/mercadopago`</p>
               <p><strong>Notificações & Lembretes:</strong> Job runner ativo</p>
               <p><strong>Segurança:</strong> Bcrypt (12 rounds), JWT assinado, Rate Limiting ativo</p>

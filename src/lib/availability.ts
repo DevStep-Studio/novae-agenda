@@ -287,6 +287,36 @@ export async function getAvailabilitySlots(
 ) {
   if (!Number.isInteger(stepMinutes) || stepMinutes < 1)
     throw new Error("Intervalo inválido.");
+
+  if (!params.employeeId) {
+    const activeEmployees = await (params.executor ?? db)
+      .select({ id: employees.id })
+      .from(employees)
+      .where(
+        and(
+          eq(employees.companyId, params.companyId),
+          eq(employees.active, true),
+          params.locationId ? eq(employees.locationId, params.locationId) : undefined,
+        ),
+      );
+
+    const slotMap = new Map<string, { startTime: string; endTime: string }>();
+    for (const emp of activeEmployees) {
+      const empSlots = await getAvailabilitySlots(
+        { ...params, employeeId: emp.id },
+        stepMinutes,
+      );
+      for (const slot of empSlots) {
+        if (!slotMap.has(slot.startTime)) {
+          slotMap.set(slot.startTime, slot);
+        }
+      }
+    }
+    return Array.from(slotMap.values()).sort((a, b) =>
+      a.startTime.localeCompare(b.startTime),
+    );
+  }
+
   const gaps = await getAvailabilitySlotGaps(params),
     slots: Array<{ startTime: string; endTime: string }> = [];
   for (const gap of gaps)

@@ -129,34 +129,38 @@ export async function POST(request: Request) {
 
   try { return await db.transaction(async tx => {
     await lockCompany(tx,auth.user.companyId);
-  const [created] = await tx
-    .insert(scheduleBlocks)
-    .values({
-      companyId: auth.user.companyId,
-      employeeId: targetEmpId,
-      locationId: targetLocId,
-      startsAt: startsAtDate,
-      endsAt: endsAtDate,
-      reason: reason.trim(),
-      allDay: allDay ?? (finalEndDate !== date),
-    })
-    .returning();
+    const blockId = crypto.randomUUID();
+    const isAllDay = allDay ?? (finalEndDate !== date);
+    const trimmedReason = reason.trim();
 
-  return Response.json(
-    {
-      data: {
-        id: created.id,
-        employeeId: created.employeeId,
-        locationId: created.locationId,
-        date: localDate(created.startsAt,auth.companyTimezone),
-        startsAt: localTime(created.startsAt,auth.companyTimezone),
-        endsAt: localTime(created.endsAt,auth.companyTimezone),
-        allDay: created.allDay,
-        reason: created.reason,
+    await tx
+      .insert(scheduleBlocks)
+      .values({
+        id: blockId,
+        companyId: auth.user.companyId,
+        employeeId: targetEmpId,
+        locationId: targetLocId,
+        startsAt: startsAtDate,
+        endsAt: endsAtDate,
+        reason: trimmedReason,
+        allDay: isAllDay,
+      });
+
+    return Response.json(
+      {
+        data: {
+          id: blockId,
+          employeeId: targetEmpId,
+          locationId: targetLocId,
+          date: localDate(startsAtDate, auth.companyTimezone),
+          startsAt: localTime(startsAtDate, auth.companyTimezone),
+          endsAt: localTime(endsAtDate, auth.companyTimezone),
+          allDay: isAllDay,
+          reason: trimmedReason,
+        },
       },
-    },
-    { status: 201 },
-  );
+      { status: 201 },
+    );
   }); } catch(error) { return bookingError(error); }
 
 }

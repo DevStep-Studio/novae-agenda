@@ -58,7 +58,7 @@ type Store = DataState & {
   updateClient: (id: string, input: { name: string; phone: string; email?: string; notes?: string }) => Promise<void>;
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
-  createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[] }) => Promise<void>;
+  createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
   createAppointment: (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string; allowConflict?: boolean }) => Promise<void>;
   updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>;
   rescheduleAppointment: (id: string, input: { date: string; startTime: string; employeeId?: string }) => Promise<void>;
@@ -157,8 +157,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reloadStats = useCallback(async () => {
-    const data = await api<StatsResponse>("/api/stats");
-    setStats(data);
+    try {
+      const data = await api<StatsResponse>("/api/stats");
+      setStats(data);
+    } catch {
+      // Non-fatal: /api/stats requires manager+, so an employee-role session
+      // 403s here by design. Swallowing it (like every sibling reload*)
+      // keeps the rest of refreshAll()'s Promise.all from rejecting and
+      // wiping the whole session in reloadSession()'s catch block.
+    }
   }, []);
 
   const refreshAll = useCallback(async () => {
@@ -225,7 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [notify]);
 
-  const createEmployee = useCallback(async (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[] }) => {
+  const createEmployee = useCallback(async (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => {
     await api("/api/employees", { method: "POST", body: JSON.stringify(input) });
     await reloadEmployees();
   }, [reloadEmployees]);

@@ -1,7 +1,10 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  appointments,
+  appointmentServices,
   companies,
+  companySettings,
   employeeLocations,
   employees,
   employeeServices,
@@ -13,6 +16,8 @@ import {
 } from "@/db/schema";
 import type { DbExecutor } from "@/lib/availability";
 import { BookingError } from "./errors";
+import { parseCopyOverrides, parseSectionsConfig } from "./customization";
+import { DEFAULT_FONT_PACK } from "./fonts";
 import { getCompanySettings } from "@/lib/settings";
 import { localDate } from "./time";
 import { toSlug } from "./validation";
@@ -38,6 +43,7 @@ export async function publicCatalog(slug: string) {
     locationLinks,
     productRows,
     settings,
+    rawSettingsRows,
     popularity,
     schedules,
   ] = await Promise.all([
@@ -123,9 +129,24 @@ export async function publicCatalog(slug: string) {
           )
       : Promise.resolve([]),
     getCompanySettings(company.id),
-    db.execute<{ service_id: string; count: string }>(
-      sql`SELECT aps.service_id, count(*) FROM appointment_services aps JOIN appointments a ON a.id=aps.appointment_id WHERE a.company_id=${company.id} AND a.status='completed' GROUP BY aps.service_id`,
-    ),
+    db
+      .select({ key: companySettings.key, value: companySettings.value })
+      .from(companySettings)
+      .where(eq(companySettings.companyId, company.id)),
+    db
+      .select({
+        serviceId: appointmentServices.serviceId,
+        count: sql<number>`count(*)`,
+      })
+      .from(appointmentServices)
+      .innerJoin(appointments, eq(appointments.id, appointmentServices.appointmentId))
+      .where(
+        and(
+          eq(appointments.companyId, company.id),
+          eq(appointments.status, "completed"),
+        ),
+      )
+      .groupBy(appointmentServices.serviceId),
     db
       .select({ day: employeeSchedules.dayOfWeek })
       .from(employeeSchedules)
@@ -139,8 +160,12 @@ export async function publicCatalog(slug: string) {
       ),
   ]);
   const pop = new Map(
-    popularity.rows.map((p) => [p.service_id, Number(p.count)]),
+    popularity.map((p) => [p.serviceId, Number(p.count)]),
   );
+  // getCompanySettings() only surfaces the fixed CompanySettings shape (open/close
+  // time, buffers, etc) — branding fields live in company_settings under separate
+  // keys, so they're read from the raw rows instead (mirrors GET /api/business/branding).
+  const settingsMap = Object.fromEntries(rawSettingsRows.map((r) => [r.key, r.value]));
   return {
     company: {
       name: company.name,
@@ -148,10 +173,13 @@ export async function publicCatalog(slug: string) {
       description: company.publicDescription,
       category: company.businessType,
       logoUrl: company.logoUrl,
-      avatarUrl: (settings as Record<string, unknown>).avatarUrl as string | null || null,
-      coverUrl: (settings as Record<string, unknown>).coverUrl as string | null || null,
-      coverPosition: ((settings as Record<string, unknown>).coverPosition as string) || "center",
-      bookingThemeMode: (((settings as Record<string, unknown>).bookingThemeMode as string) || "auto") as "auto" | "light" | "dark",
+      avatarUrl: settingsMap.avatar_url || settingsMap.avatarUrl || null,
+      coverUrl: settingsMap.cover_url || settingsMap.coverUrl || null,
+      coverPosition: settingsMap.cover_position || settingsMap.coverPosition || "center",
+      bookingThemeMode: (settingsMap.booking_theme_mode || settingsMap.bookingThemeMode || "auto") as "auto" | "light" | "dark",
+      bookingFontFamily: settingsMap.booking_font_family || settingsMap.bookingFontFamily || DEFAULT_FONT_PACK,
+      copyOverrides: parseCopyOverrides(settingsMap.booking_copy_overrides || settingsMap.bookingCopyOverrides),
+      sectionsConfig: parseSectionsConfig(settingsMap.booking_sections_config || settingsMap.bookingSectionsConfig),
       address: company.address,
       phone: company.publicPhone ? company.phone : null,
       whatsapp: company.publicPhone ? company.whatsapp : null,

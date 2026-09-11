@@ -13,7 +13,11 @@
     "tokens": [
       "src/app/globals.css"
     ],
-    "components": [],
+    "components": [
+      "src/components/booking/primitives.tsx",
+      "src/components/booking/professional-selector.tsx",
+      "src/components/booking/preview-toolbar.tsx"
+    ],
     "assets": [
       "public/brand"
     ],
@@ -67,10 +71,23 @@
       "--primary-foreground": {
         "value": "#12231b",
         "source": "src/app/globals.css"
+      },
+      "--brand-foreground": {
+        "value": "var(--primary-foreground)",
+        "source": "src/app/globals.css"
       }
     },
-    "typography": {},
-    "spacing": {},
+    "typography": {
+      "--font-heading-xl": { "value": "700 32px/1.15 Plus Jakarta Sans", "source": "src/app/globals.css" },
+      "--font-body": { "value": "400 16px/1.55 DM Sans", "source": "src/app/globals.css" },
+      "--font-label": { "value": "600 13px/1.4 DM Sans", "source": "src/app/globals.css" }
+    },
+    "spacing": {
+      "--space-1": { "value": "4px", "source": "src/app/globals.css" },
+      "--space-4": { "value": "16px", "source": "src/app/globals.css" },
+      "--space-6": { "value": "24px", "source": "src/app/globals.css" },
+      "--space-12": { "value": "48px", "source": "src/app/globals.css" }
+    },
     "radius": {
       "--radius-sm": {
         "value": "8px",
@@ -82,6 +99,10 @@
       },
       "--radius-lg": {
         "value": "16px",
+        "source": "src/app/globals.css"
+      },
+      "--radius-xl": {
+        "value": "20px",
         "source": "src/app/globals.css"
       }
     },
@@ -100,11 +121,16 @@
   },
   "components": {
     "installed": [],
-    "preferredPrimitives": [],
-    "patterns": []
+    "preferredPrimitives": ["Button", "Price", "TimeSlotButton", "BookingAvatar", "ProfessionalSelector", "PublicFrame", "PreviewToolbar"],
+    "patterns": ["Public booking components consume brand CSS variables", "Preview and public page share PublicFrame and booking primitives"]
   },
   "constraints": {
-    "must": [],
+    "must": [
+      "Use the centralized CSS variables and booking primitives for every public booking component",
+      "Use --brand-foreground for text and icons over --brand",
+      "Keep button and price labels on one line",
+      "Keep touch targets approximately 44px on mobile"
+    ],
     "avoid": [
       "Gradientes",
       "Identidade Booksy",

@@ -1,9 +1,9 @@
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { appointments, clients, payments } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
-import { centsToNumber } from "@/lib/domain";
+import { centsToNumber, normalizePhoneDigits } from "@/lib/domain";
 import type { ClientDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const query = (searchParams.get("q") ?? "").trim();
 
   const where = query
-    ? and(eq(clients.companyId, auth.user.companyId), or(ilike(clients.name, `%${query}%`), ilike(clients.phone, `%${query}%`), ilike(clients.email, `%${query}%`)))
+    ? and(eq(clients.companyId, auth.user.companyId), or(sql`lower(${clients.name}) LIKE ${`%${query.toLowerCase()}%`}`, sql`${clients.phone} LIKE ${`%${query}%`}`, sql`lower(${clients.email}) LIKE ${`%${query.toLowerCase()}%`}`))
     : eq(clients.companyId, auth.user.companyId);
 
   const rows = await db.select().from(clients).where(where).orderBy(desc(clients.createdAt)).limit(200);
@@ -53,9 +53,9 @@ export async function GET(request: Request) {
     ? await db
         .select({
           clientId: appointments.clientId,
-          cancelled: sql<number>`count(*) filter (where ${appointments.status} = 'cancelled')`.as("cancelled"),
-          noShow: sql<number>`count(*) filter (where ${appointments.status} = 'no_show')`.as("noShow"),
-          nextVisit: sql<string | null>`min(${appointments.appointmentDate}) filter (where ${appointments.status} in ('scheduled', 'confirmed') and ${appointments.appointmentDate} >= current_date)`.as("nextVisit"),
+          cancelled: sql<number>`coalesce(sum(case when ${appointments.status} = 'cancelled' then 1 else 0 end), 0)`.as("cancelled"),
+          noShow: sql<number>`coalesce(sum(case when ${appointments.status} = 'no_show' then 1 else 0 end), 0)`.as("noShow"),
+          nextVisit: sql<string | null>`min(case when ${appointments.status} in ('scheduled', 'confirmed') and ${appointments.appointmentDate} >= curdate() then ${appointments.appointmentDate} else null end)`.as("nextVisit"),
         })
         .from(appointments)
         .where(inArray(appointments.clientId, ids))
@@ -125,32 +125,58 @@ export async function POST(request: Request) {
   }
   const { name, phone, email, notes } = parsed.data;
 
-  const [created] = await db
+  // Different formats of the same number ("(21) 99999-9999" vs "21999999999")
+  // must not create two client records — compare on normalized digits rather
+  // than exact string match.
+  const normalizedIncoming = normalizePhoneDigits(phone);
+  const existing = await db
+    .select({ id: clients.id, name: clients.name, phone: clients.phone })
+    .from(clients)
+    .where(eq(clients.companyId, auth.user.companyId));
+  const duplicate = existing.find(
+    (c) => c.phone && normalizePhoneDigits(c.phone) === normalizedIncoming,
+  );
+  if (duplicate) {
+    return Response.json(
+      { error: `Já existe um cliente com este telefone: ${duplicate.name}.` },
+      { status: 409 },
+    );
+  }
+
+  const clientId = crypto.randomUUID();
+  const trimmedName = name.trim();
+  const trimmedPhone = phone.trim();
+  const trimmedEmail = email?.trim() || null;
+  const trimmedNotes = notes?.trim() || null;
+  const createdAt = new Date();
+
+  await db
     .insert(clients)
     .values({
+      id: clientId,
       companyId: auth.user.companyId,
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email?.trim() || null,
-      notes: notes?.trim() || null,
+      name: trimmedName,
+      phone: trimmedPhone,
+      email: trimmedEmail,
+      notes: trimmedNotes,
       active: true,
-    })
-    .returning();
+      createdAt,
+    });
 
   const dto: ClientDTO = {
-    id: created.id,
-    name: created.name,
-    phone: created.phone ?? "",
-    email: created.email,
-    notes: created.notes,
-    active: created.active,
-    initials: initials(created.name),
-    color: avatarColor(created.name),
+    id: clientId,
+    name: trimmedName,
+    phone: trimmedPhone,
+    email: trimmedEmail,
+    notes: trimmedNotes,
+    active: true,
+    initials: initials(trimmedName),
+    color: avatarColor(trimmedName),
     visits: 0,
     spent: 0,
     lastVisit: null,
     nextVisit: null,
-    createdAt: created.createdAt.toISOString(),
+    createdAt: createdAt.toISOString(),
   };
 
   return Response.json({ data: dto }, { status: 201 });

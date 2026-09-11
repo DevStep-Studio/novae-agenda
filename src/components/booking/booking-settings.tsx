@@ -441,7 +441,7 @@ export function BookingSettings() {
                   Baixar SVG
                 </button>
                 <a
-                  className={styles.btnSecondary}
+                  className={`${styles.btnSecondary} whatsapp-button`}
                   href={`https://wa.me/?text=${encodeURIComponent(`Agende seu horário conosco diretamente pelo link: ${url}`)}`}
                   target="_blank"
                   rel="noreferrer"

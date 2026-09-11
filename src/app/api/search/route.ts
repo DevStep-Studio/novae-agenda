@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, like, or } from "drizzle-orm";
 import { db } from "@/db";
 import { appointments, clients, employees, services } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
         and(
           eq(clients.companyId, companyId),
           eq(clients.active, true),
-          or(ilike(clients.name, pattern), ilike(clients.phone, pattern), ilike(clients.email, pattern)),
+          or(like(clients.name, pattern), like(clients.phone, pattern), like(clients.email, pattern)),
         ),
       )
       .limit(8),
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
         and(
           eq(employees.companyId, companyId),
           eq(employees.active, true),
-          or(ilike(employees.name, pattern), ilike(employees.jobTitle, pattern)),
+          or(like(employees.name, pattern), like(employees.jobTitle, pattern)),
         ),
       )
       .limit(8),
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
         durationMinutes: services.durationMinutes,
       })
       .from(services)
-      .where(and(eq(services.companyId, companyId), eq(services.active, true), ilike(services.name, pattern)))
+      .where(and(eq(services.companyId, companyId), eq(services.active, true), like(services.name, pattern)))
       .limit(8),
 
     // Appointments (matching client or employee name)
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(appointments.companyId, companyId),
-          or(ilike(clients.name, pattern), ilike(employees.name, pattern)),
+          or(like(clients.name, pattern), like(employees.name, pattern)),
         ),
       )
       .orderBy(desc(appointments.appointmentDate))

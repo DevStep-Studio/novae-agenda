@@ -302,6 +302,7 @@ export async function PATCH(
       await tx
         .insert(appointmentHistory)
         .values({
+          id: crypto.randomUUID(),
           appointmentId: id,
           actorId: auth.user.userId,
           action: "appointment.status_changed",
@@ -313,12 +314,15 @@ export async function PATCH(
           .from(appointments)
           .where(eq(appointments.bookingId, apt.bookingId));
         if (siblings.every((s) => s.status === status)) {
-          const [parent] = await tx
+          await tx
             .update(bookings)
             .set({ status, updatedAt: new Date() })
-            .where(eq(bookings.id, apt.bookingId))
-            .returning();
-          if (status === "confirmed")
+            .where(eq(bookings.id, apt.bookingId));
+          const [parent] = await tx
+            .select()
+            .from(bookings)
+            .where(eq(bookings.id, apt.bookingId));
+          if (status === "confirmed" && parent)
             await bookingEvent(
               tx,
               parent,
@@ -341,8 +345,9 @@ export async function PATCH(
         });
         const matches = await waitlistMatches(auth.user.companyId, tx, apt.appointmentDate);
         const count = matches.filter(e => e.available).length;
-        if (count) await tx.insert(notifications).values({ companyId: auth.user.companyId, type: "waitlist.available", title: `${count} clientes aguardam um horário semelhante.`, entityType: "waitlist" });
+        if (count) await tx.insert(notifications).values({ id: crypto.randomUUID(), companyId: auth.user.companyId, type: "waitlist.available", title: `${count} clientes aguardam um horário semelhante.`, entityType: "waitlist" });
         await tx.insert(notifications).values({
+          id: crypto.randomUUID(),
           companyId: auth.user.companyId,
           type:
             status === "cancelled"
@@ -557,6 +562,7 @@ export async function PUT(
       await tx
         .insert(appointmentHistory)
         .values({
+          id: crypto.randomUUID(),
           appointmentId: id,
           actorId: auth.user.userId,
           action: "appointment.rescheduled",

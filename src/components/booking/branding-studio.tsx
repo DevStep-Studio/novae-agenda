@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @next/next/no-img-element, react-hooks/set-state-in-effect -- Loads the saved branding into the editor on mount. */
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -7,18 +7,20 @@ import {
   Upload,
   Trash2,
   Sparkles,
-  Smartphone,
-  Monitor,
   Check,
   RotateCcw,
   Sun,
   Moon,
   ShieldCheck,
   AlertTriangle,
-  Clock3,
-  MapPin,
   Image as ImageIcon,
   CheckCircle2,
+  Type,
+  AlignLeft,
+  ListOrdered,
+  ArrowUp,
+  ArrowDown,
+  Search,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
@@ -29,6 +31,27 @@ import {
   isValidHexColor,
   type BookingThemeMode,
 } from "@/lib/branding";
+import {
+  COPY_OVERRIDE_DEFAULTS,
+  COPY_OVERRIDE_KEYS,
+  COPY_OVERRIDE_LABELS,
+  DEFAULT_SECTIONS_CONFIG,
+  isSectionVisible,
+  resolveCopy,
+  SECTION_LABELS,
+  type CopyOverrides,
+  type SectionConfig,
+} from "@/lib/booking/customization";
+import {
+  DEFAULT_FONT_PACK,
+  FONT_PACKS,
+  FONT_PACK_IDS,
+  isFontPackId,
+  type FontPackId,
+} from "./font-packs";
+import { prepareImageUpload } from "@/lib/image-upload-client";
+import { b, Price, PublicFrame } from "./primitives";
+import { PreviewToolbar } from "./preview-toolbar";
 import styles from "./branding-studio.module.css";
 
 type BrandingData = {
@@ -40,6 +63,9 @@ type BrandingData = {
   coverPosition: string;
   primaryColor: string;
   bookingThemeMode: BookingThemeMode;
+  bookingFontFamily: string;
+  bookingCopyOverrides: CopyOverrides;
+  bookingSectionsConfig: SectionConfig[];
   businessType?: string | null;
   publicDescription?: string | null;
 };
@@ -55,6 +81,9 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
   const [coverPosition, setCoverPosition] = useState<string>("center");
   const [primaryColor, setPrimaryColor] = useState<string>(DEFAULT_BRAND_COLOR);
   const [bookingThemeMode, setBookingThemeMode] = useState<BookingThemeMode>("auto");
+  const [fontFamily, setFontFamily] = useState<FontPackId>(DEFAULT_FONT_PACK);
+  const [copyOverrides, setCopyOverrides] = useState<CopyOverrides>({});
+  const [sectionsConfig, setSectionsConfig] = useState<SectionConfig[]>(DEFAULT_SECTIONS_CONFIG);
 
   // Studio Preview States
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
@@ -80,6 +109,9 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       setCoverPosition(res.coverPosition || "center");
       setPrimaryColor(res.primaryColor || DEFAULT_BRAND_COLOR);
       setBookingThemeMode(res.bookingThemeMode || "auto");
+      setFontFamily(isFontPackId(res.bookingFontFamily) ? res.bookingFontFamily : DEFAULT_FONT_PACK);
+      setCopyOverrides(res.bookingCopyOverrides || {});
+      setSectionsConfig(res.bookingSectionsConfig?.length ? res.bookingSectionsConfig : DEFAULT_SECTIONS_CONFIG);
 
       // Set initial preview theme
       if (res.bookingThemeMode === "light") {
@@ -104,56 +136,36 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       coverUrl !== initialData.coverUrl ||
       coverPosition !== initialData.coverPosition ||
       primaryColor !== initialData.primaryColor ||
-      bookingThemeMode !== initialData.bookingThemeMode);
+      bookingThemeMode !== initialData.bookingThemeMode ||
+      fontFamily !== initialData.bookingFontFamily ||
+      JSON.stringify(copyOverrides) !== JSON.stringify(initialData.bookingCopyOverrides) ||
+      JSON.stringify(sectionsConfig) !== JSON.stringify(initialData.bookingSectionsConfig));
 
   // Derived Palette
   const palette = createBrandPalette(primaryColor, previewTheme);
 
   // Handle client-side image compression
-  const handleImageUpload = (
+  const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     target: "logo" | "cover" | "avatar",
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      notify("A imagem deve ter no máximo 5MB.", "error");
-      return;
+    try {
+      const dataUrl = await prepareImageUpload(file, {
+        maxDimension: target === "cover" ? 1400 : 800,
+        square: target === "avatar",
+        allowSvg: target === "logo",
+      });
+      if (target === "logo") setLogoUrl(dataUrl);
+      if (target === "cover") setCoverUrl(dataUrl);
+      if (target === "avatar") setAvatarUrl(dataUrl);
+    } catch (error) {
+      notify((error as Error).message, "error");
+    } finally {
+      e.target.value = "";
     }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const maxDimension = target === "cover" ? 1400 : 800;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL("image/webp", 0.88);
-        if (target === "logo") setLogoUrl(dataUrl);
-        if (target === "cover") setCoverUrl(dataUrl);
-        if (target === "avatar") setAvatarUrl(dataUrl);
-      };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
   };
 
   // Save Branding to Server
@@ -172,6 +184,9 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         coverUrl: string | null;
         primaryColor: string;
         bookingThemeMode: BookingThemeMode;
+        bookingFontFamily: string;
+        bookingCopyOverrides: CopyOverrides;
+        bookingSectionsConfig: SectionConfig[];
       }>("/api/business/branding", {
         method: "PUT",
         body: JSON.stringify({
@@ -181,6 +196,9 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
           coverPosition,
           primaryColor,
           bookingThemeMode,
+          bookingFontFamily: fontFamily,
+          bookingCopyOverrides: copyOverrides,
+          bookingSectionsConfig: sectionsConfig,
         }),
       });
 
@@ -193,12 +211,17 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         coverPosition,
         primaryColor,
         bookingThemeMode,
+        bookingFontFamily: res?.bookingFontFamily || fontFamily,
+        bookingCopyOverrides: res?.bookingCopyOverrides || copyOverrides,
+        bookingSectionsConfig: res?.bookingSectionsConfig || sectionsConfig,
       };
 
       setInitialData(updated);
       if (res?.logoUrl) setLogoUrl(res.logoUrl);
       if (res?.avatarUrl) setAvatarUrl(res.avatarUrl);
       if (res?.coverUrl) setCoverUrl(res.coverUrl);
+      if (res?.bookingCopyOverrides) setCopyOverrides(res.bookingCopyOverrides);
+      if (res?.bookingSectionsConfig?.length) setSectionsConfig(res.bookingSectionsConfig);
 
       setSaveSuccess(true);
       notify("Identidade visual atualizada com sucesso!");
@@ -219,6 +242,9 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       setCoverUrl(null);
       setCoverPosition("center");
       setPreviewTheme("dark");
+      setFontFamily(DEFAULT_FONT_PACK);
+      setCopyOverrides({});
+      setSectionsConfig(DEFAULT_SECTIONS_CONFIG);
       notify("Identidade padrão restaurada. Clique em 'Salvar alterações' para confirmar.");
     }
   };
@@ -360,6 +386,28 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
               <span className={styles.fieldHint}>
                 Aparece no topo do link de agendamento. Recomendado: proporção 16:5 ou 1200x380.
               </span>
+              {coverUrl && (
+                <div className={styles.coverPositionField}>
+                  <span className={styles.fieldLabel}>Enquadramento da capa</span>
+                  <div className={styles.coverPositionGrid}>
+                    {([
+                      ["top", "Topo"],
+                      ["center", "Centro"],
+                      ["bottom", "Base"],
+                    ] as const).map(([position, label]) => (
+                      <button
+                        key={position}
+                        type="button"
+                        className={`${styles.coverPositionBtn} ${coverPosition === position ? styles.coverPositionBtnActive : ""}`}
+                        aria-pressed={coverPosition === position}
+                        onClick={() => setCoverPosition(position)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -498,6 +546,170 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
             </div>
           </section>
 
+          {/* Card: Tipografia */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>
+                <Type size={16} /> Tipografia
+              </h3>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>Combinação de fontes</label>
+              <div className={styles.fontPackGrid}>
+                {FONT_PACK_IDS.map((id) => {
+                  const pack = FONT_PACKS[id];
+                  const active = fontFamily === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`${styles.fontPackBtn} ${active ? styles.fontPackBtnActive : ""}`}
+                      aria-pressed={active}
+                      onClick={() => setFontFamily(id)}
+                    >
+                      <span className={styles.fontPackPreview} style={{ fontFamily: pack.heading }}>
+                        Aa
+                      </span>
+                      <span className={styles.fontPackLabel}>{pack.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <span className={styles.fieldHint} style={{ marginTop: 4 }}>
+                {FONT_PACKS[fontFamily].description}
+              </span>
+            </div>
+          </section>
+
+          {/* Card: Textos da Página */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>
+                <AlignLeft size={16} /> Textos da página
+              </h3>
+            </div>
+            {COPY_OVERRIDE_KEYS.map((key) => (
+              <div className={styles.field} key={key}>
+                <label className={styles.fieldLabel}>{COPY_OVERRIDE_LABELS[key]}</label>
+                <div className={styles.copyFieldRow}>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={copyOverrides[key] ?? ""}
+                    placeholder={COPY_OVERRIDE_DEFAULTS[key] || "Texto gerado automaticamente"}
+                    maxLength={200}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCopyOverrides((prev) => {
+                        const next = { ...prev };
+                        if (value) next[key] = value;
+                        else delete next[key];
+                        return next;
+                      });
+                    }}
+                  />
+                  {copyOverrides[key] && (
+                    <button
+                      type="button"
+                      className={styles.btnLinkSmall}
+                      onClick={() =>
+                        setCopyOverrides((prev) => {
+                          const next = { ...prev };
+                          delete next[key];
+                          return next;
+                        })
+                      }
+                    >
+                      Restaurar padrão
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* Card: Seções da Página */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>
+                <ListOrdered size={16} /> Seções da página
+              </h3>
+            </div>
+            <span className={styles.fieldHint}>
+              Escolha quais blocos aparecem e em que ordem. O perfil do estabelecimento e a lista de serviços são sempre exibidos.
+            </span>
+            {sectionsConfig.map((section, index) => (
+              <div className={styles.sectionRow} key={section.id}>
+                <div
+                  className={styles.checkRow}
+                  role="switch"
+                  aria-checked={section.visible}
+                  tabIndex={0}
+                  onClick={() =>
+                    setSectionsConfig((prev) =>
+                      prev.map((s) =>
+                        s.id === section.id ? { ...s, visible: !s.visible } : s,
+                      ),
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSectionsConfig((prev) =>
+                        prev.map((s) =>
+                          s.id === section.id ? { ...s, visible: !s.visible } : s,
+                        ),
+                      );
+                    }
+                  }}
+                >
+                  <div className={styles.checkInfo}>
+                    <span className={styles.checkTitle}>{SECTION_LABELS[section.id]}</span>
+                  </div>
+                  <div className={`${styles.switch} ${section.visible ? styles.switchActive : ""}`}>
+                    <div
+                      className={`${styles.switchKnob} ${section.visible ? styles.switchKnobActive : ""}`}
+                    />
+                  </div>
+                </div>
+                <div className={styles.sectionOrderBtns}>
+                  <button
+                    type="button"
+                    className={styles.sectionOrderBtn}
+                    disabled={index === 0}
+                    aria-label={`Mover ${SECTION_LABELS[section.id]} para cima`}
+                    onClick={() =>
+                      setSectionsConfig((prev) => {
+                        if (index === 0) return prev;
+                        const next = [...prev];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        return next;
+                      })
+                    }
+                  >
+                    <ArrowUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.sectionOrderBtn}
+                    disabled={index === sectionsConfig.length - 1}
+                    aria-label={`Mover ${SECTION_LABELS[section.id]} para baixo`}
+                    onClick={() =>
+                      setSectionsConfig((prev) => {
+                        if (index === prev.length - 1) return prev;
+                        const next = [...prev];
+                        [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                        return next;
+                      })
+                    }
+                  >
+                    <ArrowDown size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </section>
+
           {/* Action Bar */}
           <div className={styles.actionBar}>
             <button
@@ -537,41 +749,12 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
               Prévia em tempo real
             </h3>
 
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {/* Theme toggle for preview */}
-              <button
-                type="button"
-                className={styles.btnUpload}
-                style={{ minHeight: 30, padding: "4px 8px", fontSize: 11 }}
-                onClick={() => setPreviewTheme(previewTheme === "dark" ? "light" : "dark")}
-                title="Alternar tema da prévia"
-              >
-                {previewTheme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-                <span>{previewTheme === "dark" ? "Ver claro" : "Ver escuro"}</span>
-              </button>
-
-              {/* Viewport switcher */}
-              <div className={styles.viewportToggle}>
-                <button
-                  type="button"
-                  className={`${styles.viewportBtn} ${
-                    viewport === "desktop" ? styles.viewportBtnActive : ""
-                  }`}
-                  onClick={() => setViewport("desktop")}
-                >
-                  <Monitor size={13} /> Desktop
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.viewportBtn} ${
-                    viewport === "mobile" ? styles.viewportBtnActive : ""
-                  }`}
-                  onClick={() => setViewport("mobile")}
-                >
-                  <Smartphone size={13} /> Mobile
-                </button>
-              </div>
-            </div>
+            <PreviewToolbar
+              theme={previewTheme}
+              viewport={viewport}
+              onTheme={setPreviewTheme}
+              onViewport={setViewport}
+            />
           </div>
 
           {/* Interactive Mock Frame */}
@@ -597,120 +780,102 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
               </span>
             </div>
 
-            {/* Live Container Injected with Dynamic Palette */}
-            <div
-              className={`${styles.livePreviewContainer} ${
-                previewTheme === "dark" ? styles.previewDark : styles.previewLight
-              }`}
-              style={palette.cssVariables as React.CSSProperties}
+            <PublicFrame
+              preview={viewport}
+              color={primaryColor}
+              coverUrl={coverUrl}
+              coverPosition={coverPosition}
+              themeMode={previewTheme}
+              fontFamily={fontFamily}
+              copyOverrides={copyOverrides}
+              company={{
+                name: name || "Studio Prime",
+                category: initialData?.businessType || "Serviços",
+                logoUrl,
+                avatarUrl,
+                slug,
+              }}
             >
-              {/* Optional Cover Banner */}
-              {coverUrl && (
-                <img src={coverUrl} alt="Capa" className={styles.previewCover} />
-              )}
-
-              {/* Business Hero */}
-              <div className={styles.previewHero}>
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className={styles.previewLogo} />
-                ) : (
-                  <div className={styles.previewLogoFallback}>
-                    {name.slice(0, 1) || "S"}
+              <main className={b.main}>
+                <ol className={b.progress} aria-label="Prévia do progresso">
+                  {["Serviços", "Data e horário", "Confirmação"].map((label, index) => (
+                    <li key={label} className={index === 0 ? b.current : ""}>
+                      <b>{index + 1}</b>{label}
+                    </li>
+                  ))}
+                </ol>
+                <div className={b.content}>
+                  <p className={b.eyebrow}>Escolha seu serviço</p>
+                  <h1 className={b.title}>Escolha seu serviço</h1>
+                  <p className={b.subtitle}>{resolveCopy(copyOverrides, "heroSubtitle")}</p>
+                  <div className={b.profile}>
+                    {logoUrl ? <img className={b.avatar} src={logoUrl} alt="" /> : <span className={b.avatar}>{(name || "S").slice(0, 1)}</span>}
+                    <div>
+                      <h2>{name || "Studio Prime"}</h2>
+                      <div className={b.muted}>{initialData?.businessType || "Serviços"}</div>
+                    </div>
                   </div>
-                )}
-                <div>
-                  <h4>{name || "Studio Prime"}</h4>
-                  <span>Barbearia & Estética · São Paulo, SP</span>
-                </div>
-              </div>
-
-              {/* Step Title */}
-              <div>
-                <span
-                  style={{
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                    fontWeight: 700,
-                    color: palette.brand,
-                    display: "block",
-                  }}
-                >
-                  Escolha seu serviço
-                </span>
-                <strong style={{ fontSize: 16 }}>O que vamos agendar hoje?</strong>
-              </div>
-
-              {/* Service Cards Mock */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <div
-                  className={`${styles.previewService} ${
-                    selectedServiceId === "1" ? styles.previewServiceSelected : ""
-                  }`}
-                  onClick={() => setSelectedServiceId("1")}
-                >
-                  <div className={styles.previewServiceInfo}>
-                    <h5>Corte & Acabamento</h5>
-                    <span>30 min · Corte tradicional com lavagem</span>
-                  </div>
-                  <div className={styles.previewServiceAction}>
-                    <strong className={styles.previewPrice}>R$ 45,00</strong>
-                    <button
-                      type="button"
-                      className={`${styles.previewBtn} ${
-                        selectedServiceId === "1"
-                          ? styles.previewBtnBrand
-                          : styles.previewBtnOutline
-                      }`}
-                    >
-                      {selectedServiceId === "1" ? (
-                        <>
-                          <Check size={12} /> Selecionado
-                        </>
+                  {isSectionVisible(sectionsConfig, "search") && (
+                    <div className={b.search}>
+                      <Search size={18} />
+                      <input readOnly placeholder={resolveCopy(copyOverrides, "searchPlaceholder")} value="" />
+                    </div>
+                  )}
+                  <section className={b.serviceGroup}>
+                    <h2 className={b.groupTitle}>Serviços <span>2</span></h2>
+                    {[
+                      { id: "1", name: "Corte & Acabamento", description: "Corte tradicional com lavagem", price: 45 },
+                      { id: "2", name: "Barba & Toalha Quente", description: "Design e alinhamento", price: 35 },
+                    ].map((service) => {
+                      const selected = selectedServiceId === service.id;
+                      return (
+                        <article className={b.service} key={service.id}>
+                          <div className={b.serviceMain}>
+                            <div className={b.serviceBody}>
+                              <span className={b.serviceImagePlaceholder}>{service.name.slice(0, 1)}</span>
+                              <div className={b.serviceDetails}>
+                                <h3>{service.name}</h3>
+                                <p className={b.serviceDescription}>{service.description}</p>
+                                <div className={b.serviceMeta}>30 min</div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className={b.serviceActions}>
+                            <div className={b.servicePrice}><Price amount={service.price} /></div>
+                            <button
+                              type="button"
+                              className={`${b.button} ${b.small} ${selected ? "" : b.outline}`}
+                              aria-pressed={selected}
+                              onClick={() => setSelectedServiceId(service.id)}
+                            >
+                              {selected ? <><Check size={12} /> Selecionado</> : "Selecionar"}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </section>
+                  {sectionsConfig
+                    .filter((s) => s.id !== "search" && s.visible)
+                    .map((s) =>
+                      s.id === "photos" ? (
+                        <div className={b.photos} key="photos-preview">
+                          <span className={b.serviceImagePlaceholder}>1</span>
+                          <span className={b.serviceImagePlaceholder}>2</span>
+                          <span className={b.serviceImagePlaceholder}>3</span>
+                        </div>
                       ) : (
-                        "Selecionar"
-                      )}
-                    </button>
-                  </div>
+                        <div className={b.muted} style={{ marginTop: 16 }} key="hours-preview">
+                          Funcionamento: Seg a Sáb · 09:00–19:00
+                        </div>
+                      ),
+                    )}
+                  <button type="button" className={`${b.button} ${b.wide}`}>
+                    {resolveCopy(copyOverrides, "ctaContinue")}
+                  </button>
                 </div>
-
-                <div
-                  className={`${styles.previewService} ${
-                    selectedServiceId === "2" ? styles.previewServiceSelected : ""
-                  }`}
-                  onClick={() => setSelectedServiceId("2")}
-                >
-                  <div className={styles.previewServiceInfo}>
-                    <h5>Barba & Toalha Quente</h5>
-                    <span>30 min · Design e alinhamento</span>
-                  </div>
-                  <div className={styles.previewServiceAction}>
-                    <strong className={styles.previewPrice}>R$ 35,00</strong>
-                    <button
-                      type="button"
-                      className={`${styles.previewBtn} ${
-                        selectedServiceId === "2"
-                          ? styles.previewBtnBrand
-                          : styles.previewBtnOutline
-                      }`}
-                    >
-                      {selectedServiceId === "2" ? (
-                        <>
-                          <Check size={12} /> Selecionado
-                        </>
-                      ) : (
-                        "Selecionar"
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom CTA Mock */}
-              <button type="button" className={styles.previewCtaBtn}>
-                Continuar para Data e Horário →
-              </button>
-            </div>
+              </main>
+            </PublicFrame>
           </div>
         </div>
       </div>

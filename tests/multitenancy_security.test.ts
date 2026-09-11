@@ -2,7 +2,7 @@ import "dotenv/config";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { and, eq } from "drizzle-orm";
-import { db } from "@/db";
+import { db, pool } from "@/db";
 import {
   appointments,
   clients,
@@ -23,65 +23,63 @@ describe("Multitenancy Security & Role-Based Access Control", () => {
 
   before(async () => {
     // 1. Create Company A and Company B
-    const [compA] = await db
+    companyAId = crypto.randomUUID();
+    await db
       .insert(companies)
-      .values({ name: "Empresa Alpha Ltda" })
-      .returning();
-    companyAId = compA.id;
+      .values({ id: companyAId, name: "Empresa Alpha Ltda" });
 
-    const [compB] = await db
+    companyBId = crypto.randomUUID();
+    await db
       .insert(companies)
-      .values({ name: "Empresa Beta Ltda" })
-      .returning();
-    companyBId = compB.id;
+      .values({ id: companyBId, name: "Empresa Beta Ltda" });
 
     // 2. Create users for Company A
     const passwordHash = await hashPassword("SenhaForte@123");
 
-    const [ownerA] = await db
+    userOwnerAId = crypto.randomUUID();
+    await db
       .insert(users)
       .values({
+        id: userOwnerAId,
         companyId: companyAId,
         name: "Owner Alpha",
         email: "owner@alpha.com",
         passwordHash,
         role: "owner",
-      })
-      .returning();
-    userOwnerAId = ownerA.id;
+      });
 
-    const [empA] = await db
+    userEmployeeAId = crypto.randomUUID();
+    await db
       .insert(users)
       .values({
+        id: userEmployeeAId,
         companyId: companyAId,
         name: "Employee Alpha",
         email: "colab@alpha.com",
         passwordHash,
         role: "employee",
-      })
-      .returning();
-    userEmployeeAId = empA.id;
+      });
 
     // 3. Create a client for Company A and one for Company B
-    const [cliA] = await db
+    clientAId = crypto.randomUUID();
+    await db
       .insert(clients)
       .values({
+        id: clientAId,
         companyId: companyAId,
         name: "Cliente Exclusivo Alpha",
         phone: "11911110001",
-      })
-      .returning();
-    clientAId = cliA.id;
+      });
 
-    const [cliB] = await db
+    clientBId = crypto.randomUUID();
+    await db
       .insert(clients)
       .values({
+        id: clientBId,
         companyId: companyBId,
         name: "Cliente Exclusivo Beta",
         phone: "11922220002",
-      })
-      .returning();
-    clientBId = cliB.id;
+      });
   });
 
   after(async () => {
@@ -90,6 +88,7 @@ describe("Multitenancy Security & Role-Based Access Control", () => {
     await db.delete(users).where(eq(users.companyId, companyAId));
     await db.delete(companies).where(eq(companies.id, companyAId));
     await db.delete(companies).where(eq(companies.id, companyBId));
+    await pool.end();
   });
 
   it("strictly isolates multitenancy: Company A cannot query or mutate Company B records", async () => {
@@ -108,13 +107,16 @@ describe("Multitenancy Security & Role-Based Access Control", () => {
     assert.equal(leakedClientB, undefined, "Company B client leaked into Company A scope!");
 
     // Attempt to update Company B's client while enforcing Company A's tenant boundary
-    const updateResult = await db
+    const [existing] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, clientBId), eq(clients.companyId, companyAId)));
+    assert.equal(existing, undefined, "Cross-tenant record should not exist in Company A scope");
+
+    await db
       .update(clients)
       .set({ name: "Nome Modificado Ilegalmente" })
-      .where(and(eq(clients.id, clientBId), eq(clients.companyId, companyAId)))
-      .returning();
-
-    assert.equal(updateResult.length, 0, "Cross-tenant update must affect 0 rows");
+      .where(and(eq(clients.id, clientBId), eq(clients.companyId, companyAId)));
 
     // Confirm Company B client was not modified
     const [actualClientB] = await db.select().from(clients).where(eq(clients.id, clientBId));

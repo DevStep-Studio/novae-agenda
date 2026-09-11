@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import * as schema from "./schema";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -9,17 +9,21 @@ if (!databaseUrl) {
 }
 
 const globalForDb = globalThis as typeof globalThis & {
-  __arenaNextJsPostgresqlPool?: Pool;
+  __arenaNextJsMysqlPool?: mysql.Pool;
 };
 
 export const pool =
-  globalForDb.__arenaNextJsPostgresqlPool ??
-  new Pool({
-    connectionString: databaseUrl,
+  globalForDb.__arenaNextJsMysqlPool ??
+  mysql.createPool({
+    uri: databaseUrl,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    charset: "utf8mb4",
   });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForDb.__arenaNextJsPostgresqlPool = pool;
+  globalForDb.__arenaNextJsMysqlPool = pool;
 }
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool, { schema, mode: "default" });

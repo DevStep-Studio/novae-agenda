@@ -87,31 +87,58 @@ export async function POST(request: Request) {
     if (category) validCategoryId = category.id;
   }
 
-  let created;
-  try { created = await db.transaction(async tx => {
-    if (parsed.data.depositAmount > price) throw new BookingError("O sinal não pode exceder o preço.");
-    const employeeIds = [...new Set(parsed.data.employeeIds ?? [])];
-    const team = employeeIds.length ? await tx.select().from(employees).where(and(eq(employees.companyId,auth.user.companyId),inArray(employees.id,employeeIds))) : [];
-    if (team.length !== employeeIds.length) throw new BookingError("Profissional inválido.");
-  const [created] = await tx
-    .insert(services)
-    .values({
-      companyId: auth.user.companyId,
-      name: name.trim(),
-      categoryId: validCategoryId,
-      description: description?.trim() || null,
-      price: price.toFixed(2),
-      durationMinutes,
-      color: color || null,
-      active: true,
-      bufferMinutes: parsed.data.bufferMinutes, imageUrl: parsed.data.imageUrl || null, deliveryMode: parsed.data.deliveryMode, paymentType: parsed.data.paymentType, depositAmount: parsed.data.depositAmount.toFixed(2), cancellationPolicy: parsed.data.cancellationPolicy || null,
-    })
-    .returning();
+  let created: any;
+  try {
+    created = await db.transaction(async tx => {
+      if (parsed.data.depositAmount > price) throw new BookingError("O sinal não pode exceder o preço.");
+      const employeeIds = [...new Set(parsed.data.employeeIds ?? [])];
+      const team = employeeIds.length ? await tx.select().from(employees).where(and(eq(employees.companyId, auth.user.companyId), inArray(employees.id, employeeIds))) : [];
+      if (team.length !== employeeIds.length) throw new BookingError("Profissional inválido.");
 
+      const serviceId = crypto.randomUUID();
+      await tx
+        .insert(services)
+        .values({
+          id: serviceId,
+          companyId: auth.user.companyId,
+          name: name.trim(),
+          categoryId: validCategoryId,
+          description: description?.trim() || null,
+          price: price.toFixed(2),
+          durationMinutes,
+          color: color || null,
+          active: true,
+          bufferMinutes: parsed.data.bufferMinutes,
+          imageUrl: parsed.data.imageUrl || null,
+          deliveryMode: parsed.data.deliveryMode,
+          paymentType: parsed.data.paymentType,
+          depositAmount: parsed.data.depositAmount.toFixed(2),
+          cancellationPolicy: parsed.data.cancellationPolicy || null,
+        });
 
-    if(employeeIds.length) await tx.insert(employeeServices).values(team.map(e=>({employeeId:e.id,serviceId:created.id,commissionType:e.commissionType,commissionValue:e.commissionValue})));
-    return created;
-  }); } catch(error) { return bookingError(error); }
+      if (employeeIds.length) {
+        await tx.insert(employeeServices).values(team.map(e => ({
+          employeeId: e.id,
+          serviceId: serviceId,
+          commissionType: e.commissionType,
+          commissionValue: e.commissionValue,
+        })));
+      }
+
+      return {
+        id: serviceId,
+        name: name.trim(),
+        categoryId: validCategoryId,
+        description: description?.trim() || null,
+        price: price.toFixed(2),
+        durationMinutes,
+        color: color || null,
+        active: true,
+      };
+    });
+  } catch(error) {
+    return bookingError(error);
+  }
 
   await recordAudit({
     companyId: auth.user.companyId,

@@ -38,13 +38,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (parsed.data.closeTime !== undefined) patch.closeTime = `${parsed.data.closeTime}:00`;
   if (parsed.data.active !== undefined) patch.active = parsed.data.active;
 
-  const [updated] = await db
+  const [existing] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(and(eq(locations.id, id), eq(locations.companyId, auth.user.companyId)));
+
+  if (!existing) return Response.json({ error: "Unidade não encontrada." }, { status: 404 });
+
+  await db
     .update(locations)
     .set(patch)
-    .where(and(eq(locations.id, id), eq(locations.companyId, auth.user.companyId)))
-    .returning();
-
-  if (!updated) return Response.json({ error: "Unidade não encontrada." }, { status: 404 });
+    .where(and(eq(locations.id, id), eq(locations.companyId, auth.user.companyId)));
 
   await recordAudit({
     companyId: auth.user.companyId,
@@ -55,7 +59,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     metadata: patch,
   });
 
-  return Response.json({ data: { id: updated.id } });
+  return Response.json({ data: { id } });
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -65,13 +69,17 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Unidade não encontrada." }, { status: 404 });
 
-  const [updated] = await db
+  const [existing] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(and(eq(locations.id, id), eq(locations.companyId, auth.user.companyId)));
+
+  if (!existing) return Response.json({ error: "Unidade não encontrada." }, { status: 404 });
+
+  await db
     .update(locations)
     .set({ active: false })
-    .where(and(eq(locations.id, id), eq(locations.companyId, auth.user.companyId)))
-    .returning({ id: locations.id });
-
-  if (!updated) return Response.json({ error: "Unidade não encontrada." }, { status: 404 });
+    .where(and(eq(locations.id, id), eq(locations.companyId, auth.user.companyId)));
 
   await recordAudit({
     companyId: auth.user.companyId,
@@ -81,5 +89,5 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     entityId: id,
   });
 
-  return Response.json({ data: { id: updated.id } });
+  return Response.json({ data: { id } });
 }

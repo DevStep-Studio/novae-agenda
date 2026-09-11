@@ -220,6 +220,22 @@
   object-fit: cover;
 }
 
+.coverPositionField { display: grid; gap: 8px; margin-top: 6px; }
+.coverPositionGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.coverPositionBtn {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font: var(--font-label);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.coverPositionBtn:hover,
+.coverPositionBtn:focus-visible { border-color: var(--primary); outline: none; }
+.coverPositionBtnActive { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+
 .uploadActions {
   display: flex;
   align-items: center;
@@ -483,6 +499,14 @@
   gap: 12px;
 }
 
+.previewToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .previewTitle {
   font-size: 14px;
   font-weight: 700;
@@ -516,6 +540,8 @@
   align-items: center;
   gap: 5px;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .viewportBtnActive {
@@ -539,6 +565,8 @@
   align-items: center;
   gap: 6px;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .themeToggleBtn:hover {
@@ -597,187 +625,6 @@
   border-radius: 99px;
 }
 
-/* Mock Live Public Booking Preview Container */
-.livePreviewContainer {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  font-size: 13px;
-  min-height: 480px;
-  max-height: 600px;
-  overflow-y: auto;
-}
-
-/* Light / Dark Mode dynamic classes for preview */
-.previewDark {
-  background: #0b1712;
-  color: #f1f7f4;
-}
-
-.previewLight {
-  background: #f4f7f5;
-  color: #12231b;
-}
-
-.previewCover {
-  width: 100%;
-  height: 90px;
-  border-radius: 10px;
-  object-fit: cover;
-  margin-bottom: -24px;
-}
-
-.previewHero {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 12px;
-  position: relative;
-  z-index: 2;
-}
-
-.previewDark .previewHero {
-  background: #11231a;
-  border: 1px solid rgba(220, 255, 76, 0.14);
-}
-
-.previewLight .previewHero {
-  background: #ffffff;
-  border: 1px solid #dbe6e0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-}
-
-.previewLogo {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  object-fit: contain;
-  background: #163628;
-}
-
-.previewLogoFallback {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--brand, #dcff4c);
-  color: var(--brand-contrast, #102118);
-  display: grid;
-  place-items: center;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.previewHero h4 {
-  margin: 0 0 2px;
-  font-size: 14.5px;
-  font-weight: 700;
-}
-
-.previewHero span {
-  font-size: 11px;
-  opacity: 0.7;
-}
-
-/* Preview Service Card */
-.previewService {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
-  border-radius: 10px;
-  gap: 12px;
-}
-
-.previewDark .previewService {
-  background: #112219;
-  border: 1px solid rgba(220, 255, 76, 0.12);
-}
-
-.previewLight .previewService {
-  background: #ffffff;
-  border: 1px solid #dbe6e0;
-}
-
-.previewServiceSelected {
-  border-color: var(--brand, #dcff4c) !important;
-}
-
-.previewServiceInfo h5 {
-  margin: 0 0 2px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.previewServiceInfo span {
-  font-size: 11px;
-  opacity: 0.7;
-}
-
-.previewServiceAction {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.previewPrice {
-  font-weight: 800;
-  font-size: 13.5px;
-  color: var(--brand, #dcff4c);
-}
-
-.previewLight .previewPrice {
-  color: #12231b;
-}
-
-.previewBtn {
-  min-height: 32px;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 11.5px;
-  font-weight: 700;
-  cursor: pointer;
-  border: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.previewBtnBrand {
-  background: var(--brand, #dcff4c);
-  color: var(--brand-contrast, #102118);
-}
-
-.previewBtnOutline {
-  background: transparent;
-  border: 1px solid var(--brand, #dcff4c);
-  color: var(--brand, #dcff4c);
-}
-
-.previewLight .previewBtnOutline {
-  border-color: #586f65;
-  color: #12231b;
-}
-
-.previewCtaBtn {
-  width: 100%;
-  min-height: 40px;
-  border-radius: 8px;
-  background: var(--brand, #dcff4c);
-  color: var(--brand-contrast, #102118);
-  border: 0;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 8px;
-}
-
 @media (max-width: 960px) {
   .studioLayout {
     grid-template-columns: 1fr;
@@ -785,4 +632,200 @@
   .previewCol {
     position: static;
   }
+}
+
+@media (max-width: 520px) {
+  .previewHeader { align-items: flex-start; flex-direction: column; }
+  .previewToolbar { width: 100%; justify-content: space-between; }
+  .previewWindowHead { padding-inline: 10px; }
+  .windowUrl { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* =========================================================
+   TYPOGRAPHY PICKER
+   ========================================================= */
+.fontPackGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.fontPackBtn {
+  min-height: 64px;
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+  border-radius: 10px;
+  padding: 8px;
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.fontPackBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.fontPackBtnActive {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.fontPackPreview {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fontPackLabel {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   EDITABLE COPY FIELDS
+   ========================================================= */
+.copyFieldRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.textInput {
+  flex: 1;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.textInput:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.btnLinkSmall {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.btnLinkSmall:hover {
+  color: var(--danger);
+}
+
+/* =========================================================
+   SECTION VISIBILITY / ORDER
+   ========================================================= */
+.sectionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkRow {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.checkRow:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.checkInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.checkTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.switchActive {
+  background: var(--primary);
+}
+
+.switchKnob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.switchKnobActive {
+  transform: translateX(18px);
+  background: var(--primary-foreground, #ffffff);
+}
+
+.sectionOrderBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sectionOrderBtn {
+  width: 28px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sectionOrderBtn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.sectionOrderBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }

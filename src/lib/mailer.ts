@@ -73,18 +73,18 @@ function escapeHtml(value: string): string {
 
 function layout(heading: string, bodyHtml: string, cta?: { label: string; href: string }): string {
   const button = cta
-    ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 24px;background:#dcff4c;color:#12231b;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>`
+    ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 24px;background:#dcff4c;color:#080808;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>`
     : "";
-  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#0f1f18;font-family:Arial,Helvetica,sans-serif;color:#f2f7f4">
+  return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#080808;font-family:Arial,Helvetica,sans-serif;color:#f5f5f5">
 <div style="max-width:520px;margin:0 auto;padding:32px 16px">
   <div style="font-weight:700;font-size:22px;letter-spacing:-0.5px;color:#dcff4c;margin-bottom:24px">Reservei</div>
-  <div style="background:#162a22;border:1px solid rgba(220,255,76,0.2);border-radius:16px;padding:28px">
+  <div style="background:#121212;border:1px solid rgba(220,255,76,0.25);border-radius:16px;padding:28px">
     <h1 style="margin:0 0 12px;font-size:18px">${heading}</h1>
     ${bodyHtml}
     ${button}
-    ${cta ? `<p style="margin:16px 0 0;font-size:12px;color:#6f7d79;word-break:break-all">Se o botão não funcionar, copie e cole este endereço no navegador:<br>${cta.href}</p>` : ""}
+    ${cta ? `<p style="margin:16px 0 0;font-size:12px;color:#777777;word-break:break-all">Se o botão não funcionar, copie e cole este endereço no navegador:<br>${cta.href}</p>` : ""}
   </div>
-  <p style="margin:20px 0 0;font-size:11px;color:#98a5a1;text-align:center">Reservei · plataforma comercial de agendamentos e gestão</p>
+  <p style="margin:20px 0 0;font-size:11px;color:#888888;text-align:center">Reservei · plataforma comercial de agendamentos e gestão</p>
 </div></body></html>`;
 }
 
@@ -131,7 +131,7 @@ export function bookingConfirmationEmail(input: {
     html: layout(
       "Agendamento Confirmado!",
       `<p style="margin:0 0 16px;font-size:14px;line-height:1.6">Olá, ${escapeHtml(first)}. Seu agendamento foi confirmado com sucesso.</p>
-       <div style="background:#0f1f18;padding:16px;border-radius:8px;margin-bottom:16px">
+       <div style="background:#080808;padding:16px;border-radius:8px;border:1px solid #222222;margin-bottom:16px">
          <p style="margin:4px 0;font-size:13px"><strong>Estabelecimento:</strong> ${escapeHtml(input.companyName)}</p>
          <p style="margin:4px 0;font-size:13px"><strong>Serviço:</strong> ${escapeHtml(input.serviceName)}</p>
          <p style="margin:4px 0;font-size:13px"><strong>Data:</strong> ${escapeHtml(input.date)} às ${escapeHtml(input.time)}</p>

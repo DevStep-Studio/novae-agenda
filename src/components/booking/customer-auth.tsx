@@ -89,13 +89,14 @@ export function CustomerAuth({
       <div className={b.auth}>
         <h3>Olá, {user.name.split(" ")[0]}.</h3>
         <p className={b.muted}>
-          Enviamos um link para <strong>{user.email}</strong>. Confirme seu
-          e-mail para concluir a reserva. Sua seleção está salva neste
-          navegador.
+          Enviamos um link para:
         </p>
+        <strong className={b.authEmail}>{user.email}</strong>
+        <p className={b.muted}>Confirme seu e-mail para concluir a reserva. Sua seleção está salva neste navegador.</p>
         <ErrorMessage message={error} />
         {message && <p role="status">{message}</p>}
         <button
+          type="button"
           className={`${b.button} ${b.wide}`}
           disabled={busy}
           onClick={async () => {
@@ -114,35 +115,40 @@ export function CustomerAuth({
         >
           Já confirmei meu e-mail
         </button>
-        <button
-          className={b.textButton}
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await api("/api/auth/resend-verification", {
-                method: "POST",
-                body: JSON.stringify({ returnTo }),
-              });
-              setMessage("Um novo link de confirmação foi enviado.");
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Reenviar confirmação
-        </button>
-        <button
-          className={b.textButton}
-          onClick={async () => {
-            await api("/api/auth/logout", { method: "POST" });
-            setUser(null);
-          }}
-        >
-          Entrar com outra conta
-        </button>
+        <div className={b.authSecondaryActions}>
+          <button
+            type="button"
+            className={b.textButton}
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await api("/api/auth/resend-verification", {
+                  method: "POST",
+                  body: JSON.stringify({ returnTo }),
+                });
+                setMessage("Um novo link de confirmação foi enviado.");
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Reenviar confirmação
+          </button>
+          <span aria-hidden="true">·</span>
+          <button
+            type="button"
+            className={b.textButton}
+            onClick={async () => {
+              await api("/api/auth/logout", { method: "POST" });
+              setUser(null);
+            }}
+          >
+            Entrar com outra conta
+          </button>
+        </div>
       </div>
     );
   return (

@@ -1,10 +1,11 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { employeeLocations, employeeSchedules, employeeServices, employees, locations, services } from "@/db/schema";
+import { employeeLocations, employeeSchedules, employeeServices, employees, locations, services, users } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { hashPassword, normalizeEmail, requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
+import { saveProfessionalImage } from "@/lib/storage";
 import type { EmployeeDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -44,20 +45,33 @@ export async function GET() {
       commissionValue: centsToNumber(row.commissionValue),
       services: serviceIds.map((id) => servicesMap.get(id) ?? "Serviço").sort(),
       serviceIds,
+      hasLogin: row.userId !== null,
     };
   });
 
   return Response.json({ data: dto });
 }
 
-const createSchema = z.object({
-  name: z.string().min(2, "Informe o nome do profissional.").max(120),
-  jobTitle: z.string().max(80).optional(),
-  phone: z.string().max(20).optional(),
-  commissionType: z.enum(["none", "percentage", "fixed"]).optional(),
-  commissionValue: z.number().min(0).optional(),
-  serviceIds: z.array(z.string()).optional(),
-});
+const createSchema = z
+  .object({
+    name: z.string().min(2, "Informe o nome do profissional.").max(120),
+    jobTitle: z.string().max(80).optional(),
+    phone: z.string().max(20).optional(),
+    commissionType: z.enum(["none", "percentage", "fixed"]).optional(),
+    commissionValue: z.number().min(0).optional(),
+    serviceIds: z.array(z.string()).optional(),
+    photoUrl: z.string().max(8_000_000).optional().nullable(),
+    // Optional: grants the employee their own login (role "employee"), scoped
+    // to this company. Owner sets the initial password directly — no invite
+    // email flow yet, see [[novae-engagement]].
+    grantAccess: z.boolean().optional(),
+    email: z.string().email("Informe um e-mail válido.").optional(),
+    password: z.string().min(8, "A senha deve ter ao menos 8 caracteres.").optional(),
+  })
+  .refine((data) => !data.grantAccess || (data.email && data.password), {
+    message: "Informe e-mail e senha para liberar o acesso ao sistema.",
+    path: ["email"],
+  });
 
 export async function POST(request: Request) {
   const gate = await requireRole("manager");
@@ -69,20 +83,73 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
-  const { name, jobTitle, phone, commissionType, commissionValue, serviceIds } = parsed.data;
+  const { name, jobTitle, phone, commissionType, commissionValue, serviceIds, grantAccess } = parsed.data;
+  let photoUrl: string | null = null;
+  try {
+    photoUrl = parsed.data.photoUrl ? await saveProfessionalImage(parsed.data.photoUrl) : null;
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Imagem inválida." }, { status: 400 });
+  }
 
-  const [created] = await db
+  // Grant a login account (role "employee") scoped to this company, if requested.
+  let loginUserId: string | null = null;
+  if (grantAccess && parsed.data.email && parsed.data.password) {
+    const normalizedEmail = normalizeEmail(parsed.data.email);
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.companyId, auth.user.companyId), eq(users.email, normalizedEmail)));
+    if (existing) {
+      return Response.json(
+        { error: "Já existe um usuário com este e-mail nesta empresa." },
+        { status: 409 },
+      );
+    }
+    const passwordHash = await hashPassword(parsed.data.password);
+    loginUserId = crypto.randomUUID();
+    await db
+      .insert(users)
+      .values({
+        id: loginUserId,
+        companyId: auth.user.companyId,
+        name: name.trim(),
+        email: normalizedEmail,
+        passwordHash,
+        role: "employee",
+        active: true,
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+      });
+  }
+
+  const employeeId = crypto.randomUUID();
+  const trimmedName = name.trim();
+  const trimmedJobTitle = jobTitle?.trim() || null;
+  const trimmedPhone = phone?.trim() || null;
+
+  await db
     .insert(employees)
     .values({
+      id: employeeId,
       companyId: auth.user.companyId,
-      name: name.trim(),
-      jobTitle: jobTitle?.trim() || null,
-      phone: phone?.trim() || null,
+      userId: loginUserId,
+      name: trimmedName,
+      jobTitle: trimmedJobTitle,
+      phone: trimmedPhone,
+      photoUrl,
       commissionType: commissionType ?? "none",
       commissionValue: String(commissionValue ?? 0),
       active: true,
-    })
-    .returning();
+    });
+
+  const created = {
+    id: employeeId,
+    name: trimmedName,
+    jobTitle: trimmedJobTitle,
+    phone: trimmedPhone,
+    photoUrl,
+    active: true,
+  };
 
   if (serviceIds && serviceIds.length > 0) {
     const owned = await db
@@ -92,7 +159,7 @@ export async function POST(request: Request) {
     const ownedIds = new Set(owned.map((s) => s.id));
     const linkIds = serviceIds.filter((sid) => ownedIds.has(sid));
     if (linkIds.length > 0) {
-      await db.insert(employeeServices).values(linkIds.map((serviceId) => ({ employeeId: created.id, serviceId })));
+      await db.insert(employeeServices).values(linkIds.map((serviceId) => ({ id: crypto.randomUUID(), employeeId: created.id, serviceId })));
     }
   }
 
@@ -105,6 +172,7 @@ export async function POST(request: Request) {
 
   if (primaryLoc) {
     await db.insert(employeeLocations).values({
+      id: crypto.randomUUID(),
       employeeId: created.id,
       locationId: primaryLoc.id,
       isPrimary: true,
@@ -114,6 +182,7 @@ export async function POST(request: Request) {
   // Create default schedules for working days (Seg-Sáb, 08:00-19:00 com almoço 12:00-13:00)
   for (const day of [1, 2, 3, 4, 5, 6]) {
     await db.insert(employeeSchedules).values({
+      id: crypto.randomUUID(),
       employeeId: created.id,
       locationId: primaryLoc?.id ?? null,
       dayOfWeek: day,
@@ -131,7 +200,7 @@ export async function POST(request: Request) {
     action: "employee.created",
     entity: "employee",
     entityId: created.id,
-    metadata: { name: created.name },
+    metadata: { name: created.name, grantedAccess: Boolean(loginUserId) },
   });
 
   const dto: EmployeeDTO = {
@@ -139,6 +208,7 @@ export async function POST(request: Request) {
     name: created.name,
     jobTitle: created.jobTitle,
     phone: created.phone,
+    photoUrl: created.photoUrl,
     active: created.active,
     color: avatarColor(created.name),
     initials: initials(created.name),
@@ -146,6 +216,7 @@ export async function POST(request: Request) {
     commissionValue: commissionValue ?? 0,
     services: [],
     serviceIds: serviceIds ?? [],
+    hasLogin: Boolean(loginUserId),
   };
 
   return Response.json({ data: dto }, { status: 201 });

@@ -102,8 +102,8 @@ export function SubscriptionView() {
       {sub && (
         <div
           style={{
-            background: "#162a22",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
             borderRadius: 16,
             padding: "24px 28px",
             marginBottom: 32,
@@ -204,10 +204,10 @@ export function SubscriptionView() {
         <div
           style={{
             display: "inline-flex",
-            background: "#0f1f18",
+            background: "var(--surface-secondary)",
             padding: 4,
             borderRadius: 10,
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid var(--border)",
           }}
         >
           <button
@@ -399,8 +399,8 @@ export function SubscriptionView() {
       {data?.invoices && data.invoices.length > 0 && (
         <section
           style={{
-            background: "#162a22",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
             borderRadius: 16,
             padding: "24px 28px",
           }}

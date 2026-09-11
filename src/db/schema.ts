@@ -1,87 +1,87 @@
 import {
   boolean,
   date,
+  decimal,
   index,
-  integer,
-  jsonb,
-  numeric,
-  pgTable,
+  int,
+  json,
+  mysqlTable,
   primaryKey,
   text,
   time,
   timestamp,
   uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+  varchar,
+} from "drizzle-orm/mysql-core";
 
 const timestamps = {
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 };
 
-export const companies = pgTable("companies", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  businessType: text("business_type"),
+export const companies = mysqlTable("companies", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }).notNull(),
+  businessType: varchar("business_type", { length: 100 }),
   logoUrl: text("logo_url"),
-  phone: text("phone"),
-  whatsapp: text("whatsapp"),
-  email: text("email"),
+  phone: varchar("phone", { length: 50 }),
+  whatsapp: varchar("whatsapp", { length: 50 }),
+  email: varchar("email", { length: 255 }),
   address: text("address"),
-  instagram: text("instagram"),
+  instagram: varchar("instagram", { length: 100 }),
   website: text("website"),
-  timezone: text("timezone").default("America/Sao_Paulo").notNull(),
-  currency: text("currency").default("BRL").notNull(),
-  primaryColor: text("primary_color").default("#dcff4c").notNull(),
-  secondaryColor: text("secondary_color").default("#162a22").notNull(),
-  publicSlug: text("public_slug").unique(),
+  timezone: varchar("timezone", { length: 50 }).default("America/Sao_Paulo").notNull(),
+  currency: varchar("currency", { length: 10 }).default("BRL").notNull(),
+  primaryColor: varchar("primary_color", { length: 20 }).default("#dcff4c").notNull(),
+  secondaryColor: varchar("secondary_color", { length: 20 }).default("#162a22").notNull(),
+  publicSlug: varchar("public_slug", { length: 120 }).unique(),
   publicEnabled: boolean("public_enabled").default(false).notNull(),
   publicDescription: text("public_description"),
-  publicColor: text("public_color").default("#234e3d").notNull(),
-  publicPhotos: jsonb("public_photos").$type<string[]>().default([]).notNull(),
+  publicColor: varchar("public_color", { length: 20 }).default("#234e3d").notNull(),
+  publicPhotos: json("public_photos").$type<string[]>().default([]).notNull(),
   publicPhone: boolean("public_phone").default(false).notNull(),
   publicInstagram: boolean("public_instagram").default(false).notNull(),
-  cancellationHours: integer("cancellation_hours").default(24).notNull(),
+  cancellationHours: int("cancellation_hours").default(24).notNull(),
   allowProducts: boolean("allow_products").default(false).notNull(),
   onboarded: boolean("onboarded").default(false).notNull(),
   ...timestamps,
 });
 
-export const locations = pgTable("locations", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  name: text("name").notNull(),
+export const locations = mysqlTable("locations", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
   address: text("address"),
-  phone: text("phone"),
+  phone: varchar("phone", { length: 50 }),
   openTime: time("open_time").default("08:00").notNull(),
   closeTime: time("close_time").default("19:00").notNull(),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({ companyIdx: index("locations_company_idx").on(table.companyId) }));
 
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").references(() => companies.id),
-  phone: text("phone"),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  role: text("role").default("employee").notNull(),
+export const users = mysqlTable("users", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).references(() => companies.id, { onDelete: "set null" }),
+  phone: varchar("phone", { length: 50 }),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  role: varchar("role", { length: 50 }).default("employee").notNull(),
   isSuperadmin: boolean("is_superadmin").default(false).notNull(),
   active: boolean("active").default(true).notNull(),
   emailVerified: boolean("email_verified").default(false).notNull(),
-  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  emailVerifiedAt: timestamp("email_verified_at", { mode: "date" }),
   ...timestamps,
 }, (table) => ({
   emailCompanyIdx: uniqueIndex("users_company_email_idx").on(table.companyId, table.email),
   emailIdx: index("users_email_idx").on(table.email),
 }));
 
-export const companyMemberships = pgTable("company_memberships", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  role: text("role").notNull(), // 'owner' | 'admin' | 'manager' | 'employee'
+export const companyMemberships = mysqlTable("company_memberships", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 50 }).notNull(), // 'owner' | 'admin' | 'manager' | 'employee'
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({
@@ -91,143 +91,150 @@ export const companyMemberships = pgTable("company_memberships", {
 
 // One-time tokens for email verification and password reset.
 // Only the SHA-256 hash of the token is stored; the raw token lives only in the e-mail link.
-export const authTokens = pgTable("auth_tokens", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  kind: text("kind").notNull(), // 'email_verification' | 'password_reset'
-  tokenHash: text("token_hash").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  consumedAt: timestamp("consumed_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+export const authTokens = mysqlTable("auth_tokens", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: varchar("kind", { length: 50 }).notNull(), // 'email_verification' | 'password_reset'
+  tokenHash: varchar("token_hash", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+  consumedAt: timestamp("consumed_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 }, (table) => ({
   tokenHashIdx: uniqueIndex("auth_tokens_hash_idx").on(table.tokenHash),
   userKindIdx: index("auth_tokens_user_kind_idx").on(table.userId, table.kind),
 }));
 
 // Sliding-window counters for auth endpoints (login, register, password reset).
-export const authRateLimits = pgTable("auth_rate_limits", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  bucket: text("bucket").notNull(), // e.g. "login:ip:1.2.3.4" or "login:email:foo@bar.com"
-  hits: integer("hits").default(0).notNull(),
-  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).defaultNow().notNull(),
-  blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+export const authRateLimits = mysqlTable("auth_rate_limits", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bucket: varchar("bucket", { length: 255 }).notNull(), // e.g. "login:ip:1.2.3.4" or "login:email:foo@bar.com"
+  hits: int("hits").default(0).notNull(),
+  windowStartedAt: timestamp("window_started_at", { mode: "date" }).defaultNow().notNull(),
+  blockedUntil: timestamp("blocked_until", { mode: "date" }),
 }, (table) => ({
   bucketIdx: uniqueIndex("auth_rate_limits_bucket_idx").on(table.bucket),
 }));
 
-export const employees = pgTable("employees", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  locationId: uuid("location_id").references(() => locations.id),
-  userId: uuid("user_id").references(() => users.id),
-  name: text("name").notNull(),
+export const employees = mysqlTable("employees", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  locationId: varchar("location_id", { length: 36 }).references(() => locations.id, { onDelete: "set null" }),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  name: varchar("name", { length: 255 }).notNull(),
   photoUrl: text("photo_url"),
-  phone: text("phone"),
-  jobTitle: text("job_title"),
-  commissionType: text("commission_type").default("percentage").notNull(),
-  commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).default("0").notNull(),
+  phone: varchar("phone", { length: 50 }),
+  jobTitle: varchar("job_title", { length: 100 }),
+  commissionType: varchar("commission_type", { length: 50 }).default("percentage").notNull(),
+  commissionValue: decimal("commission_value", { precision: 12, scale: 2 }).default("0").notNull(),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({ companyIdx: index("employees_company_idx").on(table.companyId) }));
 
-export const employeeLocations = pgTable("employee_locations", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
-  locationId: uuid("location_id").notNull().references(() => locations.id, { onDelete: "cascade" }),
+export const employeeLocations = mysqlTable("employee_locations", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  employeeId: varchar("employee_id", { length: 36 }).notNull().references(() => employees.id, { onDelete: "cascade" }),
+  locationId: varchar("location_id", { length: 36 }).notNull().references(() => locations.id, { onDelete: "cascade" }),
   isPrimary: boolean("is_primary").default(false).notNull(),
   ...timestamps,
 }, (table) => ({
   empLocIdx: uniqueIndex("employee_locations_emp_loc_idx").on(table.employeeId, table.locationId),
 }));
 
-export const clients = pgTable("clients", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  userId: uuid("user_id").references(() => users.id),
-  name: text("name").notNull(),
+export const clients = mysqlTable("clients", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  name: varchar("name", { length: 255 }).notNull(),
   photoUrl: text("photo_url"),
-  phone: text("phone").notNull(),
-  email: text("email"),
+  phone: varchar("phone", { length: 50 }).notNull(),
+  email: varchar("email", { length: 255 }),
   notes: text("notes"),
   internalNotes: text("internal_notes"),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
-}, (table) => ({ userCompanyIdx: uniqueIndex("clients_company_user_idx").on(table.companyId, table.userId), companyIdx: index("clients_company_idx").on(table.companyId), phoneIdx: index("clients_phone_idx").on(table.phone) }));
+}, (table) => ({
+  userCompanyIdx: uniqueIndex("clients_company_user_idx").on(table.companyId, table.userId),
+  companyIdx: index("clients_company_idx").on(table.companyId),
+  phoneIdx: index("clients_phone_idx").on(table.phone),
+}));
 
-export const serviceCategories = pgTable("service_categories", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  name: text("name").notNull(),
+export const serviceCategories = mysqlTable("service_categories", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
   ...timestamps,
 }, (table) => ({ companyIdx: index("service_categories_company_idx").on(table.companyId) }));
 
-export const services = pgTable("services", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  categoryId: uuid("category_id").references(() => serviceCategories.id),
-  name: text("name").notNull(),
+export const services = mysqlTable("services", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  categoryId: varchar("category_id", { length: 36 }).references(() => serviceCategories.id, { onDelete: "set null" }),
+  name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-  durationMinutes: integer("duration_minutes").notNull(),
-  bufferMinutes: integer("buffer_minutes").default(0).notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  durationMinutes: int("duration_minutes").notNull(),
+  bufferMinutes: int("buffer_minutes").default(0).notNull(),
   imageUrl: text("image_url"),
-  deliveryMode: text("delivery_mode").default("IN_PERSON").notNull(),
-  paymentType: text("payment_type").default("PAY_LATER").notNull(),
-  depositAmount: numeric("deposit_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+  deliveryMode: varchar("delivery_mode", { length: 50 }).default("IN_PERSON").notNull(),
+  paymentType: varchar("payment_type", { length: 50 }).default("PAY_LATER").notNull(),
+  depositAmount: decimal("deposit_amount", { precision: 12, scale: 2 }).default("0").notNull(),
   cancellationPolicy: text("cancellation_policy"),
-  color: text("color"),
+  color: varchar("color", { length: 50 }),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, (table) => ({ companyIdx: index("services_company_idx").on(table.companyId) }));
 
-export const employeeServices = pgTable("employee_services", {
-  employeeId: uuid("employee_id").notNull().references(() => employees.id),
-  serviceId: uuid("service_id").notNull().references(() => services.id),
-  commissionType: text("commission_type").default("percentage").notNull(),
-  commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).default("0").notNull(),
+export const employeeServices = mysqlTable("employee_services", {
+  employeeId: varchar("employee_id", { length: 36 }).notNull().references(() => employees.id, { onDelete: "cascade" }),
+  serviceId: varchar("service_id", { length: 36 }).notNull().references(() => services.id, { onDelete: "cascade" }),
+  commissionType: varchar("commission_type", { length: 50 }).default("percentage").notNull(),
+  commissionValue: decimal("commission_value", { precision: 12, scale: 2 }).default("0").notNull(),
 }, (table) => ({ pk: primaryKey({ columns: [table.employeeId, table.serviceId] }) }));
 
-export const bookings = pgTable("bookings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  locationId: uuid("location_id").notNull().references(() => locations.id),
-  userId: uuid("user_id").notNull().references(() => users.id),
-  clientId: uuid("client_id").notNull().references(() => clients.id),
-  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
-  timezone: text("timezone").notNull(),
-  status: text("status").default("confirmed").notNull(),
-  subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
-  discount: numeric("discount", { precision: 10, scale: 2 }).default("0").notNull(),
-  total: numeric("total", { precision: 10, scale: 2 }).notNull(),
-  paymentStatus: text("payment_status").default("unpaid").notNull(),
-  paymentType: text("payment_type").default("PAY_LATER").notNull(),
-  source: text("source").default("PUBLIC_LINK").notNull(),
+export const bookings = mysqlTable("bookings", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  locationId: varchar("location_id", { length: 36 }).notNull().references(() => locations.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  clientId: varchar("client_id", { length: 36 }).notNull().references(() => clients.id, { onDelete: "cascade" }),
+  startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
+  endsAt: timestamp("ends_at", { mode: "date" }).notNull(),
+  timezone: varchar("timezone", { length: 50 }).notNull(),
+  status: varchar("status", { length: 50 }).default("confirmed").notNull(),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 12, scale: 2 }).default("0").notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  paymentStatus: varchar("payment_status", { length: 50 }).default("unpaid").notNull(),
+  paymentType: varchar("payment_type", { length: 50 }).default("PAY_LATER").notNull(),
+  intendedPaymentMethod: varchar("intended_payment_method", { length: 50 }),
+  source: varchar("source", { length: 50 }).default("PUBLIC_LINK").notNull(),
   notes: text("notes"),
-  couponCode: text("coupon_code"),
-  idempotencyKey: uuid("idempotency_key").notNull(),
-  revision: integer("revision").default(1).notNull(),
+  couponCode: varchar("coupon_code", { length: 50 }),
+  idempotencyKey: varchar("idempotency_key", { length: 36 }).notNull(),
+  revision: int("revision").default(1).notNull(),
   ...timestamps,
-}, (t) => ({ userIdx: index("bookings_user_start_idx").on(t.userId, t.startsAt), companyIdx: index("bookings_company_start_idx").on(t.companyId, t.startsAt), requestIdx: uniqueIndex("bookings_user_request_idx").on(t.userId, t.idempotencyKey) }));
+}, (t) => ({
+  userIdx: index("bookings_user_start_idx").on(t.userId, t.startsAt),
+  companyIdx: index("bookings_company_start_idx").on(t.companyId, t.startsAt),
+  requestIdx: uniqueIndex("bookings_user_request_idx").on(t.userId, t.idempotencyKey),
+}));
 
-export const appointments = pgTable("appointments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  bookingId: uuid("booking_id").references(() => bookings.id),
-  source: text("source").default("ADMIN").notNull(),
-  bufferMinutes: integer("buffer_minutes").default(0).notNull(),
-  locationId: uuid("location_id").references(() => locations.id),
-  clientId: uuid("client_id").notNull().references(() => clients.id),
-  employeeId: uuid("employee_id").notNull().references(() => employees.id),
-  appointmentDate: date("appointment_date").notNull(),
+export const appointments = mysqlTable("appointments", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  bookingId: varchar("booking_id", { length: 36 }).references(() => bookings.id, { onDelete: "set null" }),
+  source: varchar("source", { length: 50 }).default("ADMIN").notNull(),
+  bufferMinutes: int("buffer_minutes").default(0).notNull(),
+  locationId: varchar("location_id", { length: 36 }).references(() => locations.id, { onDelete: "set null" }),
+  clientId: varchar("client_id", { length: 36 }).notNull().references(() => clients.id, { onDelete: "cascade" }),
+  employeeId: varchar("employee_id", { length: 36 }).notNull().references(() => employees.id, { onDelete: "cascade" }),
+  appointmentDate: date("appointment_date", { mode: "string" }).notNull(),
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),
-  status: text("status").default("scheduled").notNull(),
+  status: varchar("status", { length: 50 }).default("scheduled").notNull(),
   notes: text("notes"),
-  // Forecast/scheduled amount, captured at creation. Never overwritten on finish —
-  // realized revenue is derived from the payments table.
-  total: numeric("total", { precision: 10, scale: 2 }).notNull(),
-  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(),
+  cancelledAt: timestamp("cancelled_at", { mode: "date" }),
   cancelReason: text("cancel_reason"),
   ...timestamps,
 }, (table) => ({
@@ -236,35 +243,35 @@ export const appointments = pgTable("appointments", {
   companyStatusIdx: index("appointments_company_status_idx").on(table.companyId, table.status),
 }));
 
-export const appointmentServices = pgTable("appointment_services", {
-  appointmentId: uuid("appointment_id").notNull().references(() => appointments.id),
-  serviceId: uuid("service_id").notNull().references(() => services.id),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-  durationMinutes: integer("duration_minutes").notNull(),
-  commissionType: text("commission_type").notNull(),
-  commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).default("0").notNull(),
-  commissionAmount: numeric("commission_amount", { precision: 10, scale: 2 }).default("0").notNull(),
+export const appointmentServices = mysqlTable("appointment_services", {
+  appointmentId: varchar("appointment_id", { length: 36 }).notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  serviceId: varchar("service_id", { length: 36 }).notNull().references(() => services.id, { onDelete: "cascade" }),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  durationMinutes: int("duration_minutes").notNull(),
+  commissionType: varchar("commission_type", { length: 50 }).notNull(),
+  commissionValue: decimal("commission_value", { precision: 12, scale: 2 }).default("0").notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).default("0").notNull(),
 }, (table) => ({ pk: primaryKey({ columns: [table.appointmentId, table.serviceId] }) }));
 
-export const payments = pgTable("payments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  appointmentId: uuid("appointment_id").notNull().references(() => appointments.id),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  discount: numeric("discount", { precision: 10, scale: 2 }).default("0").notNull(),
-  method: text("method").notNull(),
-  status: text("status").default("paid").notNull(),
-  paidAt: timestamp("paid_at", { withTimezone: true }),
+export const payments = mysqlTable("payments", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  appointmentId: varchar("appointment_id", { length: 36 }).notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 12, scale: 2 }).default("0").notNull(),
+  method: varchar("method", { length: 50 }).notNull(),
+  status: varchar("status", { length: 50 }).default("paid").notNull(),
+  paidAt: timestamp("paid_at", { mode: "date" }),
   notes: text("notes"),
-  idempotencyKey: text("idempotency_key"),
+  idempotencyKey: varchar("idempotency_key", { length: 120 }),
   ...timestamps,
 }, (table) => ({ appointmentIdx: index("payments_appointment_idx").on(table.appointmentId) }));
 
-export const employeeSchedules = pgTable("employee_schedules", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  employeeId: uuid("employee_id").notNull().references(() => employees.id),
-  locationId: uuid("location_id").references(() => locations.id),
-  dayOfWeek: integer("day_of_week").notNull(),
+export const employeeSchedules = mysqlTable("employee_schedules", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  employeeId: varchar("employee_id", { length: 36 }).notNull().references(() => employees.id, { onDelete: "cascade" }),
+  locationId: varchar("location_id", { length: 36 }).references(() => locations.id, { onDelete: "set null" }),
+  dayOfWeek: int("day_of_week").notNull(),
   startTime: time("start_time").notNull(),
   endTime: time("end_time").notNull(),
   breakStart: time("break_start"),
@@ -272,172 +279,175 @@ export const employeeSchedules = pgTable("employee_schedules", {
   active: boolean("active").default(true).notNull(),
 });
 
-export const scheduleBlocks = pgTable("schedule_blocks", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  employeeId: uuid("employee_id").references(() => employees.id),
-  locationId: uuid("location_id").references(() => locations.id),
-  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
-  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+export const scheduleBlocks = mysqlTable("schedule_blocks", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  employeeId: varchar("employee_id", { length: 36 }).references(() => employees.id, { onDelete: "set null" }),
+  locationId: varchar("location_id", { length: 36 }).references(() => locations.id, { onDelete: "set null" }),
+  startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
+  endsAt: timestamp("ends_at", { mode: "date" }).notNull(),
   reason: text("reason").notNull(),
   allDay: boolean("all_day").default(false).notNull(),
   ...timestamps,
 });
 
-export const appointmentHistory = pgTable("appointment_history", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  appointmentId: uuid("appointment_id").notNull().references(() => appointments.id),
-  actorId: uuid("actor_id").references(() => users.id),
-  action: text("action").notNull(),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+export const appointmentHistory = mysqlTable("appointment_history", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  appointmentId: varchar("appointment_id", { length: 36 }).notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  actorId: varchar("actor_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 50 }).notNull(),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
-export const companySettings = pgTable("company_settings", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  key: text("key").notNull(),
+export const companySettings = mysqlTable("company_settings", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  key: varchar("key", { length: 100 }).notNull(),
   value: text("value"),
   ...timestamps,
 }, (table) => ({ keyIdx: uniqueIndex("company_settings_key_idx").on(table.companyId, table.key) }));
 
 // In-app notification centre feed. userId null => visible to the whole company.
-export const notifications = pgTable("notifications", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-  type: text("type").notNull(),
-  title: text("title").notNull(),
+export const notifications = mysqlTable("notifications", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
   body: text("body"),
-  entityType: text("entity_type"),
-  entityId: uuid("entity_id"),
-  readAt: timestamp("read_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  entityType: varchar("entity_type", { length: 50 }),
+  entityId: varchar("entity_id", { length: 36 }),
+  readAt: timestamp("read_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 }, (table) => ({
   companyIdx: index("notifications_company_idx").on(table.companyId, table.createdAt),
   userIdx: index("notifications_user_idx").on(table.userId),
 }));
 
 // Generic audit trail for sensitive actions (value changes, cancellations, team changes...).
-export const auditLogs = pgTable("audit_logs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").references(() => users.id),
-  action: text("action").notNull(),
-  entity: text("entity").notNull(),
-  entityId: uuid("entity_id"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+export const auditLogs = mysqlTable("audit_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  action: varchar("action", { length: 50 }).notNull(),
+  entity: varchar("entity", { length: 50 }).notNull(),
+  entityId: varchar("entity_id", { length: 36 }),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 }, (table) => ({
   companyIdx: index("audit_logs_company_idx").on(table.companyId, table.createdAt),
   entityIdx: index("audit_logs_entity_idx").on(table.entity, table.entityId),
 }));
 
-export const products = pgTable("products", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  name: text("name").notNull(),
+export const products = mysqlTable("products", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
   active: boolean("active").default(true).notNull(),
   ...timestamps,
 }, t => ({ companyIdx: index("products_company_idx").on(t.companyId) }));
 
-export const bookingProducts = pgTable("booking_products", {
-  bookingId: uuid("booking_id").notNull().references(() => bookings.id),
-  productId: uuid("product_id").notNull().references(() => products.id),
-  name: text("name").notNull(),
-  quantity: integer("quantity").notNull(),
-  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+export const bookingProducts = mysqlTable("booking_products", {
+  bookingId: varchar("booking_id", { length: 36 }).notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  productId: varchar("product_id", { length: 36 }).notNull().references(() => products.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  quantity: int("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
 }, t => ({ pk: primaryKey({ columns: [t.bookingId, t.productId] }) }));
 
-export const coupons = pgTable("coupons", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  code: text("code").notNull(),
-  type: text("type").notNull(),
-  value: numeric("value", { precision: 10, scale: 2 }).notNull(),
+export const coupons = mysqlTable("coupons", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  code: varchar("code", { length: 50 }).notNull(),
+  type: varchar("type", { length: 50 }).notNull(),
+  value: decimal("value", { precision: 12, scale: 2 }).notNull(),
   active: boolean("active").default(true).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
   ...timestamps,
 }, t => ({ codeIdx: uniqueIndex("coupons_company_code_idx").on(t.companyId, t.code) }));
 
-export const notificationLogs = pgTable("notification_logs", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  bookingId: uuid("booking_id").notNull().references(() => bookings.id),
-  event: text("event").notNull(),
-  revision: integer("revision").notNull(),
-  channel: text("channel").default("email").notNull(),
-  status: text("status").default("pending").notNull(),
-  dueAt: timestamp("due_at", { withTimezone: true }).defaultNow().notNull(),
-  sentAt: timestamp("sent_at", { withTimezone: true }),
-  attempts: integer("attempts").default(0).notNull(),
+export const notificationLogs = mysqlTable("notification_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookingId: varchar("booking_id", { length: 36 }).notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  event: varchar("event", { length: 50 }).notNull(),
+  revision: int("revision").notNull(),
+  channel: varchar("channel", { length: 50 }).default("email").notNull(),
+  status: varchar("status", { length: 50 }).default("pending").notNull(),
+  dueAt: timestamp("due_at", { mode: "date" }).defaultNow().notNull(),
+  sentAt: timestamp("sent_at", { mode: "date" }),
+  attempts: int("attempts").default(0).notNull(),
   lastError: text("last_error"),
   ...timestamps,
-}, t => ({ dedupeIdx: uniqueIndex("notification_logs_dedupe_idx").on(t.bookingId, t.event, t.revision, t.channel), queueIdx: index("notification_logs_queue_idx").on(t.status, t.dueAt) }));
+}, t => ({
+  dedupeIdx: uniqueIndex("notification_logs_dedupe_idx").on(t.bookingId, t.event, t.revision, t.channel),
+  queueIdx: index("notification_logs_queue_idx").on(t.status, t.dueAt),
+}));
 
-export const bookingEvents = pgTable("booking_events", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  sessionId: uuid("session_id").notNull(),
-  event: text("event").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+export const bookingEvents = mysqlTable("booking_events", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  sessionId: varchar("session_id", { length: 36 }).notNull(),
+  event: varchar("event", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 }, t => ({ funnelIdx: index("booking_events_company_event_idx").on(t.companyId, t.event, t.createdAt) }));
 
-export const bookingWaitlist = pgTable("booking_waitlist", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id),
-  userId: uuid("user_id").notNull().references(() => users.id),
-  requestedDate: date("requested_date").notNull(),
-  locationId: uuid("location_id").references(() => locations.id),
-  employeeId: uuid("employee_id").references(() => employees.id),
-  period: text("period").default("any").notNull(),
-  serviceIds: jsonb("service_ids").$type<string[]>().notNull(),
-  status: text("status").default("waiting").notNull(),
+export const bookingWaitlist = mysqlTable("booking_waitlist", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  requestedDate: date("requested_date", { mode: "string" }).notNull(),
+  locationId: varchar("location_id", { length: 36 }).references(() => locations.id, { onDelete: "set null" }),
+  employeeId: varchar("employee_id", { length: 36 }).references(() => employees.id, { onDelete: "set null" }),
+  period: varchar("period", { length: 50 }).default("any").notNull(),
+  serviceIds: json("service_ids").$type<string[]>().notNull(),
+  status: varchar("status", { length: 50 }).default("waiting").notNull(),
   ...timestamps,
 });
 
-export const subscriptions = pgTable("subscriptions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  plan: text("plan").default("pro_monthly").notNull(), // 'trial' | 'pro_monthly' | 'pro_yearly'
-  status: text("status").default("trialing").notNull(), // 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired'
-  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }).notNull(),
-  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
-  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+export const subscriptions = mysqlTable("subscriptions", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  plan: varchar("plan", { length: 50 }).default("pro_monthly").notNull(), // 'trial' | 'pro_monthly' | 'pro_yearly'
+  status: varchar("status", { length: 50 }).default("trialing").notNull(), // 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired'
+  trialEndsAt: timestamp("trial_ends_at", { mode: "date" }).notNull(),
+  currentPeriodStart: timestamp("current_period_start", { mode: "date" }),
+  currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
-  mercadoPagoSubscriptionId: text("mercado_pago_subscription_id"),
-  mercadoPagoPayerId: text("mercado_pago_payer_id"),
+  mercadoPagoSubscriptionId: varchar("mercado_pago_subscription_id", { length: 100 }),
+  mercadoPagoPayerId: varchar("mercado_pago_payer_id", { length: 100 }),
   ...timestamps,
 }, (table) => ({
   companyIdx: uniqueIndex("subscriptions_company_idx").on(table.companyId),
   statusIdx: index("subscriptions_status_idx").on(table.status),
 }));
 
-export const subscriptionInvoices = pgTable("subscription_invoices", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  subscriptionId: uuid("subscription_id").notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").default("paid").notNull(), // 'paid' | 'pending' | 'failed'
-  paidAt: timestamp("paid_at", { withTimezone: true }),
-  mercadoPagoPaymentId: text("mercado_pago_payment_id"),
+export const subscriptionInvoices = mysqlTable("subscription_invoices", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  subscriptionId: varchar("subscription_id", { length: 36 }).notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  status: varchar("status", { length: 50 }).default("paid").notNull(), // 'paid' | 'pending' | 'failed'
+  paidAt: timestamp("paid_at", { mode: "date" }),
+  mercadoPagoPaymentId: varchar("mercado_pago_payment_id", { length: 100 }),
   invoiceUrl: text("invoice_url"),
   ...timestamps,
 }, (table) => ({
   companyIdx: index("subscription_invoices_company_idx").on(table.companyId),
 }));
 
-export const reviews = pgTable("reviews", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
-  appointmentId: uuid("appointment_id").notNull().references(() => appointments.id, { onDelete: "cascade" }),
-  clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "cascade" }),
-  employeeId: uuid("employee_id").notNull().references(() => employees.id, { onDelete: "cascade" }),
-  serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
-  rating: integer("rating").notNull(), // 1 to 5
+export const reviews = mysqlTable("reviews", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  appointmentId: varchar("appointment_id", { length: 36 }).notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  clientId: varchar("client_id", { length: 36 }).notNull().references(() => clients.id, { onDelete: "cascade" }),
+  employeeId: varchar("employee_id", { length: 36 }).notNull().references(() => employees.id, { onDelete: "cascade" }),
+  serviceId: varchar("service_id", { length: 36 }).references(() => services.id, { onDelete: "set null" }),
+  rating: int("rating").notNull(), // 1 to 5
   comment: text("comment"),
-  status: text("status").default("approved").notNull(), // 'pending' | 'approved' | 'hidden'
+  status: varchar("status", { length: 50 }).default("approved").notNull(), // 'pending' | 'approved' | 'hidden'
   ...timestamps,
 }, (table) => ({
   appointmentIdx: uniqueIndex("reviews_appointment_idx").on(table.appointmentId),

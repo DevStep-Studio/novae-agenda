@@ -85,15 +85,18 @@ export function createBrandPalette(
   const luminance = calculateLuminance(brand);
   const isLight = luminance > 0.4;
 
-  // Calculate contrast against dark text (#102118) and white text (#ffffff)
-  const contrastWithDarkText = calculateContrastRatio(luminance, 0.015);
+  // Pick the higher-contrast foreground. The near-black keeps the green identity
+  // while meeting WCAG contrast on saturated reds/oranges where dark green did not.
+  const darkForeground = "#08110d";
+  const darkForegroundLuminance = calculateLuminance(darkForeground);
+  const contrastWithDarkText = calculateContrastRatio(luminance, darkForegroundLuminance);
   const contrastWithWhiteText = calculateContrastRatio(luminance, 1.0);
 
   const brandContrast =
-    contrastWithDarkText >= contrastWithWhiteText ? "#102118" : "#ffffff";
+    contrastWithDarkText >= contrastWithWhiteText ? darkForeground : "#ffffff";
   const brandContrastMuted =
-    brandContrast === "#102118"
-      ? "rgba(16, 33, 24, 0.75)"
+    brandContrast === darkForeground
+      ? "rgba(8, 17, 13, 0.76)"
       : "rgba(255, 255, 255, 0.75)";
 
   // Derived hover and active colors
@@ -128,6 +131,7 @@ export function createBrandPalette(
     "--brand-soft": brandSoft,
     "--brand-border": brandBorder,
     "--brand-contrast": brandContrast,
+    "--brand-foreground": brandContrast,
     "--brand-contrast-muted": brandContrastMuted,
     "--accent": brand,
     "--accent-hover": brandHover,

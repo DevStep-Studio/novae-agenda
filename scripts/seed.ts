@@ -31,9 +31,11 @@ async function seed() {
     .limit(1);
 
   if (!company) {
-    [company] = await db
+    const companyId = crypto.randomUUID();
+    await db
       .insert(companies)
       .values({
+        id: companyId,
         name: "Studio Prime",
         businessType: "Barbearia",
         phone: "(11) 3042-1980",
@@ -46,18 +48,28 @@ async function seed() {
         primaryColor: "#dcff4c",
         secondaryColor: "#162a22",
         onboarded: true,
-      })
-      .returning();
+      });
+    [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .limit(1);
   }
 
   const defaultPasswordHash = await hashPassword("senha123");
-
   const verified = { emailVerified: true, emailVerifiedAt: new Date() };
 
   // Admin / Owner
-  const [adminUser] = await db
-    .insert(users)
-    .values({
+  let [adminUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, "admin@studioprime.com.br"))
+    .limit(1);
+
+  if (!adminUser) {
+    const adminId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: adminId,
       companyId: company.id,
       name: "Administrador (Camila Almeida)",
       email: "admin@studioprime.com.br",
@@ -65,17 +77,20 @@ async function seed() {
       role: "owner",
       active: true,
       ...verified,
-    })
-    .onConflictDoUpdate({
-      target: [users.companyId, users.email],
-      set: { role: "owner", passwordHash: defaultPasswordHash, active: true, ...verified },
-    })
-    .returning();
+    });
+    [adminUser] = await db.select().from(users).where(eq(users.id, adminId)).limit(1);
+  }
 
   // Also maintain dono@studioprime.com.br
-  await db
-    .insert(users)
-    .values({
+  const [existingDono] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, "dono@studioprime.com.br"))
+    .limit(1);
+
+  if (!existingDono) {
+    await db.insert(users).values({
+      id: crypto.randomUUID(),
       companyId: company.id,
       name: "Camila Almeida (Dona)",
       email: "dono@studioprime.com.br",
@@ -83,16 +98,20 @@ async function seed() {
       role: "owner",
       active: true,
       ...verified,
-    })
-    .onConflictDoUpdate({
-      target: [users.companyId, users.email],
-      set: { role: "owner", passwordHash: defaultPasswordHash, active: true, ...verified },
     });
+  }
 
   // Standard User / Employee / Manager
-  const [normalUser] = await db
-    .insert(users)
-    .values({
+  let [normalUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, "usuario@studioprime.com.br"))
+    .limit(1);
+
+  if (!normalUser) {
+    const normalId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: normalId,
       companyId: company.id,
       name: "Ana Costa",
       email: "usuario@studioprime.com.br",
@@ -100,17 +119,20 @@ async function seed() {
       role: "manager",
       active: true,
       ...verified,
-    })
-    .onConflictDoUpdate({
-      target: [users.companyId, users.email],
-      set: { role: "manager", passwordHash: defaultPasswordHash, active: true, ...verified },
-    })
-    .returning();
+    });
+    [normalUser] = await db.select().from(users).where(eq(users.id, normalId)).limit(1);
+  }
 
   // Employee (Profissional)
-  await db
-    .insert(users)
-    .values({
+  const [existingFunc] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, "funcionario@studioprime.com.br"))
+    .limit(1);
+
+  if (!existingFunc) {
+    await db.insert(users).values({
+      id: crypto.randomUUID(),
       companyId: company.id,
       name: "João Mendes",
       email: "funcionario@studioprime.com.br",
@@ -119,21 +141,19 @@ async function seed() {
       role: "employee",
       active: true,
       ...verified,
-    })
-    .onConflictDoUpdate({
-      target: [users.companyId, users.email],
-      set: { role: "employee", passwordHash: defaultPasswordHash, active: true, ...verified },
     });
+  }
 
   // Client User
   const [existingClient] = await db.select().from(users).where(eq(users.email, "cliente@email.com")).limit(1);
   if (!existingClient) {
     await db.insert(users).values({
+      id: crypto.randomUUID(),
       name: "Carlos Silva",
       email: "cliente@email.com",
       phone: "(11) 99999-9999",
       passwordHash: defaultPasswordHash,
-      role: "client",
+      role: "customer",
       active: true,
       ...verified,
     });
@@ -143,6 +163,7 @@ async function seed() {
   const [existingSuper] = await db.select().from(users).where(eq(users.email, "superadmin@novae.app")).limit(1);
   if (!existingSuper) {
     await db.insert(users).values({
+      id: crypto.randomUUID(),
       name: "Superadmin Novae",
       email: "superadmin@novae.app",
       passwordHash: defaultPasswordHash,
@@ -156,90 +177,108 @@ async function seed() {
   // Ensure employees exist and link to users
   let [ana] = await db.select().from(employees).where(eq(employees.name, "Ana Costa")).limit(1);
   if (!ana) {
-    [ana] = await db
-      .insert(employees)
-      .values({
-        companyId: company.id,
-        userId: normalUser.id,
-        name: "Ana Costa",
-        jobTitle: "Profissional",
-        phone: "(11) 98842-1200",
-        active: true,
-      })
-      .returning();
+    const anaId = crypto.randomUUID();
+    await db.insert(employees).values({
+      id: anaId,
+      companyId: company.id,
+      userId: normalUser.id,
+      name: "Ana Costa",
+      jobTitle: "Profissional",
+      phone: "(11) 98842-1200",
+      active: true,
+    });
+    [ana] = await db.select().from(employees).where(eq(employees.id, anaId)).limit(1);
   } else {
     await db.update(employees).set({ userId: normalUser.id }).where(eq(employees.id, ana.id));
   }
 
   let [joao] = await db.select().from(employees).where(eq(employees.name, "João Mendes")).limit(1);
   if (!joao) {
-    [joao] = await db
-      .insert(employees)
-      .values({
-        companyId: company.id,
-        name: "João Mendes",
-        jobTitle: "Profissional",
-        phone: "(11) 99120-4432",
-        active: true,
-      })
-      .returning();
+    const joaoId = crypto.randomUUID();
+    await db.insert(employees).values({
+      id: joaoId,
+      companyId: company.id,
+      name: "João Mendes",
+      jobTitle: "Profissional",
+      phone: "(11) 99120-4432",
+      active: true,
+    });
+    [joao] = await db.select().from(employees).where(eq(employees.id, joaoId)).limit(1);
   }
 
   // Client
   let [client] = await db.select().from(clients).where(eq(clients.email, "carlos.silva@email.com")).limit(1);
   if (!client) {
-    [client] = await db
-      .insert(clients)
-      .values({
-        companyId: company.id,
-        name: "Carlos Silva",
-        phone: "(11) 99999-9999",
-        email: "carlos.silva@email.com",
-        photoUrl: "/avatars/carlos.jpg",
-        active: true,
-      })
-      .returning();
+    const clientId = crypto.randomUUID();
+    await db.insert(clients).values({
+      id: clientId,
+      companyId: company.id,
+      name: "Carlos Silva",
+      phone: "(11) 99999-9999",
+      email: "carlos.silva@email.com",
+      photoUrl: "/avatars/carlos.jpg",
+      active: true,
+    });
+    [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
   }
 
   // Services
   let [corte] = await db.select().from(services).where(eq(services.name, "Corte")).limit(1);
   if (!corte) {
-    [corte] = await db
-      .insert(services)
-      .values({ companyId: company.id, name: "Corte", price: "50.00", durationMinutes: 30, active: true })
-      .returning();
+    const corteId = crypto.randomUUID();
+    await db.insert(services).values({
+      id: corteId,
+      companyId: company.id,
+      name: "Corte",
+      price: "50.00",
+      durationMinutes: 30,
+      active: true,
+    });
+    [corte] = await db.select().from(services).where(eq(services.id, corteId)).limit(1);
   }
 
   let [barba] = await db.select().from(services).where(eq(services.name, "Barba")).limit(1);
   if (!barba) {
-    [barba] = await db
-      .insert(services)
-      .values({ companyId: company.id, name: "Barba", price: "35.00", durationMinutes: 30, active: true })
-      .returning();
+    const barbaId = crypto.randomUUID();
+    await db.insert(services).values({
+      id: barbaId,
+      companyId: company.id,
+      name: "Barba",
+      price: "35.00",
+      durationMinutes: 30,
+      active: true,
+    });
+    [barba] = await db.select().from(services).where(eq(services.id, barbaId)).limit(1);
   }
 
   let [corteBarba] = await db.select().from(services).where(eq(services.name, "Corte + Barba")).limit(1);
   if (!corteBarba) {
-    [corteBarba] = await db
-      .insert(services)
-      .values({ companyId: company.id, name: "Corte + Barba", price: "75.00", durationMinutes: 60, active: true })
-      .returning();
+    const cbId = crypto.randomUUID();
+    await db.insert(services).values({
+      id: cbId,
+      companyId: company.id,
+      name: "Corte + Barba",
+      price: "75.00",
+      durationMinutes: 60,
+      active: true,
+    });
+    [corteBarba] = await db.select().from(services).where(eq(services.id, cbId)).limit(1);
   }
 
   // Second client
   let [mariana] = await db.select().from(clients).where(eq(clients.email, "mariana.souza@email.com")).limit(1);
   if (!mariana) {
-    [mariana] = await db
-      .insert(clients)
-      .values({
-        companyId: company.id,
-        name: "Mariana Souza",
-        phone: "(11) 98888-1122",
-        email: "mariana.souza@email.com",
-        photoUrl: "/avatars/mariana.jpg",
-        active: true,
-      })
-      .returning();
+    const mId = crypto.randomUUID();
+    await db.insert(clients).values({
+      id: mId,
+      companyId: company.id,
+      name: "Mariana Souza",
+      phone: "(11) 98888-1122",
+      email: "mariana.souza@email.com",
+      photoUrl: "/avatars/mariana.jpg",
+      active: true,
+    });
+    [mariana] = await db.select().from(clients).where(eq(clients.id, mId)).limit(1);
   }
 
   // Employee ↔ service links, with commissions
@@ -251,13 +290,8 @@ async function seed() {
     { employeeId: ana.id, serviceId: corteBarba.id, commissionType: "percentage", commissionValue: "50" },
   ];
   for (const link of links) {
-    await db
-      .insert(employeeServices)
-      .values(link)
-      .onConflictDoUpdate({
-        target: [employeeServices.employeeId, employeeServices.serviceId],
-        set: { commissionType: link.commissionType, commissionValue: link.commissionValue },
-      });
+    await db.delete(employeeServices).where(eq(employeeServices.employeeId, link.employeeId));
+    await db.insert(employeeServices).values(link);
   }
 
   // Weekday schedules (Mon–Sat 09:00–18:00, lunch 12:00–13:00) for both professionals
@@ -265,6 +299,7 @@ async function seed() {
     await db.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, emp.id));
     for (const dow of [1, 2, 3, 4, 5, 6]) {
       await db.insert(employeeSchedules).values({
+        id: crypto.randomUUID(),
         employeeId: emp.id,
         dayOfWeek: dow,
         startTime: "09:00:00",
@@ -296,9 +331,11 @@ async function seed() {
     for (const d of demos) {
       const endMin = Number(d.start.slice(0, 2)) * 60 + Number(d.start.slice(3, 5)) + d.duration;
       const end = `${String(Math.floor(endMin / 60)).padStart(2, "0")}:${String(endMin % 60).padStart(2, "0")}:00`;
-      const [apt] = await db
+      const aptId = crypto.randomUUID();
+      await db
         .insert(appointments)
         .values({
+          id: aptId,
           companyId: company.id,
           clientId: d.client,
           employeeId: d.employee,
@@ -307,10 +344,9 @@ async function seed() {
           endTime: end,
           status: d.status,
           total: d.price.toFixed(2),
-        })
-        .returning();
+        });
       await db.insert(appointmentServices).values({
-        appointmentId: apt.id,
+        appointmentId: aptId,
         serviceId: d.service,
         price: d.price.toFixed(2),
         durationMinutes: d.duration,
@@ -320,8 +356,9 @@ async function seed() {
       });
       if (d.paid) {
         await db.insert(payments).values({
+          id: crypto.randomUUID(),
           companyId: company.id,
-          appointmentId: apt.id,
+          appointmentId: aptId,
           amount: d.price.toFixed(2),
           method: d.method ?? "pix",
           status: "paid",

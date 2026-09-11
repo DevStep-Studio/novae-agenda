@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
+  appointments,
   auditLogs,
   bookingEvents,
   companies,
@@ -45,7 +46,7 @@ export async function GET() {
     db.select().from(products).where(eq(products.companyId, companyId)),
     db.select().from(coupons).where(eq(coupons.companyId, companyId)),
     db
-      .select({ event: bookingEvents.event, count: sql<number>`count(*)::int` })
+      .select({ event: bookingEvents.event, count: sql<number>`count(*)` })
       .from(bookingEvents)
       .where(eq(bookingEvents.companyId, companyId))
       .groupBy(bookingEvents.event),
@@ -112,10 +113,11 @@ export async function PUT(request: Request) {
         .where(eq(companies.id, companyId));
       // Existing appointment wall times must keep their meaning. Changing timezone after scheduling needs an explicit data migration.
       if (current.timezone !== d.timezone) {
-        const result = await tx.execute<{ count: string }>(
-          sql`SELECT count(*) FROM appointments WHERE company_id=${companyId}`,
-        );
-        if (Number(result.rows[0]?.count))
+        const [row] = await tx
+          .select({ count: sql<number>`count(*)` })
+          .from(appointments)
+          .where(eq(appointments.companyId, companyId));
+        if (Number(row?.count))
           throw new BookingError(
             "O fuso não pode ser alterado após criar atendimentos. Contate o suporte.",
             422,

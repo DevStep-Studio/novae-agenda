@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { UserRound } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
+import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
+import { resolveFontPack } from "./font-packs";
 import styles from "./booking.module.css";
 export { styles as b };
 
@@ -43,13 +45,21 @@ export function PublicFrame({
   children,
   color,
   coverUrl,
+  coverPosition = "center",
+  preview = false,
   themeMode = "auto",
+  fontFamily,
+  copyOverrides,
   company,
 }: {
   children: ReactNode;
   color?: string;
   coverUrl?: string | null;
+  coverPosition?: "center" | "top" | "bottom" | string;
+  preview?: boolean | "desktop" | "mobile";
   themeMode?: "auto" | "light" | "dark";
+  fontFamily?: string;
+  copyOverrides?: CopyOverrides;
   company?: {
     name: string;
     category?: string | null;
@@ -67,13 +77,20 @@ export function PublicFrame({
   const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
 
   const palette = createBrandPalette(color, resolvedTheme);
+  const fontPack = resolveFontPack(fontFamily);
 
   return (
     <div
-      className={`${styles.page} ${
+      className={`${styles.page} ${preview ? styles.previewPage : ""} ${preview === "mobile" ? styles.previewMobile : ""} ${
         resolvedTheme === "light" ? styles.pageLight : styles.pageDark
       }`}
-      style={palette.cssVariables as React.CSSProperties}
+      style={
+        {
+          ...palette.cssVariables,
+          "--booking-font-heading": fontPack.heading,
+          "--booking-font-body": fontPack.body,
+        } as React.CSSProperties
+      }
       data-theme={resolvedTheme}
     >
       {/* Optional Cover Header */}
@@ -83,6 +100,7 @@ export function PublicFrame({
             src={coverUrl}
             alt=""
             className={styles.coverBannerImg}
+            style={{ objectPosition: `center ${coverPosition}` }}
             loading="eager"
           />
           <div className={styles.coverBannerOverlay} />
@@ -125,7 +143,8 @@ export function PublicFrame({
             )}
           </div>
           <a
-            href="/meus-agendamentos"
+            href={preview ? undefined : "/meus-agendamentos"}
+            aria-disabled={Boolean(preview) || undefined}
             className={styles.headerLink}
             title="Acessar meus agendamentos"
           >
@@ -139,11 +158,9 @@ export function PublicFrame({
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <span>
-            Agendamento online seguro com <strong>Nova(e)</strong>
-          </span>
+          <span>{resolveCopy(copyOverrides, "footerLine1")}</span>
           <span className={styles.footerDot}>·</span>
-          <span>Seu tempo bem cuidado</span>
+          <span>{resolveCopy(copyOverrides, "footerLine2")}</span>
         </div>
       </footer>
     </div>
@@ -155,6 +172,60 @@ export const money = (amount: number | string) =>
     style: "currency",
     currency: "BRL",
   }).format(Number(amount));
+
+export function Price({ amount, className = "" }: { amount: number | string; className?: string }) {
+  return <span className={`${styles.priceValue} ${className}`}>{money(amount)}</span>;
+}
+
+export function BookingAvatar({
+  name,
+  src,
+  size = "md",
+}: {
+  name: string;
+  src?: string | null;
+  size?: "sm" | "md" | "lg";
+}) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const fallback = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+  return (
+    <span className={`${styles.bookingAvatar} ${styles[`bookingAvatar${size.toUpperCase()}`]}`} aria-hidden="true">
+      {src && failedSrc !== src ? <img src={src} alt="" onError={() => setFailedSrc(src)} /> : fallback || "?"}
+    </span>
+  );
+}
+
+export function TimeSlotButton({
+  label,
+  selected = false,
+  disabled = false,
+  compact = false,
+  onClick,
+}: {
+  label: string;
+  selected?: boolean;
+  disabled?: boolean;
+  compact?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className={`${compact ? styles.quickNextSlotChip : styles.slotChip} ${selected ? compact ? styles.quickNextSlotChipActive : styles.slotChipSelected : ""}`}
+      aria-pressed={selected}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
 
 export const duration = (minutes: number) => {
   const h = Math.floor(minutes / 60);

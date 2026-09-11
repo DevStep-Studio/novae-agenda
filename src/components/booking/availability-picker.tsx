@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, ArrowRight, Clock, CalendarDays, Sparkles, A
 import { api } from "@/lib/api-client";
 import type { AvailableSlot } from "@/lib/booking/engine";
 import type { Selection } from "@/lib/booking/validation";
-import { b, dateLabel, dateLabelShort, ErrorMessage, Skeleton } from "./primitives";
+import { b, dateLabel, dateLabelShort, ErrorMessage, Skeleton, TimeSlotButton } from "./primitives";
 
 type Availability = {
   dates: Array<{ date: string; count: number }>;
@@ -270,17 +270,16 @@ export function AvailabilityPicker({
                   {nd.slots.map((s) => {
                     const isSelected = selected?.startTime === s.startTime && date === nd.date;
                     return (
-                      <button
+                      <TimeSlotButton
                         key={`${nd.date}-${s.startTime}`}
-                        type="button"
-                        className={`${b.quickNextSlotChip} ${isSelected ? b.quickNextSlotChipActive : ""}`}
+                        label={s.startTime}
+                        selected={isSelected}
+                        compact
                         onClick={() => {
                           onDate(nd.date);
                           onSelect(s);
                         }}
-                      >
-                        {s.startTime}
-                      </button>
+                      />
                     );
                   })}
                 </div>
@@ -482,15 +481,12 @@ export function AvailabilityPicker({
                       {times.map((slot) => {
                         const isSlotSelected = selected?.startTime === slot.startTime;
                         return (
-                          <button
+                          <TimeSlotButton
                             key={slot.startTime}
-                            type="button"
-                            className={`${b.slotChip} ${isSlotSelected ? b.slotChipSelected : ""}`}
-                            aria-pressed={isSlotSelected}
+                            label={slot.startTime}
+                            selected={isSlotSelected}
                             onClick={() => onSelect(slot)}
-                          >
-                            <span className={b.slotTime}>{slot.startTime}</span>
-                          </button>
+                          />
                         );
                       })}
                     </div>

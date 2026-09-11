@@ -22,7 +22,7 @@ function clearQuery() {
   if (typeof window !== "undefined") window.history.replaceState({}, "", window.location.pathname);
 }
 
-export function AppGate() {
+export function AppGate({ initialView }: { initialView?: string } = {}) {
   const { session, loading, reloadSession, logout } = useStore();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [params, setParams] = useState(readTokenParams);
@@ -108,5 +108,5 @@ export function AppGate() {
     );
   }
 
-  return <AppShell />;
+  return <AppShell initialView={initialView as any} />;
 }

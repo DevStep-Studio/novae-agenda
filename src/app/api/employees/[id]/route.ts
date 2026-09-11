@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { employeeSchedules, employees } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
+import { deleteProfessionalImage, saveProfessionalImage } from "@/lib/storage";
 import type { EmployeeDTO, EmployeeScheduleDTO } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     name: employee.name,
     jobTitle: employee.jobTitle,
     phone: employee.phone,
+    photoUrl: employee.photoUrl,
     active: employee.active,
     color: "#d6ebe6",
     initials: employee.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
@@ -52,6 +54,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     commissionValue: centsToNumber(employee.commissionValue),
     services: [],
     serviceIds: [],
+    hasLogin: employee.userId !== null,
   };
 
   return Response.json({ data: { ...dto, schedules: scheduleDto } });
@@ -64,6 +67,7 @@ const updateSchema = z.object({
   active: z.boolean().optional(),
   commissionType: z.enum(["none", "percentage", "fixed"]).optional(),
   commissionValue: z.number().min(0).optional(),
+  photoUrl: z.string().max(8_000_000).nullable().optional(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -87,12 +91,32 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (data.active !== undefined) patch.active = data.active;
   if (data.commissionType !== undefined) patch.commissionType = data.commissionType;
   if (data.commissionValue !== undefined) patch.commissionValue = String(data.commissionValue);
+  if (data.photoUrl !== undefined) {
+    const [current] = await db
+      .select({ photoUrl: employees.photoUrl })
+      .from(employees)
+      .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
+      .limit(1);
+    if (!current) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+    try {
+      patch.photoUrl = data.photoUrl
+        ? await saveProfessionalImage(data.photoUrl, current.photoUrl)
+        : null;
+      if (!data.photoUrl && current.photoUrl) await deleteProfessionalImage(current.photoUrl);
+    } catch (error) {
+      return Response.json({ error: error instanceof Error ? error.message : "Imagem inválida." }, { status: 400 });
+    }
+  }
 
-  const [updated] = await db
+  await db
     .update(employees)
     .set(patch)
-    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
-    .returning();
+    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)));
+
+  const [updated] = await db
+    .select({ id: employees.id })
+    .from(employees)
+    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)));
 
   if (!updated) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
 
@@ -106,13 +130,17 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
 
-  const [deactivated] = await db
+  const [existing] = await db
+    .select({ id: employees.id })
+    .from(employees)
+    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)));
+
+  if (!existing) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+
+  await db
     .update(employees)
     .set({ active: false })
-    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
-    .returning({ id: employees.id });
+    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)));
 
-  if (!deactivated) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
-
-  return Response.json({ data: { id: deactivated.id } });
+  return Response.json({ data: { id: existing.id } });
 }

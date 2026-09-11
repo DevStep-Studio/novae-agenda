@@ -19,6 +19,7 @@ import {
   CalendarCheck2,
   Briefcase,
   Download,
+  MessageCircle,
   Star,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
@@ -411,9 +412,9 @@ export function ClientPortal({
                       href={getWhatsAppLink(nextBooking)!}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={styles.actionBtn}
+                      className={`${styles.actionBtn} whatsapp-button`}
                     >
-                      Entrar em contato
+                      <MessageCircle size={14} aria-hidden="true" /> Entrar em contato
                     </a>
                   )}
                   <button

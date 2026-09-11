@@ -5,6 +5,13 @@ import { auditLogs, companies, companySettings } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { bookingError, sameOrigin } from "@/lib/booking/errors";
 import { isValidHexColor } from "@/lib/branding";
+import {
+  COPY_OVERRIDE_KEYS,
+  parseCopyOverrides,
+  parseSectionsConfig,
+  SECTION_IDS,
+} from "@/lib/booking/customization";
+import { DEFAULT_FONT_PACK, FONT_PACK_IDS } from "@/lib/booking/fonts";
 import { saveBrandingImage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +50,13 @@ export async function GET() {
       coverPosition: settingsMap.cover_position || settingsMap.coverPosition || "center",
       primaryColor: company.publicColor || company.primaryColor || "#dcff4c",
       bookingThemeMode: (settingsMap.booking_theme_mode || settingsMap.bookingThemeMode || "auto") as "auto" | "light" | "dark",
+      bookingFontFamily: settingsMap.booking_font_family || settingsMap.bookingFontFamily || DEFAULT_FONT_PACK,
+      bookingCopyOverrides: parseCopyOverrides(
+        settingsMap.booking_copy_overrides || settingsMap.bookingCopyOverrides,
+      ),
+      bookingSectionsConfig: parseSectionsConfig(
+        settingsMap.booking_sections_config || settingsMap.bookingSectionsConfig,
+      ),
       businessType: company.businessType,
       publicDescription: company.publicDescription,
     },
@@ -69,6 +83,25 @@ const brandingSchema = z.object({
     .string()
     .refine(isValidHexColor, "Informe uma cor hexadecimal válida (ex: #DCFF4C)"),
   bookingThemeMode: z.enum(["auto", "light", "dark"]).default("auto"),
+  bookingFontFamily: z
+    .enum(FONT_PACK_IDS as [string, ...string[]])
+    .default(DEFAULT_FONT_PACK),
+  bookingCopyOverrides: z
+    .object(
+      Object.fromEntries(
+        COPY_OVERRIDE_KEYS.map((key) => [key, z.string().max(200).optional()]),
+      ) as Record<(typeof COPY_OVERRIDE_KEYS)[number], z.ZodOptional<z.ZodString>>,
+    )
+    .partial()
+    .default({}),
+  bookingSectionsConfig: z
+    .array(
+      z.object({
+        id: z.enum(SECTION_IDS as [string, ...string[]]),
+        visible: z.boolean(),
+      }),
+    )
+    .default([]),
 });
 
 export async function PUT(request: Request) {
@@ -111,6 +144,13 @@ export async function PUT(request: Request) {
           settingsMap.cover_url || settingsMap.coverUrl,
         )
       : null;
+
+    // Never trust the client payload blindly for structured config — repair
+    // it the same way it will be read back (drops unknown ids, fills in any
+    // missing ones, trims/caps copy strings) so a malformed request can never
+    // corrupt the live public page.
+    const normalizedCopyOverrides = parseCopyOverrides(body.bookingCopyOverrides);
+    const normalizedSectionsConfig = parseSectionsConfig(body.bookingSectionsConfig);
 
     await db.transaction(async (tx) => {
       // 3. Update company record
@@ -170,6 +210,14 @@ export async function PUT(request: Request) {
       await upsertSetting("coverPosition", body.coverPosition || "center");
       await upsertSetting("booking_theme_mode", body.bookingThemeMode || "auto");
       await upsertSetting("bookingThemeMode", body.bookingThemeMode || "auto");
+      await upsertSetting("booking_font_family", body.bookingFontFamily || DEFAULT_FONT_PACK);
+      await upsertSetting("bookingFontFamily", body.bookingFontFamily || DEFAULT_FONT_PACK);
+      const copyOverridesJson = JSON.stringify(normalizedCopyOverrides);
+      await upsertSetting("booking_copy_overrides", copyOverridesJson);
+      await upsertSetting("bookingCopyOverrides", copyOverridesJson);
+      const sectionsConfigJson = JSON.stringify(normalizedSectionsConfig);
+      await upsertSetting("booking_sections_config", sectionsConfigJson);
+      await upsertSetting("bookingSectionsConfig", sectionsConfigJson);
 
       // 5. Log audit event
       await tx.insert(auditLogs).values({
@@ -181,6 +229,7 @@ export async function PUT(request: Request) {
         metadata: {
           primaryColor: body.primaryColor,
           bookingThemeMode: body.bookingThemeMode,
+          bookingFontFamily: body.bookingFontFamily,
           hasLogo: Boolean(storedLogoUrl),
           hasCover: Boolean(storedCoverUrl),
         },
@@ -195,6 +244,9 @@ export async function PUT(request: Request) {
         coverUrl: storedCoverUrl,
         primaryColor: body.primaryColor,
         bookingThemeMode: body.bookingThemeMode,
+        bookingFontFamily: body.bookingFontFamily,
+        bookingCopyOverrides: normalizedCopyOverrides,
+        bookingSectionsConfig: normalizedSectionsConfig,
       },
     });
   } catch (error) {

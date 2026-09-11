@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function TermosPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "#0f1f18", color: "#f2f7f4", padding: "40px 20px" }}>
+    <div style={{ minHeight: "100vh", background: "#080808", color: "#f5f5f5", padding: "40px 20px" }}>
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
           <NovaeLogo size={32} />
@@ -31,8 +31,8 @@ export default function TermosPage() {
 
         <article
           style={{
-            background: "#162a22",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: "#121212",
+            border: "1px solid #222222",
             borderRadius: 16,
             padding: "36px 32px",
             lineHeight: 1.7,

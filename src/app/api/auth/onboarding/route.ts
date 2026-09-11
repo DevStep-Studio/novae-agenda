@@ -37,14 +37,15 @@ export async function POST(request: Request) {
     .set({ name: name.trim(), businessType: businessType ?? null, onboarded: true })
     .where(eq(companies.id, user.companyId));
 
-  const [employee] = await db
+  const employeeId = crypto.randomUUID();
+  await db
     .insert(employees)
-    .values({ companyId: user.companyId, name: employeeName.trim(), jobTitle: "Profissional", active: true })
-    .returning();
+    .values({ id: employeeId, companyId: user.companyId, name: employeeName.trim(), jobTitle: "Profissional", active: true });
 
   for (const day of workingDays) {
     await db.insert(employeeSchedules).values({
-      employeeId: employee.id,
+      id: crypto.randomUUID(),
+      employeeId: employeeId,
       dayOfWeek: day,
       startTime: `${openTime}:00`,
       endTime: `${closeTime}:00`,
@@ -54,18 +55,19 @@ export async function POST(request: Request) {
     });
   }
 
-  const [service] = await db
+  const serviceId = crypto.randomUUID();
+  await db
     .insert(services)
     .values({
+      id: serviceId,
       companyId: user.companyId,
       name: serviceName.trim(),
       price: servicePrice.toFixed(2),
       durationMinutes: serviceDuration,
       active: true,
-    })
-    .returning();
+    });
 
-  await db.insert(employeeServices).values({ employeeId: employee.id, serviceId: service.id });
+  await db.insert(employeeServices).values({ employeeId, serviceId });
 
   return Response.json({ data: { onboarded: true } }, { status: 201 });
 }

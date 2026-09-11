@@ -48,7 +48,6 @@ export async function POST(request: Request) {
 
   if (parsed.data.accountType === "customer" && !parsed.data.phone) return NextResponse.json({error:"Informe seu telefone."},{status:400});
   const user = await db.transaction(async tx => {
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`auth:${normalizedEmail}`},0))`);
     const [duplicate] = await tx.select({id:users.id}).from(users).where(eq(users.email,normalizedEmail));
     if (duplicate) return null;
     let companyId: string | null = null;
@@ -56,17 +55,29 @@ export async function POST(request: Request) {
       const baseSlug = toSlug(name.trim());
       const suffix = Date.now().toString(36).slice(-4);
       const publicSlug = `${baseSlug}-${suffix}`;
-      const [company] = await tx.insert(companies).values({
+      companyId = crypto.randomUUID();
+      await tx.insert(companies).values({
+        id: companyId,
         name: name.trim(),
         publicSlug,
         publicEnabled: true,
         onboarded: false,
-      }).returning();
-      companyId = company.id;
-      await tx.insert(locations).values({companyId,name:"Unidade Principal",openTime:"08:00",closeTime:"19:00",active:true});
+      });
+      await tx.insert(locations).values({id: crypto.randomUUID(), companyId, name: "Unidade Principal", openTime: "08:00", closeTime: "19:00", active: true});
     }
-    const [created] = await tx.insert(users).values({companyId,name:name.trim(),email:normalizedEmail,passwordHash,phone:parsed.data.phone,role:companyId?"owner":"customer",active:true,emailVerified:false}).returning();
-    return created;
+    const userId = crypto.randomUUID();
+    await tx.insert(users).values({
+      id: userId,
+      companyId,
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      phone: parsed.data.phone,
+      role: companyId ? "owner" : "customer",
+      active: true,
+      emailVerified: false,
+    });
+    return { id: userId, companyId, name: name.trim(), email: normalizedEmail };
   });
   if (!user) return NextResponse.json({error:"Este e-mail já está em uso."},{status:409});
 

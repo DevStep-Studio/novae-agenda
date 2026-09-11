@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-postgresql-template",
+  "name": "reservei-agenda",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -27,6 +27,7 @@
     "drizzle-orm": "0.45.2",
     "jose": "^6.2.10",
     "lucide-react": "^1.38.0",
+    "mysql2": "^3.24.4",
     "next": "16.2.6",
     "pg": "8.20.0",
     "qrcode": "^1.5.4",

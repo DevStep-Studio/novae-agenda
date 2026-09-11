@@ -62,18 +62,36 @@ export async function POST(request: Request) {
 
   const { name, address, phone, openTime, closeTime } = parsed.data;
 
-  const [created] = await db
+  const locationId = crypto.randomUUID();
+  const trimmedName = name.trim();
+  const trimmedAddress = address?.trim() || null;
+  const trimmedPhone = phone?.trim() || null;
+  const formattedOpenTime = openTime ? `${openTime}:00` : "08:00:00";
+  const formattedCloseTime = closeTime ? `${closeTime}:00` : "19:00:00";
+
+  await db
     .insert(locations)
     .values({
+      id: locationId,
       companyId: auth.user.companyId,
-      name: name.trim(),
-      address: address?.trim() || null,
-      phone: phone?.trim() || null,
-      openTime: openTime ? `${openTime}:00` : "08:00:00",
-      closeTime: closeTime ? `${closeTime}:00` : "19:00:00",
+      name: trimmedName,
+      address: trimmedAddress,
+      phone: trimmedPhone,
+      openTime: formattedOpenTime,
+      closeTime: formattedCloseTime,
       active: true,
-    })
-    .returning();
+    });
+
+  const created = {
+    id: locationId,
+    companyId: auth.user.companyId,
+    name: trimmedName,
+    address: trimmedAddress,
+    phone: trimmedPhone,
+    openTime: formattedOpenTime,
+    closeTime: formattedCloseTime,
+    active: true,
+  };
 
   await recordAudit({
     companyId: auth.user.companyId,

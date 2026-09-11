@@ -2,26 +2,42 @@ import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads", "branding");
+const UPLOADS_ROOT = path.join(process.cwd(), "public", "uploads");
+type UploadFolder = "branding" | "professionals";
 
-export async function ensureUploadsDir() {
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
+async function ensureUploadsDir(folder: UploadFolder) {
+  await fs.mkdir(path.join(UPLOADS_ROOT, folder), { recursive: true });
 }
 
-/**
- * Validates and converts a dataURL or image buffer to a stored file in /uploads/branding/
- * Returns the public URL path: /uploads/branding/[uuid].[ext]
- */
+/** Persists validated image data in a public, folder-scoped upload directory. */
 export async function saveBrandingImage(
   imageInput: string,
   previousUrl?: string | null
+): Promise<string> {
+  return saveUploadedImage(imageInput, { folder: "branding", previousUrl, allowSvg: true });
+}
+
+export async function saveProfessionalImage(
+  imageInput: string,
+  previousUrl?: string | null,
+): Promise<string> {
+  return saveUploadedImage(imageInput, { folder: "professionals", previousUrl });
+}
+
+async function saveUploadedImage(
+  imageInput: string,
+  {
+    folder,
+    previousUrl,
+    allowSvg = false,
+  }: { folder: UploadFolder; previousUrl?: string | null; allowSvg?: boolean },
 ): Promise<string> {
   // If it's already an existing URL path or external URL, keep it
   if (!imageInput.startsWith("data:image/")) {
     return imageInput;
   }
 
-  await ensureUploadsDir();
+  await ensureUploadsDir(folder);
 
   // Parse data URL: data:image/png;base64,iVBORw...
   const match = imageInput.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
@@ -33,9 +49,11 @@ export async function saveBrandingImage(
   if (mimeSubtype === "jpeg") mimeSubtype = "jpg";
   if (mimeSubtype === "svg+xml") mimeSubtype = "svg";
 
-  const allowedExts = ["png", "jpg", "webp", "svg"];
+  const allowedExts = allowSvg ? ["png", "jpg", "webp", "svg"] : ["png", "jpg", "webp"];
   if (!allowedExts.includes(mimeSubtype)) {
-    throw new Error("Formato de imagem não suportado. Use PNG, JPG, WebP ou SVG.");
+    throw new Error(
+      `Formato de imagem não suportado. Use PNG, JPG, WebP${allowSvg ? " ou SVG" : ""}.`,
+    );
   }
 
   const buffer = Buffer.from(match[2], "base64");
@@ -64,29 +82,38 @@ export async function saveBrandingImage(
 
   // Generate safe non-executable filename
   const filename = `${crypto.randomUUID()}.${mimeSubtype}`;
-  const filePath = path.join(UPLOADS_DIR, filename);
+  const uploadDir = path.join(UPLOADS_ROOT, folder);
+  const filePath = path.join(uploadDir, filename);
 
   await fs.writeFile(filePath, buffer);
 
   // Clean up previous file if it was in the local uploads directory
-  if (previousUrl && previousUrl.startsWith("/uploads/branding/")) {
+  if (previousUrl && previousUrl.startsWith(`/uploads/${folder}/`)) {
     try {
       const prevFilename = path.basename(previousUrl);
-      const prevFilePath = path.join(UPLOADS_DIR, prevFilename);
+      const prevFilePath = path.join(uploadDir, prevFilename);
       await fs.unlink(prevFilePath);
     } catch {
       // Ignore if previous file was already deleted
     }
   }
 
-  return `/uploads/branding/${filename}`;
+  return `/uploads/${folder}/${filename}`;
 }
 
 export async function deleteBrandingImage(fileUrl: string) {
-  if (fileUrl.startsWith("/uploads/branding/")) {
+  return deleteUploadedImage(fileUrl, "branding");
+}
+
+export async function deleteProfessionalImage(fileUrl: string) {
+  return deleteUploadedImage(fileUrl, "professionals");
+}
+
+async function deleteUploadedImage(fileUrl: string, folder: UploadFolder) {
+  if (fileUrl.startsWith(`/uploads/${folder}/`)) {
     try {
       const filename = path.basename(fileUrl);
-      const filePath = path.join(UPLOADS_DIR, filename);
+      const filePath = path.join(UPLOADS_ROOT, folder, filename);
       await fs.unlink(filePath);
     } catch {
       // Ignore

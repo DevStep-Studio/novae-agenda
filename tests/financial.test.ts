@@ -2,7 +2,7 @@ import "dotenv/config";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, pool } from "@/db";
 import {
   appointmentServices,
   appointments,
@@ -14,7 +14,7 @@ import {
   services,
 } from "@/db/schema";
 
-describe("Financial Operations, Commissions & Revenue Distinction", () => {
+describe("Financial Integrity & Commission Precision", () => {
   let testCompanyId: string;
   let testLocationId: string;
   let employeeId: string;
@@ -22,77 +22,81 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
   let serviceId: string;
 
   before(async () => {
-    const [comp] = await db
+    testCompanyId = crypto.randomUUID();
+    await db
       .insert(companies)
       .values({
+        id: testCompanyId,
         name: "Test Financial Salon",
         timezone: "America/Sao_Paulo",
-      })
-      .returning();
-    testCompanyId = comp.id;
+      });
 
-    const [loc] = await db
+    testLocationId = crypto.randomUUID();
+    await db
       .insert(locations)
       .values({
+        id: testLocationId,
         companyId: testCompanyId,
         name: "Unidade Financeiro",
-      })
-      .returning();
-    testLocationId = loc.id;
+      });
 
     // Professional with 40% commission
-    const [emp] = await db
+    employeeId = crypto.randomUUID();
+    await db
       .insert(employees)
       .values({
+        id: employeeId,
         companyId: testCompanyId,
         locationId: testLocationId,
         name: "Carlos Barbeiro",
         commissionType: "percentage",
         commissionValue: "40.00",
-      })
-      .returning();
-    employeeId = emp.id;
+      });
 
-    const [cli] = await db
+    clientId = crypto.randomUUID();
+    await db
       .insert(clients)
       .values({
+        id: clientId,
         companyId: testCompanyId,
         name: "Cliente Financeiro",
         phone: "11988887777",
-      })
-      .returning();
-    clientId = cli.id;
+      });
 
-    const [serv] = await db
+    serviceId = crypto.randomUUID();
+    await db
       .insert(services)
       .values({
+        id: serviceId,
         companyId: testCompanyId,
         name: "Corte Especial",
         price: "100.00",
         durationMinutes: 45,
-      })
-      .returning();
-    serviceId = serv.id;
+      });
   });
 
   after(async () => {
     await db.delete(payments).where(eq(payments.companyId, testCompanyId));
-    await db.delete(appointmentServices).where(
-      sql`${appointmentServices.appointmentId} IN (SELECT id FROM ${appointments} WHERE company_id = ${testCompanyId})`,
-    );
+    const appts = await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.companyId, testCompanyId));
+    for (const a of appts) {
+      await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, a.id));
+    }
     await db.delete(appointments).where(eq(appointments.companyId, testCompanyId));
     await db.delete(services).where(eq(services.companyId, testCompanyId));
     await db.delete(employees).where(eq(employees.companyId, testCompanyId));
     await db.delete(clients).where(eq(clients.companyId, testCompanyId));
     await db.delete(locations).where(eq(locations.companyId, testCompanyId));
     await db.delete(companies).where(eq(companies.id, testCompanyId));
+    await pool.end();
   });
 
-  it("distinguishes projected revenue from realized revenue", async () => {
+  it("differentiates Realized vs Projected revenue accurately", async () => {
     // 1. Create a scheduled appointment for R$ 100.00
-    const [aptScheduled] = await db
+    const aptScheduledId = crypto.randomUUID();
+    await db
       .insert(appointments)
       .values({
+        id: aptScheduledId,
         companyId: testCompanyId,
         locationId: testLocationId,
         clientId,
@@ -102,13 +106,14 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
         endTime: "10:45",
         status: "scheduled",
         total: "100.00",
-      })
-      .returning();
+      });
 
     // 2. Create a completed appointment with payment for R$ 80.00
-    const [aptCompleted] = await db
+    const aptCompletedId = crypto.randomUUID();
+    await db
       .insert(appointments)
       .values({
+        id: aptCompletedId,
         companyId: testCompanyId,
         locationId: testLocationId,
         clientId,
@@ -118,12 +123,12 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
         endTime: "11:45",
         status: "completed",
         total: "80.00",
-      })
-      .returning();
+      });
 
     await db.insert(payments).values({
+      id: crypto.randomUUID(),
       companyId: testCompanyId,
-      appointmentId: aptCompleted.id,
+      appointmentId: aptCompletedId,
       amount: "80.00",
       discount: "0.00",
       method: "PIX",
@@ -134,44 +139,45 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
     // Query Projected revenue (sum of active appointments total)
     const [projected] = await db
       .select({
-        totalProjected: sql<string>`coalesce(sum(${appointments.total}::numeric), 0)`,
+        totalProjected: sql<string>`coalesce(sum(${appointments.total}), 0)`,
       })
       .from(appointments)
       .where(
         and(
           eq(appointments.companyId, testCompanyId),
-          sql`${appointments.status} NOT IN ('cancelled', 'no_show')`,
+          eq(appointments.appointmentDate, "2026-10-20"),
         ),
       );
 
-    // Query Realized revenue (sum of payments with status = 'paid')
+    // Query Realized revenue (sum of paid payments)
     const [realized] = await db
       .select({
-        totalRealized: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)`,
+        totalRealized: sql<string>`coalesce(sum(${payments.amount}), 0)`,
       })
       .from(payments)
-      .where(and(eq(payments.companyId, testCompanyId), eq(payments.status, "paid")));
+      .where(
+        and(
+          eq(payments.companyId, testCompanyId),
+          eq(payments.status, "paid"),
+        ),
+      );
 
-    // Expected:
-    // Projected = 100.00 + 80.00 = 180.00
-    // Realized = 80.00 ONLY
-    assert.equal(Number(projected.totalProjected), 180.0);
-    assert.equal(Number(realized.totalRealized), 80.0);
-    assert.notEqual(Number(projected.totalProjected), Number(realized.totalRealized));
+    assert.equal(Number(projected.totalProjected), 180.0, "Projected revenue should be 100 + 80 = 180");
+    assert.equal(Number(realized.totalRealized), 80.0, "Realized revenue should be only the paid 80.00");
 
-    // Cleanup the appointments
-    await db.delete(payments).where(eq(payments.appointmentId, aptCompleted.id));
-    await db.delete(appointments).where(eq(appointments.id, aptScheduled.id));
-    await db.delete(appointments).where(eq(appointments.id, aptCompleted.id));
+    // Clean up test appointments
+    await db.delete(payments).where(eq(payments.companyId, testCompanyId));
+    await db.delete(appointments).where(eq(appointments.companyId, testCompanyId));
   });
 
-  it("registers payment with discount and calculates professional commission", async () => {
-    // Service price = R$ 100.00. Discount = R$ 15.00. Final paid = R$ 85.00.
+  it("calculates commission accurately on discounted payments", async () => {
     // Professional has 40% commission on service price (or paid price):
     // 40% of R$ 85.00 = R$ 34.00 (or 40% of R$ 100 = R$ 40)
-    const [apt] = await db
+    const aptId = crypto.randomUUID();
+    await db
       .insert(appointments)
       .values({
+        id: aptId,
         companyId: testCompanyId,
         locationId: testLocationId,
         clientId,
@@ -181,8 +187,7 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
         endTime: "14:45",
         status: "in_progress",
         total: "100.00",
-      })
-      .returning();
+      });
 
     // Transaction mimicking /api/appointments/[id]/finish
     const discountNum = 15.0;
@@ -195,11 +200,11 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
       await tx
         .update(appointments)
         .set({ status: "completed" })
-        .where(eq(appointments.id, apt.id));
+        .where(eq(appointments.id, aptId));
 
       // 2. Snapshot service & commission in appointment_services
       await tx.insert(appointmentServices).values({
-        appointmentId: apt.id,
+        appointmentId: aptId,
         serviceId,
         price: "100.00",
         durationMinutes: 45,
@@ -210,8 +215,9 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
 
       // 3. Register payment
       await tx.insert(payments).values({
+        id: crypto.randomUUID(),
         companyId: testCompanyId,
-        appointmentId: apt.id,
+        appointmentId: aptId,
         amount: finalAmountNum.toFixed(2),
         discount: discountNum.toFixed(2),
         method: "PIX",
@@ -224,7 +230,7 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
     const [paymentRecord] = await db
       .select()
       .from(payments)
-      .where(eq(payments.appointmentId, apt.id));
+      .where(eq(payments.appointmentId, aptId));
 
     assert.ok(paymentRecord, "Payment record must exist");
     assert.equal(paymentRecord.amount, "85.00");
@@ -236,22 +242,24 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
     const [serviceRecord] = await db
       .select()
       .from(appointmentServices)
-      .where(eq(appointmentServices.appointmentId, apt.id));
+      .where(eq(appointmentServices.appointmentId, aptId));
 
     assert.ok(serviceRecord, "Appointment service snapshot must exist");
     assert.equal(serviceRecord.commissionAmount, "34.00");
 
     // Clean up
-    await db.delete(payments).where(eq(payments.appointmentId, apt.id));
-    await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, apt.id));
-    await db.delete(appointments).where(eq(appointments.id, apt.id));
+    await db.delete(payments).where(eq(payments.appointmentId, aptId));
+    await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, aptId));
+    await db.delete(appointments).where(eq(appointments.id, aptId));
   });
 
   it("preserves historical prices even when the catalog service price changes", async () => {
     // 1. Complete appointment with service price R$ 100.00
-    const [apt] = await db
+    const aptId = crypto.randomUUID();
+    await db
       .insert(appointments)
       .values({
+        id: aptId,
         companyId: testCompanyId,
         locationId: testLocationId,
         clientId,
@@ -261,11 +269,10 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
         endTime: "15:45",
         status: "completed",
         total: "100.00",
-      })
-      .returning();
+      });
 
     await db.insert(appointmentServices).values({
-      appointmentId: apt.id,
+      appointmentId: aptId,
       serviceId,
       price: "100.00",
       durationMinutes: 45,
@@ -275,8 +282,9 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
     });
 
     await db.insert(payments).values({
+      id: crypto.randomUUID(),
       companyId: testCompanyId,
-      appointmentId: apt.id,
+      appointmentId: aptId,
       amount: "100.00",
       discount: "0.00",
       method: "credito",
@@ -298,7 +306,7 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
       })
       .from(appointments)
       .innerJoin(appointmentServices, eq(appointments.id, appointmentServices.appointmentId))
-      .where(eq(appointments.id, apt.id));
+      .where(eq(appointments.id, aptId));
 
     assert.equal(historicalApt.aptTotal, "100.00", "Appointment total snapshot must not change");
     assert.equal(historicalApt.servicePrice, "100.00", "Historical service price must not change");
@@ -308,8 +316,8 @@ describe("Financial Operations, Commissions & Revenue Distinction", () => {
     assert.equal(catalogService.price, "150.00", "Catalog price was updated");
 
     // Clean up
-    await db.delete(payments).where(eq(payments.appointmentId, apt.id));
-    await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, apt.id));
-    await db.delete(appointments).where(eq(appointments.id, apt.id));
+    await db.delete(payments).where(eq(payments.appointmentId, aptId));
+    await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, aptId));
+    await db.delete(appointments).where(eq(appointments.id, aptId));
   });
 });

@@ -167,15 +167,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (notes !== undefined) updateData.notes = notes?.trim() || null;
   if (internalNotes !== undefined) updateData.internalNotes = internalNotes?.trim() || null;
 
-  const [updated] = await db
+  const [existing] = await db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
+
+  if (!existing) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
+
+  await db
     .update(clients)
     .set(updateData)
-    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)))
-    .returning();
+    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
 
-  if (!updated) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
-
-  return Response.json({ data: { id: updated.id } });
+  return Response.json({ data: { id: existing.id } });
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -185,13 +189,17 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { id } = await params;
   if (!isUuid(id)) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
-  const [deleted] = await db
+  const [existing] = await db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
+
+  if (!existing) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
+
+  await db
     .update(clients)
     .set({ active: false })
-    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)))
-    .returning({ id: clients.id });
+    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
 
-  if (!deleted) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
-
-  return Response.json({ data: { id: deleted.id } });
+  return Response.json({ data: { id: existing.id } });
 }

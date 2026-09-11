@@ -54,26 +54,38 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   for (const key of ["bufferMinutes","imageUrl","deliveryMode","paymentType","cancellationPolicy"] as const) if (data[key] !== undefined) patch[key] = data[key];
   if (data.depositAmount !== undefined) patch.depositAmount = data.depositAmount.toFixed(2);
   let updated;
-  try { updated = await db.transaction(async tx => {
-    await lockCompany(tx,auth.user.companyId);
-    const [existing] = await tx.select().from(services).where(and(eq(services.id,id),eq(services.companyId,auth.user.companyId)));
-    if (!existing) throw new BookingError("Serviço não encontrado.",404);
-    if ((data.depositAmount ?? Number(existing.depositAmount)) > (data.price ?? Number(existing.price))) throw new BookingError("O sinal não pode exceder o preço.");
-    if (data.categoryId) {
-      const [category] = await tx.select().from(serviceCategories).where(and(eq(serviceCategories.id,data.categoryId),eq(serviceCategories.companyId,auth.user.companyId)));
-      if (!category) throw new BookingError("Categoria inválida.");
-    }
-    if (data.employeeIds) {
-      const ids=[...new Set(data.employeeIds)];
-      const team=ids.length?await tx.select().from(employees).where(and(eq(employees.companyId,auth.user.companyId),inArray(employees.id,ids))):[];
-      if(team.length!==ids.length)throw new BookingError("Profissional inválido.");
-      const previous=await tx.select().from(employeeServices).where(eq(employeeServices.serviceId,id));
-      await tx.delete(employeeServices).where(eq(employeeServices.serviceId,id));
-      if(team.length)await tx.insert(employeeServices).values(team.map(e=>({serviceId:id,employeeId:e.id,commissionType:previous.find(l=>l.employeeId===e.id)?.commissionType??e.commissionType,commissionValue:previous.find(l=>l.employeeId===e.id)?.commissionValue??e.commissionValue})));
-    }
-    const [result]=await tx.update(services).set({...patch,updatedAt:new Date()}).where(and(eq(services.id,id),eq(services.companyId,auth.user.companyId))).returning();
-    return result;
-  }); } catch(error) { return bookingError(error); }
+  try {
+    updated = await db.transaction(async tx => {
+      await lockCompany(tx, auth.user.companyId);
+      const [existing] = await tx.select().from(services).where(and(eq(services.id, id), eq(services.companyId, auth.user.companyId)));
+      if (!existing) throw new BookingError("Serviço não encontrado.", 404);
+      if ((data.depositAmount ?? Number(existing.depositAmount)) > (data.price ?? Number(existing.price))) throw new BookingError("O sinal não pode exceder o preço.");
+      if (data.categoryId) {
+        const [category] = await tx.select().from(serviceCategories).where(and(eq(serviceCategories.id, data.categoryId), eq(serviceCategories.companyId, auth.user.companyId)));
+        if (!category) throw new BookingError("Categoria inválida.");
+      }
+      if (data.employeeIds) {
+        const ids = [...new Set(data.employeeIds)];
+        const team = ids.length ? await tx.select().from(employees).where(and(eq(employees.companyId, auth.user.companyId), inArray(employees.id, ids))) : [];
+        if (team.length !== ids.length) throw new BookingError("Profissional inválido.");
+        const previous = await tx.select().from(employeeServices).where(eq(employeeServices.serviceId, id));
+        await tx.delete(employeeServices).where(eq(employeeServices.serviceId, id));
+        if (team.length) {
+          await tx.insert(employeeServices).values(team.map(e => ({
+            serviceId: id,
+            employeeId: e.id,
+            commissionType: previous.find(l => l.employeeId === e.id)?.commissionType ?? e.commissionType,
+            commissionValue: previous.find(l => l.employeeId === e.id)?.commissionValue ?? e.commissionValue,
+          })));
+        }
+      }
+      await tx.update(services).set({ ...patch, updatedAt: new Date() }).where(and(eq(services.id, id), eq(services.companyId, auth.user.companyId)));
+      const [result] = await tx.select().from(services).where(and(eq(services.id, id), eq(services.companyId, auth.user.companyId)));
+      return result;
+    });
+  } catch(error) {
+    return bookingError(error);
+  }
 
   if (!updated) return Response.json({ error: "Serviço não encontrado." }, { status: 404 });
 

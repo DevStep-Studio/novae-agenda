@@ -1,9 +1,9 @@
 import "dotenv/config";
-import { localDate, shiftDate } from "@/lib/booking/time";
+import { localInstant, localDate, shiftDate } from "@/lib/booking/time";
 import { after, before, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, pool } from "@/db";
 import {
   appointmentHistory,
   appointmentServices,
@@ -15,17 +15,16 @@ import {
   employeeServices,
   employees,
   locations,
-  notifications,
   payments,
   services,
   users,
 } from "@/db/schema";
 import { assertBookable, getAvailabilitySlots } from "@/lib/availability";
 
-describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
+describe("E2E Lifecycle: Appointment -> Conflict Check -> Payment -> Analytics & History", () => {
   let companyId: string;
-  let locationId: string;
   let ownerUserId: string;
+  let locationId: string;
   let joaoId: string;
   let anaId: string;
   let corteBarbaServiceId: string;
@@ -37,19 +36,21 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
 
   before(async () => {
     // 1. Criar empresa
-    const [comp] = await db
+    companyId = crypto.randomUUID();
+    await db
       .insert(companies)
       .values({
+        id: companyId,
         name: "Studio Prime Barbearia",
         timezone: "America/Sao_Paulo",
-      })
-      .returning();
-    companyId = comp.id;
+      });
 
     // 2. Criar conta do proprietário com e-mail confirmado
-    const [owner] = await db
+    ownerUserId = crypto.randomUUID();
+    await db
       .insert(users)
       .values({
+        id: ownerUserId,
         companyId,
         name: "Proprietário Novae",
         email: "owner@studioprime.com",
@@ -57,59 +58,58 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
         role: "owner",
         emailVerified: true,
         emailVerifiedAt: new Date(),
-      })
-      .returning();
-    ownerUserId = owner.id;
+      });
 
     // 3. Criar unidade
-    const [loc] = await db
+    locationId = crypto.randomUUID();
+    await db
       .insert(locations)
       .values({
+        id: locationId,
         companyId,
         name: "Unidade Centro",
         address: "Av. Paulista, 1000",
         openTime: "08:00",
         closeTime: "20:00",
-      })
-      .returning();
-    locationId = loc.id;
+      });
 
     // 4. Cadastrar profissionais (João e Ana)
-    const [joao] = await db
+    joaoId = crypto.randomUUID();
+    await db
       .insert(employees)
       .values({
+        id: joaoId,
         companyId,
         locationId,
         name: "João",
         jobTitle: "Master Barber",
         commissionType: "percentage",
         commissionValue: "50.00",
-      })
-      .returning();
-    joaoId = joao.id;
+      });
 
-    const [ana] = await db
+    anaId = crypto.randomUUID();
+    await db
       .insert(employees)
       .values({
+        id: anaId,
         companyId,
         locationId,
         name: "Ana",
         jobTitle: "Barber Stylist",
         commissionType: "percentage",
         commissionValue: "45.00",
-      })
-      .returning();
-    anaId = ana.id;
+      });
 
     // Vincular profissionais à unidade
     await db.insert(employeeLocations).values([
-      { employeeId: joaoId, locationId, isPrimary: true },
-      { employeeId: anaId, locationId, isPrimary: true },
+      { id: crypto.randomUUID(), employeeId: joaoId, locationId, isPrimary: true },
+      { id: crypto.randomUUID(), employeeId: anaId, locationId, isPrimary: true },
     ]);
 
     // Horários de terça-feira (dayOfWeek = 2) das 09:00 às 19:00
     await db.insert(employeeSchedules).values([
       {
+        id: crypto.randomUUID(),
         employeeId: joaoId,
         locationId,
         dayOfWeek: 2,
@@ -120,6 +120,7 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
         active: true,
       },
       {
+        id: crypto.randomUUID(),
         employeeId: anaId,
         locationId,
         dayOfWeek: 2,
@@ -131,40 +132,39 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
       },
     ]);
 
-    // 5. Cadastrar serviço (Corte + Barba, R$ 75,00, 60 min)
-    const [serv] = await db
+    // 5. Cadastrar serviço (Corte + Barba, R$ 75, 60min)
+    corteBarbaServiceId = crypto.randomUUID();
+    await db
       .insert(services)
       .values({
+        id: corteBarbaServiceId,
         companyId,
         name: "Corte + Barba",
         price: "75.00",
         durationMinutes: 60,
-      })
-      .returning();
-    corteBarbaServiceId = serv.id;
+      });
 
     // 6. Cadastrar cliente (Carlos)
-    const [client] = await db
+    carlosClientId = crypto.randomUUID();
+    await db
       .insert(clients)
       .values({
+        id: carlosClientId,
         companyId,
         name: "Carlos",
         phone: "11977778888",
         email: "carlos@cliente.com",
-      })
-      .returning();
-    carlosClientId = client.id;
+      });
   });
 
   after(async () => {
     // Cleanup
     await db.delete(payments).where(eq(payments.companyId, companyId));
-    await db.delete(appointmentServices).where(
-      sql`${appointmentServices.appointmentId} IN (SELECT id FROM ${appointments} WHERE company_id = ${companyId})`,
-    );
-    await db.delete(appointmentHistory).where(
-      sql`${appointmentHistory.appointmentId} IN (SELECT id FROM ${appointments} WHERE company_id = ${companyId})`,
-    );
+    const appts = await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.companyId, companyId));
+    for (const a of appts) {
+      await db.delete(appointmentServices).where(eq(appointmentServices.appointmentId, a.id));
+      await db.delete(appointmentHistory).where(eq(appointmentHistory.appointmentId, a.id));
+    }
     await db.delete(appointments).where(eq(appointments.companyId, companyId));
     await db.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, joaoId));
     await db.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, anaId));
@@ -176,6 +176,7 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
     await db.delete(locations).where(eq(locations.companyId, companyId));
     await db.delete(users).where(eq(users.companyId, companyId));
     await db.delete(companies).where(eq(companies.id, companyId));
+    await pool.end();
   });
 
   it("completes the full commercial lifecycle and validates prompt sections 47, 48, 49", async () => {
@@ -194,9 +195,11 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
     // ----------------------------------------------------
     // ETAPA 2: Criar agendamento (João, Corte + Barba, 14:00–15:00, R$ 75)
     // ----------------------------------------------------
-    const [apt] = await db
+    appointmentId = crypto.randomUUID();
+    await db
       .insert(appointments)
       .values({
+        id: appointmentId,
         companyId,
         locationId,
         clientId: carlosClientId,
@@ -206,9 +209,7 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
         endTime: "15:00",
         status: "scheduled",
         total: "75.00",
-      })
-      .returning();
-    appointmentId = apt.id;
+      });
 
     await db.insert(appointmentServices).values({
       appointmentId,
@@ -279,6 +280,7 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
 
       // 2. Registrar pagamento
       await tx.insert(payments).values({
+        id: crypto.randomUUID(),
         companyId,
         appointmentId,
         amount: "75.00",
@@ -297,21 +299,21 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
     // ----------------------------------------------------
     // Total realizado
     const [realizedRow] = await db
-      .select({ total: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)` })
+      .select({ total: sql<string>`coalesce(sum(${payments.amount}), 0)` })
       .from(payments)
       .where(and(eq(payments.companyId, companyId), eq(payments.status, "paid")));
     assert.equal(Number(realizedRow.total), 75.0, "Receita realizada deve ser R$ 75,00");
 
     // Quantidade de finalizados
     const [completedRow] = await db
-      .select({ count: sql<number>`count(*)::int` })
+      .select({ count: sql<number>`count(*)` })
       .from(appointments)
       .where(and(eq(appointments.companyId, companyId), eq(appointments.status, "completed")));
-    assert.equal(completedRow.count, 1, "Atendimentos finalizados deve ser 1");
+    assert.equal(Number(completedRow.count), 1, "Atendimentos finalizados deve ser 1");
 
     // Faturamento por profissional (João)
     const [joaoRevenueRow] = await db
-      .select({ total: sql<string>`coalesce(sum(${payments.amount}::numeric), 0)` })
+      .select({ total: sql<string>`coalesce(sum(${payments.amount}), 0)` })
       .from(payments)
       .innerJoin(appointments, eq(payments.appointmentId, appointments.id))
       .where(
@@ -330,10 +332,10 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
     // ----------------------------------------------------
     const [clientStats] = await db
       .select({
-        totalAppointments: sql<number>`count(distinct ${appointments.id})::int`,
-        firstVisit: sql<string>`min(${appointments.appointmentDate})::text`,
-        lastVisit: sql<string>`max(${appointments.appointmentDate})::text`,
-        totalSpent: sql<string>`coalesce(sum(case when ${payments.status} = 'paid' then ${payments.amount}::numeric else 0 end), 0)`,
+        totalAppointments: sql<number>`count(distinct ${appointments.id})`,
+        firstVisit: sql<string>`min(${appointments.appointmentDate})`,
+        lastVisit: sql<string>`max(${appointments.appointmentDate})`,
+        totalSpent: sql<string>`coalesce(sum(case when ${payments.status} = 'paid' then ${payments.amount} else 0 end), 0)`,
       })
       .from(appointments)
       .leftJoin(payments, eq(appointments.id, payments.appointmentId))
@@ -345,7 +347,7 @@ describe("E2E Commercial Flow (Prompt Sections 47, 48, 49)", () => {
         ),
       );
 
-    assert.equal(clientStats.totalAppointments, 1);
+    assert.equal(Number(clientStats.totalAppointments), 1);
     assert.equal(clientStats.firstVisit, testDate);
     assert.equal(clientStats.lastVisit, testDate);
     assert.equal(Number(clientStats.totalSpent), 75.0);

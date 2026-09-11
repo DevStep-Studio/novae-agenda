@@ -431,9 +431,11 @@ export async function POST(request: Request) {
         targetLocationId = defaultLoc?.id ?? null;
       }
 
-      const [created] = await tx
+      const appointmentId = crypto.randomUUID();
+      await tx
         .insert(appointments)
         .values({
+          id: appointmentId,
           companyId: auth.user.companyId,
           locationId: targetLocationId,
           clientId,
@@ -445,8 +447,7 @@ export async function POST(request: Request) {
           bufferMinutes,
           total: total.toFixed(2),
           notes: notes?.trim() || null,
-        })
-        .returning();
+        });
 
       if (!check.ok && allowConflict) {
         await recordAudit({
@@ -454,7 +455,7 @@ export async function POST(request: Request) {
           userId: auth.user.userId,
           action: "appointment.manual_override",
           entity: "appointment",
-          entityId: created.id,
+          entityId: appointmentId,
           metadata: {
             reason: check.error,
             date,
@@ -495,7 +496,7 @@ export async function POST(request: Request) {
         if (commissionType === "fixed") commissionAmount = commissionValue;
 
         await tx.insert(appointmentServices).values({
-          appointmentId: created.id,
+          appointmentId: appointmentId,
           serviceId: service.id,
           price: service.price,
           durationMinutes: service.durationMinutes,
@@ -508,7 +509,8 @@ export async function POST(request: Request) {
       await tx
         .insert(appointmentHistory)
         .values({
-          appointmentId: created.id,
+          id: crypto.randomUUID(),
+          appointmentId: appointmentId,
           actorId: auth.user.userId,
           action: "appointment.created",
           metadata: { date, startTime, endTime },
@@ -518,20 +520,21 @@ export async function POST(request: Request) {
         userId: auth.user.userId,
         action: "appointment.created",
         entity: "appointment",
-        entityId: created.id,
+        entityId: appointmentId,
         metadata: { date, startTime, endTime, employeeId, clientId, total },
       });
 
       await tx.insert(notifications).values({
+        id: crypto.randomUUID(),
         companyId: auth.user.companyId,
         type: "appointment_created",
         title: "Novo atendimento criado",
         body: `${normalizeTime(startTime)} · ${employee.name}`,
         entityType: "appointment",
-        entityId: created.id,
+        entityId: appointmentId,
       });
 
-      return Response.json({ data: { id: created.id } }, { status: 201 });
+      return Response.json({ data: { id: appointmentId } }, { status: 201 });
     });
   } catch (error) {
     return bookingError(error);

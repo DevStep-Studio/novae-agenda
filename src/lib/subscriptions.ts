@@ -88,22 +88,23 @@ export async function getCompanySubscription(companyId: string, executor: import
   const now = new Date();
 
   if (!existing) {
+    const id = crypto.randomUUID();
     const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const [created] = await executor
+    await executor
       .insert(subscriptions)
       .values({
+        id,
         companyId,
         plan: "trial",
         status: "trialing",
         trialEndsAt,
-      })
-      .returning();
+      });
 
     const diffDays = Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
     return {
-      id: created.id,
-      companyId: created.companyId,
+      id,
+      companyId,
       plan: "trial",
       status: "trialing",
       trialEndsAt: trialEndsAt.toISOString(),

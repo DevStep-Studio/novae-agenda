@@ -27,10 +27,12 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import type { PublicCatalog } from "@/lib/booking/catalog";
+import { isSectionVisible, resolveCopy } from "@/lib/booking/customization";
 import type { AvailableSlot } from "@/lib/booking/engine";
 import type { Selection } from "@/lib/booking/validation";
 import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
+import { ProfessionalIdentity, ProfessionalSelector } from "./professional-selector";
 import {
   b,
   dateLabel,
@@ -39,6 +41,7 @@ import {
   ErrorMessage,
   friendlyTimezone,
   money,
+  Price,
   PublicFrame,
 } from "./primitives";
 
@@ -113,6 +116,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [waitlistEmployee, setWaitlistEmployee] = useState("");
   const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cash" | "card" | "">("");
   const [extras, setExtras] = useState<Record<string, number>>({});
   const [coupon, setCoupon] = useState("");
   const [error, setError] = useState("");
@@ -370,6 +374,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       );
       return;
     }
+    if (!paymentMethod) {
+      setError("Escolha como pretende pagar no estabelecimento.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -387,6 +395,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             .filter(([, quantity]) => quantity > 0)
             .map(([productId, quantity]) => ({ productId, quantity })),
           couponCode: coupon,
+          intendedPaymentMethod: paymentMethod,
         }),
       });
 
@@ -450,9 +459,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       <h3>{service.name}</h3>
                       <div className={b.summaryItemMeta}>
                         <span>{duration(service.durationMinutes)}</span>
-                        <strong className={b.summaryItemPrice}>
-                          {money(service.price)}
-                        </strong>
+                        <Price amount={service.price} className={b.summaryItemPrice} />
                       </div>
                     </div>
                   </div>
@@ -472,45 +479,25 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   )}
                 </div>
 
-                {/* Professional Selector */}
+                {/* Visual professional selector */}
                 {step < 2 ? (
-                  eligibleProfs.length === 1 ? (
-                    <p className={b.muted} style={{ marginTop: 6, fontSize: 12 }}>
-                      Com <strong>{eligibleProfs[0]?.name}</strong>
-                    </p>
-                  ) : (
-                    <label className={b.field} style={{ margin: "6px 0 0" }}>
-                      <span className={b.muted} style={{ fontSize: 11 }}>
-                        Escolher profissional
-                      </span>
-                      <select
-                        aria-label={`Profissional para ${service.name}`}
-                        value={item.employeeId ?? ""}
-                        onChange={(e) => {
-                          const val = e.target.value || null;
-                          changeItems(
-                            items.map((i) =>
-                              i.serviceId === service.id
-                                ? { ...i, employeeId: val }
-                                : i,
-                            ),
-                          );
-                          if (val) event("professional_selected");
-                        }}
-                      >
-                        <option value="">Qualquer profissional disponível</option>
-                        {eligibleProfs.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )
+                  <ProfessionalSelector
+                    slug={company.slug}
+                    locationId={locationId}
+                    serviceId={service.id}
+                    today={today}
+                    professionals={eligibleProfs}
+                    value={item.employeeId ?? null}
+                    onChange={(employeeId) => {
+                      changeItems(items.map((selection) => selection.serviceId === service.id ? { ...selection, employeeId } : selection));
+                      if (employeeId) event("professional_selected");
+                    }}
+                  />
                 ) : (
-                  <p className={b.muted} style={{ marginTop: 6, fontSize: 12 }}>
-                    {planned?.employeeName || "Qualquer profissional disponível"}
-                  </p>
+                  <ProfessionalIdentity
+                    professional={eligibleProfs.find(professional => professional.id === planned?.employeeId)}
+                    fallbackName={planned?.employeeName || "Qualquer profissional disponível"}
+                  />
                 )}
               </div>
             );
@@ -561,7 +548,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             {duration(minutes) || "Nenhum serviço"}
           </span>
         </div>
-        <strong>{money(step === 2 && quote ? quote.total : price)}</strong>
+        <strong><Price amount={step === 2 && quote ? quote.total : price} /></strong>
       </div>
 
       {step === 2 && quoteLoading && (
@@ -591,7 +578,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 quoteLoading ||
                 !quote ||
                 !customer?.emailVerified ||
-                !customer.phone))
+                !customer.phone ||
+                !paymentMethod))
           }
           onClick={() => {
             if (isMobileSheet) setBottomSheetOpen(false);
@@ -605,13 +593,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           {busy
             ? "Processando…"
             : step === 2
-              ? "Confirmar agendamento"
-              : "Continuar"}
+              ? resolveCopy(company.copyOverrides, "ctaConfirm")
+              : resolveCopy(company.copyOverrides, "ctaContinue")}
           {!busy && <ArrowRight size={16} />}
         </button>
 
         <p className={b.trust}>
-          <ShieldCheck size={13} /> Seus dados estão protegidos
+          <ShieldCheck size={13} /> {resolveCopy(company.copyOverrides, "trustLine")}
         </p>
       </div>
     </>
@@ -621,7 +609,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     <PublicFrame
       color={company.color}
       coverUrl={company.coverUrl}
+      coverPosition={company.coverPosition}
       themeMode={company.bookingThemeMode}
+      fontFamily={company.bookingFontFamily}
+      copyOverrides={company.copyOverrides}
       company={{
         name: company.name,
         category: company.category,
@@ -691,9 +682,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               {slot?.items[0]?.employeeName && (
                 <div className={b.successDetailRow}>
                   <span className={b.successDetailLabel}>Profissional</span>
-                  <span className={b.successDetailValue}>
-                    {slot.items[0].employeeName}
-                  </span>
+                  <ProfessionalIdentity
+                    professional={professionals.find((professional) => professional.id === slot.items[0]?.employeeId)}
+                    fallbackName={slot.items[0].employeeName}
+                  />
                 </div>
               )}
 
@@ -709,10 +701,19 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 </div>
               )}
 
+              {paymentMethod && (
+                <div className={b.successDetailRow}>
+                  <span className={b.successDetailLabel}>Pagamento no local</span>
+                  <span className={b.successDetailValue}>
+                    {{ pix: "PIX", cash: "Dinheiro", card: "Cartão" }[paymentMethod]}
+                  </span>
+                </div>
+              )}
+
               <div className={b.successDetailRow}>
                 <span className={b.successDetailLabel}>Total</span>
                 <span className={`${b.successDetailValue} ${b.successDetailHighlight}`}>
-                  {money(quote?.total ?? price)}
+                  <Price amount={quote?.total ?? price} />
                 </span>
               </div>
             </div>
@@ -811,7 +812,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               <p className={b.subtitle}>
                 {
                   [
-                    "Selecione o que deseja agendar.",
+                    resolveCopy(company.copyOverrides, "heroSubtitle"),
                     friendlyTimezone(company.timezone),
                     "Confira os detalhes para garantir a reserva.",
                   ][step]
@@ -867,57 +868,57 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </label>
                   )}
 
-                  {/* Search Bar */}
-                  <div className={b.search}>
-                    <Search size={18} />
-                    <input
-                      aria-label="Buscar serviço"
-                      placeholder="Buscar serviço..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
-                  </div>
+                  {/* Search Bar + Category Filter (hideable via Branding Studio) */}
+                  {isSectionVisible(company.sectionsConfig, "search") && (
+                    <>
+                      <div className={b.search}>
+                        <Search size={18} />
+                        <input
+                          aria-label="Buscar serviço"
+                          placeholder={resolveCopy(company.copyOverrides, "searchPlaceholder")}
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                        />
+                      </div>
 
-                  {/* Category Pills Filter */}
-                  {allCategories.length > 2 && (
-                    <div
-                      className={b.categoryFilter}
-                      role="tablist"
-                      aria-label="Filtrar por categoria"
-                    >
-                      {allCategories.map((cat) => {
-                        const count =
-                          cat === "Todos"
-                            ? services.length
-                            : services.filter(
-                                (s) => (s.category || "Outros") === cat,
-                              ).length;
+                      {allCategories.length > 2 && (
+                        <div
+                          className={b.categoryFilter}
+                          role="tablist"
+                          aria-label="Filtrar por categoria"
+                        >
+                          {allCategories.map((cat) => {
+                            const count =
+                              cat === "Todos"
+                                ? services.length
+                                : services.filter(
+                                    (s) => (s.category || "Outros") === cat,
+                                  ).length;
 
-                        return (
-                          <button
-                            key={cat}
-                            type="button"
-                            role="tab"
-                            aria-selected={selectedCategory === cat}
-                            className={`${b.categoryPill} ${selectedCategory === cat ? b.categoryPillActive : ""}`}
-                            onClick={() => setSelectedCategory(cat)}
-                          >
-                            <span>{cat}</span>
-                            <span className={b.categoryCount}>({count})</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                            return (
+                              <button
+                                key={cat}
+                                type="button"
+                                role="tab"
+                                aria-selected={selectedCategory === cat}
+                                className={`${b.categoryPill} ${selectedCategory === cat ? b.categoryPillActive : ""}`}
+                                onClick={() => setSelectedCategory(cat)}
+                              >
+                                <span>{cat}</span>
+                                <span className={b.categoryCount}>({count})</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Services List */}
                   {!services.length ? (
                     <div className={b.empty}>
-                      <h3>Os serviços estarão aqui em breve.</h3>
-                      <p>
-                        Este estabelecimento ainda não disponibilizou serviços
-                        para reserva online.
-                      </p>
+                      <h3>{resolveCopy(company.copyOverrides, "emptyServicesTitle")}</h3>
+                      <p>{resolveCopy(company.copyOverrides, "emptyServicesBody")}</p>
                     </div>
                   ) : !visible.length ? (
                     <div className={b.empty}>
@@ -950,10 +951,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                   p.locationIds.includes(locationId)),
                             );
 
+                            const svcBookings = Number((service as any).bookings || 0);
                             const isMostBooked =
-                              service.bookings > 0 &&
-                              service.bookings ===
-                                Math.max(...services.map((s) => s.bookings));
+                              svcBookings > 0 &&
+                              svcBookings ===
+                                Math.max(...services.map((s) => Number((s as any).bookings || 0)));
 
                             return (
                               <article className={b.service} key={service.id}>
@@ -1012,11 +1014,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
                                 <div className={b.serviceActions}>
                                   <div className={b.servicePrice}>
-                                    <strong>{money(service.price)}</strong>
+                                    <strong><Price amount={service.price} /></strong>
                                     {serviceHints[service.id] && <small className={b.muted}>Próximo horário: {serviceHints[service.id].date === today ? "Hoje" : dateLabelShort(serviceHints[service.id].date)} às {serviceHints[service.id].slot.startTime}</small>}
                                   </div>
 
-                                  <div style={{ display: "flex", gap: 6 }}>
+                                  <div className={b.serviceButtons}>
                                     {!chosen && (
                                       <button
                                         type="button"
@@ -1079,41 +1081,49 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     ))
                   )}
 
-                  {/* Company Photos & Working Hours Info */}
-                  {company.photos.length > 0 && (
-                    <div className={b.photos}>
-                      {company.photos.map((photo, i) => (
-                        <img
-                          src={photo}
-                          key={photo}
-                          alt={`Foto ${i + 1} de ${company.name}`}
-                          loading="lazy"
-                        />
-                      ))}
-                    </div>
-                  )}
-
-                  <div className={b.muted} style={{ marginTop: 16 }}>
-                    <p>
-                      Funcionamento:{" "}
-                      {settings.workingDays
-                        .map(
-                          (d) =>
-                            ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][
-                              d
-                            ],
-                        )
-                        .join(", ")}{" "}
-                      · {settings.openTime}–{settings.closeTime}
-                    </p>
-                    {company.phone && (
-                      <p style={{ marginTop: 4 }}>
-                        <a href={`tel:${company.phone.replace(/[^+\d]/g, "")}`}>
-                          {company.phone}
-                        </a>
-                      </p>
-                    )}
-                  </div>
+                  {/* Company Photos & Working Hours Info — order/visibility set in Branding Studio */}
+                  {company.sectionsConfig
+                    .filter((s) => s.id !== "search")
+                    .map((s) => {
+                      if (!s.visible) return null;
+                      if (s.id === "photos") {
+                        return company.photos.length > 0 ? (
+                          <div className={b.photos} key="photos">
+                            {company.photos.map((photo, i) => (
+                              <img
+                                src={photo}
+                                key={photo}
+                                alt={`Foto ${i + 1} de ${company.name}`}
+                                loading="lazy"
+                              />
+                            ))}
+                          </div>
+                        ) : null;
+                      }
+                      return (
+                        <div className={b.muted} style={{ marginTop: 16 }} key="hours">
+                          <p>
+                            Funcionamento:{" "}
+                            {settings.workingDays
+                              .map(
+                                (d) =>
+                                  ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][
+                                    d
+                                  ],
+                              )
+                              .join(", ")}{" "}
+                            · {settings.openTime}–{settings.closeTime}
+                          </p>
+                          {company.phone && (
+                            <p style={{ marginTop: 4 }}>
+                              <a href={`tel:${company.phone.replace(/[^+\d]/g, "")}`}>
+                                {company.phone}
+                              </a>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                 </>
               )}
 
@@ -1196,6 +1206,35 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </form>
                   )}
 
+                  {/* Payment method — chosen here only to tell the establishment how
+                      the customer intends to pay; nothing is charged online. */}
+                  <label className={b.field} style={{ marginTop: 20 }}>
+                    Forma de pagamento
+                    <div className={b.inline} role="radiogroup" aria-label="Forma de pagamento">
+                      {(
+                        [
+                          ["pix", "PIX"],
+                          ["cash", "Dinheiro"],
+                          ["card", "Cartão"],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={paymentMethod === value}
+                          className={`${b.button} ${b.small} ${paymentMethod === value ? "" : b.outline}`}
+                          onClick={() => setPaymentMethod(value)}
+                        >
+                          {paymentMethod === value && <Check size={12} />} {label}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+                  <p className={b.muted} style={{ marginTop: -12, marginBottom: 4 }}>
+                    Pagamento realizado no estabelecimento após o atendimento. Nenhuma cobrança é feita online.
+                  </p>
+
                   {/* Observation note */}
                   <label className={b.field} style={{ marginTop: 20 }}>
                     Alguma observação para o estabelecimento?
@@ -1224,7 +1263,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               className={b.muted}
                               style={{ display: "block" }}
                             >
-                              {money(p.price)}
+                              <Price amount={p.price} />
                             </small>
                           </span>
                           <input
@@ -1258,13 +1297,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     />
                   </label>
 
-                  {/* Cancellation policy */}
+                  {/* Cancellation policy — owner-set text overrides the auto-generated sentence */}
                   <div className={b.note}>
                     <strong>Política de cancelamento</strong>
                     <p>
-                      {company.cancellationHours < 0
-                        ? "Alterações devem ser solicitadas diretamente ao estabelecimento."
-                        : `Cancelamento gratuito até ${company.cancellationHours} horas antes do atendimento.`}
+                      {company.copyOverrides.cancellationPolicyText?.trim() ||
+                        (company.cancellationHours < 0
+                          ? "Alterações devem ser solicitadas diretamente ao estabelecimento."
+                          : `Cancelamento gratuito até ${company.cancellationHours} horas antes do atendimento.`)}
                     </p>
                   </div>
                 </>
@@ -1282,8 +1322,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         {step < 3 && selected.length > 0 && (
           <div className={b.mobileBottomBar}>
             <div className={b.mobileBottomBarInner}>
-              <div
+              <button
+                type="button"
                 className={b.mobileSummaryInfo}
+                aria-label="Abrir resumo do agendamento"
                 onClick={() => setBottomSheetOpen(true)}
               >
                 <div className={b.mobileSummaryTitle}>
@@ -1293,12 +1335,12 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       ? ` +${selected.length - 1}`
                       : ` • ${duration(minutes)}`}
                   </span>
-                  <ChevronUp size={14} style={{ color: "#dcff4c" }} />
+                  <ChevronUp size={14} />
                 </div>
                 <div className={b.mobileSummaryPrice}>
-                  {money(step === 2 && quote ? quote.total : price)}
+                  <Price amount={step === 2 && quote ? quote.total : price} />
                 </div>
-              </div>
+              </button>
 
               <button
                 className={`${b.button} ${b.mobileCtaBtn}`}
@@ -1312,7 +1354,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       quoteLoading ||
                       !quote ||
                       !customer?.emailVerified ||
-                      !customer.phone))
+                      !customer.phone ||
+                      !paymentMethod))
                 }
                 onClick={() => {
                   if (step === 2) {
@@ -1325,8 +1368,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 {busy
                   ? "Aguarde…"
                   : step === 2
-                    ? "Confirmar"
-                    : "Continuar"}
+                    ? resolveCopy(company.copyOverrides, "ctaConfirm")
+                    : resolveCopy(company.copyOverrides, "ctaContinue")}
                 {!busy && <ArrowRight size={15} />}
               </button>
             </div>

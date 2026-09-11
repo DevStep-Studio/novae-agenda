@@ -1,5 +1,6 @@
-import { sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { authRateLimits } from "@/db/schema";
 
 export type RateLimitRule = {
   /** Max attempts allowed inside the window before the bucket is blocked. */
@@ -28,43 +29,64 @@ export const AUTH_RULES = {
 
 /**
  * Sliding-window rate limiter backed by the `auth_rate_limits` table.
- * Safe to call from multiple instances — the counter update is a single atomic upsert.
+ * Safe to call from multiple instances — uses Drizzle queries portable to MySQL.
  */
 export async function consumeRateLimit(bucket: string, rule: RateLimitRule): Promise<RateLimitResult> {
   const now = Date.now();
 
-  const existing = await db.execute<{ blocked_until: string | null }>(sql`
-    SELECT blocked_until FROM auth_rate_limits WHERE bucket = ${bucket} LIMIT 1
-  `);
-  const blockedUntil = existing.rows[0]?.blocked_until ? new Date(existing.rows[0].blocked_until).getTime() : 0;
+  const [existing] = await db
+    .select({ id: authRateLimits.id, blockedUntil: authRateLimits.blockedUntil, hits: authRateLimits.hits, windowStartedAt: authRateLimits.windowStartedAt })
+    .from(authRateLimits)
+    .where(eq(authRateLimits.bucket, bucket))
+    .limit(1);
+
+  const blockedUntil = existing?.blockedUntil ? new Date(existing.blockedUntil).getTime() : 0;
   if (blockedUntil > now) {
     return { ok: false, retryAfterSeconds: Math.ceil((blockedUntil - now) / 1000) };
   }
 
-  const windowThreshold = new Date(now - rule.windowMs).toISOString();
-  const updated = await db.execute<{ hits: number }>(sql`
-    INSERT INTO auth_rate_limits (bucket, hits, window_started_at, blocked_until)
-    VALUES (${bucket}, 1, now(), NULL)
-    ON CONFLICT (bucket) DO UPDATE SET
-      hits = CASE WHEN auth_rate_limits.window_started_at < ${windowThreshold} THEN 1 ELSE auth_rate_limits.hits + 1 END,
-      window_started_at = CASE WHEN auth_rate_limits.window_started_at < ${windowThreshold} THEN now() ELSE auth_rate_limits.window_started_at END,
-      blocked_until = NULL
-    RETURNING hits
-  `);
+  const windowThreshold = new Date(now - rule.windowMs);
 
-  const hits = Number(updated.rows[0]?.hits ?? 1);
-  if (hits > rule.limit) {
-    const blockUntilIso = new Date(now + rule.blockMs).toISOString();
-    await db.execute(sql`UPDATE auth_rate_limits SET blocked_until = ${blockUntilIso} WHERE bucket = ${bucket}`);
+  if (!existing) {
+    await db.insert(authRateLimits).values({
+      id: crypto.randomUUID(),
+      bucket,
+      hits: 1,
+      windowStartedAt: new Date(),
+      blockedUntil: null,
+    });
+    return { ok: true, retryAfterSeconds: 0 };
+  }
+
+  if (new Date(existing.windowStartedAt) < windowThreshold) {
+    await db
+      .update(authRateLimits)
+      .set({ hits: 1, windowStartedAt: new Date(), blockedUntil: null })
+      .where(eq(authRateLimits.id, existing.id));
+    return { ok: true, retryAfterSeconds: 0 };
+  }
+
+  const newHits = existing.hits + 1;
+  if (newHits > rule.limit) {
+    const blockUntil = new Date(now + rule.blockMs);
+    await db
+      .update(authRateLimits)
+      .set({ hits: newHits, blockedUntil: blockUntil })
+      .where(eq(authRateLimits.id, existing.id));
     return { ok: false, retryAfterSeconds: Math.ceil(rule.blockMs / 1000) };
   }
+
+  await db
+    .update(authRateLimits)
+    .set({ hits: newHits, blockedUntil: null })
+    .where(eq(authRateLimits.id, existing.id));
 
   return { ok: true, retryAfterSeconds: 0 };
 }
 
 /** Clear a bucket after a successful, legitimate action (e.g. correct login). */
 export async function clearRateLimit(bucket: string): Promise<void> {
-  await db.execute(sql`DELETE FROM auth_rate_limits WHERE bucket = ${bucket}`);
+  await db.delete(authRateLimits).where(eq(authRateLimits.bucket, bucket));
 }
 
 export function tooManyRequests(retryAfterSeconds: number): Response {

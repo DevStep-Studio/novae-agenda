@@ -107,25 +107,28 @@ export async function POST(request: Request) {
     return Response.json({ error: "Este atendimento já foi avaliado." }, { status: 409 });
   }
 
-  const [created] = await db
+  const reviewId = crypto.randomUUID();
+  const trimmedComment = comment?.trim() || null;
+
+  await db
     .insert(reviews)
     .values({
+      id: reviewId,
       companyId: apt.companyId,
       appointmentId,
       clientId: apt.clientId,
       employeeId: apt.employeeId,
       rating,
-      comment: comment?.trim() || null,
+      comment: trimmedComment,
       status: "approved",
-    })
-    .returning();
+    });
 
   return Response.json({
     data: {
-      id: created.id,
-      rating: created.rating,
-      comment: created.comment,
-      status: created.status,
+      id: reviewId,
+      rating,
+      comment: trimmedComment,
+      status: "approved",
     },
   });
 }

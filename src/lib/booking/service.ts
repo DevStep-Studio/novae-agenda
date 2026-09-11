@@ -30,7 +30,7 @@ import { canCustomerChange, localDate, localInstant, localTime } from "./time";
 import type { createBookingSchema } from "./validation";
 export async function lockCompany(tx: DbExecutor, companyId: string) {
   await tx.execute(
-    sql`SELECT pg_advisory_xact_lock(hashtextextended(${`booking:${companyId}`},0))`,
+    sql`SELECT id FROM companies WHERE id = ${companyId} FOR UPDATE`,
   );
 }
 export async function bookingEvent(
@@ -69,23 +69,35 @@ export async function bookingEvent(
     const count = matches.filter(entry => entry.available).length;
     if (count) await tx.insert(notifications).values({ companyId: booking.companyId, type: "waitlist.available", title: `${count} clientes aguardam um horário semelhante.`, body: "Consulte a lista de espera para ver as vagas compatíveis.", entityType: "waitlist" });
   }
-  await tx
-    .insert(notificationLogs)
-    .values({ bookingId: booking.id, event, revision: booking.revision })
-    .onConflictDoNothing();
+  const [existingLog] = await tx
+    .select({ id: notificationLogs.id })
+    .from(notificationLogs)
+    .where(and(eq(notificationLogs.bookingId, booking.id), eq(notificationLogs.event, event), eq(notificationLogs.revision, booking.revision)))
+    .limit(1);
+  if (!existingLog) {
+    await tx.insert(notificationLogs).values({ id: crypto.randomUUID(), bookingId: booking.id, event, revision: booking.revision });
+  }
+
   if (event === "booking.created" || event === "booking.rescheduled") {
     for (const hours of [24, 2]) {
       const dueAt = new Date(booking.startsAt.getTime() - hours * 3600000);
-      if (dueAt > new Date())
-        await tx
-          .insert(notificationLogs)
-          .values({
+      if (dueAt > new Date()) {
+        const reminderEvent = `booking.reminder.${hours}`;
+        const [existingReminder] = await tx
+          .select({ id: notificationLogs.id })
+          .from(notificationLogs)
+          .where(and(eq(notificationLogs.bookingId, booking.id), eq(notificationLogs.event, reminderEvent), eq(notificationLogs.revision, booking.revision)))
+          .limit(1);
+        if (!existingReminder) {
+          await tx.insert(notificationLogs).values({
+            id: crypto.randomUUID(),
             bookingId: booking.id,
-            event: `booking.reminder.${hours}`,
+            event: reminderEvent,
             revision: booking.revision,
             dueAt,
-          })
-          .onConflictDoNothing();
+          });
+        }
+      }
     }
   }
 }
@@ -112,9 +124,11 @@ async function writeItems(
             )
           : 0;
     allocated += charge;
-    const [apt] = await tx
+    const aptId = crypto.randomUUID();
+    await tx
       .insert(appointments)
       .values({
+        id: aptId,
         companyId: booking.companyId,
         bookingId: booking.id,
         locationId: booking.locationId,
@@ -128,8 +142,8 @@ async function writeItems(
         notes: booking.notes,
         source: booking.source,
         bufferMinutes: item.bufferMinutes,
-      })
-      .returning();
+      });
+    const apt = { id: aptId };
     const commission =
       item.commissionType === "percentage"
         ? (Number(item.price) * Number(item.commissionValue)) / 100
@@ -208,17 +222,33 @@ export async function createBooking(
         and(eq(clients.companyId, company.id), eq(clients.userId, user.id)),
       );
     // Never claim an existing CRM record merely by matching a self-reported phone or email.
-    if (!client)
-      [client] = await tx
+    if (!client) {
+      const newClientId = crypto.randomUUID();
+      await tx
         .insert(clients)
         .values({
+          id: newClientId,
           companyId: company.id,
           userId: user.id,
           name: user.name,
           email: user.email,
           phone,
-        })
-        .returning();
+        });
+      client = {
+        id: newClientId,
+        companyId: company.id,
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        phone,
+        photoUrl: null,
+        notes: null,
+        internalNotes: null,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
     const quote = await quoteBooking(
       company,
       {
@@ -229,15 +259,19 @@ export async function createBooking(
       tx,
     );
     const extras = quote.extras;
-    const [booking] = await tx
+    const bookingId = crypto.randomUUID();
+    const startsAt = localInstant(input.date, input.startTime, company.timezone);
+    const endsAt = localInstant(input.date, slot.endTime, company.timezone);
+    await tx
       .insert(bookings)
       .values({
+        id: bookingId,
         companyId: company.id,
         locationId: input.locationId,
         userId: user.id,
         clientId: client.id,
-        startsAt: localInstant(input.date, input.startTime, company.timezone),
-        endsAt: localInstant(input.date, slot.endTime, company.timezone),
+        startsAt,
+        endsAt,
         timezone: company.timezone,
         subtotal: quote.subtotal.toFixed(2),
         discount: quote.discount.toFixed(2),
@@ -245,8 +279,32 @@ export async function createBooking(
         notes: input.notes?.trim() || null,
         couponCode: quote.couponCode,
         idempotencyKey: input.idempotencyKey,
-      })
-      .returning();
+        intendedPaymentMethod: input.intendedPaymentMethod,
+      });
+    const booking = {
+      id: bookingId,
+      companyId: company.id,
+      locationId: input.locationId,
+      userId: user.id,
+      clientId: client.id,
+      startsAt,
+      endsAt,
+      timezone: company.timezone,
+      status: "confirmed",
+      subtotal: quote.subtotal.toFixed(2),
+      discount: quote.discount.toFixed(2),
+      total: quote.total.toFixed(2),
+      paymentStatus: "unpaid",
+      paymentType: "PAY_LATER",
+      intendedPaymentMethod: input.intendedPaymentMethod ?? null,
+      source: "PUBLIC_LINK",
+      notes: input.notes?.trim() || null,
+      couponCode: quote.couponCode ?? null,
+      idempotencyKey: input.idempotencyKey,
+      revision: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
     await writeItems(tx, booking, slot, input.date, user.id);
     for (const p of extras)
       await tx.insert(bookingProducts).values({
@@ -283,6 +341,9 @@ export async function listBookingDetails(userId: string, id?: string) {
       booking: bookings,
       company: {
         name: companies.name,
+        businessType: companies.businessType,
+        logoUrl: companies.logoUrl,
+        color: companies.publicColor,
         address: companies.address,
         phone: companies.phone,
         slug: companies.publicSlug,
@@ -305,6 +366,8 @@ export async function listBookingDetails(userId: string, id?: string) {
         id: appointments.id,
         employeeId: appointments.employeeId,
         employeeName: employees.name,
+        employeePhotoUrl: employees.photoUrl,
+        employeeJobTitle: employees.jobTitle,
         startTime: appointments.startTime,
         endTime: appointments.endTime,
         date: appointments.appointmentDate,
@@ -406,15 +469,16 @@ export async function changeBooking(
     }
     let updated: typeof bookings.$inferSelect;
     if (action === "cancel") {
-      [updated] = await tx
+      await tx
         .update(bookings)
         .set({
           status: "cancelled",
           revision: booking.revision + 1,
           updatedAt: new Date(),
         })
-        .where(eq(bookings.id, id))
-        .returning();
+        .where(eq(bookings.id, id));
+      const [updatedRow] = await tx.select().from(bookings).where(eq(bookings.id, id));
+      updated = updatedRow;
       await tx
         .update(appointments)
         .set({
@@ -468,7 +532,7 @@ export async function changeBooking(
           })
           .where(eq(appointments.id, previous.apt.id));
       }
-      [updated] = await tx
+      await tx
         .update(bookings)
         .set({
           startsAt: localInstant(input.date, input.startTime, company.timezone),
@@ -477,8 +541,9 @@ export async function changeBooking(
           revision: booking.revision + 1,
           updatedAt: new Date(),
         })
-        .where(eq(bookings.id, id))
-        .returning();
+        .where(eq(bookings.id, id));
+      const [updatedRow] = await tx.select().from(bookings).where(eq(bookings.id, id));
+      updated = updatedRow;
     }
     const event =
       action === "cancel" ? "booking.cancelled" : "booking.rescheduled";

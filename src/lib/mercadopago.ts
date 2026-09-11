@@ -137,9 +137,11 @@ export async function activateSubscription(
       })
       .where(eq(subscriptions.companyId, companyId));
   } else {
-    const [created] = await db
+    const newSubId = crypto.randomUUID();
+    await db
       .insert(subscriptions)
       .values({
+        id: newSubId,
         companyId,
         plan: planKey,
         status: "active",
@@ -147,9 +149,8 @@ export async function activateSubscription(
         currentPeriodStart: now,
         currentPeriodEnd,
         cancelAtPeriodEnd: false,
-      })
-      .returning();
-    subscriptionId = created.id;
+      });
+    subscriptionId = newSubId;
   }
 
   if (subscriptionId) {
