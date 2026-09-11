@@ -1,6 +1,15 @@
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { appointmentServices, appointments, employees, payments, services } from "@/db/schema";
+import {
+  appointmentServices,
+  appointments,
+  customerMembershipPayments,
+  customerMemberships,
+  employees,
+  membershipPeriods,
+  payments,
+  services,
+} from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, todayKey } from "@/lib/domain";
 import type { PaymentMethod, StatsResponse } from "@/shared/types";
@@ -144,6 +153,48 @@ export async function GET(request: Request) {
   }
   const byService = [...byServiceMap.values()].sort((a, b) => b.count - a.count);
 
+  /* ---- customer memberships metrics (separate from SaaS MRR) ---- */
+  const [membershipPaymentSum] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${customerMembershipPayments.amount}), 0)`,
+    })
+    .from(customerMembershipPayments)
+    .where(
+      and(
+        eq(customerMembershipPayments.companyId, companyId),
+        gte(customerMembershipPayments.paidAt, new Date(monthStart)),
+      ),
+    );
+
+  const [activeMembershipsCount] = await db
+    .select({
+      count: sql<number>`count(*)`,
+    })
+    .from(customerMemberships)
+    .where(
+      and(
+        eq(customerMemberships.companyId, companyId),
+        eq(customerMemberships.status, "active"),
+      ),
+    );
+
+  const [pendingPeriodsCount] = await db
+    .select({
+      count: sql<number>`count(*)`,
+    })
+    .from(membershipPeriods)
+    .where(
+      and(
+        eq(membershipPeriods.companyId, companyId),
+        eq(membershipPeriods.paymentStatus, "pending"),
+        eq(membershipPeriods.periodStart, monthStart),
+      ),
+    );
+
+  const customerMembershipRevenue = centsToNumber(membershipPaymentSum?.total ?? 0);
+  const activeCustomerMemberships = Number(activeMembershipsCount?.count ?? 0);
+  const pendingCustomerMembershipPayments = Number(pendingPeriodsCount?.count ?? 0);
+
   const response: StatsResponse = {
     today: {
       date: today,
@@ -167,6 +218,9 @@ export async function GET(request: Request) {
     byEmployee,
     byMethod,
     byService,
+    customerMembershipRevenue,
+    activeCustomerMemberships,
+    pendingCustomerMembershipPayments,
   };
 
   return Response.json({ data: response });

@@ -144,6 +144,10 @@ export type ClientDTO = {
   cancelledCount?: number;
   noShowCount?: number;
   createdAt: string;
+  hasActiveMembership?: boolean;
+  isMembershipActive?: boolean;
+  membershipPlanName?: string | null;
+  membershipStatus?: CustomerMembershipStatus | null;
 };
 
 export type HistoryItemDTO = {
@@ -163,10 +167,14 @@ export type HistoryItemDTO = {
   status: AppointmentStatus;
   notes?: string | null;
   cancelledReason?: string | null;
+  isMembershipBooking?: boolean;
+  membershipPlanName?: string | null;
 };
 
 export type ClientDetailDTO = ClientDTO & {
   history: HistoryItemDTO[];
+  membership?: CustomerMembershipDTO | null;
+  activeMembership?: CustomerMembershipDTO | null;
 };
 
 export type EmployeeScheduleDTO = {
@@ -217,6 +225,9 @@ export type AppointmentDTO = {
   notes: string | null;
   paid: boolean;
   paymentMethod?: PaymentMethod | null;
+  isMembershipBooking?: boolean;
+  membershipPlanName?: string | null;
+  membershipUsageId?: string | null;
 };
 
 export type AvailabilitySlot = {
@@ -316,4 +327,158 @@ export type StatsResponse = {
   byEmployee: Array<{ employeeId: string; employeeName: string; appointments: number; revenue: number; commission: number }>;
   byMethod: Array<{ method: PaymentMethod; total: number }>;
   byService: Array<{ serviceId: string; serviceName: string; count: number; revenue: number }>;
+  customerMembershipRevenue?: number;
+  activeCustomerMemberships?: number;
+  pendingCustomerMembershipPayments?: number;
+  scheduledMembershipSessions?: number;
 };
+
+// ========================================================
+// CUSTOMER MEMBERSHIP TYPES (PLANOS MENSAIS RECORRENTES)
+// ========================================================
+
+export type MembershipFrequencyType =
+  | "WEEKLY_CALENDAR_BASED"
+  | "FIXED_MONTHLY_QUOTA"
+  | "CUSTOM_WEEKLY_FREQUENCY";
+
+export type CustomerMembershipStatus =
+  | "active"
+  | "paused"
+  | "cancelled"
+  | "expired"
+  | "pending";
+
+export type MembershipPeriodPaymentStatus = "pending" | "paid" | "waived";
+
+export type MembershipPlanDTO = {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  price: number;
+  billingPeriod: string;
+  frequencyType: MembershipFrequencyType;
+  sessionsPerPeriod: number;
+  weeklyFrequency: number;
+  allowReschedule: boolean;
+  rescheduleHoursNotice: number;
+  allowCarryOver: boolean;
+  noShowConsumesSession: boolean;
+  lateCancelConsumesSession: boolean;
+  badgeColor: string | null;
+  active: boolean;
+  serviceIds: string[];
+  services: Array<{ id: string; name: string; price: number; durationMinutes: number }>;
+  employeeIds?: string[];
+  employees: Array<{ id: string; name: string }>;
+  activeMembersCount?: number;
+};
+
+export type CustomerMembershipDTO = {
+  id: string;
+  companyId: string;
+  clientId: string;
+  clientName?: string;
+  clientPhone?: string;
+  clientPhotoUrl?: string | null;
+  membershipPlanId: string;
+  membershipPlanName: string;
+  membershipPlanDescription?: string | null;
+  frequencyType: MembershipFrequencyType;
+  startsAt: string;
+  endsAt: string | null;
+  status: CustomerMembershipStatus;
+  preferredProfessionalId: string | null;
+  preferredProfessionalName?: string | null;
+  preferredWeekdays: number[];
+  preferredTime: string | null;
+  monthlyPriceSnapshot: number;
+  notes: string | null;
+  createdAt: string;
+  currentPeriod?: MembershipPeriodDTO | null;
+  includedServices?: Array<{ id: string; name: string; durationMinutes: number; price: number }>;
+};
+
+export type MembershipPeriodDTO = {
+  id: string;
+  customerMembershipId: string;
+  periodStart: string; // YYYY-MM-DD
+  periodEnd: string; // YYYY-MM-DD
+  sessionAllowance: number;
+  sessionsBooked: number;
+  sessionsUsed: number;
+  sessionsRemaining: number;
+  paymentStatus: MembershipPeriodPaymentStatus;
+  paidAt: string | null;
+  paymentMethod: string | null;
+  amount: number;
+  status: "active" | "closed" | "cancelled";
+  bookings?: Array<{
+    appointmentId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    serviceName: string;
+    employeeName: string;
+    status: AppointmentStatus;
+  }>;
+};
+
+export type CustomerMembershipPaymentDTO = {
+  id: string;
+  customerMembershipId: string;
+  membershipPeriodId: string;
+  amount: number;
+  method: string;
+  status: string;
+  paidAt: string;
+  notes: string | null;
+};
+
+export type MonthSlotDay = {
+  date: string; // YYYY-MM-DD
+  weekday: number; // 0 = Sun, 1 = Mon ...
+  weekdayLabel: string; // e.g. "Quinta-feira"
+  dateLabel: string; // e.g. "03 de Setembro"
+  shortDateLabel: string; // e.g. "QUI, 03 SET"
+  selectedStartTime?: string | null;
+  isBooked?: boolean;
+  existingAppointment?: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    status: AppointmentStatus;
+  } | null;
+  availableSlots: AvailabilitySlot[];
+};
+
+export type MonthScheduleBatchInput = {
+  customerMembershipId: string;
+  periodId?: string;
+  employeeId?: string;
+  serviceId?: string;
+  slots: Array<{
+    date: string; // YYYY-MM-DD
+    startTime: string; // HH:mm
+    serviceId?: string;
+    employeeId?: string;
+  }>;
+};
+
+export type BatchBookingConflict = {
+  date: string;
+  requestedStartTime: string;
+  reason: string;
+  alternativeSlots?: AvailabilitySlot[];
+};
+
+export type BatchBookingResultDTO = {
+  success: boolean;
+  bookedCount: number;
+  totalRequested: number;
+  createdAppointments: AppointmentDTO[];
+  conflicts: BatchBookingConflict[];
+  message: string;
+};
+

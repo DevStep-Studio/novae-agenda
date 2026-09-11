@@ -1,7 +1,13 @@
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, clients, payments } from "@/db/schema";
+import {
+  appointments,
+  clients,
+  customerMemberships,
+  membershipPlans,
+  payments,
+} from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, normalizePhoneDigits } from "@/lib/domain";
 import { saveClientImage } from "@/lib/storage";
@@ -67,6 +73,39 @@ export async function GET(request: Request) {
   const spentBy = new Map(spentRows.map((r) => [r.clientId, centsToNumber(r.spent)]));
   const statusBy = new Map(statusRows.map((r) => [r.clientId, r]));
 
+  // Active customer memberships for these clients
+  const membershipRows = ids.length
+    ? await db
+        .select({
+          clientId: customerMemberships.clientId,
+          planName: membershipPlans.name,
+          status: customerMemberships.status,
+        })
+        .from(customerMemberships)
+        .innerJoin(
+          membershipPlans,
+          eq(customerMemberships.membershipPlanId, membershipPlans.id),
+        )
+        .where(
+          and(
+            inArray(customerMemberships.clientId, ids),
+            eq(customerMemberships.companyId, auth.user.companyId),
+            eq(customerMemberships.status, "active"),
+          ),
+        )
+    : [];
+
+  const membershipByClient = new Map<
+    string,
+    { planName: string; status: string }
+  >();
+  for (const m of membershipRows) {
+    membershipByClient.set(m.clientId, {
+      planName: m.planName,
+      status: m.status,
+    });
+  }
+
   const dto: ClientDTO[] = rows.map((client) => {
     const visits = Number(visitsBy.get(client.id)?.visits ?? 0);
     const spent = spentBy.get(client.id) ?? 0;
@@ -74,8 +113,10 @@ export async function GET(request: Request) {
     const cancelledCount = Number(st?.cancelled ?? 0);
     const noShowCount = Number(st?.noShow ?? 0);
     const nextVisit = st?.nextVisit ?? null;
+    const mem = membershipByClient.get(client.id);
 
     const tags: string[] = [];
+    if (mem) tags.push("Mensalista");
     if (spent >= 500 || visits >= 8) tags.push("VIP");
     else if (visits >= 3) tags.push("Recorrente");
     else if (visits <= 1) tags.push("Novo");
@@ -102,6 +143,9 @@ export async function GET(request: Request) {
       lastVisit: visitsBy.get(client.id)?.last ?? null,
       nextVisit,
       createdAt: client.createdAt.toISOString(),
+      hasActiveMembership: !!mem,
+      membershipPlanName: mem?.planName ?? null,
+      membershipStatus: (mem?.status as any) ?? null,
     };
   });
 

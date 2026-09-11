@@ -28,7 +28,8 @@ import type { BookingDetails } from "@/lib/booking/service";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { STATUS_LABELS } from "@/lib/client-utils";
 import styles from "./client-portal.module.css";
-import type { SessionInfo } from "@/shared/types";
+import type { SessionInfo, CustomerMembershipDTO } from "@/shared/types";
+import { MonthSchedulerModal } from "@/components/membership/month-scheduler-modal";
 
 export type ClientTab =
   | "home"
@@ -90,6 +91,8 @@ export function ClientPortal({
   const [session, setSession] = useState<SessionInfo | null>(initialSession ?? null);
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
   const [companies, setCompanies] = useState<PublicCompany[]>([]);
+  const [customerMembership, setCustomerMembership] = useState<CustomerMembershipDTO | null>(null);
+  const [monthSchedulerOpen, setMonthSchedulerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -107,15 +110,17 @@ export function ClientPortal({
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sessData, bookingsData, companiesData] = await Promise.all([
+      const [sessData, bookingsData, companiesData, memData] = await Promise.all([
         api<SessionInfo>("/api/auth/session").catch(() => null),
         api<BookingDetails[]>("/api/my/bookings").then(rows => rows.map(row => ({ ...row, startsAt: String(row.startsAt), endsAt: String(row.endsAt), total: Number(row.total), companyName: row.company.name, companySlug: row.company.slug ?? undefined, companyAddress: row.company.address, locationName: "", items: row.items.map(i => ({ ...i, serviceName: i.name, price: Number(i.price) })) }))),
         api<PublicCompany[]>("/api/companies/public").catch(() => []),
+        api<CustomerMembershipDTO>("/api/my/membership").catch(() => null),
       ]);
 
       if (sessData) setSession(sessData);
       setBookings(bookingsData);
       setCompanies(companiesData);
+      setCustomerMembership(memData);
     } catch {
       setError("Não foi possível carregar seus agendamentos. Tente novamente.");
     } finally {
@@ -324,6 +329,68 @@ export function ClientPortal({
                 Gerencie seus horários e acompanhe seus próximos atendimentos.
               </p>
             </section>
+
+            {/* Active Membership Banner */}
+            {customerMembership && customerMembership.status === "active" && (
+              <section
+                style={{
+                  background: "linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(139,92,246,0.08) 100%)",
+                  border: "1px solid rgba(99,102,241,0.35)",
+                  borderRadius: "14px",
+                  padding: "18px 20px",
+                  marginBottom: "20px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "14px",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      background: "rgba(99,102,241,0.2)",
+                      color: "var(--primary, #6366f1)",
+                      border: "1px solid rgba(99,102,241,0.3)",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: "12px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    ★ Seu Plano Mensal Ativo
+                  </span>
+                  <h3 style={{ margin: "6px 0 2px", fontSize: "17px", fontWeight: 700 }}>
+                    {customerMembership.membershipPlanName}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "13px", color: "var(--text-secondary)" }}>
+                    Franquia do mês: <strong>{customerMembership.currentPeriod?.sessionsBooked || 0} de {customerMembership.currentPeriod?.sessionAllowance || 4} reservas</strong> (restam {customerMembership.currentPeriod?.sessionsRemaining || 0})
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMonthSchedulerOpen(true)}
+                  style={{
+                    background: "var(--primary, #6366f1)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <CalendarPlus size={15} />
+                  <span>Agendar Horários do Mês</span>
+                </button>
+              </section>
+            )}
 
             {/* Next Appointment Card or Empty State */}
             {nextBooking ? (
@@ -879,6 +946,24 @@ export function ClientPortal({
           <span>Perfil</span>
         </button>
       </nav>
+
+      {customerMembership && (
+        <MonthSchedulerModal
+          customerMembershipId={customerMembership.id}
+          clientName={clientName}
+          isOpen={monthSchedulerOpen}
+          onClose={() => setMonthSchedulerOpen(false)}
+          onSuccess={() => {
+            setMonthSchedulerOpen(false);
+            setSuccessMsg("Horários do mês agendados com sucesso!");
+            void loadData();
+          }}
+          notify={(msg, type) => {
+            if (type === "error") setError(msg);
+            else setSuccessMsg(msg);
+          }}
+        />
+      )}
     </div>
   );
 }

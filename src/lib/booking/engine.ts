@@ -251,9 +251,10 @@ export async function loadAvailability(
       (e) =>
         (!item.employeeId || e.id === item.employeeId) &&
         (!e.locationId ||
-          e.locationId === locationId ||
+          e.locationId === effectiveLocationId ||
           unitLinks.some(
-            (l) => l.employeeId === e.id && l.locationId === locationId,
+            (l) =>
+              l.employeeId === e.id && l.locationId === effectiveLocationId,
           )) &&
         links.some((l) => l.employeeId === e.id && l.serviceId === service.id),
     );

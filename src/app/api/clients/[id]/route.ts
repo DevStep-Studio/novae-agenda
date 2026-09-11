@@ -5,6 +5,7 @@ import { appointments, clients, employees, locations, services, appointmentServi
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import { deleteClientImage, saveClientImage } from "@/lib/storage";
+import { getCustomerActiveMembership } from "@/lib/membership/membership-service";
 import type { ClientDetailDTO, HistoryItemDTO, PaymentMethod } from "@/shared/types";
 
 export const dynamic = "force-dynamic";
@@ -132,6 +133,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .orderBy(appointments.appointmentDate, appointments.startTime)
     .limit(1);
 
+  const activeMembership = await getCustomerActiveMembership(
+    auth.user.companyId,
+    id,
+  );
+
   const detail: ClientDetailDTO = {
     id: client.id,
     name: client.name,
@@ -141,7 +147,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     notes: client.notes,
     internalNotes: client.internalNotes ?? null,
     active: client.active,
-    initials: client.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
+    initials: client.name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0].toUpperCase())
+      .join(""),
     color: "#d8e5f0",
     visits,
     spent,
@@ -151,6 +162,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     averageTicket,
     createdAt: client.createdAt.toISOString(),
     history,
+    activeMembership,
+    hasActiveMembership: !!activeMembership,
+    membershipPlanName: activeMembership?.membershipPlanName ?? null,
+    membershipStatus: activeMembership?.status ?? null,
   };
 
   return Response.json({ data: detail });

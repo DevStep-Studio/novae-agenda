@@ -45,6 +45,7 @@ import {
   Price,
   PublicFrame,
 } from "./primitives";
+import { MonthSchedulerModal } from "@/components/membership/month-scheduler-modal";
 
 function downloadBookingIcs(booking: {
   companyName: string;
@@ -184,6 +185,21 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       }).catch(() => {});
     }
   }
+
+  const [membershipPlans, setMembershipPlans] = useState<import("@/shared/types").MembershipPlanDTO[]>([]);
+  const [customerMembership, setCustomerMembership] = useState<import("@/shared/types").CustomerMembershipDTO | null>(null);
+  const [inspectingPlan, setInspectingPlan] = useState<import("@/shared/types").MembershipPlanDTO | null>(null);
+  const [monthSchedulerOpen, setMonthSchedulerOpen] = useState(false);
+
+  useEffect(() => {
+    void api<import("@/shared/types").MembershipPlanDTO[]>(`/api/public/${company.slug}/membership-plans`)
+      .then((data) => setMembershipPlans(data || []))
+      .catch(() => setMembershipPlans([]));
+
+    void api<import("@/shared/types").CustomerMembershipDTO>("/api/my/membership")
+      .then((data) => setCustomerMembership(data))
+      .catch(() => setCustomerMembership(null));
+  }, [company.slug]);
 
   useEffect(() => {
     setRequestId(crypto.randomUUID());
@@ -931,6 +947,124 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </>
                   )}
 
+                  {/* Active Mensalista Banner */}
+                  {customerMembership && customerMembership.status === "active" && (
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(139,92,246,0.1) 100%)",
+                        border: "1px solid rgba(99,102,241,0.35)",
+                        borderRadius: 12,
+                        padding: "16px 18px",
+                        marginBottom: 24,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: 12,
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--brand-primary, #6366f1)", textTransform: "uppercase" }}>
+                          ★ Seu Plano Ativo
+                        </span>
+                        <h3 style={{ margin: "2px 0", fontSize: "1.1rem" }}>{customerMembership.membershipPlanName}</h3>
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary, #a1a1aa)" }}>
+                          Este mês: {customerMembership.currentPeriod?.sessionsBooked || 0} de {customerMembership.currentPeriod?.sessionAllowance || 4} reservas marcadas ({customerMembership.currentPeriod?.sessionsRemaining || 0} disponíveis)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${b.button} ${b.small}`}
+                        onClick={() => setMonthSchedulerOpen(true)}
+                        style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}
+                      >
+                        <CalendarPlus size={15} />
+                        <span>Agendar Meu Mês</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Planos Mensais Showcase Section */}
+                  {membershipPlans.length > 0 && (!customerMembership || customerMembership.status !== "active") && (
+                    <section className="public-membership-plans" style={{ marginBottom: 28 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                        <Sparkles size={16} color="var(--brand-primary, #6366f1)" />
+                        <h2 style={{ fontSize: "1.05rem", fontWeight: 700, margin: 0 }}>
+                          Economize com um Plano Mensal
+                        </h2>
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-secondary, #a1a1aa)" }}>
+                          · Recorrência inteligente
+                        </span>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14 }}>
+                        {membershipPlans.map((plan) => (
+                          <div
+                            key={plan.id}
+                            style={{
+                              background: "var(--bg-card, rgba(255,255,255,0.04))",
+                              border: "1px solid var(--border-color, rgba(255,255,255,0.1))",
+                              borderRadius: 10,
+                              padding: "16px",
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <div>
+                              <span
+                                style={{
+                                  fontSize: "0.7rem",
+                                  fontWeight: 700,
+                                  textTransform: "uppercase",
+                                  color: plan.badgeColor || "var(--brand-primary, #6366f1)",
+                                  background: `${plan.badgeColor || "#6366f1"}1a`,
+                                  padding: "2px 8px",
+                                  borderRadius: 10,
+                                  display: "inline-block",
+                                  marginBottom: 6,
+                                }}
+                              >
+                                {plan.frequencyType === "WEEKLY_CALENDAR_BASED"
+                                  ? plan.weeklyFrequency === 1
+                                    ? "Semanal (4 a 5x/mês)"
+                                    : `${plan.weeklyFrequency}x por semana`
+                                  : `${plan.sessionsPerPeriod} atendimentos/mês`}
+                              </span>
+                              <h3 style={{ fontSize: "1.1rem", margin: "0 0 4px", fontWeight: 700 }}>{plan.name}</h3>
+                              {plan.description && (
+                                <p style={{ fontSize: "0.8rem", color: "var(--text-secondary, #a1a1aa)", margin: "0 0 10px", lineHeight: 1.3 }}>
+                                  {plan.description}
+                                </p>
+                              )}
+
+                              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary, #a1a1aa)", marginBottom: 12 }}>
+                                Inclui: {plan.services.map((s) => s.name).join(" + ")}
+                              </div>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-color, rgba(255,255,255,0.1))", paddingTop: 10 }}>
+                              <div>
+                                <strong style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--brand-primary, #6366f1)" }}>
+                                  {money(plan.price)}
+                                </strong>
+                                <small style={{ color: "var(--text-secondary, #a1a1aa)", fontSize: "0.75rem", marginLeft: 2 }}>/mês</small>
+                              </div>
+                              <button
+                                type="button"
+                                className={`${b.button} ${b.small} ${b.outline}`}
+                                onClick={() => setInspectingPlan(plan)}
+                                style={{ fontSize: "0.8rem", padding: "6px 12px" }}
+                              >
+                                Ver plano
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
                   {/* Services List */}
                   {!services.length ? (
                     <div className={b.empty}>
@@ -958,6 +1092,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         {visible
                           .filter((s) => (s.category || "Serviços") === category)
                           .map((service) => {
+                            const isIncludedInMembership = customerMembership && customerMembership.status === "active" && customerMembership.includedServices?.some((s) => s.id === service.id);
                             const chosen = items.some(
                               (i) => i.serviceId === service.id,
                             );
@@ -1032,7 +1167,16 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
                                 <div className={b.serviceActions}>
                                   <div className={b.servicePrice}>
-                                    <strong><Price amount={service.price} /></strong>
+                                    {isIncludedInMembership ? (
+                                      <div>
+                                        <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#10b981", background: "rgba(16,185,129,0.15)", padding: "2px 6px", borderRadius: 4 }}>
+                                          INCLUÍDO NO PLANO
+                                        </span>
+                                        <strong style={{ display: "block", color: "#10b981" }}>R$ 0,00</strong>
+                                      </div>
+                                    ) : (
+                                      <strong><Price amount={service.price} /></strong>
+                                    )}
                                     {serviceHints[service.id] && <small className={b.muted}>Próximo horário: {serviceHints[service.id].date === today ? "Hoje" : dateLabelShort(serviceHints[service.id].date)} às {serviceHints[service.id].slot.startTime}</small>}
                                   </div>
 
@@ -1433,6 +1577,123 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               </div>
             </div>
           </>
+        )}
+
+        {/* Month Scheduler Modal for Active Mensalistas */}
+        {customerMembership && (
+          <MonthSchedulerModal
+            customerMembershipId={customerMembership.id}
+            clientName={customer?.name || "Cliente"}
+            isOpen={monthSchedulerOpen}
+            onClose={() => setMonthSchedulerOpen(false)}
+            onSuccess={() => {
+              setMonthSchedulerOpen(false);
+              void api<import("@/shared/types").CustomerMembershipDTO>("/api/my/membership")
+                .then(setCustomerMembership)
+                .catch(() => {});
+            }}
+            notify={(msg) => alert(msg)}
+          />
+        )}
+
+        {/* Plan Details Modal */}
+        {inspectingPlan && (
+          <div
+            className={b.bottomSheetOverlay}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setInspectingPlan(null);
+            }}
+          >
+            <div
+              style={{
+                background: "var(--bg-card, #1e1e1e)",
+                border: "1px solid var(--border-color, #333)",
+                borderRadius: 12,
+                padding: 24,
+                maxWidth: 480,
+                width: "90%",
+                color: "var(--text-primary, #fff)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div>
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      color: inspectingPlan.badgeColor || "var(--brand-primary, #6366f1)",
+                    }}
+                  >
+                    Plano Mensal
+                  </span>
+                  <h3 style={{ fontSize: "1.3rem", margin: "2px 0 0", fontWeight: 700 }}>{inspectingPlan.name}</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInspectingPlan(null)}
+                  style={{ background: "transparent", border: "none", color: "var(--text-secondary, #999)", cursor: "pointer" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {inspectingPlan.description && (
+                <p style={{ fontSize: "0.9rem", color: "var(--text-secondary, #aaa)", marginBottom: 16 }}>
+                  {inspectingPlan.description}
+                </p>
+              )}
+
+              <div
+                style={{
+                  background: "var(--bg-secondary, #252525)",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  marginBottom: 16,
+                }}
+              >
+                <span style={{ fontSize: "0.8rem", color: "var(--text-secondary, #aaa)" }}>Valor da Mensalidade</span>
+                <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "var(--brand-primary, #6366f1)" }}>
+                  {money(inspectingPlan.price)} <small style={{ fontSize: "0.85rem", fontWeight: 500 }}>/mês</small>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <strong style={{ fontSize: "0.85rem", display: "block", marginBottom: 8 }}>O que está incluído:</strong>
+                <ul style={{ paddingLeft: 20, margin: 0, fontSize: "0.85rem", color: "var(--text-secondary, #ccc)", lineHeight: 1.6 }}>
+                  <li>
+                    {inspectingPlan.frequencyType === "WEEKLY_CALENDAR_BASED"
+                      ? `${inspectingPlan.weeklyFrequency || 1} atendimento por semana (calcula 4 ou 5 semanas do mês)`
+                      : `${inspectingPlan.sessionsPerPeriod} atendimentos fixos por mês`}
+                  </li>
+                  <li>Serviços: {inspectingPlan.services.map((s) => s.name).join(", ")}</li>
+                  <li>Escolha todos os seus horários do mês de uma vez só</li>
+                  <li>{inspectingPlan.allowReschedule ? `Remarcação permitida com até ${inspectingPlan.rescheduleHoursNotice}h de antecedência` : "Sessões fixas"}</li>
+                </ul>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button
+                  type="button"
+                  className={`${b.button} ${b.wide}`}
+                  onClick={() => {
+                    const phone = company.phone?.replace(/\D/g, "");
+                    const text = encodeURIComponent(`Olá! Gostaria de contratar o plano mensal "${inspectingPlan.name}" (${money(inspectingPlan.price)}/mês) no ${company.name}.`);
+                    if (phone) {
+                      window.open(`https://wa.me/${phone.length <= 11 ? "55" : ""}${phone}?text=${text}`, "_blank");
+                    } else {
+                      alert(`Entre em contato com ${company.name} para aderir a este plano mensal!`);
+                    }
+                    setInspectingPlan(null);
+                  }}
+                  style={{ fontWeight: 700 }}
+                >
+                  Quero Este Plano
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </PublicFrame>

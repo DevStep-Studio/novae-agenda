@@ -33,6 +33,8 @@ import { OnboardingChecklistCard } from "@/components/onboarding/onboarding-chec
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { NotificationsView } from "@/components/notifications/notifications-view";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { MembershipPlansView } from "@/components/membership/membership-plans-view";
+import { CustomerMembershipCard } from "@/components/membership/customer-membership-card";
 
 type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes" | "notificacoes" | "perfil";
 type CalendarMode = "day" | "week" | "month";
@@ -741,7 +743,7 @@ function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO
   );
 }
 
-type ClientTab = "all" | "vip" | "new" | "with_appointment" | "inactive";
+type ClientTab = "all" | "membership" | "vip" | "new" | "with_appointment" | "inactive";
 type ClientSort = "visits-desc" | "spent-desc" | "recent" | "name-asc";
 
 function ClientsPage({
@@ -766,6 +768,7 @@ function ClientsPage({
   const averageTicket = totalVisits > 0 ? Math.round(totalSpent / totalVisits) : 0;
 
   const vipClients = clients.filter((c) => c.visits >= 2 || (c.spent && c.spent >= 200));
+  const membershipClients = clients.filter((c) => Boolean(c.isMembershipActive));
   const retentionRate = totalClients > 0 ? Math.round((vipClients.length / totalClients) * 100) : 0;
 
   // Tab counts
@@ -812,6 +815,9 @@ function ClientsPage({
         if (!matchName && !matchPhone && !matchEmail) return false;
       }
 
+      if (activeTab === "membership") {
+        return Boolean(client.isMembershipActive);
+      }
       if (activeTab === "vip") {
         return client.visits >= 2 || (client.spent && client.spent >= 200);
       }
@@ -851,6 +857,7 @@ function ClientsPage({
 
   const tabs: Array<{ id: ClientTab; label: string; count: number; icon?: LucideIcon }> = [
     { id: "all", label: "Todos os clientes", count: totalClients },
+    { id: "membership", label: "Mensalistas", count: membershipClients.length, icon: Sparkles },
     { id: "vip", label: "Frequentes & VIPs", count: vipClients.length, icon: Sparkles },
     { id: "new", label: "Novos no mês", count: newClientsCount, icon: UserPlus },
     { id: "with_appointment", label: "Com agendamento", count: withAppointmentCount, icon: CalendarDays },
@@ -879,6 +886,15 @@ function ClientsPage({
             <p>Total de clientes</p>
             <strong>{totalClients}</strong>
             <span className="metric-detail">base cadastrada</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-teal"><Sparkles size={18} /></div>
+          <div className="metric-copy">
+            <p>Clientes mensalistas</p>
+            <strong>{membershipClients.length}</strong>
+            <span className="metric-detail">planos recorrentes</span>
           </div>
         </div>
 
@@ -1359,6 +1375,15 @@ function ClientDrawer({
           </div>
         </div>
 
+        {/* Customer Membership Section */}
+        <CustomerMembershipCard
+          clientId={currentClient.id}
+          clientName={currentClient.name}
+          membership={detail?.membership}
+          onRefresh={reloadDetail}
+          notify={notify}
+        />
+
         {/* Contact Info Card */}
         {(phone || currentClient.email) && (
           <div className="profile-contact-card">
@@ -1736,7 +1761,8 @@ function getServiceImage(service: { name: string; imageUrl?: string | null }): s
 }
 
 function ServicesPage({ onNew }: { onNew: () => void }) {
-  const { services, toggleService, categories } = useStore();
+  const { services, toggleService, categories, employees, notify } = useStore();
+  const [subTab, setSubTab] = useState<"services" | "memberships">("services");
   const [editing, setEditing] = useState<ServiceDTO | null>(null);
   const [filter, setFilter] = useState("Todos");
 
@@ -1744,73 +1770,138 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
 
   return (
     <div className="page-content">
-      <div className="page-intro"><div><p className="eyebrow">Catálogo de serviços</p><h1>Serviços</h1><p className="intro-copy">Crie experiências claras para seus clientes e sua equipe.</p></div><Button onClick={onNew}><Plus size={17} /> Novo serviço</Button></div>
-      {categories.length > 0 && <div className="category-tabs">{["Todos", "Ativos", "Inativos"].map((tab) => <button key={tab} className={filter === tab ? "active" : ""} onClick={() => setFilter(tab)}>{tab}</button>)}</div>}
-      <div className="service-grid">
-        {visible.map((service) => {
-          const bgImg = getServiceImage(service);
-          return (
-            <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
-              <div className="service-card-bg" style={{ backgroundImage: `url(${bgImg})` }} />
-              <div className="service-card-overlay" />
-              <div className="service-card-content">
-                <div className="service-card-head">
-                  <button
-                    type="button"
-                    className="service-edit-pill"
-                    aria-label={`Editar ${service.name}`}
-                    onClick={() => setEditing(service)}
-                  >
-                    <Pencil size={13} />
-                    <span>Editar</span>
-                  </button>
-                  <span className="service-category-badge">
-                    <Tag size={12} />
-                    <span>{service.categoryName ?? "Sem categoria"}</span>
-                  </span>
-                </div>
-                <div className="service-card-body">
-                  <h3>{service.name}</h3>
-                  {service.description ? (
-                    <p>{service.description}</p>
-                  ) : (
-                    <p className="service-desc-fallback">Duração de {service.durationMinutes} min</p>
-                  )}
-                </div>
-                <div className="service-card-footer">
-                  <div>
-                    <strong className="service-price-tag">{formatCurrency(service.price)}</strong>
-                    <span className="service-duration-badge">
-                      <Clock3 size={13} /> {service.durationMinutes} min
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={service.active}
-                    aria-label={service.active ? `Desativar ${service.name}` : `Ativar ${service.name}`}
-                    title={service.active ? "Clique para desativar serviço" : "Clique para ativar serviço"}
-                    className={`service-toggle-btn ${service.active ? "active" : ""}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleService(service.id, !service.active);
-                    }}
-                  >
-                    <span className="service-toggle-thumb" />
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-        <button className="add-service-card" onClick={onNew}>
-          <span className="add-service-icon"><Plus size={22} /></span>
-          <strong>Criar novo serviço</strong>
-          <small>Adicione preço, duração e categoria</small>
+      {/* Sub tabs: SERVIÇOS AVULSOS | PLANOS MENSAIS */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20, borderBottom: "1px solid var(--border-color, #333)", paddingBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => setSubTab("services")}
+          style={{
+            padding: "8px 18px",
+            borderRadius: "var(--radius-md, 8px)",
+            fontWeight: 700,
+            fontSize: "0.9rem",
+            border: subTab === "services" ? "1px solid var(--brand, #6366f1)" : "1px solid transparent",
+            background: subTab === "services" ? "var(--brand-surface, rgba(99,102,241,0.12))" : "transparent",
+            color: subTab === "services" ? "var(--brand, #6366f1)" : "var(--text-secondary)",
+            cursor: "pointer",
+          }}
+        >
+          Serviços Avulsos
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubTab("memberships")}
+          style={{
+            padding: "8px 18px",
+            borderRadius: "var(--radius-md, 8px)",
+            fontWeight: 700,
+            fontSize: "0.9rem",
+            border: subTab === "memberships" ? "1px solid var(--brand, #6366f1)" : "1px solid transparent",
+            background: subTab === "memberships" ? "var(--brand-surface, rgba(99,102,241,0.12))" : "transparent",
+            color: subTab === "memberships" ? "var(--brand, #6366f1)" : "var(--text-secondary)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Sparkles size={16} />
+          <span>Planos Mensais</span>
         </button>
       </div>
-      {editing && <Modal title="Editar serviço" eyebrow="Catálogo" onClose={() => setEditing(null)} wide><ServiceEditor service={editing} onDone={() => setEditing(null)}/></Modal>}
-      {visible.length === 0 && <EmptyState icon={Tag} title="Nenhum serviço" description="Cadastre serviços para começar a agendar." action={<Button onClick={onNew}><Plus size={16} /> Novo serviço</Button>} />}
+
+      {subTab === "memberships" ? (
+        <MembershipPlansView services={services} employees={employees} notify={notify} />
+      ) : (
+        <>
+          <div className="page-intro">
+            <div>
+              <p className="eyebrow">Catálogo de serviços</p>
+              <h1>Serviços Avulsos</h1>
+              <p className="intro-copy">Crie experiências claras para seus clientes e sua equipe.</p>
+            </div>
+            <Button onClick={onNew}><Plus size={17} /> Novo serviço</Button>
+          </div>
+          {categories.length > 0 && (
+            <div className="category-tabs">
+              {["Todos", "Ativos", "Inativos"].map((tab) => (
+                <button
+                  key={tab}
+                  className={filter === tab ? "active" : ""}
+                  onClick={() => setFilter(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="service-grid">
+            {visible.map((service) => {
+              const bgImg = getServiceImage(service);
+              return (
+                <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
+                  <div className="service-card-bg" style={{ backgroundImage: `url(${bgImg})` }} />
+                  <div className="service-card-overlay" />
+                  <div className="service-card-content">
+                    <div className="service-card-head">
+                      <button
+                        type="button"
+                        className="service-edit-pill"
+                        aria-label={`Editar ${service.name}`}
+                        onClick={() => setEditing(service)}
+                      >
+                        <Pencil size={13} />
+                        <span>Editar</span>
+                      </button>
+                      <span className="service-category-badge">
+                        <Tag size={12} />
+                        <span>{service.categoryName ?? "Sem categoria"}</span>
+                      </span>
+                    </div>
+                    <div className="service-card-body">
+                      <h3>{service.name}</h3>
+                      {service.description ? (
+                        <p>{service.description}</p>
+                      ) : (
+                        <p className="service-desc-fallback">Duração de {service.durationMinutes} min</p>
+                      )}
+                    </div>
+                    <div className="service-card-footer">
+                      <div>
+                        <strong className="service-price-tag">{formatCurrency(service.price)}</strong>
+                        <span className="service-duration-badge">
+                          <Clock3 size={13} /> {service.durationMinutes} min
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={service.active}
+                        aria-label={service.active ? `Desativar ${service.name}` : `Ativar ${service.name}`}
+                        title={service.active ? "Clique para desativar serviço" : "Clique para ativar serviço"}
+                        className={`service-toggle-btn ${service.active ? "active" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleService(service.id, !service.active);
+                        }}
+                      >
+                        <span className="service-toggle-thumb" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+            <button className="add-service-card" onClick={onNew}>
+              <span className="add-service-icon"><Plus size={22} /></span>
+              <strong>Criar novo serviço</strong>
+              <small>Adicione preço, duração e categoria</small>
+            </button>
+          </div>
+          {editing && <Modal title="Editar serviço" eyebrow="Catálogo" onClose={() => setEditing(null)} wide><ServiceEditor service={editing} onDone={() => setEditing(null)}/></Modal>}
+          {visible.length === 0 && <EmptyState icon={Tag} title="Nenhum serviço" description="Cadastre serviços para começar a agendar." action={<Button onClick={onNew}><Plus size={16} /> Novo serviço</Button>} />}
+        </>
+      )}
     </div>
   );
 }
@@ -4999,7 +5090,11 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             </div>
             <div className="detail-col">
               <span className="detail-label"><CircleDollarSign size={14} /> Valor Total</span>
-              <strong className="detail-value detail-value-price">{formatCurrency(appointment.total)}</strong>
+              <strong className="detail-value detail-value-price">
+                {appointment.isMembershipBooking || (appointment.total === 0 && appointment.notes?.includes("plano"))
+                  ? "INCLUÍDO NO PLANO"
+                  : formatCurrency(appointment.total)}
+              </strong>
             </div>
           </div>
 
@@ -5009,7 +5104,11 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             <div className="detail-col detail-col-full">
               <span className="detail-label"><CreditCard size={14} /> Status do Pagamento</span>
               <div className="detail-payment-badge-wrap">
-                {appointment.paid ? (
+                {appointment.isMembershipBooking || (appointment.total === 0 && appointment.notes?.includes("plano")) ? (
+                  <span className="payment-chip payment-chip-paid" style={{ background: "rgba(99,102,241,0.18)", color: "var(--brand, #6366f1)" }}>
+                    <Sparkles size={14} /> Coberto pelo Plano Mensal (Mensalista)
+                  </span>
+                ) : appointment.paid ? (
                   <span className="payment-chip payment-chip-paid">
                     <CheckCircle2 size={14} /> Recebido ({appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "Presencial"})
                   </span>

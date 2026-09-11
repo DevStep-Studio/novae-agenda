@@ -454,3 +454,118 @@ export const reviews = mysqlTable("reviews", {
   companyIdx: index("reviews_company_idx").on(table.companyId),
   employeeIdx: index("reviews_employee_idx").on(table.employeeId),
 }));
+
+// ========================================================
+// CUSTOMER MEMBERSHIP / PLANOS MENSAIS RECORRENTES (MULTINICHO)
+// Separated from SaaS subscriptions (Reservei)
+// ========================================================
+
+export const membershipPlans = mysqlTable("membership_plans", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(), // Mensalidade
+  billingPeriod: varchar("billing_period", { length: 50 }).default("monthly").notNull(),
+  frequencyType: varchar("frequency_type", { length: 50 }).default("WEEKLY_CALENDAR_BASED").notNull(), // 'WEEKLY_CALENDAR_BASED' | 'FIXED_MONTHLY_QUOTA' | 'CUSTOM_WEEKLY_FREQUENCY'
+  sessionsPerPeriod: int("sessions_per_period").default(4).notNull(), // Used when FIXED_MONTHLY_QUOTA
+  weeklyFrequency: int("weekly_frequency").default(1).notNull(), // e.g. 1 = 1x/semana, 2 = 2x/semana
+  allowReschedule: boolean("allow_reschedule").default(true).notNull(),
+  rescheduleHoursNotice: int("reschedule_hours_notice").default(2).notNull(),
+  allowCarryOver: boolean("allow_carry_over").default(false).notNull(),
+  noShowConsumesSession: boolean("no_show_consumes_session").default(true).notNull(),
+  lateCancelConsumesSession: boolean("late_cancel_consumes_session").default(true).notNull(),
+  badgeColor: varchar("badge_color", { length: 50 }).default("#dcff4c"),
+  active: boolean("active").default(true).notNull(),
+  ...timestamps,
+}, (table) => ({
+  companyIdx: index("membership_plans_company_idx").on(table.companyId),
+}));
+
+export const membershipPlanServices = mysqlTable("membership_plan_services", {
+  membershipPlanId: varchar("membership_plan_id", { length: 36 }).notNull().references(() => membershipPlans.id, { onDelete: "cascade" }),
+  serviceId: varchar("service_id", { length: 36 }).notNull().references(() => services.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.membershipPlanId, table.serviceId] }),
+}));
+
+export const membershipPlanEmployees = mysqlTable("membership_plan_employees", {
+  membershipPlanId: varchar("membership_plan_id", { length: 36 }).notNull().references(() => membershipPlans.id, { onDelete: "cascade" }),
+  employeeId: varchar("employee_id", { length: 36 }).notNull().references(() => employees.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.membershipPlanId, table.employeeId] }),
+}));
+
+export const customerMemberships = mysqlTable("customer_memberships", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  clientId: varchar("client_id", { length: 36 }).notNull().references(() => clients.id, { onDelete: "cascade" }),
+  membershipPlanId: varchar("membership_plan_id", { length: 36 }).notNull().references(() => membershipPlans.id, { onDelete: "cascade" }),
+  startsAt: timestamp("starts_at", { mode: "date" }).notNull(),
+  endsAt: timestamp("ends_at", { mode: "date" }),
+  status: varchar("status", { length: 50 }).default("active").notNull(), // 'active' | 'paused' | 'cancelled' | 'expired' | 'pending'
+  preferredProfessionalId: varchar("preferred_professional_id", { length: 36 }).references(() => employees.id, { onDelete: "set null" }),
+  preferredWeekdays: json("preferred_weekdays").$type<number[]>().default([]).notNull(), // e.g. [4] for Thursday, [2, 4] for Tue/Thu
+  preferredTime: time("preferred_time"),
+  monthlyPriceSnapshot: decimal("monthly_price_snapshot", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  ...timestamps,
+}, (table) => ({
+  clientIdx: index("customer_memberships_client_idx").on(table.clientId),
+  companyIdx: index("customer_memberships_company_idx").on(table.companyId),
+  planIdx: index("customer_memberships_plan_idx").on(table.membershipPlanId),
+  statusIdx: index("customer_memberships_status_idx").on(table.companyId, table.status),
+}));
+
+export const membershipPeriods = mysqlTable("membership_periods", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  customerMembershipId: varchar("customer_membership_id", { length: 36 }).notNull().references(() => customerMemberships.id, { onDelete: "cascade" }),
+  periodStart: date("period_start", { mode: "string" }).notNull(), // YYYY-MM-01
+  periodEnd: date("period_end", { mode: "string" }).notNull(), // YYYY-MM-LastDay
+  sessionAllowance: int("session_allowance").notNull(), // 4 or 5 or custom
+  sessionsBooked: int("sessions_booked").default(0).notNull(),
+  sessionsUsed: int("sessions_used").default(0).notNull(),
+  paymentStatus: varchar("payment_status", { length: 50 }).default("pending").notNull(), // 'pending' | 'paid' | 'waived'
+  paidAt: timestamp("paid_at", { mode: "date" }),
+  paymentMethod: varchar("payment_method", { length: 50 }), // 'pix' | 'cash' | 'card' | 'other'
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  status: varchar("status", { length: 50 }).default("active").notNull(), // 'active' | 'closed' | 'cancelled'
+  ...timestamps,
+}, (table) => ({
+  membershipIdx: index("membership_periods_membership_idx").on(table.customerMembershipId),
+  periodRangeIdx: index("membership_periods_range_idx").on(table.companyId, table.periodStart, table.periodEnd),
+  paymentStatusIdx: index("membership_periods_pay_status_idx").on(table.companyId, table.paymentStatus),
+}));
+
+export const bookingMembershipUsage = mysqlTable("booking_membership_usage", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  appointmentId: varchar("appointment_id", { length: 36 }).notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  customerMembershipId: varchar("customer_membership_id", { length: 36 }).notNull().references(() => customerMemberships.id, { onDelete: "cascade" }),
+  membershipPeriodId: varchar("membership_period_id", { length: 36 }).notNull().references(() => membershipPeriods.id, { onDelete: "cascade" }),
+  serviceId: varchar("service_id", { length: 36 }).notNull().references(() => services.id, { onDelete: "cascade" }),
+  status: varchar("status", { length: 50 }).default("booked").notNull(), // 'booked' | 'used' | 'cancelled_refunded' | 'cancelled_forfeited' | 'no_show_forfeited'
+  ...timestamps,
+}, (table) => ({
+  appointmentIdx: uniqueIndex("booking_membership_usage_appointment_idx").on(table.appointmentId),
+  periodIdx: index("booking_membership_usage_period_idx").on(table.membershipPeriodId),
+  membershipIdx: index("booking_membership_usage_membership_idx").on(table.customerMembershipId),
+}));
+
+export const customerMembershipPayments = mysqlTable("customer_membership_payments", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  customerMembershipId: varchar("customer_membership_id", { length: 36 }).notNull().references(() => customerMemberships.id, { onDelete: "cascade" }),
+  membershipPeriodId: varchar("membership_period_id", { length: 36 }).notNull().references(() => membershipPeriods.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  method: varchar("method", { length: 50 }).notNull(), // 'pix' | 'cash' | 'debit' | 'credit' | 'other'
+  status: varchar("status", { length: 50 }).default("paid").notNull(),
+  paidAt: timestamp("paid_at", { mode: "date" }).defaultNow().notNull(),
+  notes: text("notes"),
+  ...timestamps,
+}, (table) => ({
+  companyIdx: index("cust_membership_payments_company_idx").on(table.companyId),
+  periodIdx: index("cust_membership_payments_period_idx").on(table.membershipPeriodId),
+}));
