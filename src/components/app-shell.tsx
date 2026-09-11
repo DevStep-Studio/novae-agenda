@@ -248,12 +248,14 @@ function DashboardPage({
   onAppointment,
   onGoToAgenda,
   onNavigate,
+  onOpenProfile,
 }: {
   onQuickNew: (prefill: QuickPrefill) => void;
   onNew: () => void;
   onAppointment: (apt: AppointmentDTO) => void;
   onGoToAgenda: () => void;
   onNavigate?: (tab: string) => void;
+  onOpenProfile?: () => void;
 }) {
   const { stats, appointments, services, clients, employees, notify, session, updateDashboardPreferences } = useStore();
   const [customizing, setCustomizing] = useState(false);
@@ -280,6 +282,9 @@ function DashboardPage({
 
   const cancellationsToday = (stats?.today.cancelled ?? 0) + (stats?.today.noShow ?? 0);
   const firstName = session?.name ? session.name.split(" ")[0] : "você";
+  const defaultBanner = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
+  const bannerUrl = session?.company.bannerUrl || defaultBanner;
+  const logoUrl = session?.company.logoUrl;
 
   return (
     <div className="page-content dashboard-page">
@@ -306,13 +311,11 @@ function DashboardPage({
       </div>
 
       {prefs.showBanner && (
-        <div className={`dashboard-banner-card ${session?.company.bannerUrl ? "" : "dashboard-banner-noimg"}`}>
-          {session?.company.bannerUrl && (
-            <div
-              className="dashboard-banner-bg"
-              style={{ backgroundImage: `url('${session.company.bannerUrl}')` }}
-            />
-          )}
+        <div className="dashboard-banner-card">
+          <div
+            className="dashboard-banner-bg"
+            style={{ backgroundImage: `url('${bannerUrl}')` }}
+          />
           <div className="dashboard-banner-content">
             <div className="dashboard-banner-info">
               <span className="dashboard-banner-tag">
@@ -325,16 +328,38 @@ function DashboardPage({
                   : `Você tem ${todayApts.length} atendimento${todayApts.length === 1 ? "" : "s"} agendado${todayApts.length === 1 ? "" : "s"} hoje (${pending.length} pendente${pending.length === 1 ? "" : "s"}).`}
               </p>
             </div>
-            {session?.company.logoUrl && (
-              <div className="dashboard-banner-avatar-wrap">
-                <Avatar
-                  name={session.company.name}
-                  photoUrl={session.company.logoUrl}
-                  color="var(--primary)"
-                  size="lg"
-                />
+
+            <div className="dashboard-banner-actions-wrap">
+              {onOpenProfile && (
+                <button
+                  type="button"
+                  className="dashboard-banner-edit-btn"
+                  onClick={onOpenProfile}
+                  title="Personalizar banner de capa e logo da empresa"
+                >
+                  <ImagePlus size={14} />
+                  <span>Personalizar capa</span>
+                </button>
+              )}
+              <div
+                className="dashboard-banner-avatar-wrap"
+                title={`${session?.company.name || "Estabelecimento"}${onOpenProfile ? " — clique para alterar logo em Meu Perfil" : ""}`}
+                onClick={onOpenProfile}
+                style={{ cursor: onOpenProfile ? "pointer" : "default" }}
+              >
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt={session?.company.name || "Logo"}
+                    className="dashboard-banner-avatar-img"
+                  />
+                ) : (
+                  <div className="dashboard-banner-avatar-fallback">
+                    {initials(session?.company.name || "RE")}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -4486,6 +4511,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             onAppointment={setDetailAppointment}
             onGoToAgenda={() => navigate("agenda")}
             onNavigate={(tab) => navigate(tab as ViewKey)}
+            onOpenProfile={() => setProfileDrawerOpen(true)}
           />
         );
       case "clientes":
@@ -5073,6 +5099,40 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
   const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
   const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#dcff4c");
   const [saving, setSaving] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const bannerFileInputRef = useRef<HTMLInputElement>(null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBannerUpload = async (file?: File) => {
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      const dataUrl = await prepareImageUpload(file, { maxDimension: 1600, square: false });
+      setBannerUrl(dataUrl);
+      notify("Banner carregado! Clique em 'Salvar alterações' para aplicar.");
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Erro ao carregar banner.", "error");
+    } finally {
+      setUploadingBanner(false);
+      if (bannerFileInputRef.current) bannerFileInputRef.current.value = "";
+    }
+  };
+
+  const handleAvatarUpload = async (file?: File) => {
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
+      setAvatarUrl(dataUrl);
+      notify("Logo / foto carregada! Clique em 'Salvar alterações' para aplicar.");
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Erro ao carregar foto/logo.", "error");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarFileInputRef.current) avatarFileInputRef.current.value = "";
+    }
+  };
 
   const handleColorChange = (hex: string) => {
     setPrimaryColor(hex);
@@ -5214,16 +5274,35 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
 
               {/* Banner Cover Customizer */}
               <div className="profile-section-card">
-                <h3><ImageIcon size={16} /> Banner de Capa</h3>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                  <h3 style={{ margin: 0 }}><ImageIcon size={16} /> Banner de Capa</h3>
+                  <input
+                    ref={bannerFileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    style={{ display: "none" }}
+                    onChange={(e) => handleBannerUpload(e.target.files?.[0])}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => bannerFileInputRef.current?.click()}
+                    disabled={uploadingBanner}
+                    style={{ padding: "4px 10px", fontSize: "12px", height: "30px" }}
+                  >
+                    <Upload size={13} />
+                    <span>{uploadingBanner ? "Processando..." : "Upload do Computador"}</span>
+                  </Button>
+                </div>
                 <p className="section-sub">
-                  Imagem decorativa aplicada no topo da Home e na sua capa.
+                  Imagem decorativa aplicada no topo da Home (card de boas-vindas) e na capa do seu perfil.
                 </p>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input
                     className="input"
                     value={bannerUrl}
                     onChange={(e) => setBannerUrl(e.target.value)}
-                    placeholder="https://exemplo.com/banner.jpg"
+                    placeholder="https://exemplo.com/banner.jpg ou faça upload acima"
                   />
                   {bannerUrl && (
                     <Button variant="secondary" onClick={() => setBannerUrl("")}>
@@ -5245,18 +5324,37 @@ function ProfileDrawer({ onClose, session, onSettings, onSuperadmin, onLogout }:
                 </div>
               </div>
 
-              {/* Avatar / Photo Customizer */}
+              {/* Avatar / Photo / Logo Customizer */}
               <div className="profile-section-card">
-                <h3><UserRound size={16} /> Foto / Avatar de Perfil</h3>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                  <h3 style={{ margin: 0 }}><UserRound size={16} /> Foto / Logo do Estabelecimento</h3>
+                  <input
+                    ref={avatarFileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif,image/svg+xml"
+                    style={{ display: "none" }}
+                    onChange={(e) => handleAvatarUpload(e.target.files?.[0])}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => avatarFileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    style={{ padding: "4px 10px", fontSize: "12px", height: "30px" }}
+                  >
+                    <Upload size={13} />
+                    <span>{uploadingAvatar ? "Processando..." : "Upload da Logo / Foto"}</span>
+                  </Button>
+                </div>
                 <p className="section-sub">
-                  Sua foto exibida na barra de navegação, agendamentos e perfil.
+                  Logo ou foto exibida no card do banner inicial, topo e perfil da empresa.
                 </p>
                 <div style={{ display: "flex", gap: "8px" }}>
                   <input
                     className="input"
                     value={avatarUrl}
                     onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder="https://exemplo.com/foto.jpg"
+                    placeholder="https://exemplo.com/foto.jpg ou faça upload acima"
                   />
                   {avatarUrl && (
                     <Button variant="secondary" onClick={() => setAvatarUrl("")}>

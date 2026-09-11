@@ -758,7 +758,7 @@ a[style*="--brand-lime"] svg,
   box-shadow: none !important;
 }
 
-/* ===== Minimalist Dashboard Banner Card ===== */
+/* ===== Dashboard Banner Card with Logo & Cover ===== */
 .dashboard-banner-card {
   position: relative;
   border-radius: var(--radius-md);
@@ -768,49 +768,58 @@ a[style*="--brand-lime"] svg,
   margin-bottom: 20px;
   display: flex;
   align-items: stretch;
-  min-height: 120px;
-  box-shadow: none !important;
+  min-height: 125px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.dashboard-banner-card:hover {
+  border-color: rgba(220, 255, 76, 0.25);
 }
 .dashboard-banner-bg {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: brightness(0.4) saturate(0.9);
+  filter: brightness(0.42) saturate(1.1);
   z-index: 0;
 }
 :root:not([data-theme="dark"]) .dashboard-banner-bg {
-  filter: brightness(0.9) saturate(0.8);
+  filter: brightness(0.88) saturate(0.85);
 }
 .dashboard-banner-content {
   position: relative;
   z-index: 1;
   width: 100%;
-  padding: 22px 24px;
+  padding: 24px 26px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  background: rgba(18, 18, 18, 0.7);
-  backdrop-filter: blur(4px);
+  background: linear-gradient(90deg, rgba(14, 16, 20, 0.88) 0%, rgba(14, 16, 20, 0.65) 60%, rgba(14, 16, 20, 0.4) 100%);
+  backdrop-filter: blur(3px);
 }
 :root:not([data-theme="dark"]) .dashboard-banner-content {
-  background: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.75) 60%, rgba(255, 255, 255, 0.5) 100%);
 }
 .dashboard-banner-noimg .dashboard-banner-content {
   background: var(--surface);
 }
+.dashboard-banner-info {
+  flex: 1;
+  min-width: 240px;
+}
 .dashboard-banner-info h2 {
   margin: 0;
-  font: 700 20px/1.2 "Plus Jakarta Sans", sans-serif;
+  font: 700 21px/1.2 "Plus Jakarta Sans", sans-serif;
   color: var(--text-primary);
   letter-spacing: -0.3px;
 }
 .dashboard-banner-info p {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 .dashboard-banner-tag {
   display: inline-flex;
@@ -820,11 +829,84 @@ a[style*="--brand-lime"] svg,
   border-radius: 4px;
   background: var(--primary-soft);
   color: var(--primary);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+}
+.dashboard-banner-avatar-wrap {
+  flex-shrink: 0;
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+:root:not([data-theme="dark"]) .dashboard-banner-avatar-wrap {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.dashboard-banner-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+  display: block;
+}
+.dashboard-banner-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--primary);
+  background: var(--surface-secondary);
+}
+.dashboard-banner-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.dashboard-banner-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.15s ease;
+}
+.dashboard-banner-edit-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+:root:not([data-theme="dark"]) .dashboard-banner-edit-btn {
+  border-color: rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
+}
+:root:not([data-theme="dark"]) .dashboard-banner-edit-btn:hover {
+  background: #ffffff;
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 /* ===== Dashboard Customization Toolbar & Modal ===== */

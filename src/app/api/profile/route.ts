@@ -4,14 +4,15 @@ import { db } from "@/db";
 import { companies, companySettings, users } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { getRawCompanySetting, setRawCompanySetting } from "@/lib/settings";
+import { saveBrandingImage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
 const profilePatchSchema = z.object({
   name: z.string().min(2, "Nome muito curto.").max(120).optional(),
   phone: z.string().max(30).optional(),
-  avatarUrl: z.string().max(2000).optional().nullable(),
-  bannerUrl: z.string().max(2000).optional().nullable(),
+  avatarUrl: z.string().max(8_000_000).optional().nullable(),
+  bannerUrl: z.string().max(8_000_000).optional().nullable(),
   primaryColor: z.string().max(30).optional(),
   secondaryColor: z.string().max(30).optional(),
   dashboardPreferences: z.record(z.string(), z.boolean()).optional(),
@@ -111,10 +112,17 @@ export async function PATCH(request: Request) {
     await db.update(users).set(userPatch).where(eq(users.id, auth.user.userId));
   }
 
-  // 2. Update company row if avatarUrl, primaryColor or secondaryColor given
+  // 2. Update company row and settings if avatarUrl, bannerUrl, primaryColor or secondaryColor given
+  let savedAvatarUrl: string | null | undefined = undefined;
+  let savedBannerUrl: string | null | undefined = undefined;
+
   if (auth.user.companyId) {
     const companyPatch: Record<string, unknown> = {};
-    if (avatarUrl !== undefined) companyPatch.logoUrl = avatarUrl;
+
+    if (avatarUrl !== undefined) {
+      savedAvatarUrl = avatarUrl ? await saveBrandingImage(avatarUrl) : null;
+      companyPatch.logoUrl = savedAvatarUrl;
+    }
     if (primaryColor !== undefined) companyPatch.primaryColor = primaryColor;
     if (secondaryColor !== undefined) companyPatch.secondaryColor = secondaryColor;
 
@@ -125,9 +133,14 @@ export async function PATCH(request: Request) {
         .where(eq(companies.id, auth.user.companyId));
     }
 
-    // 3. Update raw settings (banner and dashboard preferences)
+    // 3. Update raw settings (banner, cover, avatar and dashboard preferences)
     if (bannerUrl !== undefined) {
-      await setRawCompanySetting(auth.user.companyId, "banner_url", bannerUrl ?? "");
+      savedBannerUrl = bannerUrl ? await saveBrandingImage(bannerUrl) : "";
+      await setRawCompanySetting(auth.user.companyId, "banner_url", savedBannerUrl);
+      await setRawCompanySetting(auth.user.companyId, "cover_url", savedBannerUrl);
+    }
+    if (savedAvatarUrl !== undefined) {
+      await setRawCompanySetting(auth.user.companyId, "avatar_url", savedAvatarUrl ?? "");
     }
     if (dashboardPreferences !== undefined) {
       await setRawCompanySetting(
@@ -142,8 +155,8 @@ export async function PATCH(request: Request) {
     data: {
       ok: true,
       name: name ?? auth.user.name,
-      avatarUrl,
-      bannerUrl,
+      avatarUrl: savedAvatarUrl !== undefined ? savedAvatarUrl : avatarUrl,
+      bannerUrl: savedBannerUrl !== undefined ? savedBannerUrl : bannerUrl,
       primaryColor,
       dashboardPreferences,
     },

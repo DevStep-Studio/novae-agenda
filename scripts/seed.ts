@@ -55,6 +55,7 @@ async function seed() {
       instagram: "studioprime",
       timezone: "America/Sao_Paulo",
       currency: "BRL",
+      logoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
       primaryColor: "#dcff4c",
       secondaryColor: "#14171d",
       publicSlug: "studio-prime",
@@ -71,6 +72,7 @@ async function seed() {
     await db
       .update(companies)
       .set({
+        logoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
         publicSlug: "studio-prime",
         publicEnabled: true,
         businessType: "Barbearia & Estética",
@@ -113,6 +115,7 @@ async function seed() {
     { key: "reschedule_hours", value: "2" },
     { key: "allow_holiday_bookings", value: "false" },
     { key: "daily_booking_limit", value: "0" },
+    { key: "banner_url", value: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80" },
   ];
   for (const s of primeSettings) {
     const [exist] = await db.select().from(companySettings).where(and(eq(companySettings.companyId, company.id), eq(companySettings.key, s.key))).limit(1);
@@ -521,6 +524,7 @@ async function seed() {
     await db.insert(companies).values({
       id: bellaId,
       name: "Studio Bella",
+      logoUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=200&q=80",
       businessType: "Salão & Estética",
       phone: "(11) 3210-5500",
       whatsapp: "(11) 98765-4320",
@@ -545,6 +549,7 @@ async function seed() {
     await db
       .update(companies)
       .set({
+        logoUrl: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=200&q=80",
         publicSlug: "studio-bella",
         publicEnabled: true,
         businessType: "Salão & Estética",
@@ -629,6 +634,17 @@ async function seed() {
         description: bSvc.desc,
         active: true,
       });
+    }
+  }
+
+  // Settings for Studio Bella
+  const bellaSettings = [
+    { key: "banner_url", value: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80" },
+  ];
+  for (const s of bellaSettings) {
+    const [exist] = await db.select().from(companySettings).where(and(eq(companySettings.companyId, bellaCompany.id), eq(companySettings.key, s.key))).limit(1);
+    if (!exist) {
+      await db.insert(companySettings).values({ id: crypto.randomUUID(), companyId: bellaCompany.id, key: s.key, value: s.value });
     }
   }
 
