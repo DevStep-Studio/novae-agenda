@@ -136,7 +136,7 @@ export function BookingSettings() {
       void QRCode.toDataURL(url, {
         width: 512,
         margin: 2,
-        color: { dark: "#0b1d17", light: "#ffffff" },
+        color: { dark: "#080808", light: "#ffffff" },
       })
         .then(setQr)
         .catch(() => setError("Não foi possível gerar o QR Code."));

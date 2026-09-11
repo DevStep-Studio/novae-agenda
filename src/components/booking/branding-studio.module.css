@@ -576,8 +576,8 @@
 
 /* Preview Frame */
 .previewFrameWrap {
-  background: #0b1712;
-  border: 1px solid rgba(220, 255, 76, 0.16);
+  background: #080808;
+  border: 1px solid var(--border, #222222);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
@@ -595,8 +595,8 @@
 }
 
 .previewWindowHead {
-  background: #0d1a13;
-  border-bottom: 1px solid rgba(220, 255, 76, 0.1);
+  background: #121212;
+  border-bottom: 1px solid var(--border, #222222);
   padding: 8px 14px;
   display: flex;
   align-items: center;

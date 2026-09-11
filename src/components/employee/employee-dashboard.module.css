@@ -356,7 +356,7 @@
 
 .btnFinish {
   background: #dcff4c;
-  color: #0b1d17;
+  color: #080808;
   font-weight: 700;
 }
 
@@ -411,7 +411,7 @@
 }
 
 .emptyState {
-  background: #133328;
+  background: var(--surface-secondary, #121212);
   border: 1px dashed rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   padding: 48px 24px;

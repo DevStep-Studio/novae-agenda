@@ -61,8 +61,8 @@ export function OnboardingChecklistCard({
       <div
         className="onboarding-complete-card"
         style={{
-          background: "rgba(22, 42, 34, 0.7)",
-          border: "1px solid rgba(220, 255, 76, 0.3)",
+          background: "var(--surface, #121212)",
+          border: "1px solid var(--border, #222222)",
           borderRadius: "12px",
           padding: "16px 20px",
           marginBottom: "20px",
@@ -94,7 +94,7 @@ export function OnboardingChecklistCard({
                 margin: 0,
                 fontSize: "14px",
                 fontWeight: 600,
-                color: "#f2f7f4",
+                color: "#f5f5f5",
               }}
             >
               Seu perfil Reservei está pronto para receber agendamentos!
@@ -120,7 +120,7 @@ export function OnboardingChecklistCard({
               alignItems: "center",
               gap: "7px",
               background: "#dcff4c",
-              color: "#12231b",
+              color: "#080808",
               border: "none",
               borderRadius: "8px",
               padding: "8px 16px",

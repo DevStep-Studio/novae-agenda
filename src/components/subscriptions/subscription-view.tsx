@@ -163,7 +163,7 @@ export function SubscriptionView() {
                   background: "#dcff4c",
                   border: "none",
                   borderRadius: 8,
-                  color: "#12231b",
+                  color: "#080808",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",

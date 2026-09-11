@@ -3286,7 +3286,9 @@ function NewAppointmentModal({
     >
       <form onSubmit={submit}>
         <div className="modal-form-grid">
-          <div className="field field-full"><span>Cliente</span><ClientPicker value={clientId} onChange={setClientId} /></div>
+          <Field label="Cliente" icon={User} className="field-full">
+            <ClientPicker value={clientId} onChange={setClientId} />
+          </Field>
 
           <Field label="Unidade" icon={Building2}>
             <div className="modal-input-wrap">
