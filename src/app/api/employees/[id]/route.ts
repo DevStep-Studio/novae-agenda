@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { employeeSchedules, employees } from "@/db/schema";
+import { employeeSchedules, employeeServices, employees, services } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import { deleteProfessionalImage, saveProfessionalImage } from "@/lib/storage";
@@ -29,6 +29,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .where(eq(employeeSchedules.employeeId, id))
     .orderBy(employeeSchedules.dayOfWeek);
 
+  const serviceLinks = await db
+    .select({ serviceId: employeeServices.serviceId, serviceName: services.name })
+    .from(employeeServices)
+    .leftJoin(services, eq(employeeServices.serviceId, services.id))
+    .where(eq(employeeServices.employeeId, id));
+
+  const serviceIds = serviceLinks.map((s) => s.serviceId);
+  const serviceNames = serviceLinks.map((s) => s.serviceName).filter(Boolean) as string[];
+
   const scheduleDto: EmployeeScheduleDTO[] = schedules.map((schedule) => ({
     id: schedule.id,
     employeeId: schedule.employeeId,
@@ -52,8 +61,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     initials: employee.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
     commissionType: employee.commissionType as EmployeeDTO["commissionType"],
     commissionValue: centsToNumber(employee.commissionValue),
-    services: [],
-    serviceIds: [],
+    services: serviceNames,
+    serviceIds,
     hasLogin: employee.userId !== null,
   };
 
@@ -68,6 +77,7 @@ const updateSchema = z.object({
   commissionType: z.enum(["none", "percentage", "fixed"]).optional(),
   commissionValue: z.number().min(0).optional(),
   photoUrl: z.string().max(8_000_000).nullable().optional(),
+  serviceIds: z.array(z.string()).optional(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -108,10 +118,34 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
   }
 
-  await db
-    .update(employees)
-    .set(patch)
-    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)));
+  if (Object.keys(patch).length > 0) {
+    await db
+      .update(employees)
+      .set(patch)
+      .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)));
+  }
+
+  if (data.serviceIds !== undefined) {
+    const owned = data.serviceIds.length > 0
+      ? await db
+          .select({ id: services.id })
+          .from(services)
+          .where(and(inArray(services.id, data.serviceIds), eq(services.companyId, auth.user.companyId)))
+      : [];
+    const ownedIds = new Set(owned.map((s) => s.id));
+    const linkIds = data.serviceIds.filter((sid) => ownedIds.has(sid));
+
+    await db.delete(employeeServices).where(eq(employeeServices.employeeId, id));
+    if (linkIds.length > 0) {
+      await db.insert(employeeServices).values(
+        linkIds.map((serviceId) => ({
+          id: crypto.randomUUID(),
+          employeeId: id,
+          serviceId,
+        }))
+      );
+    }
+  }
 
   const [updated] = await db
     .select({ id: employees.id })

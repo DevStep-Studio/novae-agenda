@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CalendarClock, ChevronDown, Clock3, MessageCircle, Plus, UsersRound } from "lucide-react";
+import { CalendarClock, ChevronDown, Clock3, Plus, UsersRound } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { useStore } from "@/store/store";
 import { api } from "@/lib/api-client";
 import { localDate, shiftDate } from "@/lib/booking/time";
@@ -44,7 +45,7 @@ export function QuickStatus({
     {next && <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run(next.status)}>{busy ? "Salvando…" : next.label}</button>}
     {appointment.status === "in_progress" && !finishing && <button type="button" className="btn btn-primary" onClick={() => setFinishing(true)}>Finalizar</button>}
     {finishing && <div className="quick-actions"><label>Valor recebido<input className="input" aria-label="Valor recebido" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} /></label><label>Pagamento<select className="input" value={method} onChange={e => setMethod(e.target.value as PaymentMethod)}>{Object.entries(PAYMENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button type="button" className="btn btn-primary" disabled={busy || !amount || !Number.isFinite(parsedAmount) || parsedAmount < 0} onClick={() => run()}>Confirmar finalização</button><button type="button" className="link-button" disabled={busy} onClick={() => setFinishing(false)}>Voltar</button></div>}
-    {contact && phone && <a className="btn whatsapp-button" target="_blank" rel="noreferrer" href={`https://wa.me/${phone.length <= 11 ? "55" : ""}${phone}`}><MessageCircle size={15} aria-hidden="true" /> WhatsApp</a>}
+    {contact && phone && <a className="btn whatsapp-button" target="_blank" rel="noreferrer" href={`https://wa.me/${phone.length <= 11 ? "55" : ""}${phone}`}><WhatsAppIcon size={14} aria-hidden="true" /> WhatsApp</a>}
     {onDetails && <button type="button" className="btn btn-secondary" onClick={onDetails}>Detalhes</button>}
   </div>;
 }
@@ -171,7 +172,7 @@ export function OperationsAvailability({ onNew, date }: { onNew: (prefill: Quick
                 <strong>{w.clientName}</strong>
                 <p>{w.requestedDate.split("-").reverse().join("/")} · {({ any: "Qualquer horário", morning: "Manhã", afternoon: "Tarde", evening: "Noite" } as Record<string,string>)[w.period]}{w.available ? ` · Vaga às ${w.available.startTime}` : " · Aguardando vaga"}</p>
               </div>
-              {w.clientPhone && <a className="btn whatsapp-button" target="_blank" rel="noreferrer" href={`https://wa.me/${w.clientPhone.replace(/\D/g, "").length <= 11 ? "55" : ""}${w.clientPhone.replace(/\D/g, "")}`}><MessageCircle size={15} aria-hidden="true" /> WhatsApp</a>}
+              {w.clientPhone && <a className="btn whatsapp-button" target="_blank" rel="noreferrer" href={`https://wa.me/${w.clientPhone.replace(/\D/g, "").length <= 11 ? "55" : ""}${w.clientPhone.replace(/\D/g, "")}`}><WhatsAppIcon size={14} aria-hidden="true" /> WhatsApp</a>}
             </div>
           ))}
         </section>

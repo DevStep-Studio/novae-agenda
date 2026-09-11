@@ -19,9 +19,9 @@ import {
   CalendarCheck2,
   Briefcase,
   Download,
-  MessageCircle,
   Star,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api, ApiError } from "@/lib/api-client";
 import { MyBookings } from "@/components/booking/my-bookings";
 import type { BookingDetails } from "@/lib/booking/service";
@@ -414,7 +414,7 @@ export function ClientPortal({
                       rel="noopener noreferrer"
                       className={`${styles.actionBtn} whatsapp-button`}
                     >
-                      <MessageCircle size={14} aria-hidden="true" /> Entrar em contato
+                      <WhatsAppIcon size={14} aria-hidden="true" /> Entrar em contato
                     </a>
                   )}
                   <button

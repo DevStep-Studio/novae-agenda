@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
+  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
-  Clock, Clock3, CreditCard, FileText, Globe, Home, Laptop, LogOut, Mail, MapPin,
-  ImagePlus, Menu, MessageCircle, Moon, MoreHorizontal, Palette, Pencil, Phone, Plus, ReceiptText, Scissors, Search,
+  Clock, Clock3, CreditCard, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
+  ImagePlus, Menu, Moon, MoreHorizontal, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon,
 } from "lucide-react";
@@ -32,6 +32,7 @@ import { CashClosingModal } from "@/components/financial/cash-closing-modal";
 import { OnboardingChecklistCard } from "@/components/onboarding/onboarding-checklist";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { NotificationsView } from "@/components/notifications/notifications-view";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 
 type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes" | "notificacoes";
 type CalendarMode = "day" | "week" | "month";
@@ -1022,19 +1023,21 @@ function ClientsPage({
                               )}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="client-whatsapp-btn whatsapp-button"
+                              className="client-whatsapp-btn"
                               title={activeTab === "inactive" ? "Enviar mensagem de reativação no WhatsApp" : "Abrir WhatsApp com o cliente"}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <MessageCircle size={13} className="client-whatsapp-icon" />
+                              <WhatsAppIcon size={14} className="client-whatsapp-icon" />
                               <span>{client.phone}</span>
                             </a>
                           ) : (
                             <span className="client-whatsapp-empty">—</span>
                           )}
                           {hasUpcoming && (
-                            <span className="client-has-upcoming" title="Possui agendamento ativo">
-                              <CalendarDays size={11} /> Agendado
+                            <span className="client-has-upcoming-card" title="Possui agendamento ativo">
+                              <span className="upcoming-dot" />
+                              <CalendarDays size={11} className="upcoming-icon" />
+                              <span>Agendado</span>
                             </span>
                           )}
                         </div>
@@ -1217,14 +1220,14 @@ function ClientDrawer({
           <div className="profile-actions">
             {phone && (
               <a
-                className="profile-btn-whatsapp whatsapp-button"
+                className="profile-btn-whatsapp"
                 href={`https://wa.me/${formatPhoneForWhatsApp(phone)}?text=${encodeURIComponent(
                   `Olá, ${client.name}! Agradecemos a sua preferência na Agenda.`,
                 )}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                <MessageCircle size={15} /> WhatsApp
+                <WhatsAppIcon size={15} /> WhatsApp
               </a>
             )}
             <button
@@ -1521,6 +1524,7 @@ function TeamPage({
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TeamTab>("all");
   const [sortBy, setSortBy] = useState<TeamSort>("appointments-desc");
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeDTO | null>(null);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const currentMonthPrefix = useMemo(() => todayStr.slice(0, 7), [todayStr]);
@@ -1788,6 +1792,15 @@ function TeamPage({
                       </div>
 
                       <div className="modern-team-badges">
+                        <button
+                          type="button"
+                          className="team-edit-pill"
+                          onClick={() => setEditingEmployee(employee)}
+                          title={`Editar dados de ${employee.name}`}
+                        >
+                          <Pencil size={11} />
+                          <span>Editar</span>
+                        </button>
                         <span className={`team-status-badge ${employee.active ? "active" : "inactive"}`}>
                           <span className="team-status-dot" />
                           {employee.active ? "Ativo" : "Inativo"}
@@ -1864,6 +1877,16 @@ function TeamPage({
                         <CalendarDays size={14} />
                         <span>Agenda</span>
                       </button>
+
+                      <button
+                        type="button"
+                        className="modern-team-btn edit"
+                        onClick={() => setEditingEmployee(employee)}
+                        title={`Editar dados de ${employee.name}`}
+                      >
+                        <Pencil size={14} />
+                        <span>Editar</span>
+                      </button>
                     </div>
                   </article>
                 );
@@ -1893,6 +1916,13 @@ function TeamPage({
           )}
         </div>
       </section>
+
+      {editingEmployee && (
+        <EditEmployeeModal
+          employee={editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+        />
+      )}
     </div>
   );
 }
@@ -3586,7 +3616,7 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Adicionar profissional" eyebrow="Pessoas e horários" onClose={onClose} wide>
+    <Modal title="Adicionar profissional" eyebrow="Pessoas e horários" icon={UserPlus} onClose={onClose} wide>
       <form onSubmit={submit}>
         <div className="employee-photo-field">
           <div className="employee-photo-preview" aria-hidden="true">
@@ -3598,72 +3628,295 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
             <div className="employee-photo-actions">
               <input
                 ref={photoInput}
-                className="visually-hidden"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
                 onChange={event => void handlePhoto(event.target.files?.[0])}
               />
               <Button type="button" variant="secondary" disabled={preparingPhoto} onClick={() => photoInput.current?.click()}>
-                <ImagePlus size={16} /> {preparingPhoto ? "Preparando…" : photoUrl ? "Alterar foto" : "Adicionar foto"}
+                <ImagePlus size={15} /> {preparingPhoto ? "Preparando…" : photoUrl ? "Alterar foto" : "Adicionar foto"}
               </Button>
-              {photoUrl && <Button type="button" variant="ghost" onClick={() => setPhotoUrl(null)}><Trash2 size={15} /> Remover</Button>}
+              {photoUrl && <Button type="button" variant="ghost" onClick={() => setPhotoUrl(null)}><Trash2 size={14} /> Remover</Button>}
             </div>
           </div>
         </div>
+
         <div className="modal-form-grid">
-          <Field label="Nome completo"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Beatriz Ramos" required minLength={2} /></Field>
-          <Field label="Cargo ou especialidade"><input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} /></Field>
-          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></Field>
-          <Field label="Serviços que realiza">
+          <Field label="Nome completo" icon={User}>
+            <div className="modal-input-wrap">
+              <User size={17} className="modal-input-icon" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Beatriz Ramos" required minLength={2} />
+            </div>
+          </Field>
+          <Field label="Cargo ou especialidade" icon={Briefcase}>
+            <div className="modal-input-wrap">
+              <Briefcase size={17} className="modal-input-icon" />
+              <input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Ex.: Barbeiro, Cabeleireira" />
+            </div>
+          </Field>
+          <Field label="Telefone / WhatsApp" icon={Phone}>
+            <div className="modal-input-wrap">
+              <Phone size={17} className="modal-input-icon" />
+              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+            </div>
+          </Field>
+          <Field label="Serviços que realiza" icon={Scissors} className="field-full">
             <div className="service-multi-select">
               {services.map((service) => (
-                <button type="button" key={service.id} className={serviceIds.includes(service.id) ? "service-option active" : "service-option"} onClick={() => setServiceIds((current) => current.includes(service.id) ? current.filter((s) => s !== service.id) : [...current, service.id])}>
+                <button
+                  type="button"
+                  key={service.id}
+                  className={serviceIds.includes(service.id) ? "service-option active" : "service-option"}
+                  onClick={() => setServiceIds((current) => current.includes(service.id) ? current.filter((s) => s !== service.id) : [...current, service.id])}
+                >
                   <span>{service.name}</span>
                 </button>
               ))}
-              {services.length === 0 && <span className="field-hint">Cadastre serviços primeiro.</span>}
+              {services.length === 0 && <span className="field-hint">Cadastre serviços primeiro no catálogo.</span>}
             </div>
           </Field>
         </div>
-        <div className="modal-form-grid">
-          <Field label="Acesso ao sistema">
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 400 }}>
+
+        <div className="modal-form-grid" style={{ paddingTop: 0 }}>
+          <Field label="Acesso ao sistema" icon={ShieldCheck} className="field-full">
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500, color: "var(--text-primary)", cursor: "pointer", fontSize: 13, padding: "8px 0" }}>
               <input
                 type="checkbox"
                 checked={grantAccess}
                 onChange={(e) => setGrantAccess(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: "var(--primary)" }}
               />
               Permitir que este profissional acesse o sistema com login próprio
             </label>
           </Field>
           {grantAccess && (
             <>
-              <Field label="E-mail de acesso">
-                <input
-                  className="input"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="profissional@empresa.com"
-                  required={grantAccess}
-                />
+              <Field label="E-mail de acesso" icon={Mail}>
+                <div className="modal-input-wrap">
+                  <Mail size={17} className="modal-input-icon" />
+                  <input
+                    className="input"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="profissional@empresa.com"
+                    required={grantAccess}
+                  />
+                </div>
               </Field>
-              <Field label="Senha inicial">
-                <input
-                  className="input"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  minLength={8}
-                  required={grantAccess}
-                />
-                <span className="field-hint">O profissional poderá trocar a senha depois. Compartilhe esta credencial com segurança.</span>
+              <Field label="Senha inicial" icon={Lock}>
+                <div className="modal-input-wrap">
+                  <Lock size={17} className="modal-input-icon" />
+                  <input
+                    className="input"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Mínimo 8 caracteres"
+                    minLength={8}
+                    required={grantAccess}
+                  />
+                </div>
+                <span className="field-hint">O profissional poderá trocar a senha depois. Compartilhe com segurança.</span>
               </Field>
             </>
           )}
         </div>
-        <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Adicionar</>}</Button></div></div>
+
+        <div className="modal-footer">
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><UserPlus size={16} /> Adicionar</>}</Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClose: () => void }) {
+  const { updateEmployee, deleteEmployee, notify, services } = useStore();
+  const [name, setName] = useState(employee.name);
+  const [jobTitle, setJobTitle] = useState(employee.jobTitle ?? "Profissional");
+  const [phone, setPhone] = useState(employee.phone ?? "");
+  const [active, setActive] = useState(employee.active);
+  const [serviceIds, setServiceIds] = useState<string[]>(employee.serviceIds ?? []);
+  const [commissionType, setCommissionType] = useState<"none" | "percentage" | "fixed">(employee.commissionType ?? "none");
+  const [commissionValue, setCommissionValue] = useState(employee.commissionValue ?? 0);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(employee.photoUrl ?? null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  const handlePhoto = async (file?: File) => {
+    if (!file) return;
+    setPreparingPhoto(true);
+    try {
+      setPhotoUrl(await prepareImageUpload(file, { maxDimension: 512, square: true }));
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Não foi possível preparar a foto.", "error");
+    } finally {
+      setPreparingPhoto(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      await updateEmployee(employee.id, {
+        name,
+        jobTitle: jobTitle || null,
+        phone: phone || null,
+        active,
+        commissionType,
+        commissionValue: commissionType === "none" ? 0 : Number(commissionValue) || 0,
+        serviceIds,
+        photoUrl,
+      });
+      notify("Dados do profissional atualizados com sucesso!");
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Não foi possível atualizar o profissional.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Deseja desativar o profissional ${employee.name}?`)) return;
+    setDeleting(true);
+    try {
+      await deleteEmployee(employee.id);
+      notify("Profissional desativado da equipe.");
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao desativar profissional.", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Modal title="Editar profissional" eyebrow="Pessoas e horários" icon={Pencil} onClose={onClose} wide>
+      <form onSubmit={submit}>
+        <div className="employee-photo-field">
+          <div className="employee-photo-preview" aria-hidden="true">
+            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Profissional")}</span>}
+          </div>
+          <div className="employee-photo-copy">
+            <strong>Foto do profissional</strong>
+            <span>JPG, JPEG, PNG ou WEBP · até 5MB</span>
+            <div className="employee-photo-actions">
+              <input
+                ref={photoInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={(event) => void handlePhoto(event.target.files?.[0])}
+              />
+              <Button type="button" variant="secondary" disabled={preparingPhoto} onClick={() => photoInput.current?.click()}>
+                <ImagePlus size={15} /> {preparingPhoto ? "Preparando…" : photoUrl ? "Alterar foto" : "Adicionar foto"}
+              </Button>
+              {photoUrl && (
+                <Button type="button" variant="ghost" onClick={() => setPhotoUrl(null)}>
+                  <Trash2 size={14} /> Remover
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="modal-form-grid">
+          <Field label="Nome completo" icon={User}>
+            <div className="modal-input-wrap">
+              <User size={17} className="modal-input-icon" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Beatriz Ramos" required minLength={2} />
+            </div>
+          </Field>
+          <Field label="Cargo ou especialidade" icon={Briefcase}>
+            <div className="modal-input-wrap">
+              <Briefcase size={17} className="modal-input-icon" />
+              <input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Ex.: Barbeiro, Cabeleireira" />
+            </div>
+          </Field>
+          <Field label="Telefone / WhatsApp" icon={Phone}>
+            <div className="modal-input-wrap">
+              <Phone size={17} className="modal-input-icon" />
+              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+            </div>
+          </Field>
+          <Field label="Status na equipe" icon={CheckCircle}>
+            <SelectField value={active ? "active" : "inactive"} onChange={(e) => setActive(e.target.value === "active")}>
+              <option value="active">Ativo (recebe agendamentos)</option>
+              <option value="inactive">Inativo (oculto na agenda)</option>
+            </SelectField>
+          </Field>
+        </div>
+
+        <div className="modal-form-grid" style={{ paddingTop: 0 }}>
+          <Field label="Regra de comissão" icon={Percent}>
+            <SelectField value={commissionType} onChange={(e) => setCommissionType(e.target.value as "none" | "percentage" | "fixed")}>
+              <option value="none">Sem comissão (salário fixo / padrão)</option>
+              <option value="percentage">Porcentagem (%) por serviço</option>
+              <option value="fixed">Valor fixo (R$) por atendimento</option>
+            </SelectField>
+          </Field>
+
+          {commissionType !== "none" && (
+            <Field label={commissionType === "percentage" ? "Porcentagem da comissão (%)" : "Valor fixo da comissão (R$)"} icon={commissionType === "percentage" ? Percent : CircleDollarSign}>
+              <div className="modal-input-wrap">
+                {commissionType === "percentage" ? <Percent size={17} className="modal-input-icon" /> : <CircleDollarSign size={17} className="modal-input-icon" />}
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  step={commissionType === "percentage" ? "1" : "0.50"}
+                  value={commissionValue}
+                  onChange={(e) => setCommissionValue(Number(e.target.value))}
+                  placeholder={commissionType === "percentage" ? "Ex.: 40" : "Ex.: 25.00"}
+                  required
+                />
+              </div>
+            </Field>
+          )}
+
+          <Field label="Serviços que realiza" icon={Scissors} className="field-full">
+            <div className="service-multi-select">
+              {services.map((service) => (
+                <button
+                  type="button"
+                  key={service.id}
+                  className={serviceIds.includes(service.id) ? "service-option active" : "service-option"}
+                  onClick={() =>
+                    setServiceIds((current) =>
+                      current.includes(service.id) ? current.filter((s) => s !== service.id) : [...current, service.id]
+                    )
+                  }
+                >
+                  <span>{service.name}</span>
+                </button>
+              ))}
+              {services.length === 0 && <span className="field-hint">Nenhum serviço cadastrado na empresa.</span>}
+            </div>
+          </Field>
+        </div>
+
+        <div className="modal-footer" style={{ marginTop: "16px" }}>
+          <Button type="button" variant="danger" disabled={deleting || submitting} onClick={handleDelete}>
+            <Trash2 size={15} /> Desativar profissional
+          </Button>
+          <div className="modal-actions">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={submitting || deleting}>
+              {submitting ? "Salvando..." : <><Check size={16} /> Salvar alterações</>}
+            </Button>
+          </div>
+        </div>
       </form>
     </Modal>
   );
@@ -3693,16 +3946,46 @@ function NewLocationModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <Modal title="Nova unidade" eyebrow="Multiunidade" onClose={onClose}>
+    <Modal title="Nova unidade" eyebrow="Multiunidade" icon={Building2} onClose={onClose}>
       <form onSubmit={submit}>
         <div className="modal-form-grid">
-          <Field label="Nome da unidade"><input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Unidade Centro" required minLength={2} /></Field>
-          <Field label="Endereço"><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Av. Principal, 100" /></Field>
-          <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3333-4444" /></Field>
-          <Field label="Abertura"><input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} required /></Field>
-          <Field label="Fechamento"><input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} required /></Field>
+          <Field label="Nome da unidade" icon={Building2} className="field-full">
+            <div className="modal-input-wrap">
+              <Building2 size={17} className="modal-input-icon" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Unidade Centro" required minLength={2} />
+            </div>
+          </Field>
+          <Field label="Endereço" icon={MapPin} className="field-full">
+            <div className="modal-input-wrap">
+              <MapPin size={17} className="modal-input-icon" />
+              <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Av. Principal, 100" />
+            </div>
+          </Field>
+          <Field label="Telefone" icon={Phone} className="field-full">
+            <div className="modal-input-wrap">
+              <Phone size={17} className="modal-input-icon" />
+              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3333-4444" />
+            </div>
+          </Field>
+          <Field label="Horário de abertura" icon={Clock}>
+            <div className="modal-input-wrap">
+              <Clock size={17} className="modal-input-icon" />
+              <input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} required />
+            </div>
+          </Field>
+          <Field label="Horário de fechamento" icon={Clock}>
+            <div className="modal-input-wrap">
+              <Clock size={17} className="modal-input-icon" />
+              <input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} required />
+            </div>
+          </Field>
         </div>
-        <div className="modal-footer"><div className="modal-actions"><Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting ? "Criando..." : "Criar unidade"}</Button></div></div>
+        <div className="modal-footer">
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Criando..." : <><Building2 size={16} /> Criar unidade</>}</Button>
+          </div>
+        </div>
       </form>
     </Modal>
   );
@@ -3993,7 +4276,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
           </div>
           {appointment.clientPhone && (
             <a className="whatsapp-button" href={shareUrl} target="_blank" rel="noreferrer">
-              <MessageCircle size={15} /> WhatsApp
+              <WhatsAppIcon size={15} /> WhatsApp
             </a>
           )}
         </div>

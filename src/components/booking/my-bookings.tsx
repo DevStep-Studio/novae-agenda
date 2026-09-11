@@ -13,13 +13,13 @@ import {
   FileText,
   History,
   MapPin,
-  MessageCircle,
   Phone,
   RotateCcw,
   Share2,
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
 import type { BookingDetails } from "@/lib/booking/service";
 import type { PublicCatalog } from "@/lib/booking/catalog";
@@ -556,12 +556,12 @@ export function MyBookings({
                   )}
                   {current.company.phone && (
                     <a
-                      className={`${b.button} ${b.outline}`}
+                      className={`${b.button} ${b.outline} whatsapp-button`}
                       target="_blank"
                       rel="noreferrer"
                       href={`https://wa.me/${current.company.phone.replace(/\D/g, "").length <= 11 ? "55" : ""}${current.company.phone.replace(/\D/g, "")}`}
                     >
-                      <MessageCircle size={15} /> WhatsApp
+                      <WhatsAppIcon size={15} /> WhatsApp
                     </a>
                   )}
                 </div>

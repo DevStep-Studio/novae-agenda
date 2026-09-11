@@ -21,9 +21,9 @@ import {
   ShoppingBag,
   Tag,
   Calendar,
-  MessageCircle,
   Download,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
@@ -446,7 +446,7 @@ export function BookingSettings() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <MessageCircle size={14} />
+                  <WhatsAppIcon size={14} />
                   Enviar no WhatsApp
                 </a>
               </div>

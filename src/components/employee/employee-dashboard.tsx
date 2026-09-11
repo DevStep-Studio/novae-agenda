@@ -7,7 +7,6 @@ import {
   UserCheck,
   Play,
   CheckCircle,
-  MessageCircle,
   LogOut,
   Bell,
   User,
@@ -17,6 +16,7 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { NovaeLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
 import { api } from "@/lib/api-client";
@@ -268,7 +268,7 @@ export function EmployeeDashboard() {
                         <div className={styles.aptMeta}>
                           {apt.clientPhone && (
                             <span className={styles.aptMetaItem}>
-                              <MessageCircle size={13} />
+                              <WhatsAppIcon size={13} />
                               {apt.clientPhone}
                             </span>
                           )}
@@ -286,7 +286,7 @@ export function EmployeeDashboard() {
                             rel="noopener noreferrer"
                             className={`${styles.actionBtn} whatsapp-button`}
                           >
-                            <MessageCircle size={14} />
+                            <WhatsAppIcon size={14} />
                             WhatsApp
                           </a>
                         )}
