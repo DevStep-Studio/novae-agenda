@@ -5968,10 +5968,12 @@ function DayCalendar({
                           "--appointment-color": accentColor,
                         } as React.CSSProperties
                       }
-                      role="group"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onAppointment(apt)}
+                      aria-label={`Detalhes de ${apt.clientName}`}
                       title={`${apt.clientName} · ${apt.serviceName} (${normalizeTime(apt.startTime)} – ${normalizeTime(apt.endTime)})`}
                     >
-                      <button className="timeline-open" onClick={() => onAppointment(apt)} aria-label={`Detalhes de ${apt.clientName}`}>
                       {isCompact ? (
                         <div className="timeline-compact-row">
                           <span className="timeline-time">
@@ -5979,39 +5981,59 @@ function DayCalendar({
                             {normalizeTime(apt.startTime)}
                           </span>
                           <strong className="timeline-client">{apt.clientName}</strong>
-                          <span
-                            className={`timeline-status-dot status-${apt.status}`}
-                            title={STATUS_LABELS[apt.status]}
-                          />
+                          <div className="timeline-header-right" onClick={(e) => e.stopPropagation()}>
+                            <details className="timeline-quick">
+                              <summary className={`timeline-status-pill compact status-${apt.status}`} title={`Status: ${STATUS_LABELS[apt.status]}. Clique para alterar.`}>
+                                <span className={`timeline-status-dot status-${apt.status}`} />
+                              </summary>
+                              <div className="timeline-quick-dropdown">
+                                <QuickStatus appointment={apt} contact={false} />
+                              </div>
+                            </details>
+                          </div>
                         </div>
                       ) : (
-                        <>
+                        <div className="timeline-card-content">
                           <div className="timeline-apt-header">
                             <span className="timeline-time">
                               <Clock size={10} />
                               {normalizeTime(apt.startTime)} – {normalizeTime(apt.endTime)}
                             </span>
-                            <span
-                              className={`timeline-status-dot status-${apt.status}`}
-                              title={STATUS_LABELS[apt.status]}
-                            />
+                            <div className="timeline-header-right" onClick={(e) => e.stopPropagation()}>
+                              <details className="timeline-quick">
+                                <summary className={`timeline-status-pill status-${apt.status}`} title={`Status: ${STATUS_LABELS[apt.status]}. Clique para alterar.`}>
+                                  <span className={`timeline-status-dot status-${apt.status}`} />
+                                  <span className="timeline-status-label">{STATUS_LABELS[apt.status]}</span>
+                                </summary>
+                                <div className="timeline-quick-dropdown">
+                                  <QuickStatus appointment={apt} contact={false} />
+                                </div>
+                              </details>
+                            </div>
                           </div>
 
-                          <strong className="timeline-client">{apt.clientName}</strong>
+                          <div className="timeline-card-body">
+                            <strong className="timeline-client">{apt.clientName}</strong>
+                            {height >= 56 && (
+                              <div className="timeline-service">
+                                <Scissors size={10.5} className="timeline-service-icon" />
+                                <span>{apt.serviceName}</span>
+                              </div>
+                            )}
+                          </div>
 
-                          <span className="timeline-service">{apt.serviceName}</span>
-                          {height >= 68 && (
+                          {height >= 76 && (
                             <div className="timeline-apt-footer">
                               <span className="timeline-price">{formatCurrency(apt.total)}</span>
                               {apt.durationMinutes && (
-                                <span className="timeline-duration">{apt.durationMinutes} min</span>
+                                <span className="timeline-duration">
+                                  <Clock3 size={10} /> {apt.durationMinutes} min
+                                </span>
                               )}
                             </div>
                           )}
-                        </>
+                        </div>
                       )}
-                      </button>
-                      <details className="timeline-quick"><summary>Status</summary><QuickStatus appointment={apt} contact={false} /></details>
                     </div>
                   );
                 })}
