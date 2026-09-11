@@ -1,12 +1,24 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
+  AlertCircle,
+  ArrowLeft,
+  CalendarDays,
   CalendarPlus,
   Check,
+  Clock3,
   ExternalLink,
+  FileText,
+  History,
   MapPin,
+  MessageCircle,
+  Phone,
+  RotateCcw,
   Share2,
+  Sparkles,
+  UserRound,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { BookingDetails } from "@/lib/booking/service";
@@ -18,9 +30,12 @@ import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
 import {
   b,
+  BookingAvatar,
   dateLabel,
+  friendlyTimezone,
   ErrorMessage,
   money,
+  Price,
   PublicFrame,
   Skeleton,
 } from "./primitives";
@@ -68,6 +83,17 @@ export function MyBookings({
   useEffect(() => {
     if (initialUser) setUser(initialUser);
   }, [initialUser]);
+  useEffect(() => {
+    let active = true;
+    api<Customer | null>("/api/my/session")
+      .then((identity) => {
+        if (active && identity) setUser(identity);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     setSelected(q.get("booking") || "");
@@ -161,7 +187,7 @@ export function MyBookings({
       .replace(/[-:]/g, "")
       .replace(/\.\d{3}Z$/, "Z");
   const content = (
-      <Content className={`${b.main} ${current ? b.success : ""}`}>
+      <Content className={`${b.main} ${current ? b.success : ""} ${user && !current ? b.bookingsPage : ""}`}>
         <ErrorMessage message={error} />
         {message && (
           <div className={b.note} role="status">
@@ -169,98 +195,208 @@ export function MyBookings({
           </div>
         )}
         {!user ? (
-          <>
-            <h1 className={b.title}>Seus agendamentos, em um só lugar.</h1>
-            <p className={b.subtitle}>
-              Entre na sua conta para acompanhar seus próximos horários.
-            </p>
-            <CustomerAuth onReady={onReady} requireVerified={false} />
-          </>
-        ) : loading ? (
-          <Skeleton label="Buscando seus agendamentos…" />
-        ) : current ? (
-          <>
-            {confirmed && (
-              <div className={b.successMark}>
-                <Check size={30} />
+          <div className={b.authContainer}>
+            <div className={b.authHero}>
+              <div className={b.authHeroIcon}>
+                <UserRound size={26} />
               </div>
+              <span className={b.authHeroBadge}>Área do Cliente</span>
+              <h1 className={b.title}>Seus agendamentos em um só lugar</h1>
+              <p className={b.subtitle}>
+                Entre na sua conta para acompanhar seus próximos horários, histórico e alterações.
+              </p>
+            </div>
+            <CustomerAuth onReady={onReady} requireVerified={false} />
+          </div>
+        ) : loading ? (
+          <div className={b.detailContainer}>
+            <Skeleton label="Buscando seus agendamentos…" />
+          </div>
+        ) : current ? (
+          <div className={b.detailContainer}>
+            {confirmed ? (
+              <div className={b.detailHero}>
+                <div className={b.detailCheckWrap}>
+                  <Check size={34} strokeWidth={2.5} />
+                </div>
+                <span className={b.detailBadge}>
+                  <Sparkles size={13} />
+                  Está tudo certo
+                </span>
+                <h1 className={b.detailTitle}>Agendamento confirmado!</h1>
+                <p className={b.detailSubtitle}>
+                  Seu horário está reservado. Esperamos você no estabelecimento!
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className={b.detailTopNav}>
+                  <button
+                    type="button"
+                    className={b.backLink}
+                    onClick={() => {
+                      setSelected("");
+                      setAction(null);
+                      window.history.replaceState({}, "", "/meus-agendamentos");
+                    }}
+                  >
+                    <ArrowLeft size={16} /> Voltar para meus agendamentos
+                  </button>
+                </div>
+                <div className={b.detailHeroCompact}>
+                  <span className={b.detailBadge}>
+                    <CalendarDays size={13} />
+                    Seu próximo encontro
+                  </span>
+                  <h1 className={b.detailTitle}>Detalhes do agendamento</h1>
+                  <p className={b.detailSubtitle}>{current.company.name}</p>
+                </div>
+              </>
             )}
-            <p className={b.eyebrow}>
-              {confirmed ? "Está tudo certo" : "Seu próximo encontro"}
-            </p>
-            <h1 className={b.title}>
-              {confirmed
-                ? "Agendamento confirmado!"
-                : "Detalhes do agendamento"}
-            </h1>
-            <p className={b.subtitle}>
-              {confirmed
-                ? "Seu horário está reservado. Esperamos você!"
-                : current.company.name}
-            </p>
-            <article className={b.detail}>
-              <div className={b.row}>
-                <h2>{current.company.name}</h2>
-                <span className={b.status}>
-                  {STATUS_LABELS[current.status as AppointmentStatus] ??
-                    current.status}
+
+            <article className={b.detailCard}>
+              <div className={b.detailCardHeader}>
+                <div className={b.detailCompanyInfo}>
+                  {current.company.logoUrl ? (
+                    <img
+                      src={current.company.logoUrl}
+                      alt={current.company.name}
+                      className={b.detailCompanyAvatar}
+                    />
+                  ) : (
+                    <span className={b.detailCompanyAvatar}>
+                      {current.company.name.slice(0, 1)}
+                    </span>
+                  )}
+                  <div>
+                    <h2 className={b.detailCompanyName}>{current.company.name}</h2>
+                    {current.company.businessType && (
+                      <span className={b.detailCompanyCategory}>
+                        {current.company.businessType}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className={b.bookingStatus}>
+                  {STATUS_LABELS[current.status as AppointmentStatus] ?? current.status}
                 </span>
               </div>
-              <strong>
-                {dateLabel(
-                  current.items[0]?.date ?? current.startsAt.slice(0, 10),
-                )}
-              </strong>
-              <p>
-                {current.items[0]?.startTime.slice(0, 5)}–
-                {current.items.at(-1)?.endTime.slice(0, 5)} · {current.timezone}
-              </p>
-              {current.company.address && (
-                <p className={`${b.muted} ${b.inline}`}>
-                  <MapPin size={15} />
-                  {current.company.address}
-                </p>
-              )}
-              <hr />
-              {current.items.map((i) => (
-                <div className={b.summaryItem} key={i.id}>
-                  <div className={b.row}>
-                    <strong>{i.name}</strong>
-                    <span>{money(i.price)}</span>
+
+              <div className={b.detailHighlightBox}>
+                <div className={b.detailHighlightRow}>
+                  <CalendarDays size={18} />
+                  <div>
+                    <small>Data</small>
+                    <strong>
+                      {dateLabel(
+                        current.items[0]?.date ?? current.startsAt.slice(0, 10),
+                      )}
+                    </strong>
                   </div>
-                  <span className={b.muted}>
-                    {i.employeeName} · {i.startTime.slice(0, 5)}–
-                    {i.endTime.slice(0, 5)}
-                  </span>
                 </div>
-              ))}
-              {current.products.map((p) => (
-                <div className={b.row} key={p.productId}>
-                  <span>
-                    {p.quantity} × {p.name}
-                  </span>
-                  <span>{money(Number(p.unitPrice) * p.quantity)}</span>
+                <div className={b.detailHighlightRow}>
+                  <Clock3 size={18} />
+                  <div>
+                    <small>Horário</small>
+                    <strong>
+                      {current.items[0]?.startTime.slice(0, 5)} –{" "}
+                      {current.items.at(-1)?.endTime.slice(0, 5)}
+                      <span className={b.detailTimezone}>
+                        {" "}· {friendlyTimezone(current.timezone)}
+                      </span>
+                    </strong>
+                  </div>
                 </div>
-              ))}
-              {Number(current.discount) > 0 && (
-                <p>Desconto: −{money(current.discount)}</p>
-              )}
-              <div className={b.total}>
-                <span>Total</span>
-                <strong>{money(current.total)}</strong>
+                {current.company.address && (
+                  <div className={b.detailHighlightRow}>
+                    <MapPin size={18} />
+                    <div>
+                      <small>Endereço</small>
+                      <strong>{current.company.address}</strong>
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className={b.muted}>Pagamento no atendimento</p>
+
+              <div className={b.detailSection}>
+                <span className={b.detailSectionTitle}>Serviço(s) selecionado(s)</span>
+                <div className={b.detailItemsList}>
+                  {current.items.map((i) => (
+                    <div className={b.detailItemRow} key={i.id}>
+                      <div className={b.detailItemProfessional}>
+                        <BookingAvatar
+                          name={i.employeeName}
+                          src={i.employeePhotoUrl}
+                          size="sm"
+                        />
+                        <div>
+                          <strong>{i.name}</strong>
+                          <small>
+                            {i.employeeName} · {i.employeeJobTitle || "Profissional"}
+                          </small>
+                        </div>
+                      </div>
+                      <div className={b.detailItemRight}>
+                        <span className={b.detailItemTime}>
+                          {i.startTime.slice(0, 5)} – {i.endTime.slice(0, 5)}
+                        </span>
+                        <Price amount={i.price} className={b.detailItemPrice} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {current.products.length > 0 && (
+                <div className={b.detailProductsList}>
+                  {current.products.map((p) => (
+                    <div className={b.detailProductRow} key={p.productId}>
+                      <span>
+                        {p.quantity} × {p.name}
+                      </span>
+                      <span>{money(Number(p.unitPrice) * p.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {Number(current.discount) > 0 && (
+                <div className={b.detailDiscountRow}>
+                  <span>Desconto</span>
+                  <span className={b.detailDiscountValue}>
+                    −{money(current.discount)}
+                  </span>
+                </div>
+              )}
+
+              <div className={b.detailTotalBox}>
+                <div className={b.detailTotalLabel}>
+                  <span>Total da reserva</span>
+                  <small>Pagamento no atendimento</small>
+                </div>
+                <strong className={b.detailTotalPrice}>{money(current.total)}</strong>
+              </div>
+
               {current.notes && (
-                <>
-                  <hr />
-                  <strong>Sua observação</strong>
-                  <p>{current.notes}</p>
-                </>
+                <div className={b.detailNotesBox}>
+                  <div className={b.detailNotesHeader}>
+                    <FileText size={14} />
+                    <span>Sua observação</span>
+                  </div>
+                  <p className={b.detailNotesText}>{current.notes}</p>
+                </div>
               )}
             </article>
+
             {action === "reschedule" && catalog ? (
-              <div className={b.detail}>
-                <h2>Escolha seu novo horário</h2>
+              <div className={b.detailCard}>
+                <div className={b.rescheduleHeader}>
+                  <RotateCcw size={20} />
+                  <div>
+                    <h3>Escolha seu novo horário</h3>
+                    <p>Selecione uma data e horário disponível para remarcar seu atendimento.</p>
+                  </div>
+                </div>
                 <AvailabilityPicker
                   slug={catalog.company.slug}
                   locationId={current.locationId}
@@ -276,42 +412,52 @@ export function MyBookings({
                   onSelect={setSlot}
                   bookingId={current.id}
                 />
-                <button
-                  className={`${b.button} ${b.wide}`}
-                  disabled={!slot || busy}
-                  onClick={change}
-                >
-                  {busy ? "Remarcando…" : "Confirmar novo horário"}
-                </button>
-                <button
-                  className={b.textButton}
-                  onClick={() => setAction(null)}
-                >
-                  Manter meu horário atual
-                </button>
+                <div className={b.rescheduleActions}>
+                  <button
+                    className={`${b.button} ${b.wide}`}
+                    disabled={!slot || busy}
+                    onClick={change}
+                  >
+                    {busy ? "Remarcando…" : "Confirmar novo horário"}
+                  </button>
+                  <button
+                    className={`${b.button} ${b.outline} ${b.wide}`}
+                    onClick={() => setAction(null)}
+                  >
+                    Manter meu horário atual
+                  </button>
+                </div>
               </div>
             ) : action === "cancel" ? (
-              <div className={b.note}>
-                <strong>Cancelar este agendamento?</strong>
-                <p>O horário será liberado para outras pessoas.</p>
-                <div className={b.inline}>
-                  <button className={b.button} disabled={busy} onClick={change}>
-                    {busy ? "Cancelando…" : "Sim, cancelar agendamento"}
+              <div className={b.cancelPromptCard}>
+                <div className={b.cancelPromptIcon}>
+                  <AlertCircle size={28} />
+                </div>
+                <h3>Cancelar este agendamento?</h3>
+                <p>O horário será liberado imediatamente para outras pessoas no estabelecimento.</p>
+                <div className={b.cancelPromptActions}>
+                  <button
+                    className={`${b.button} ${b.cancelButtonDanger}`}
+                    disabled={busy}
+                    onClick={change}
+                  >
+                    {busy ? "Cancelando…" : "Sim, confirmar cancelamento"}
                   </button>
                   <button
                     className={`${b.button} ${b.outline}`}
                     onClick={() => setAction(null)}
                   >
-                    Manter agendamento
+                    Não, manter agendamento
                   </button>
                 </div>
               </div>
             ) : (
-              <>
-                <div className={b.inline}>
+              <div className={b.detailActionsGroup}>
+                <div className={b.detailActionRow}>
                   <a
-                    className={b.button}
+                    className={`${b.button} ${b.calendarPrimaryBtn}`}
                     href={`/api/my/bookings/${current.id}/calendar`}
+                    title="Baixar arquivo de calendário (.ics)"
                   >
                     <CalendarPlus size={16} /> Adicionar ao calendário
                   </a>
@@ -347,44 +493,84 @@ export function MyBookings({
                     <Share2 size={15} /> Compartilhar
                   </button>
                 </div>
-                <p className={b.muted}>
-                  O arquivo de calendário também funciona no Apple Calendar e
-                  Outlook.
+                <p className={b.calendarHintText}>
+                  Compatível com Apple Calendar, Google Calendar e Outlook.
                 </p>
-                <div className={b.note}>
-                  <strong>Política de alterações</strong>
-                  <p>
-                    {current.company.cancellationHours < 0
-                      ? "Cancelamento e remarcação diretamente com o estabelecimento."
-                      : `Cancele ou remarque até ${current.company.cancellationHours} horas antes do atendimento.`}
-                  </p>
+
+                <div className={b.detailPolicyBox}>
+                  <AlertCircle size={18} />
+                  <div>
+                    <strong>Política de alterações</strong>
+                    <p>
+                      {current.company.cancellationHours < 0
+                        ? "Cancelamento e remarcação diretamente com o estabelecimento."
+                        : `Você pode cancelar ou remarcar seu atendimento gratuitamente até ${current.company.cancellationHours} horas antes do horário reservado.`}
+                    </p>
+                  </div>
                 </div>
+
                 {current.canChange && (
-                  <div className={b.inline}>
+                  <div className={b.detailActionRow}>
                     <button
                       className={`${b.button} ${b.outline}`}
                       disabled={busy}
                       onClick={() => reschedule()}
                     >
-                      Remarcar
+                      <RotateCcw size={15} /> Remarcar horário
                     </button>
                     <button
-                      className={b.textButton}
+                      className={`${b.button} ${b.cancelOutlineBtn}`}
                       onClick={() => setAction("cancel")}
                     >
                       Cancelar agendamento
                     </button>
                   </div>
                 )}
-                <div className={b.inline}>
-                  {current.status === "completed" && <button className={b.button} onClick={() => repeat(current)}>Agendar novamente</button>}
-                  {current.company.address && <a className={`${b.button} ${b.outline}`} target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(current.company.address)}`}>Como chegar</a>}
-                  {current.company.phone && <a className={`${b.button} ${b.outline}`} href={`tel:${current.company.phone.replace(/[^+\d]/g, "")}`}>Entrar em contato</a>}
+
+                <div className={b.detailActionRow}>
+                  {current.status === "completed" && (
+                    <button
+                      className={`${b.button} ${b.outline}`}
+                      onClick={() => repeat(current)}
+                    >
+                      <RotateCcw size={15} /> Agendar novamente
+                    </button>
+                  )}
+                  {current.company.address && (
+                    <a
+                      className={`${b.button} ${b.outline}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(current.company.address)}`}
+                    >
+                      <MapPin size={15} /> Como chegar
+                    </a>
+                  )}
+                  {current.company.phone && (
+                    <a
+                      className={`${b.button} ${b.outline}`}
+                      href={`tel:${current.company.phone.replace(/[^+\d]/g, "")}`}
+                    >
+                      <Phone size={15} /> Entrar em contato
+                    </a>
+                  )}
+                  {current.company.phone && (
+                    <a
+                      className={`${b.button} ${b.outline}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      href={`https://wa.me/${current.company.phone.replace(/\D/g, "").length <= 11 ? "55" : ""}${current.company.phone.replace(/\D/g, "")}`}
+                    >
+                      <MessageCircle size={15} /> WhatsApp
+                    </a>
+                  )}
                 </div>
-              </>
+              </div>
             )}
+
             <button
-              className={b.textButton}
+              type="button"
+              className={b.detailBackLink}
               onClick={() => {
                 setSelected("");
                 setConfirmed(false);
@@ -392,19 +578,21 @@ export function MyBookings({
                 window.history.replaceState({}, "", "/meus-agendamentos");
               }}
             >
-              Ver todos os meus agendamentos
+              <ArrowLeft size={16} /> Ver todos os meus agendamentos
             </button>
-          </>
+          </div>
         ) : (
+
           <>
-            <div className={b.row}>
+            <header className={b.bookingsHeader}>
               <div>
                 <p className={b.eyebrow}>Olá, {user.name.split(" ")[0]}</p>
                 <h1 className={b.title}>Meus agendamentos</h1>
+                <p className={b.subtitle}>Gerencie seus próximos horários e consulte seu histórico.</p>
               </div>
               {!embedded && (
                 <button
-                  className={b.textButton}
+                  className={`${b.button} ${b.outline} ${b.small}`}
                   onClick={async () => {
                     await api("/api/auth/logout", { method: "POST" });
                     setUser(null);
@@ -414,64 +602,105 @@ export function MyBookings({
                   Sair
                 </button>
               )}
-            </div>
-            <div className={b.periods}>
+            </header>
+            <div className={b.bookingTabs} role="tablist" aria-label="Filtrar agendamentos">
               {["Próximos", "Anteriores", "Cancelados"].map((t) => (
                 <button
-                  className={`${b.pill} ${tab === t ? b.selected : ""}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t}
+                  className={`${b.bookingTab} ${tab === t ? b.bookingTabActive : ""}`}
                   key={t}
                   onClick={() => setTab(t)}
                 >
                   {t}
+                  <span>{rows.filter((row) => t === "Cancelados" ? row.status === "cancelled" : t === "Anteriores" ? row.status !== "cancelled" && (new Date(row.endsAt) < new Date() || row.status === "completed" || row.status === "no_show") : row.status !== "cancelled" && row.status !== "completed" && row.status !== "no_show" && new Date(row.endsAt) >= new Date()).length}</span>
                 </button>
               ))}
             </div>
             {visible.length ? (
-              visible.map((r, index) => (
-                <article className={b.detail} key={r.id} style={tab === "Próximos" && index === 0 ? { borderColor: "var(--primary)", borderWidth: 2 } : undefined}>
-                  {tab === "Próximos" && index === 0 && <p className={b.eyebrow}>Próximo atendimento</p>}
-                  <div className={b.row}>
-                    <div>
-                      <p className={b.eyebrow}>
-                        {dateLabel(r.items[0]?.date ?? r.startsAt.slice(0, 10))}
-                      </p>
-                      <h2>{r.items.map((i) => i.name).join(" + ")}</h2>
-                      <p className={b.muted}>
-                        {r.company.name} · {r.items[0]?.startTime.slice(0, 5)}
-                      </p>
-                      <p className={b.muted}>{r.items.map(i => i.employeeName).join(" · ")}</p>
-                      {r.company.address && <p className={b.muted}>{r.company.address}</p>}
-                      <p>{STATUS_LABELS[r.status as AppointmentStatus]}</p>
-                      <strong>{money(r.total)}</strong>
-                    </div>
-                    <button
-                      className={`${b.button} ${b.outline}`}
-                      onClick={() => setSelected(r.id)}
-                    >
-                      Detalhes
-                    </button>
-                  </div>
-                  <div className={b.inline}>
-                    {r.canChange && <><button className={b.button} disabled={busy} onClick={() => reschedule(r)}>Remarcar</button><button className={b.textButton} onClick={() => { setSelected(r.id); setAction("cancel"); }}>Cancelar</button></>}
-                    <a className={b.textButton} href={`/api/my/bookings/${r.id}/calendar`}>Adicionar ao calendário</a>
-                    {r.company.address && <a className={b.textButton} target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.company.address)}`}>Como chegar</a>}
-                    {r.company.phone && <a className={b.textButton} href={`tel:${r.company.phone.replace(/[^+\d]/g, "")}`}>Entrar em contato</a>}
-                    {r.status === "completed" && <button className={b.button} onClick={() => repeat(r)}>Agendar novamente</button>}
-                  </div>
-                </article>
-              ))
+              <div className={b.bookingCards}>
+                {visible.map((r, index) => {
+                  const featured = tab === "Próximos" && index === 0;
+                  const firstItem = r.items[0];
+                  const bookingDate = firstItem?.date ?? r.startsAt.slice(0, 10);
+                  const dateParts = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).formatToParts(new Date(`${bookingDate}T12:00:00Z`));
+                  const day = dateParts.find((part) => part.type === "day")?.value;
+                  const month = dateParts.find((part) => part.type === "month")?.value.replace(".", "");
+                  return (
+                    <article className={featured ? b.featuredBookingCard : b.bookingCardCompact} key={r.id} style={{ "--card-brand": r.company.color } as React.CSSProperties}>
+                      <div className={b.bookingDateBlock}>
+                        <span>{day}</span>
+                        <strong>{month}</strong>
+                      </div>
+                      <div className={b.bookingCardBody}>
+                        {featured && <p className={b.bookingKicker}><CalendarDays size={14} /> Próximo agendamento</p>}
+                        <div className={b.bookingCardTitleRow}>
+                          <div>
+                            <p className={b.bookingFullDate}>{dateLabel(bookingDate)}</p>
+                            <h2>{r.items.map((item) => item.name).join(" + ")}</h2>
+                          </div>
+                          <span className={b.bookingStatus}>{STATUS_LABELS[r.status as AppointmentStatus] ?? r.status}</span>
+                        </div>
+                        <div className={b.bookingCardMeta}>
+                          <span><Clock3 size={15} /> {firstItem?.startTime.slice(0, 5)} – {r.items.at(-1)?.endTime.slice(0, 5)}</span>
+                          <span className={b.bookingProfessional}>
+                            <BookingAvatar name={firstItem?.employeeName || "Profissional"} src={firstItem?.employeePhotoUrl} size="sm" />
+                            <span><strong>{firstItem?.employeeName}</strong><small>{firstItem?.employeeJobTitle || "Profissional"}</small></span>
+                          </span>
+                          <span className={b.bookingCompany}>
+                            {r.company.logoUrl ? <img src={r.company.logoUrl} alt="" /> : <span>{r.company.name.slice(0, 1)}</span>}
+                            <strong>{r.company.name}</strong>
+                          </span>
+                          {featured && r.company.address && <span><MapPin size={15} /> {r.company.address}</span>}
+                        </div>
+                        <div className={b.bookingCardFooter}>
+                          <Price amount={r.total} className={b.bookingCardPrice} />
+                          <div className={b.bookingPrimaryActions}>
+                            <button className={`${b.button} ${b.outline}`} onClick={() => setSelected(r.id)}>Ver detalhes</button>
+                            {r.canChange && <button className={b.textButton} disabled={busy} onClick={() => reschedule(r)}>Remarcar</button>}
+                            {r.canChange && <button className={b.textButton} onClick={() => { setSelected(r.id); setAction("cancel"); }}>Cancelar</button>}
+                            {r.status === "completed" && <button className={b.button} onClick={() => repeat(r)}><RotateCcw size={15} /> Agendar novamente</button>}
+                          </div>
+                        </div>
+                        {featured && (
+                          <div className={b.bookingUtilityActions}>
+                            <a href={`/api/my/bookings/${r.id}/calendar`}><CalendarPlus size={15} /> Adicionar ao calendário</a>
+                            {r.company.address && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.company.address)}`}><MapPin size={15} /> Como chegar</a>}
+                            {r.company.phone && <a href={`tel:${r.company.phone.replace(/[^+\d]/g, "")}`}>Entrar em contato</a>}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             ) : (
-              <div className={b.empty}>
-                <h3>Nenhum agendamento por aqui.</h3>
+              <div className={b.bookingsEmpty}>
+                {tab === "Próximos" ? <CalendarDays size={28} /> : <History size={28} />}
+                <h3>{tab === "Próximos" ? "Nenhum agendamento futuro." : "Nenhum agendamento por aqui."}</h3>
                 <p>
-                  Suas reservas aparecerão nesta página assim que forem
-                  confirmadas.
+                  {tab === "Próximos" ? "Quando você reservar um horário, ele aparecerá aqui." : "Seu histórico aparecerá aqui quando houver registros."}
                 </p>
+                {tab === "Próximos" && <Link href="/" className={b.button}>Agendar horário</Link>}
               </div>
             )}
           </>
         )}
       </Content>
   );
-  return embedded ? content : <PublicFrame>{content}</PublicFrame>;
+  return embedded ? content : (
+    <PublicFrame
+      color={current?.company.color}
+      company={current ? {
+        name: current.company.name,
+        category: current.company.businessType,
+        logoUrl: current.company.logoUrl,
+        slug: current.company.slug ?? undefined,
+        address: current.company.address,
+      } : undefined}
+    >
+      {content}
+    </PublicFrame>
+  );
 }
