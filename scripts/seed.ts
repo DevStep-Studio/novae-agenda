@@ -71,14 +71,16 @@ async function seed() {
     await db.insert(users).values({
       id: adminId,
       companyId: company.id,
-      name: "Administrador (Camila Almeida)",
+      name: "Administrador (Lucas Ferreira)",
       email: "admin@studioprime.com.br",
       passwordHash: defaultPasswordHash,
-      role: "owner",
+      role: "admin",
       active: true,
       ...verified,
     });
     [adminUser] = await db.select().from(users).where(eq(users.id, adminId)).limit(1);
+  } else {
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, adminUser.id));
   }
 
   // Also maintain dono@studioprime.com.br
@@ -369,11 +371,17 @@ async function seed() {
     console.log(`  ${demos.length} atendimentos de demonstração criados.`);
   }
 
-  console.log("Seed executado com sucesso!");
-  console.log({
-    admin: adminUser.email,
-    user: normalUser.email,
-  });
+  console.log("\n✅ Seed executado com sucesso!");
+  console.log("---------------------------------------------------------------------------------");
+  console.log("NÍVEL          | E-MAIL                         | SENHA    | PORTAL");
+  console.log("---------------------------------------------------------------------------------");
+  console.log("Superadmin (5) | superadmin@novae.app           | senha123 | /admin");
+  console.log("Owner (4)      | dono@studioprime.com.br        | senha123 | /gestao");
+  console.log("Admin (3)      | admin@studioprime.com.br       | senha123 | /gestao");
+  console.log("Manager (2)    | usuario@studioprime.com.br     | senha123 | /gestao");
+  console.log("Employee (1)   | funcionario@studioprime.com.br | senha123 | /profissional");
+  console.log("Client (0)     | cliente@email.com              | senha123 | /cliente");
+  console.log("---------------------------------------------------------------------------------\n");
 }
 
 seed()
