@@ -581,19 +581,17 @@ a[style*="--brand-lime"] svg,
   gap: 18px;
   margin-top: 14px;
   padding: 18px 20px;
-  border-radius: var(--radius-md);
-  background: var(--surface-secondary);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--primary);
+  border-radius: 12px;
+  background: var(--surface-secondary, #11141c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   box-shadow: none !important;
   transition: border-color 0.2s ease, background 0.2s ease;
   position: relative;
   overflow: hidden;
 }
 .next-appointment:hover {
-  border-color: var(--border-hover);
-  border-left-color: var(--primary);
-  background: var(--surface-hover);
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+  background: var(--surface-hover, #151924);
   box-shadow: none !important;
 }
 
@@ -614,13 +612,19 @@ a[style*="--brand-lime"] svg,
   gap: 4px;
   padding: 2px 7px;
   border-radius: 4px;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: rgba(220, 255, 76, 0.1);
+  color: var(--primary, #dcff4c);
+  border: 1px solid rgba(220, 255, 76, 0.2);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1;
+}
+:root:not([data-theme="dark"]) .next-time-badge {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #a7f3d0;
 }
 .next-time strong {
   font: 700 24px/1 "Plus Jakarta Sans", sans-serif;
@@ -657,11 +661,11 @@ a[style*="--brand-lime"] svg,
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: var(--primary);
-  border: 2px solid var(--surface);
+  background: #10b981;
+  border: 2px solid var(--surface-secondary, #11141c);
   box-shadow: none !important;
 }
 
@@ -673,7 +677,7 @@ a[style*="--brand-lime"] svg,
 }
 .next-client-name {
   margin: 0;
-  font: 700 15px/1.2 "Plus Jakarta Sans", sans-serif;
+  font: 600 15px/1.25 "Plus Jakarta Sans", sans-serif;
   color: var(--text-primary);
   letter-spacing: -0.2px;
   display: -webkit-box;
@@ -683,19 +687,22 @@ a[style*="--brand-lime"] svg,
 }
 .next-service-name {
   margin: 0;
-  color: var(--primary);
+  color: var(--text-secondary, #94a3b8);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+:root:not([data-theme="dark"]) .next-service-name {
+  color: #64748b;
 }
 .next-professional {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: var(--text-secondary);
-  font-size: 11px;
+  color: var(--text-muted, #7c8594);
+  font-size: 11.5px;
   font-weight: 500;
   margin-top: 1px;
 }
@@ -712,7 +719,7 @@ a[style*="--brand-lime"] svg,
   gap: 10px;
   min-width: 0;
   padding-left: 18px;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--border, rgba(255, 255, 255, 0.06));
   text-align: right;
 }
 .next-price-summary {
@@ -743,10 +750,13 @@ a[style*="--brand-lime"] svg,
 .next-price > .quick-actions {
   justify-content: flex-end;
   margin-top: 0;
+  gap: 6px;
 }
 .next-price .quick-actions .btn {
-  min-height: 32px;
+  min-height: 28px;
+  height: 28px;
   padding-inline: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -754,7 +764,6 @@ a[style*="--brand-lime"] svg,
 :root:not([data-theme="dark"]) .next-appointment {
   background: var(--surface);
   border-color: var(--border);
-  border-left-color: var(--primary);
   box-shadow: none !important;
 }
 
@@ -769,8 +778,8 @@ a[style*="--brand-lime"] svg,
   display: flex;
   align-items: stretch;
   min-height: 125px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none !important;
+  transition: border-color 0.2s ease;
 }
 .dashboard-banner-card:hover {
   border-color: rgba(220, 255, 76, 0.25);
@@ -1072,16 +1081,17 @@ a[style*="--brand-lime"] svg,
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-weight: 700;
+  font-weight: 600;
   flex: 0 0 auto;
   overflow: hidden;
   user-select: none;
   background-color: var(--surface-secondary);
-  border: 1.5px solid rgba(220, 255, 76, 0.2);
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--border);
+  box-shadow: none !important;
+  transition: border-color 0.2s ease;
 }
 .avatar:hover {
-  border-color: rgba(220, 255, 76, 0.45);
+  border-color: var(--border-hover);
 }
 .avatar-sm { width: 30px; height: 30px; font-size: 10px; }
 .avatar-md { width: 38px; height: 38px; font-size: 11px; }
@@ -1101,20 +1111,32 @@ a[style*="--brand-lime"] svg,
   justify-content: center;
   width: 100%;
   height: 100%;
-  font-weight: 700;
-  color: #12231b;
+  font-weight: 600;
   letter-spacing: 0.5px;
 }
-:root[data-theme="dark"] .avatar-initials {
-  color: #dcff4c;
+:root[data-theme="dark"] .avatar:not(.avatar--photo) {
+  background-color: #181d28 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
+:root[data-theme="dark"] .avatar-initials {
+  color: #f1f5f9 !important;
+}
+:root:not([data-theme="dark"]) .avatar:not(.avatar--photo) {
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+:root:not([data-theme="dark"]) .avatar-initials {
+  color: #1e293b !important;
+}
+
 .status-badge { display: inline-flex; align-items: center; gap: 5px; width: max-content; border-radius: 5px; padding: 4px 7px; font-size: 10px; font-weight: 600; white-space: nowrap; }
 .status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .status-scheduled { color: var(--info); background: var(--info-soft); }
 .status-confirmed { color: var(--success); background: var(--success-soft); }
 .status-waiting { color: var(--warning); background: var(--warning-soft); }
 .status-progress { color: var(--purple); background: var(--purple-soft); }
-.status-finished { color: var(--primary); background: var(--primary-soft); }
+.status-finished { color: #86efac; background: rgba(34, 197, 94, 0.12); }
+:root:not([data-theme="dark"]) .status-finished { color: #166534; background: #dcfce7; }
 .status-cancelled { color: var(--danger); background: var(--danger-soft); }
 .summary-progress { margin: 24px 0 22px; }
 .progress-label { display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 11px; }
@@ -1126,7 +1148,8 @@ a[style*="--brand-lime"] svg,
 .summary-list > div strong { margin-left: auto; color: var(--text-primary); font-weight: 600; }
 .summary-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; }
 .summary-icon.green { color: var(--success); background: var(--success-soft); }.summary-icon.yellow { color: var(--warning); background: var(--warning-soft); }.summary-icon.blue { color: var(--info); background: var(--info-soft); }
-.summary-footer { width: 100%; display: flex; align-items: center; gap: 8px; margin: 18px 0 0; padding: 12px 0 0; border: 0; border-top: 1px solid var(--border); color: var(--primary); background: transparent; font-size: 11px; text-align: left; }.summary-footer svg:last-child { margin-left: auto; }
+.summary-footer { width: 100%; display: flex; align-items: center; gap: 8px; margin: 18px 0 0; padding: 12px 0 0; border: 0; border-top: 1px solid var(--border); color: var(--text-secondary, #94a3b8); background: transparent; font-size: 11px; text-align: left; cursor: pointer; transition: color 0.15s ease; }.summary-footer:hover { color: var(--primary); }.summary-footer svg:last-child { margin-left: auto; }
+
 /* ===== Appointment Card (Grid / Today List) ===== */
 .appointment-list {
   display: grid;
@@ -1134,27 +1157,65 @@ a[style*="--brand-lime"] svg,
   gap: 16px;
   margin-top: 18px;
 }
+.appointment-group-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.appointment-eyebrow {
+  margin: 0 0 8px 2px;
+  color: var(--text-muted, #64748b);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.appointment-eyebrow.eyebrow-active {
+  color: var(--primary, #dcff4c);
+}
+:root:not([data-theme="dark"]) .appointment-eyebrow.eyebrow-active {
+  color: #059669;
+}
+
 .appointment-card {
   width: 100%;
   min-width: 0;
-  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
   border-radius: 12px;
-  background: var(--surface-secondary, #10141d);
-  border: 1px solid var(--border, #1f242e);
-  border-left: 3.5px solid var(--appointment-color, var(--primary, #dcff4c));
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  background: var(--surface-secondary, #11141c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  box-shadow: none !important;
   color: var(--text-primary);
   text-align: left;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease;
-  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
   position: relative;
   overflow: hidden;
 }
 .appointment-card:hover {
-  transform: translateY(-2px);
-  background: #141924;
-  border-color: var(--border-hover, #313c54);
-  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover, #151924);
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.18));
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.appointment-card-body {
+  padding: 16px 16px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  text-align: left;
+  background: transparent;
+  border: none;
+  width: 100%;
+  outline: none;
+}
+.appointment-card-body:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 12px 12px 0 0;
 }
 
 .appointment-card-top {
@@ -1162,7 +1223,7 @@ a[style*="--brand-lime"] svg,
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 .appointment-time {
   font: 700 15px/1 "Plus Jakarta Sans", sans-serif;
@@ -1186,28 +1247,28 @@ a[style*="--brand-lime"] svg,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 700 14px/1.25 "Plus Jakarta Sans", sans-serif;
+  font: 600 14px/1.25 "Plus Jakarta Sans", sans-serif;
   color: var(--text-primary, #ffffff);
 }
 .appointment-client small {
-  color: var(--primary, #dcff4c);
+  color: var(--text-secondary, #94a3b8);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
 }
 :root:not([data-theme="dark"]) .appointment-client small {
-  color: var(--primary, #059669);
+  color: #64748b;
 }
 
 .appointment-meta {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 2px;
   padding-top: 10px;
-  border-top: 1px solid var(--border, #1f242e);
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
   color: var(--text-muted, #7c8594);
   font-size: 11.5px;
 }
@@ -1222,11 +1283,28 @@ a[style*="--brand-lime"] svg,
 .appointment-meta strong {
   margin-left: auto;
   color: var(--text-primary, #ffffff);
-  font: 700 14px/1 "Plus Jakarta Sans", sans-serif;
+  font: 700 13.5px/1 "Plus Jakarta Sans", sans-serif;
   letter-spacing: -0.2px;
 }
 :root:not([data-theme="dark"]) .appointment-meta strong {
   color: #0f172a;
+}
+
+.appointment-card-actions {
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  background: rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+}
+.appointment-card-actions:empty,
+.appointment-card-actions:has(.quick-actions:empty) {
+  display: none;
+}
+.appointment-card-actions .quick-actions {
+  margin-top: 0;
+  width: 100%;
+  gap: 6px;
 }
 
 .appointment-compact {
@@ -1237,32 +1315,29 @@ a[style*="--brand-lime"] svg,
 :root:not([data-theme="dark"]) .appointment-card {
   background: #ffffff;
   border-color: #e2e8f0;
-  border-left: 3.5px solid var(--appointment-color, var(--primary, #059669));
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .appointment-card:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .appointment-time {
   color: #0f172a;
 }
-:root:not([data-theme="dark"]) .appointment-time {
-  color: var(--text-primary);
-}
 :root:not([data-theme="dark"]) .appointment-client strong {
-  color: var(--text-primary);
-}
-:root:not([data-theme="dark"]) .appointment-client small {
-  color: var(--primary-strong, #1f6f66);
+  color: #0f172a;
 }
 :root:not([data-theme="dark"]) .appointment-meta {
-  border-top-color: var(--border);
-  color: var(--text-secondary);
+  border-top-color: #f1f5f9;
+  color: #64748b;
 }
-:root:not([data-theme="dark"]) .appointment-meta strong {
-  color: var(--text-primary);
+:root:not([data-theme="dark"]) .appointment-meta span svg {
+  color: #94a3b8;
+}
+:root:not([data-theme="dark"]) .appointment-card-actions {
+  border-top-color: #f1f5f9;
+  background: #f8fafc;
 }
 
 .calendar-page .compact-intro {
@@ -4333,8 +4408,9 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   gap: 14px;
   padding: 18px 24px;
-  background: var(--surface-secondary, #10141d);
-  border-bottom: 1px solid var(--border, #1f242e);
+  background: var(--surface-secondary, #11141c);
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .detail-person {
   background: #f8fafc;
@@ -4349,7 +4425,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .detail-person h3 {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary, #ffffff);
 }
 :root:not([data-theme="dark"]) .detail-person h3 {
@@ -4394,13 +4470,14 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   flex-direction: column;
   gap: 5px;
   padding: 12px 14px;
-  background: var(--surface-secondary, #10141d);
-  border: 1px solid var(--border, #1f242e);
+  background: var(--surface-secondary, #11141c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   border-radius: 10px;
-  transition: all 0.15s ease;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease;
 }
 .detail-card-item:hover {
-  border-color: var(--border-hover, #2c3342);
+  border-color: var(--border-hover, rgba(255, 255, 255, 0.16));
 }
 :root:not([data-theme="dark"]) .detail-card-item {
   background: #ffffff;
@@ -4417,19 +4494,19 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 .detail-card-label svg {
-  color: var(--primary, #dcff4c);
-  opacity: 0.9;
+  color: var(--text-muted, #7c8594);
+  opacity: 0.85;
   flex-shrink: 0;
 }
 :root:not([data-theme="dark"]) .detail-card-label svg {
-  color: var(--primary, #059669);
+  color: #64748b;
 }
 .detail-card-value {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   color: var(--text-primary, #ffffff);
   line-height: 1.4;
   word-break: break-word;
@@ -4449,11 +4526,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   margin: 14px 24px 0;
   padding: 12px 14px;
   border-radius: 10px;
-  background: var(--surface-secondary, #10141d);
-  border: 1px solid var(--border, #1f242e);
+  background: var(--surface-secondary, #11141c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   color: var(--text-secondary, #cbd5e1);
   font-size: 12px;
   line-height: 1.5;
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .detail-note {
   background: #f8fafc;
@@ -4461,12 +4539,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   color: #334155;
 }
 .detail-note svg {
-  color: var(--primary, #dcff4c);
+  color: var(--text-muted, #7c8594);
   flex: 0 0 auto;
   margin-top: 2px;
 }
 :root:not([data-theme="dark"]) .detail-note svg {
-  color: var(--primary, #059669);
+  color: #64748b;
 }
 
 /* Inline Actions Row */
@@ -4478,7 +4556,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   gap: 8px;
   margin: 18px 24px 0;
   padding-top: 16px;
-  border-top: 1px solid var(--border, #1f242e);
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
 }
 .detail-status-actions {
   display: flex;
@@ -4489,33 +4567,47 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 /* WhatsApp Button */
 .whatsapp-button {
-  min-height: 36px;
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 1px solid rgba(37, 211, 102, 0.4);
-  border-radius: 9px;
-  padding: 0 16px;
-  background: #25d366;
-  color: #080808 !important;
-  font-size: 12.5px;
-  font-weight: 700;
+  gap: 7px;
+  border: 1px solid rgba(37, 211, 102, 0.28);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: rgba(37, 211, 102, 0.09);
+  color: #4ade80 !important;
+  font-size: 12px;
+  font-weight: 600;
   text-decoration: none;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.15s ease;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(37, 211, 102, 0.28);
+  box-shadow: none !important;
 }
 .whatsapp-button:hover {
-  background: #20ba59;
-  border-color: #20ba59;
-  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.45);
-  transform: translateY(-1px);
-  color: #080808 !important;
+  background: rgba(37, 211, 102, 0.18);
+  border-color: rgba(37, 211, 102, 0.45);
+  color: #4ade80 !important;
+  box-shadow: none !important;
+  transform: none;
 }
 .whatsapp-button svg {
-  color: #080808;
+  color: #4ade80 !important;
   flex-shrink: 0;
+}
+:root:not([data-theme="dark"]) .whatsapp-button {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669 !important;
+  box-shadow: none !important;
+}
+:root:not([data-theme="dark"]) .whatsapp-button:hover {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #047857 !important;
+}
+:root:not([data-theme="dark"]) .whatsapp-button svg {
+  color: #059669 !important;
 }
 
 /* Sections for Finish and Reschedule */
@@ -4523,8 +4615,9 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   margin: 18px 24px 0;
   padding: 16px;
   border-radius: 12px;
-  background: var(--surface-secondary, #10141d);
-  border: 1px solid var(--border, #1f242e);
+  background: var(--surface-secondary, #11141c);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .detail-section {
   background: #f8fafc;
@@ -7390,10 +7483,66 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 
 /* Operational shortcuts reuse the application's theme tokens. */
-.quick-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; min-width: 0; }
+.quick-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-width: 0; }
 .quick-actions > *, .quick-actions label { min-width: 0; max-width: 100%; }
 .quick-actions label { display: grid; gap: 5px; flex: 1 1 120px; }
-.quick-actions .btn, .operations-availability .btn { min-height: 40px; white-space: normal; }
+.quick-actions .btn {
+  min-height: 28px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 7px;
+  white-space: nowrap;
+  box-shadow: none !important;
+}
+.operations-availability .btn { min-height: 36px; white-space: normal; }
+
+:root[data-theme="dark"] .quick-actions .btn-primary {
+  background: rgba(220, 255, 76, 0.12) !important;
+  border: 1px solid rgba(220, 255, 76, 0.28) !important;
+  color: #dcff4c !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .quick-actions .btn-primary:hover {
+  background: rgba(220, 255, 76, 0.22) !important;
+  border-color: rgba(220, 255, 76, 0.48) !important;
+  color: #dcff4c !important;
+}
+:root[data-theme="dark"] .quick-actions .btn-primary svg {
+  color: #dcff4c !important;
+  stroke: #dcff4c !important;
+}
+:root[data-theme="dark"] .quick-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-primary, #f1f5f9) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .quick-actions .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+:root:not([data-theme="dark"]) .quick-actions .btn-primary {
+  background: #0f172a !important;
+  border: 1px solid #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+:root:not([data-theme="dark"]) .quick-actions .btn-primary:hover {
+  background: #1e293b !important;
+}
+:root:not([data-theme="dark"]) .quick-actions .btn-secondary {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+:root:not([data-theme="dark"]) .quick-actions .btn-secondary:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
 
 .operations-availability {
   padding: 0;

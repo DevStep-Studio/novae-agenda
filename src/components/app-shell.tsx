@@ -535,8 +535,8 @@ function DashboardPage({
               {[...todayApts]
                 .sort((a,b) => a.startTime.localeCompare(b.startTime))
                 .map((apt) => (
-                  <div key={apt.id}>
-                    <p className="eyebrow">
+                  <div key={apt.id} className="appointment-group-item">
+                    <p className={`appointment-eyebrow ${apt.status === "in_progress" || apt.status === "waiting" || apt.id === next?.id ? "eyebrow-active" : ""}`}>
                       {apt.status === "completed" || apt.endTime < nowTime
                         ? "Anteriores"
                         : apt.status === "in_progress" || apt.status === "waiting"
@@ -699,36 +699,45 @@ function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO
     : "var(--primary)";
 
   return (
-    <article>
-    <button
-      className="appointment-card"
-      onClick={onClick}
-      style={{ "--appointment-color": accentColor } as React.CSSProperties}
-    >
-      <div className="appointment-card-top">
-        <span className="appointment-time">{normalizeTime(appointment.startTime)}</span>
-        <StatusBadge status={appointment.status} />
+    <div className="appointment-card">
+      <div
+        className="appointment-card-body"
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+      >
+        <div className="appointment-card-top">
+          <span className="appointment-time">{normalizeTime(appointment.startTime)}</span>
+          <StatusBadge status={appointment.status} />
+        </div>
+        <div className="appointment-main">
+          <Avatar
+            name={appointment.clientName}
+            photoUrl={photo}
+            color={avatarColor(appointment.clientName)}
+            size="md"
+          />
+          <span className="appointment-client">
+            <strong>{appointment.clientName}</strong>
+            <small>{appointment.serviceName}</small>
+          </span>
+        </div>
+        <div className="appointment-meta">
+          <span><Clock3 size={13} /> {appointment.durationMinutes} min</span>
+          <span><UserRound size={13} /> {appointment.employeeName}</span>
+          <strong>{formatCurrency(appointment.total)}</strong>
+        </div>
       </div>
-      <div className="appointment-main">
-        <Avatar
-          name={appointment.clientName}
-          photoUrl={photo}
-          color={avatarColor(appointment.clientName)}
-          size="md"
-        />
-        <span className="appointment-client">
-          <strong>{appointment.clientName}</strong>
-          <small>{appointment.serviceName}</small>
-        </span>
+      <div className="appointment-card-actions">
+        <QuickStatus appointment={appointment} />
       </div>
-      <div className="appointment-meta">
-        <span><Clock3 size={13} /> {appointment.durationMinutes} min</span>
-        <span><UserRound size={13} /> {appointment.employeeName}</span>
-        <strong>{formatCurrency(appointment.total)}</strong>
-      </div>
-    </button>
-    <QuickStatus appointment={appointment} />
-    </article>
+    </div>
   );
 }
 
