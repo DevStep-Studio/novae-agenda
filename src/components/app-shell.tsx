@@ -7043,11 +7043,12 @@ function WeekCalendar({
                   const overlap = overlapMap.get(apt.id) || { col: 0, totalCols: 1 };
                   const widthPct = 100 / overlap.totalCols;
                   const leftPct = overlap.col * widthPct;
+                  const isCompact = height < 46;
 
                   return (
                     <button
                       key={apt.id}
-                      className={`week-appointment ${isCancelled ? "cancelled" : ""}`}
+                      className={`week-appointment ${isCancelled ? "cancelled" : ""} ${isCompact ? "compact" : ""}`}
                       style={
                         {
                           top: `${top}px`,
@@ -7060,9 +7061,18 @@ function WeekCalendar({
                       onClick={() => onAppointment(apt)}
                       title={`${normalizeTime(apt.startTime)}: ${apt.clientName} (${apt.serviceName})`}
                     >
-                      <span className="week-apt-time">{normalizeTime(apt.startTime)}</span>
-                      <strong className="week-apt-client">{apt.clientName}</strong>
-                      {height >= 48 && <span className="week-apt-service">{apt.serviceName}</span>}
+                      {isCompact ? (
+                        <div className="week-apt-compact-row">
+                          <span className="week-apt-time">{normalizeTime(apt.startTime)}</span>
+                          <strong className="week-apt-client">{apt.clientName}</strong>
+                        </div>
+                      ) : (
+                        <div className="week-apt-full">
+                          <span className="week-apt-time">{normalizeTime(apt.startTime)}</span>
+                          <strong className="week-apt-client">{apt.clientName}</strong>
+                          {height >= 52 && <span className="week-apt-service">{apt.serviceName}</span>}
+                        </div>
+                      )}
                     </button>
                   );
                 })}

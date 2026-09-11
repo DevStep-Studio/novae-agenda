@@ -2293,11 +2293,15 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 .week-appointment {
   position: absolute;
   z-index: 2;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 6px 8px;
   text-align: left;
   cursor: pointer;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-sizing: border-box;
   background: var(--surface-secondary, #14171d);
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
   border-left: 3.5px solid var(--appointment-color, var(--primary));
@@ -2326,16 +2330,83 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   box-shadow: none !important;
 }
 
-.week-apt-time {
-  font-size: 9px;
+.week-appointment.compact {
+  padding: 0 6px 0 6px;
+  justify-content: center;
+}
+
+.week-apt-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.week-apt-compact-row .week-apt-time {
+  font-size: 9.5px;
   font-weight: 700;
-  color: var(--primary);
-  display: block;
+  color: var(--appointment-color, var(--primary));
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  margin-bottom: 0;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+:root:not([data-theme="dark"]) .week-apt-compact-row .week-apt-time {
+  background: rgba(0, 0, 0, 0.05);
+  color: #047857;
+}
+
+.week-apt-compact-row .week-apt-client {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.week-apt-full {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.week-apt-full .week-apt-time {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--appointment-color, var(--primary));
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+  align-self: flex-start;
   margin-bottom: 2px;
 }
 
-.week-apt-client {
-  font-size: 11px;
+:root:not([data-theme="dark"]) .week-apt-full .week-apt-time {
+  background: rgba(0, 0, 0, 0.05);
+  color: #047857;
+}
+
+.week-apt-full .week-apt-client {
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--text-primary);
   display: block;
@@ -2345,14 +2416,23 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   line-height: 1.2;
 }
 
-.week-apt-service {
+.week-apt-full .week-apt-service {
   font-size: 10px;
   color: var(--text-secondary);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 1px;
+  line-height: 1.2;
+}
+
+.week-appointment.cancelled {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.week-appointment.cancelled .week-apt-client {
+  text-decoration: line-through;
 }
 
 /* ============================================================
