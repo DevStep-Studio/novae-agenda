@@ -69,18 +69,20 @@ export function applyPrimaryColor(hex: string) {
 
   const { r, g, b } = rgb;
   const brightness = getBrightness(r, g, b);
-  const isLight = brightness > 140;
+  const isLightColor = brightness > 140;
 
-  const foreground = isLight ? "#0a0a0a" : "#ffffff";
-  const soft = `rgba(${r}, ${g}, ${b}, 0.15)`;
-  const softHover = `rgba(${r}, ${g}, ${b}, 0.25)`;
-  const borderSubtle = `rgba(${r}, ${g}, ${b}, 0.3)`;
-  const borderFocus = `rgba(${r}, ${g}, ${b}, 0.5)`;
+  const isDarkMode = document.documentElement.dataset.theme === "dark";
+
+  const foreground = isLightColor ? "#0a0a0a" : "#ffffff";
+  const soft = isDarkMode ? `rgba(${r}, ${g}, ${b}, 0.15)` : `rgba(${r}, ${g}, ${b}, 0.10)`;
+  const softHover = isDarkMode ? `rgba(${r}, ${g}, ${b}, 0.25)` : `rgba(${r}, ${g}, ${b}, 0.18)`;
+  const borderSubtle = isDarkMode ? `rgba(${r}, ${g}, ${b}, 0.3)` : `rgba(${r}, ${g}, ${b}, 0.22)`;
+  const borderFocus = `rgba(${r}, ${g}, ${b}, 0.45)`;
 
   // Generate slightly darker/lighter hover tone
-  const hoverR = Math.max(0, Math.min(255, isLight ? Math.round(r * 0.88) : Math.round(r * 1.15)));
-  const hoverG = Math.max(0, Math.min(255, isLight ? Math.round(g * 0.88) : Math.round(g * 1.15)));
-  const hoverB = Math.max(0, Math.min(255, isLight ? Math.round(b * 0.88) : Math.round(b * 1.15)));
+  const hoverR = Math.max(0, Math.min(255, isLightColor ? Math.round(r * 0.88) : Math.round(r * 1.15)));
+  const hoverG = Math.max(0, Math.min(255, isLightColor ? Math.round(g * 0.88) : Math.round(g * 1.15)));
+  const hoverB = Math.max(0, Math.min(255, isLightColor ? Math.round(b * 0.88) : Math.round(b * 1.15)));
   const hoverHex = `#${((1 << 24) + (hoverR << 16) + (hoverG << 8) + hoverB).toString(16).slice(1)}`;
 
   const root = document.documentElement;
@@ -102,3 +104,4 @@ export function applyPrimaryColor(hex: string) {
     localStorage.setItem("novae_primary_color", hex);
   } catch {}
 }
+

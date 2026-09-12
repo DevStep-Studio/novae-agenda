@@ -65,15 +65,59 @@ export function ReserveiLogo({
   const height =
     typeof size === "number"
       ? size
-      : size === "sm"
-      ? 22
-      : size === "md"
-      ? 28
-      : size === "lg"
-      ? 36
-      : 48;
+    : size === "sm"
+    ? 22
+    : size === "md"
+    ? 28
+    : size === "lg"
+    ? 36
+    : 48;
 
   if (variant === "symbol") {
+    if (color === "auto") {
+      return (
+        <span
+          className={`reservei-symbol-wrap ${className}`}
+          style={{ display: "inline-flex", alignItems: "center", ...style }}
+        >
+          <img
+            src="/symbol.png"
+            alt={alt}
+            width={height}
+            height={height}
+            className="reservei-symbol-img reservei-logo-dark"
+            style={{
+              height: `${height}px`,
+              width: `${height}px`,
+              objectFit: "contain",
+              display: "inline-block",
+              verticalAlign: "middle",
+              flexShrink: 0,
+            }}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+          />
+          <img
+            src="/symbol-black.png"
+            alt={alt}
+            width={height}
+            height={height}
+            className="reservei-symbol-img reservei-logo-light"
+            style={{
+              height: `${height}px`,
+              width: `${height}px`,
+              objectFit: "contain",
+              display: "none",
+              verticalAlign: "middle",
+              flexShrink: 0,
+            }}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+          />
+        </span>
+      );
+    }
+
     const symbolSrc =
       color === "white"
         ? "/symbol-white.png"
@@ -104,14 +148,60 @@ export function ReserveiLogo({
   }
 
   // Full Logo (or Wordmark) - uses official /logo.png (aspect ratio ~ 2.3686)
+  const width = Math.round(height * (1947 / 822));
+
+  if (color === "auto") {
+    return (
+      <span
+        className={`reservei-logo-wrap ${className}`}
+        style={{ display: "inline-flex", alignItems: "center", ...style }}
+      >
+        <img
+          src="/logo.png"
+          alt={alt}
+          width={width}
+          height={height}
+          className="reservei-logo-img reservei-logo-dark"
+          style={{
+            height: `${height}px`,
+            width: "auto",
+            maxWidth: "100%",
+            objectFit: "contain",
+            display: "inline-block",
+            verticalAlign: "middle",
+            flexShrink: 0,
+          }}
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+        />
+        <img
+          src="/logo-black.png"
+          alt={alt}
+          width={width}
+          height={height}
+          className="reservei-logo-img reservei-logo-light"
+          style={{
+            height: `${height}px`,
+            width: "auto",
+            maxWidth: "100%",
+            objectFit: "contain",
+            display: "none",
+            verticalAlign: "middle",
+            flexShrink: 0,
+          }}
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+        />
+      </span>
+    );
+  }
+
   const logoSrc =
     color === "white"
       ? "/logo-white.png"
       : color === "black"
       ? "/logo-black.png"
       : "/logo.png";
-
-  const width = Math.round(height * (1947 / 822));
 
   return (
     <img
@@ -138,3 +228,4 @@ export function ReserveiLogo({
 
 // Alias for backward compatibility
 export const NovaeLogo = ReserveiLogo;
+
