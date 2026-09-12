@@ -8858,8 +8858,6 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-color: var(--border-strong);
   transform: none;
 }
-  transform: translateY(-1px);
-}
 
 /* ===== Service Toggle Switch ===== */
 .service-toggle-btn {
