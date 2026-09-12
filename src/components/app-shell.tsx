@@ -1886,7 +1886,7 @@ function TeamPage({
   onNewAppointment: (emp: EmployeeDTO) => void;
   onGoToAgenda: () => void;
 }) {
-  const { employees, appointments, stats } = useStore();
+  const { employees, appointments, stats, session } = useStore();
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<TeamTab>("all");
   const [sortBy, setSortBy] = useState<TeamSort>("appointments-desc");
@@ -2142,31 +2142,14 @@ function TeamPage({
                 const metrics = employeeMetrics.get(employee.id) || { todayCount: 0, monthCount: 0, monthRevenue: 0, commissionTotal: 0 };
                 const isCommissionPercent = employee.commissionType === "percentage";
                 const isCommissionFixed = employee.commissionType === "fixed";
+                const coverImage = employee.bannerUrl || session?.company.bannerUrl || BANNER_PRESETS[0].url;
 
                 return (
                   <article className="modern-team-card" key={employee.id}>
-                    {/* Header */}
-                    <div className="modern-team-header">
-                      <div className="modern-avatar-wrap">
-                        <Avatar
-                          name={employee.name}
-                          photoUrl={employee.photoUrl}
-                          color={avatarColor(employee.name)}
-                          size="lg"
-                        />
-                        <span className={`modern-active-dot ${employee.active ? "online" : "offline"}`} title={employee.active ? "Profissional ativo" : "Profissional inativo"} />
-                      </div>
-
-                      <div className="modern-team-badges">
-                        <button
-                          type="button"
-                          className="team-edit-pill"
-                          onClick={() => setEditingEmployee(employee)}
-                          title={`Editar dados de ${employee.name}`}
-                        >
-                          <Pencil size={11} />
-                          <span>Editar</span>
-                        </button>
+                    {/* Cover Banner */}
+                    <div className="modern-team-cover" style={{ backgroundImage: `url('${coverImage}')` }}>
+                      <div className="modern-team-cover-overlay" />
+                      <div className="modern-team-cover-top">
                         <span className={`team-status-badge ${employee.active ? "active" : "inactive"}`}>
                           <span className="team-status-dot" />
                           {employee.active ? "Ativo" : "Inativo"}
@@ -2181,10 +2164,25 @@ function TeamPage({
                       </div>
                     </div>
 
-                    {/* Body */}
-                    <div className="modern-team-body">
-                      <h3 className="modern-team-name">{employee.name}</h3>
-                      <span className="modern-team-role">{employee.jobTitle ?? "Profissional"}</span>
+                    {/* Centered Avatar Overlapping Banner */}
+                    <div className="modern-team-avatar-center">
+                      <div className="modern-avatar-wrap">
+                        <Avatar
+                          name={employee.name}
+                          photoUrl={employee.photoUrl}
+                          color={avatarColor(employee.name)}
+                          size="lg"
+                        />
+                        <span className={`modern-active-dot ${employee.active ? "online" : "offline"}`} title={employee.active ? "Profissional ativo" : "Profissional inativo"} />
+                      </div>
+                    </div>
+
+                    {/* Card Inner Body */}
+                    <div className="modern-team-body-inner">
+                      <div className="modern-team-info-center">
+                        <h3 className="modern-team-name">{employee.name}</h3>
+                        <span className="modern-team-role">{employee.jobTitle ?? "Profissional"}</span>
+                      </div>
 
                       {/* Mini Stats Strip */}
                       <div className="modern-team-stats-strip">
@@ -2220,39 +2218,39 @@ function TeamPage({
                           <span className="team-no-services">Nenhum serviço vinculado</span>
                         )}
                       </div>
-                    </div>
 
-                    {/* Footer Actions */}
-                    <div className="modern-team-footer">
-                      <button
-                        type="button"
-                        className="modern-team-btn schedule"
-                        onClick={() => onNewAppointment(employee)}
-                        title={`Criar novo agendamento com ${employee.name}`}
-                      >
-                        <CalendarPlus size={14} />
-                        <span>Agendar</span>
-                      </button>
+                      {/* Footer Actions */}
+                      <div className="modern-team-footer">
+                        <button
+                          type="button"
+                          className="modern-team-btn schedule"
+                          onClick={() => onNewAppointment(employee)}
+                          title={`Criar novo agendamento com ${employee.name}`}
+                        >
+                          <CalendarPlus size={14} />
+                          <span>Agendar</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        className="modern-team-btn agenda"
-                        onClick={onGoToAgenda}
-                        title={`Ver grade da agenda`}
-                      >
-                        <CalendarDays size={14} />
-                        <span>Agenda</span>
-                      </button>
+                        <button
+                          type="button"
+                          className="modern-team-btn agenda"
+                          onClick={onGoToAgenda}
+                          title="Ver grade da agenda"
+                        >
+                          <CalendarDays size={14} />
+                          <span>Agenda</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        className="modern-team-btn edit"
-                        onClick={() => setEditingEmployee(employee)}
-                        title={`Editar dados de ${employee.name}`}
-                      >
-                        <Pencil size={14} />
-                        <span>Editar</span>
-                      </button>
+                        <button
+                          type="button"
+                          className="modern-team-btn edit"
+                          onClick={() => setEditingEmployee(employee)}
+                          title={`Editar dados de ${employee.name}`}
+                        >
+                          <Pencil size={14} />
+                          <span>Editar</span>
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -4377,6 +4375,7 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   const [phone, setPhone] = useState("");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string>("");
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [grantAccess, setGrantAccess] = useState(false);
@@ -4407,6 +4406,7 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
         phone: phone || undefined,
         serviceIds,
         photoUrl,
+        bannerUrl: bannerUrl.trim() || undefined,
         grantAccess,
         email: grantAccess ? email : undefined,
         password: grantAccess ? password : undefined,
@@ -4530,6 +4530,33 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
               </Field>
             </>
           )}
+          <Field label="Banner de capa do card" icon={ImagePlus} className="field-full" hint="Escolha uma imagem de capa para o card deste profissional.">
+            <div className="banner-presets-row" style={{ marginBottom: "8px" }}>
+              {BANNER_PRESETS.map((preset) => (
+                <div
+                  key={preset.id}
+                  className={`banner-preset-card ${bannerUrl === preset.url ? "active" : ""}`}
+                  style={{ backgroundImage: `url('${preset.url}')` }}
+                  onClick={() => setBannerUrl(preset.url)}
+                >
+                  <span>{preset.name}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                className="input"
+                value={bannerUrl}
+                onChange={(e) => setBannerUrl(e.target.value)}
+                placeholder="Ou cole a URL de uma imagem personalizada (HTTPS)"
+              />
+              {bannerUrl && (
+                <Button type="button" variant="secondary" onClick={() => setBannerUrl("")}>
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </Field>
         </div>
 
         <div className="modal-footer">
@@ -4553,6 +4580,7 @@ function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClo
   const [commissionType, setCommissionType] = useState<"none" | "percentage" | "fixed">(employee.commissionType ?? "none");
   const [commissionValue, setCommissionValue] = useState(employee.commissionValue ?? 0);
   const [photoUrl, setPhotoUrl] = useState<string | null>(employee.photoUrl ?? null);
+  const [bannerUrl, setBannerUrl] = useState<string>(employee.bannerUrl ?? "");
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -4584,6 +4612,7 @@ function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClo
         commissionValue: commissionType === "none" ? 0 : Number(commissionValue) || 0,
         serviceIds,
         photoUrl,
+        bannerUrl: bannerUrl.trim() || null,
       });
       notify("Dados do profissional atualizados com sucesso!");
       onClose();
@@ -4709,6 +4738,33 @@ function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClo
                 </button>
               ))}
               {services.length === 0 && <span className="field-hint">Nenhum serviço cadastrado na empresa.</span>}
+            </div>
+          </Field>
+          <Field label="Banner de capa do card" icon={ImagePlus} className="field-full" hint="Escolha uma imagem de capa para o card deste profissional.">
+            <div className="banner-presets-row" style={{ marginBottom: "8px" }}>
+              {BANNER_PRESETS.map((preset) => (
+                <div
+                  key={preset.id}
+                  className={`banner-preset-card ${bannerUrl === preset.url ? "active" : ""}`}
+                  style={{ backgroundImage: `url('${preset.url}')` }}
+                  onClick={() => setBannerUrl(preset.url)}
+                >
+                  <span>{preset.name}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                className="input"
+                value={bannerUrl}
+                onChange={(e) => setBannerUrl(e.target.value)}
+                placeholder="Ou cole a URL de uma imagem personalizada (HTTPS)"
+              />
+              {bannerUrl && (
+                <Button type="button" variant="secondary" onClick={() => setBannerUrl("")}>
+                  Limpar
+                </Button>
+              )}
             </div>
           </Field>
         </div>

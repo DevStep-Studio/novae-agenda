@@ -38,6 +38,11 @@ type NotificationMeta = {
   iconBgClass: string;
 };
 
+interface NotificationGroup {
+  label: string;
+  items: NotificationDTO[];
+}
+
 export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda }: NotificationsViewProps) {
   const { notifications, reloadNotifications, markNotificationRead, markAllNotificationsRead, notify } = useStore();
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
@@ -129,6 +134,46 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     return notifications;
   }, [notifications, activeFilter]);
 
+  // Group notifications chronologically
+  const groupedNotifications = useMemo<NotificationGroup[]>(() => {
+    if (filteredList.length === 0) return [];
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+    const startOfThisWeek = startOfToday - 6 * 24 * 60 * 60 * 1000;
+
+    const hoje: NotificationDTO[] = [];
+    const ontem: NotificationDTO[] = [];
+    const estaSemana: NotificationDTO[] = [];
+    const anteriores: NotificationDTO[] = [];
+
+    for (const item of filteredList) {
+      const d = new Date(item.createdAt).getTime();
+      if (isNaN(d)) {
+        anteriores.push(item);
+        continue;
+      }
+      if (d >= startOfToday) {
+        hoje.push(item);
+      } else if (d >= startOfYesterday) {
+        ontem.push(item);
+      } else if (d >= startOfThisWeek) {
+        estaSemana.push(item);
+      } else {
+        anteriores.push(item);
+      }
+    }
+
+    const result: NotificationGroup[] = [];
+    if (hoje.length > 0) result.push({ label: "Hoje", items: hoje });
+    if (ontem.length > 0) result.push({ label: "Ontem", items: ontem });
+    if (estaSemana.length > 0) result.push({ label: "Esta semana", items: estaSemana });
+    if (anteriores.length > 0) result.push({ label: "Anteriores", items: anteriores });
+
+    return result;
+  }, [filteredList]);
+
   const handleMarkAllRead = async () => {
     if (counts.unread === 0) return;
     setLoading(true);
@@ -205,7 +250,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 1. Reviews / Feedback
     if (t.startsWith("review.") || title.includes("avaliação") || title.includes("estrelas") || title.includes("nota")) {
       return {
-        icon: <Star size={17} />,
+        icon: <Star size={16} />,
         badgeLabel: "Avaliação",
         badgeClass: "badge-notif-rating",
         iconBgClass: "icon-notif-rating",
@@ -222,7 +267,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
       title.includes("pix")
     ) {
       return {
-        icon: <CircleDollarSign size={17} />,
+        icon: <CircleDollarSign size={16} />,
         badgeLabel: "Financeiro",
         badgeClass: "badge-notif-payment",
         iconBgClass: "icon-notif-payment",
@@ -232,7 +277,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 3. Rescheduled
     if (t === "booking.rescheduled" || title.includes("remarcad") || title.includes("horário")) {
       return {
-        icon: <CalendarClock size={17} />,
+        icon: <CalendarClock size={16} />,
         badgeLabel: "Remarcação",
         badgeClass: "badge-notif-reschedule",
         iconBgClass: "icon-notif-reschedule",
@@ -242,7 +287,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 4. Cancelled
     if (t === "booking.cancelled" || title.includes("cancelad")) {
       return {
-        icon: <CalendarX size={17} />,
+        icon: <CalendarX size={16} />,
         badgeLabel: "Cancelamento",
         badgeClass: "badge-notif-cancel",
         iconBgClass: "icon-notif-cancel",
@@ -252,7 +297,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 5. Booking Reminder
     if (t.startsWith("reminder") || t === "booking.reminder" || title.includes("lembrete")) {
       return {
-        icon: <BellRing size={17} />,
+        icon: <BellRing size={16} />,
         badgeLabel: "Lembrete",
         badgeClass: "badge-notif-reminder",
         iconBgClass: "icon-notif-reminder",
@@ -262,7 +307,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 6. New Booking
     if (t === "booking.created" || t.startsWith("booking.") || entity === "appointment" || title.includes("agendamento")) {
       return {
-        icon: <CalendarPlus size={17} />,
+        icon: <CalendarPlus size={16} />,
         badgeLabel: "Agendamento",
         badgeClass: "badge-notif-booking",
         iconBgClass: "icon-notif-booking",
@@ -272,7 +317,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 7. Subscriptions / Pro Plans
     if (t.startsWith("subscription.") || t.startsWith("plan.") || entity === "subscription" || title.includes("assinatura") || title.includes("plano")) {
       return {
-        icon: <ShieldCheck size={17} />,
+        icon: <ShieldCheck size={16} />,
         badgeLabel: "Assinatura",
         badgeClass: "badge-notif-subscription",
         iconBgClass: "icon-notif-subscription",
@@ -282,7 +327,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 8. Waitlist
     if (t.startsWith("waitlist.") || entity === "waitlist" || title.includes("espera")) {
       return {
-        icon: <Users size={17} />,
+        icon: <Users size={16} />,
         badgeLabel: "Fila de Espera",
         badgeClass: "badge-notif-waitlist",
         iconBgClass: "icon-notif-waitlist",
@@ -292,7 +337,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
     // 9. Customer Arrived
     if (t === "customer.arrived" || title.includes("recepção") || title.includes("chegou")) {
       return {
-        icon: <UserCheck size={17} />,
+        icon: <UserCheck size={16} />,
         badgeLabel: "Recepção",
         badgeClass: "badge-notif-reception",
         iconBgClass: "icon-notif-reception",
@@ -301,7 +346,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
 
     // 10. Default / System
     return {
-      icon: <Info size={17} />,
+      icon: <Info size={16} />,
       badgeLabel: "Sistema",
       badgeClass: "badge-notif-system",
       iconBgClass: "icon-notif-system",
@@ -339,12 +384,12 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             <h1 className="notif-page-title">Central de Notificações</h1>
             {counts.unread > 0 && (
               <span className="notif-header-unread-badge">
-                {counts.unread} {counts.unread === 1 ? "nova" : "novas"}
+                {counts.unread} {counts.unread === 1 ? "não lida" : "não lidas"}
               </span>
             )}
           </div>
           <p className="notif-page-subtitle">
-            Histórico completo de eventos, novos agendamentos, clientes e alertas da sua empresa.
+            Histórico completo de eventos, agendamentos, clientes e novidades da sua empresa.
           </p>
         </div>
 
@@ -355,10 +400,10 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
             className="notif-action-btn simulate"
             onClick={() => handleSimulate("reminder_2h")}
             disabled={simulating}
-            title="Disparar lembrete automático de teste"
+            title="Disparar lembrete de teste"
           >
-            {simulating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
-            <span>{simulating ? "Simulando..." : "Simular Lembrete 2h (QA)"}</span>
+            {simulating ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+            <span>{simulating ? "Simulando..." : "Simular Lembrete"}</span>
           </button>
 
           {/* Mark All Read Button */}
@@ -370,7 +415,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
               disabled={loading}
               title="Marcar todas as notificações como lidas"
             >
-              {loading ? <Loader2 size={14} className="spin" /> : <CheckCheck size={15} />}
+              {loading ? <Loader2 size={13} className="spin" /> : <CheckCheck size={14} />}
               <span>Marcar todas como lidas</span>
             </button>
           )}
@@ -428,76 +473,89 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
         </button>
       </div>
 
-      {/* Notifications List */}
-      <div className="notif-cards-list">
-        {filteredList.length > 0 ? (
-          filteredList.map((item) => {
-            const isUnread = !item.readAt;
-            const meta = getNotificationMeta(item);
-
-            return (
-              <div
-                key={item.id}
-                className={`notif-card ${isUnread ? "unread" : "read"}`}
-                onClick={() => handleNotificationClick(item)}
-                role="button"
-                tabIndex={0}
-              >
-                {/* Visual Unread Indicator Dot */}
-                {isUnread && <span className="notif-unread-dot" />}
-
-                {/* Category Icon */}
-                <div className={`notif-icon-box ${meta.iconBgClass}`}>
-                  {meta.icon}
-                </div>
-
-                {/* Card Main Body */}
-                <div className="notif-content-wrap">
-                  <div className="notif-headline-row">
-                    <strong className="notif-card-title">{item.title}</strong>
-                    <span className={`notif-category-badge ${meta.badgeClass}`}>
-                      {meta.badgeLabel}
-                    </span>
-                  </div>
-
-                  {item.body && (
-                    <p className="notif-card-body-text">{item.body}</p>
-                  )}
-
-                  <div className="notif-footer-row">
-                    <span className="notif-time-text">
-                      <Clock size={11} />
-                      {formatTimestamp(item.createdAt)}
-                    </span>
-
-                    {item.entityType === "appointment" && item.entityId && (
-                      <span className="notif-action-link">
-                        <ExternalLink size={11} />
-                        Ver na agenda
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Mark as read button */}
-                {isUnread && (
-                  <button
-                    type="button"
-                    className="notif-mark-single-btn"
-                    onClick={(e) => handleSingleMarkRead(e, item)}
-                    title="Marcar como lida"
-                    aria-label="Marcar notificação como lida"
-                  >
-                    <Check size={15} />
-                  </button>
-                )}
+      {/* Notifications Stream with Date Groups */}
+      <div className="notif-stream-container">
+        {groupedNotifications.length > 0 ? (
+          groupedNotifications.map((group) => (
+            <div key={group.label} className="notif-date-group">
+              <div className="notif-group-header">
+                <span className="notif-group-title">{group.label}</span>
+                <span className="notif-group-count">
+                  {group.items.length} {group.items.length === 1 ? "notificação" : "notificações"}
+                </span>
               </div>
-            );
-          })
+
+              <div className="notif-cards-list">
+                {group.items.map((item) => {
+                  const isUnread = !item.readAt;
+                  const meta = getNotificationMeta(item);
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`notif-card ${isUnread ? "unread" : "read"}`}
+                      onClick={() => handleNotificationClick(item)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      {/* Visual Unread Indicator Dot */}
+                      {isUnread && <span className="notif-unread-dot" />}
+
+                      {/* Category Icon */}
+                      <div className={`notif-icon-box ${meta.iconBgClass}`}>
+                        {meta.icon}
+                      </div>
+
+                      {/* Card Main Body */}
+                      <div className="notif-content-wrap">
+                        <div className="notif-headline-row">
+                          <strong className="notif-card-title">{item.title}</strong>
+                          <span className={`notif-category-badge ${meta.badgeClass}`}>
+                            {meta.badgeLabel}
+                          </span>
+                        </div>
+
+                        {item.body && (
+                          <p className="notif-card-body-text">{item.body}</p>
+                        )}
+
+                        <div className="notif-footer-row">
+                          <span className="notif-time-text">
+                            <Clock size={11} />
+                            {formatTimestamp(item.createdAt)}
+                          </span>
+
+                          {item.entityType === "appointment" && item.entityId && (
+                            <span className="notif-action-link">
+                              <ExternalLink size={11} />
+                              Ver agendamento
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Mark as read button */}
+                      {isUnread && (
+                        <button
+                          type="button"
+                          className="notif-mark-single-btn"
+                          onClick={(e) => handleSingleMarkRead(e, item)}
+                          title="Marcar como lida"
+                          aria-label="Marcar notificação como lida"
+                        >
+                          <Check size={14} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         ) : (
           <div className="notif-empty-state">
             <div className="notif-empty-icon-wrap">
-              <Bell size={22} />
+              <Bell size={20} />
             </div>
             <h3 className="notif-empty-title">
               {activeFilter === "unread" ? "Tudo em dia!" : "Nenhuma notificação encontrada"}
@@ -513,7 +571,7 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
               onClick={() => handleSimulate("reminder_2h")}
               disabled={simulating}
             >
-              <Sparkles size={14} />
+              <Sparkles size={13} />
               <span>Simular Notificação de Teste</span>
             </button>
           </div>

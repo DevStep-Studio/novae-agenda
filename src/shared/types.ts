@@ -87,6 +87,7 @@ export type EmployeeDTO = {
   jobTitle: string | null;
   phone: string | null;
   photoUrl?: string | null;
+  bannerUrl?: string | null;
   active: boolean;
   color: string;
   initials: string;

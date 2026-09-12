@@ -59,8 +59,8 @@ type Store = DataState & {
   updateClient: (id: string, input: { name?: string; phone?: string; email?: string | null; photoUrl?: string | null; notes?: string | null; internalNotes?: string | null }) => Promise<void>;
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
-  createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
-  updateEmployee: (id: string, input: { name?: string; jobTitle?: string | null; phone?: string | null; active?: boolean; commissionType?: "none" | "percentage" | "fixed"; commissionValue?: number; photoUrl?: string | null; serviceIds?: string[] }) => Promise<void>;
+  createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; bannerUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
+  updateEmployee: (id: string, input: { name?: string; jobTitle?: string | null; phone?: string | null; active?: boolean; commissionType?: "none" | "percentage" | "fixed"; commissionValue?: number; photoUrl?: string | null; bannerUrl?: string | null; serviceIds?: string[] }) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
   createAppointment: (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string; allowConflict?: boolean }) => Promise<void>;
   updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>;
@@ -244,7 +244,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [notify]);
 
-  const createEmployee = useCallback(async (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => {
+  const createEmployee = useCallback(async (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; bannerUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => {
     await api("/api/employees", { method: "POST", body: JSON.stringify(input) });
     await reloadEmployees();
   }, [reloadEmployees]);
@@ -257,6 +257,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     commissionType?: "none" | "percentage" | "fixed";
     commissionValue?: number;
     photoUrl?: string | null;
+    bannerUrl?: string | null;
     serviceIds?: string[];
   }) => {
     await api(`/api/employees/${id}`, { method: "PATCH", body: JSON.stringify(input) });

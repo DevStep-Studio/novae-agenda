@@ -57,6 +57,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     jobTitle: employee.jobTitle,
     phone: employee.phone,
     photoUrl: employee.photoUrl,
+    bannerUrl: employee.bannerUrl,
     active: employee.active,
     color: "#d6ebe6",
     initials: employee.name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join(""),
@@ -78,6 +79,7 @@ const updateSchema = z.object({
   commissionType: z.enum(["none", "percentage", "fixed"]).optional(),
   commissionValue: z.number().min(0).optional(),
   photoUrl: z.string().max(8_000_000).nullable().optional(),
+  bannerUrl: z.string().max(8_000_000).nullable().optional(),
   serviceIds: z.array(z.string()).optional(),
 });
 
@@ -132,6 +134,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (!data.photoUrl && current.photoUrl) await deleteProfessionalImage(current.photoUrl);
     } catch (error) {
       return Response.json({ error: error instanceof Error ? error.message : "Imagem inválida." }, { status: 400 });
+    }
+  }
+  if (data.bannerUrl !== undefined) {
+    try {
+      patch.bannerUrl = data.bannerUrl
+        ? await saveProfessionalImage(data.bannerUrl)
+        : null;
+    } catch {
+      patch.bannerUrl = data.bannerUrl ?? null;
     }
   }
 

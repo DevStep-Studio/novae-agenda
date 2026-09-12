@@ -39,6 +39,7 @@ export async function GET() {
       jobTitle: row.jobTitle,
       phone: row.phone,
       photoUrl: row.photoUrl ?? null,
+      bannerUrl: row.bannerUrl ?? null,
       active: row.active,
       color: avatarColor(row.name),
       initials: initials(row.name),
@@ -62,6 +63,7 @@ const createSchema = z
     commissionValue: z.number().min(0).optional(),
     serviceIds: z.array(z.string()).optional(),
     photoUrl: z.string().max(8_000_000).optional().nullable(),
+    bannerUrl: z.string().max(8_000_000).optional().nullable(),
     // Optional: grants the employee their own login (role "employee"), scoped
     // to this company. Owner sets the initial password directly — no invite
     // email flow yet, see [[novae-engagement]].
@@ -104,6 +106,13 @@ export async function POST(request: Request) {
     photoUrl = parsed.data.photoUrl ? await saveProfessionalImage(parsed.data.photoUrl) : null;
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Imagem inválida." }, { status: 400 });
+  }
+
+  let bannerUrl: string | null = null;
+  try {
+    bannerUrl = parsed.data.bannerUrl ? await saveProfessionalImage(parsed.data.bannerUrl) : null;
+  } catch {
+    bannerUrl = parsed.data.bannerUrl ?? null;
   }
 
   // Grant a login account (role "employee") scoped to this company, if requested.
@@ -152,6 +161,7 @@ export async function POST(request: Request) {
       jobTitle: trimmedJobTitle,
       phone: trimmedPhone,
       photoUrl,
+      bannerUrl,
       commissionType: commissionType ?? "none",
       commissionValue: String(commissionValue ?? 0),
       active: true,
@@ -224,6 +234,7 @@ export async function POST(request: Request) {
     jobTitle: created.jobTitle,
     phone: created.phone,
     photoUrl: created.photoUrl,
+    bannerUrl,
     active: created.active,
     color: avatarColor(created.name),
     initials: initials(created.name),

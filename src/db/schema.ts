@@ -122,6 +122,7 @@ export const employees = mysqlTable("employees", {
   userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
   name: varchar("name", { length: 255 }).notNull(),
   photoUrl: text("photo_url"),
+  bannerUrl: text("banner_url"),
   phone: varchar("phone", { length: 50 }),
   jobTitle: varchar("job_title", { length: 100 }),
   commissionType: varchar("commission_type", { length: 50 }).default("percentage").notNull(),
