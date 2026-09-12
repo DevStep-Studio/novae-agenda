@@ -84,7 +84,7 @@ export async function createMembershipPlan(
       allowCarryOver: input.allowCarryOver ?? false,
       noShowConsumesSession: input.noShowConsumesSession ?? true,
       lateCancelConsumesSession: input.lateCancelConsumesSession ?? true,
-      badgeColor: input.badgeColor ?? "#dcff4c",
+      badgeColor: input.badgeColor ?? "#3b82f6",
       active: true,
     });
 

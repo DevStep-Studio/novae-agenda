@@ -296,7 +296,7 @@ export function CustomerAuth({
         <button
           type="button"
           className={b.textButton}
-          style={{ marginTop: "10px", width: "100%", padding: "8px", border: "1px dashed var(--primary-soft, #dcff4c40)", borderRadius: "8px", color: "var(--primary, #dcff4c)", fontSize: "12px" }}
+          style={{ marginTop: "10px", width: "100%", padding: "8px", border: "1px dashed var(--border-strong, #333333)", borderRadius: "8px", color: "var(--primary, #3b82f6)", fontSize: "12px" }}
           onClick={async () => {
             setBusy(true);
             setError("");

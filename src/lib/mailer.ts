@@ -65,7 +65,7 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
   return { ok: true, transport: "console" };
 }
 
-/* ---------- Templates (Reservei identity: dark forest #12231b, electric lime #dcff4c) ---------- */
+/* ---------- Templates (Reservei identity) ---------- */
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
@@ -73,12 +73,12 @@ function escapeHtml(value: string): string {
 
 function layout(heading: string, bodyHtml: string, cta?: { label: string; href: string }): string {
   const button = cta
-    ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 24px;background:#dcff4c;color:#080808;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>`
+    ? `<a href="${cta.href}" style="display:inline-block;margin:24px 0;padding:12px 24px;background:#3b82f6;color:#ffffff;border-radius:8px;font-weight:700;text-decoration:none">${cta.label}</a>`
     : "";
   return `<!doctype html><html lang="pt-BR"><body style="margin:0;background:#080808;font-family:Arial,Helvetica,sans-serif;color:#f5f5f5">
 <div style="max-width:520px;margin:0 auto;padding:32px 16px">
-  <div style="font-weight:700;font-size:22px;letter-spacing:-0.5px;color:#dcff4c;margin-bottom:24px">Reservei</div>
-  <div style="background:#121212;border:1px solid rgba(220,255,76,0.25);border-radius:16px;padding:28px">
+  <div style="font-weight:700;font-size:22px;letter-spacing:-0.5px;color:#3b82f6;margin-bottom:24px">Reservei</div>
+  <div style="background:#121212;border:1px solid #262626;border-radius:16px;padding:28px">
     <h1 style="margin:0 0 12px;font-size:18px">${heading}</h1>
     ${bodyHtml}
     ${button}

@@ -184,7 +184,7 @@ export async function publicCatalog(slug: string) {
       phone: company.publicPhone ? company.phone : null,
       whatsapp: company.publicPhone ? company.whatsapp : null,
       instagram: company.publicInstagram ? company.instagram : null,
-      color: company.publicColor || company.primaryColor || "#dcff4c",
+      color: company.publicColor || company.primaryColor || "#3b82f6",
       photos: company.publicPhotos,
       timezone: company.timezone,
       cancellationHours: company.cancellationHours,

@@ -20,7 +20,7 @@ export default function TermosPage() {
               alignItems: "center",
               gap: 8,
               fontSize: 14,
-              color: "#dcff4c",
+              color: "#3b82f6",
               textDecoration: "none",
               fontWeight: 500,
             }}
@@ -46,7 +46,7 @@ export default function TermosPage() {
             Última atualização: Setembro de 2026
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             1. Objeto e Aceitação
           </h2>
           <p>
@@ -55,7 +55,7 @@ export default function TermosPage() {
             criar uma conta ou agendar por meio da plataforma, você concorda plenamente com estes termos.
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             2. Contas e Segurança
           </h2>
           <p>
@@ -64,7 +64,7 @@ export default function TermosPage() {
             HTTPS seguras) para salvaguardar os dados dos usuários.
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             3. Assinatura e Cobrança SaaS
           </h2>
           <p>
@@ -74,7 +74,7 @@ export default function TermosPage() {
             acesso de leitura aos dados históricos por até 90 dias.
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             4. Cancelamento e Reagendamento
           </h2>
           <p>
@@ -82,7 +82,7 @@ export default function TermosPage() {
             cancelamento ou reagendamento de atendimentos pelos clientes finais.
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             5. Legislação Aplicável e Foro
           </h2>
           <p>

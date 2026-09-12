@@ -10,9 +10,9 @@ export type ColorPreset = {
 };
 
 export const PRIMARY_COLOR_PRESETS: ColorPreset[] = [
-  { id: "lime", name: "Verde Neon (Padrão)", hex: "#dcff4c" },
+  { id: "blue", name: "Azul Elétrico (Padrão)", hex: "#3b82f6" },
   { id: "emerald", name: "Esmeralda", hex: "#10b981" },
-  { id: "blue", name: "Azul Elétrico", hex: "#3b82f6" },
+  { id: "lime", name: "Verde Neon", hex: "#dcff4c" },
   { id: "violet", name: "Violeta / Roxo", hex: "#8b5cf6" },
   { id: "gold", name: "Dourado / Âmbar", hex: "#eab308" },
   { id: "pink", name: "Rosa / Magenta", hex: "#ec4899" },

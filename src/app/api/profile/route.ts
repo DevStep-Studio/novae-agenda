@@ -73,8 +73,8 @@ export async function GET() {
       company: companyRow,
       avatarUrl: companyRow?.logoUrl ?? null,
       bannerUrl,
-      primaryColor: companyRow?.primaryColor ?? "#dcff4c",
-      secondaryColor: companyRow?.secondaryColor ?? "#162a22",
+      primaryColor: companyRow?.primaryColor ?? "#3b82f6",
+      secondaryColor: companyRow?.secondaryColor ?? "#18181b",
       dashboardPreferences: dashboardPreferences ?? {
         showBanner: true,
         showChecklist: true,

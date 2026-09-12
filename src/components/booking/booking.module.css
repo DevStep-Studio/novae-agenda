@@ -22,9 +22,9 @@
   --booking-warning: #fbbf24;
   --booking-success: #34d399;
   --ink: var(--booking-text);
-  --accent: var(--brand, #dcff4c);
-  --accent-hover: var(--brand-hover, #e5ff70);
-  --accent-contrast: #080808;
+  --accent: var(--brand, #3b82f6);
+  --accent-hover: var(--brand-hover, #2563eb);
+  --accent-contrast: #ffffff;
   --muted: var(--booking-text-muted);
   --muted-light: var(--booking-text-secondary);
   --line: var(--booking-border);
@@ -60,32 +60,32 @@
 }
 
 .pageLight {
-  --booking-background: #f4f7f5;
+  --booking-background: #f8fafc;
   --booking-surface: #ffffff;
-  --booking-surface-secondary: #f8faf9;
-  --booking-surface-hover: #eef5f1;
+  --booking-surface-secondary: #f8fafc;
+  --booking-surface-hover: #f1f5f9;
   --booking-surface-elevated: var(--booking-surface-hover);
-  --booking-border: rgba(18, 35, 27, 0.1);
-  --booking-border-strong: rgba(18, 35, 27, 0.22);
+  --booking-border: #e2e8f0;
+  --booking-border-strong: #cbd5e1;
   --booking-border-soft: color-mix(in srgb, var(--accent) 24%, transparent);
-  --booking-text: #12231b;
-  --booking-text-primary: #12231b;
-  --booking-text-secondary: #4a6358;
-  --booking-text-muted: #586f65;
-  --booking-text-disabled: #a5b8af;
+  --booking-text: #0f172a;
+  --booking-text-primary: #0f172a;
+  --booking-text-secondary: #475569;
+  --booking-text-muted: #64748b;
+  --booking-text-disabled: #94a3b8;
   --booking-danger: #dc4a4a;
   --booking-danger-soft: rgba(220, 74, 74, 0.1);
   --booking-warning: #b47a30;
-  --booking-success: #1f7a55;
-  --ink: #12231b;
-  --muted: #586f65;
-  --muted-light: #829a8f;
-  --line: rgba(18, 35, 27, 0.1);
-  --line-subtle: rgba(18, 35, 27, 0.06);
+  --booking-success: #10b981;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --muted-light: #94a3b8;
+  --line: #e2e8f0;
+  --line-subtle: #f1f5f9;
   --paper: #ffffff;
-  --paper-hover: #f6faf8;
+  --paper-hover: #f8fafc;
   --paper-card: #ffffff;
-  --bg: #f4f7f5;
+  --bg: #f8fafc;
   background: var(--booking-background);
   color: var(--booking-text);
   color-scheme: light;
@@ -1815,7 +1815,7 @@
 }
 
 .waitlistInlineBtn:hover {
-  background: rgba(220, 255, 76, 0.08);
+  background: var(--accent-soft, rgba(59, 130, 246, 0.08));
   border-color: var(--accent);
 }
 

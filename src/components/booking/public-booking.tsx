@@ -480,7 +480,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           display: "grid",
                           placeItems: "center",
                           background: "var(--booking-surface-elevated)",
-                          color: "var(--accent, #dcff4c)",
+                          color: "var(--accent, #3b82f6)",
                           fontWeight: 700,
                           fontSize: 13,
                         }}
@@ -591,7 +591,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       )}
 
       {step === 2 && quote && quote.discount > 0 && (
-        <p className={b.muted} style={{ fontSize: 12, color: "#dcff4c" }}>
+        <p className={b.muted} style={{ fontSize: 12, color: "var(--accent, #3b82f6)" }}>
           Desconto aplicado: −{money(quote.discount)}
         </p>
       )}

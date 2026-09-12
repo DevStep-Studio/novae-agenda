@@ -177,8 +177,8 @@ export async function GET() {
           website: null,
           timezone: "America/Sao_Paulo",
           currency: "BRL",
-          primaryColor: "#dcff4c",
-          secondaryColor: "#162a22",
+          primaryColor: "#3b82f6",
+          secondaryColor: "#18181b",
           logoUrl: null,
           bannerUrl: null,
           dashboardPreferences: {

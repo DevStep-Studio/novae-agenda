@@ -26,7 +26,7 @@ function AdminContent() {
       <div style={{ padding: 40, textAlign: "center", color: "#ffffff", background: "#080808", minHeight: "100vh" }}>
         <h2 style={{ fontSize: 22, color: "#f87171" }}>Acesso Restrito</h2>
         <p style={{ marginTop: 12, color: "rgba(255,255,255,0.7)" }}>Esta área é reservada exclusivamente para o superadmin da plataforma Reservei.</p>
-        <a href="/" style={{ display: "inline-block", marginTop: 24, padding: "10px 20px", background: "#dcff4c", color: "#080808", borderRadius: 8, fontWeight: 700, textDecoration: "none" }}>
+        <a href="/" style={{ display: "inline-block", marginTop: 24, padding: "10px 20px", background: "var(--primary, #3b82f6)", color: "#ffffff", borderRadius: 8, fontWeight: 700, textDecoration: "none" }}>
           Voltar ao meu painel
         </a>
       </div>

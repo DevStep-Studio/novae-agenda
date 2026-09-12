@@ -171,7 +171,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
   // Save Branding to Server
   const handleSave = async () => {
     if (!isValidHexColor(primaryColor)) {
-      notify("Por favor, insira uma cor hexadecimal válida (ex: #DCFF4C).", "error");
+      notify("Por favor, insira uma cor hexadecimal válida (ex: #3B82F6).", "error");
       return;
     }
 
@@ -439,7 +439,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                   className={styles.hexInput}
                   onChange={(e) => setPrimaryColor(e.target.value.toUpperCase())}
                   maxLength={7}
-                  placeholder="#DCFF4C"
+                  placeholder="#3B82F6"
                 />
               </div>
 

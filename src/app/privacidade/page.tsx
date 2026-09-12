@@ -20,7 +20,7 @@ export default function PrivacidadePage() {
               alignItems: "center",
               gap: 8,
               fontSize: 14,
-              color: "#dcff4c",
+              color: "#3b82f6",
               textDecoration: "none",
               fontWeight: 500,
             }}
@@ -39,7 +39,7 @@ export default function PrivacidadePage() {
             fontSize: 15,
           }}
         >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#dcff4c", marginBottom: 12 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#3b82f6", marginBottom: 12 }}>
             <ShieldCheck size={20} />
             <span style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
               Conformidade LGPD
@@ -53,7 +53,7 @@ export default function PrivacidadePage() {
             Em conformidade com a Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais)
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             1. Dados Coletados e Finalidade
           </h2>
           <p>
@@ -65,7 +65,7 @@ export default function PrivacidadePage() {
             <li><strong>Profissionais:</strong> Nome, telefone, jornada de trabalho e comissões registradas no ato dos atendimentos.</li>
           </ul>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             2. Segurança e Isolamento Multi-Tenant
           </h2>
           <p>
@@ -73,7 +73,7 @@ export default function PrivacidadePage() {
             Senhas são armazenadas com algoritmo de hash Bcrypt de alto custo (12 rounds) e as sessões utilizam tokens assinados em cookies HttpOnly com proteção contra CSRF e XSS.
           </p>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             3. Direitos do Titular (Art. 18 da LGPD)
           </h2>
           <p>
@@ -86,7 +86,7 @@ export default function PrivacidadePage() {
             <li>Eliminação dos dados pessoais tratados mediante solicitação do titular.</li>
           </ul>
 
-          <h2 style={{ fontSize: 18, color: "#dcff4c", marginTop: 24, marginBottom: 12 }}>
+          <h2 style={{ fontSize: 18, color: "#3b82f6", marginTop: 24, marginBottom: 12 }}>
             4. Encarregado pelo Tratamento de Dados (DPO)
           </h2>
           <p>

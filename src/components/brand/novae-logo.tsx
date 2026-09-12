@@ -21,7 +21,7 @@ export type NovaeLogoProps = ReserveiLogoProps;
 export function ReserveiStarIcon({
   className = "",
   size = 24,
-  fill = "#dcff4c",
+  fill = "var(--primary, #3b82f6)",
   style,
 }: {
   className?: string;

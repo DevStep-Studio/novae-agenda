@@ -2790,7 +2790,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
   // Branding & Primary Color
   const [brandingLogo, setBrandingLogo] = useState(company?.logoUrl ?? "");
   const [brandingBanner, setBrandingBanner] = useState(company?.bannerUrl ?? "");
-  const [brandingPrimaryColor, setBrandingPrimaryColor] = useState(company?.primaryColor ?? "#dcff4c");
+  const [brandingPrimaryColor, setBrandingPrimaryColor] = useState(company?.primaryColor ?? "#3b82f6");
   const [savingBranding, setSavingBranding] = useState(false);
 
   // Operational settings fields
@@ -3024,7 +3024,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                     <div className="custom-color-row">
                       <input
                         type="color"
-                        value={brandingPrimaryColor.startsWith("#") ? brandingPrimaryColor : "#dcff4c"}
+                        value={brandingPrimaryColor.startsWith("#") ? brandingPrimaryColor : "#3b82f6"}
                         onChange={(e) => handlePrimaryColorSelect(e.target.value)}
                         className="custom-color-picker-input"
                         title="Escolher cor personalizada"
@@ -3034,13 +3034,13 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                         style={{ maxWidth: "160px" }}
                         value={brandingPrimaryColor}
                         onChange={(e) => handlePrimaryColorSelect(e.target.value)}
-                        placeholder="#dcff4c"
+                        placeholder="#3b82f6"
                       />
                       <Button
                         variant="secondary"
-                        onClick={() => handlePrimaryColorSelect("#dcff4c")}
+                        onClick={() => handlePrimaryColorSelect("#3b82f6")}
                       >
-                        Restaurar verde
+                        Restaurar padrão
                       </Button>
                     </div>
                   </Field>
@@ -3737,7 +3737,7 @@ function NewAppointmentModal({
             {selectedServices.length > 0 && (
               <div className="selected-services-summary-bar">
                 <div className="summary-bar-left">
-                  <CheckCheck size={16} style={{ color: "var(--primary, #dcff4c)" }} />
+                  <CheckCheck size={16} style={{ color: "var(--primary, #3b82f6)" }} />
                   <span>
                     <strong>{selectedServices.length}</strong> {selectedServices.length === 1 ? "serviço selecionado" : "serviços selecionados"}
                   </span>
@@ -5952,7 +5952,7 @@ function ProfilePage({
   const [phone, setPhone] = useState(session?.phone ?? "");
   const [avatarUrl, setAvatarUrl] = useState(session?.company.logoUrl ?? "");
   const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
-  const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#dcff4c");
+  const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#3b82f6");
   const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
     showBanner: session?.company.dashboardPreferences?.showBanner ?? true,
     showChecklist: session?.company.dashboardPreferences?.showChecklist ?? true,
@@ -6169,7 +6169,7 @@ function ProfilePage({
                 <input
                   type="color"
                   className="custom-color-picker-input"
-                  value={primaryColor.startsWith("#") && primaryColor.length === 7 ? primaryColor : "#dcff4c"}
+                  value={primaryColor.startsWith("#") && primaryColor.length === 7 ? primaryColor : "#3b82f6"}
                   onChange={(e) => handleColorChange(e.target.value)}
                   title="Escolher cor personalizada"
                 />
@@ -6178,11 +6178,11 @@ function ProfilePage({
                   style={{ maxWidth: "140px" }}
                   value={primaryColor}
                   onChange={(e) => handleColorChange(e.target.value)}
-                  placeholder="#dcff4c"
+                  placeholder="#3b82f6"
                   maxLength={9}
                 />
-                <Button variant="secondary" onClick={() => handleColorChange("#dcff4c")}>
-                  Restaurar verde
+                <Button variant="secondary" onClick={() => handleColorChange("#3b82f6")}>
+                  Restaurar padrão
                 </Button>
               </div>
             </div>
@@ -6459,7 +6459,7 @@ function ProfilePage({
                   padding: "14px 18px",
                   background: "var(--primary-soft)",
                   color: "var(--primary)",
-                  border: "1px solid rgba(220, 255, 76, 0.25)",
+                  border: "1px solid var(--brand-border-subtle)",
                   borderRadius: "10px",
                   fontWeight: 600,
                   fontSize: "14px",

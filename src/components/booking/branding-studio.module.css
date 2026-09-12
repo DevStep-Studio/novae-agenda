@@ -46,9 +46,9 @@
   min-height: 40px;
   padding: 8px 20px;
   border-radius: 9px;
-  background: #dcff4c;
-  border: 1px solid #dcff4c;
-  color: #102118;
+  background: var(--primary, #3b82f6);
+  border: 1px solid var(--primary, #3b82f6);
+  color: #ffffff;
   font: inherit;
   font-size: 13px;
   font-weight: 700;

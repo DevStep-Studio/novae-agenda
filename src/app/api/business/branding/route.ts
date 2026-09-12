@@ -48,7 +48,7 @@ export async function GET() {
       avatarUrl: settingsMap.avatar_url || settingsMap.avatarUrl || null,
       coverUrl: settingsMap.cover_url || settingsMap.coverUrl || null,
       coverPosition: settingsMap.cover_position || settingsMap.coverPosition || "center",
-      primaryColor: company.publicColor || company.primaryColor || "#dcff4c",
+      primaryColor: company.publicColor || company.primaryColor || "#3b82f6",
       bookingThemeMode: (settingsMap.booking_theme_mode || settingsMap.bookingThemeMode || "auto") as "auto" | "light" | "dark",
       bookingFontFamily: settingsMap.booking_font_family || settingsMap.bookingFontFamily || DEFAULT_FONT_PACK,
       bookingCopyOverrides: parseCopyOverrides(
@@ -81,7 +81,7 @@ const brandingSchema = z.object({
   coverPosition: z.enum(["center", "top", "bottom"]).default("center"),
   primaryColor: z
     .string()
-    .refine(isValidHexColor, "Informe uma cor hexadecimal válida (ex: #DCFF4C)"),
+    .refine(isValidHexColor, "Informe uma cor hexadecimal válida (ex: #3B82F6)"),
   bookingThemeMode: z.enum(["auto", "light", "dark"]).default("auto"),
   bookingFontFamily: z
     .enum(FONT_PACK_IDS as [string, ...string[]])
