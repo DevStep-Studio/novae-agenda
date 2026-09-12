@@ -915,15 +915,6 @@ function ClientsPage({
             <span className="metric-detail">por atendimento</span>
           </div>
         </div>
-
-        <div className="metric-card">
-          <div className="metric-icon metric-rose"><TrendingUp size={18} /></div>
-          <div className="metric-copy">
-            <p>LTV total acumulado</p>
-            <strong>{formatCurrency(totalSpent)}</strong>
-            <span className="metric-detail">faturamento da base</span>
-          </div>
-        </div>
       </div>
 
       {/* Main Clients Panel */}
