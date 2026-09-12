@@ -80,12 +80,10 @@ export function TransparentCheckoutModal({
     setErrorMsg(null);
     try {
       const res = await api<{
-        data: {
-          invoiceId: string;
-          copiaECola: string;
-          qrCode: string;
-          expiresAt: string;
-        };
+        invoiceId: string;
+        copiaECola: string;
+        qrCode: string;
+        expiresAt: string;
       }>("/api/saas/checkout/pix", {
         method: "POST",
         body: JSON.stringify({
@@ -94,7 +92,7 @@ export function TransparentCheckoutModal({
         }),
       });
 
-      setPixData(res.data);
+      setPixData(res);
     } catch (err: any) {
       setErrorMsg(err.message || "Erro ao gerar PIX. Tente novamente.");
     } finally {
@@ -114,11 +112,11 @@ export function TransparentCheckoutModal({
     setCheckingPix(true);
     setErrorMsg(null);
     try {
-      const res = await api<{ data: { paid: boolean; status: string } }>(
+      const res = await api<{ paid: boolean; status: string }>(
         `/api/saas/checkout/status?invoiceId=${pixData.invoiceId}`
       );
 
-      if (res.data.paid) {
+      if (res?.paid) {
         setSuccessMsg("Pagamento confirmado! Sua assinatura foi ativada.");
         setTimeout(() => {
           onSuccess();
@@ -152,11 +150,9 @@ export function TransparentCheckoutModal({
       const mockToken = `tok_${cleanNumber.slice(-4)}_${Date.now()}`;
 
       const res = await api<{
-        data: {
-          approved: boolean;
-          status: string;
-          message: string;
-        };
+        approved: boolean;
+        status: string;
+        message: string;
       }>("/api/saas/checkout/card", {
         method: "POST",
         body: JSON.stringify({
@@ -167,14 +163,14 @@ export function TransparentCheckoutModal({
         }),
       });
 
-      if (res.data.approved) {
-        setSuccessMsg(res.data.message || "Assinatura ativada com sucesso!");
+      if (res?.approved) {
+        setSuccessMsg(res.message || "Assinatura ativada com sucesso!");
         setTimeout(() => {
           onSuccess();
           onClose();
         }, 1500);
       } else {
-        setErrorMsg(res.data.message || "Pagamento recusado. Verifique os dados do cartão.");
+        setErrorMsg(res?.message || "Pagamento recusado. Verifique os dados do cartão.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Não foi possível concluir o pagamento. Verifique os dados do cartão ou utilize outra forma.");

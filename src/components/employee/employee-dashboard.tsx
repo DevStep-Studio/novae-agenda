@@ -42,8 +42,8 @@ export function EmployeeDashboard() {
   const loadAppointments = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api<{ data: AppointmentDTO[] }>(`/api/appointments?from=${todayStr}`);
-      setAppointments(res.data || []);
+      const res = await api<AppointmentDTO[]>(`/api/appointments?from=${todayStr}`);
+      setAppointments(Array.isArray(res) ? res : []);
     } catch {
       setAppointments([]);
     } finally {

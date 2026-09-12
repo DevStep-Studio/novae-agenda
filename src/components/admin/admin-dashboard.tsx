@@ -36,8 +36,8 @@ export function AdminDashboard() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const res = await api<{ data: SuperadminStatsDTO }>("/api/superadmin");
-      setStats(res.data);
+      const res = await api<SuperadminStatsDTO>("/api/superadmin");
+      setStats(res || null);
     } catch {
       setStats(null);
     } finally {
