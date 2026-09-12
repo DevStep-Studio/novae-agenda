@@ -6066,7 +6066,7 @@ function ProfilePage({
   };
 
   return (
-    <div className="page-container">
+    <div className="page-content profile-page-content">
       <div className="profile-page">
         {/* Notice for Owner & Shared Identity */}
         <div className="profile-identity-notice-banner">

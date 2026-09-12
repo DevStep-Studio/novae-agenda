@@ -89,6 +89,7 @@
 
   --primary: #dcff4c;
   --primary-hover: #cbfa33;
+  --primary-rgb: 220, 255, 76;
   --primary-soft: rgba(220, 255, 76, 0.12);
   --primary-foreground: #080808;
 
@@ -5217,10 +5218,15 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ===== Dedicated Profile Page (Aba Meu Perfil & Customização) ===== */
+.profile-page-content {
+  padding-top: 24px;
+  padding-bottom: 64px;
+}
+
 .profile-page {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   max-width: 1100px;
   margin: 0 auto;
   width: 100%;
@@ -5233,8 +5239,9 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   padding: 16px 20px;
   border-radius: var(--radius-md);
   background: var(--primary-soft);
-  border: 1px solid rgba(220, 255, 76, 0.25);
+  border: 1px solid var(--brand-border-subtle);
   color: var(--text-primary);
+  box-shadow: none !important;
 }
 
 .profile-identity-notice-banner .notice-icon {
@@ -5242,11 +5249,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   height: 36px;
   border-radius: 10px;
   background: var(--primary);
-  color: #000;
+  color: var(--primary-foreground, #000);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: none !important;
 }
 
 .profile-identity-notice-banner .notice-content strong {
@@ -6961,16 +6969,16 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .settings-nav button.active {
-  background: rgba(220, 255, 76, 0.12) !important;
+  background: var(--primary-soft) !important;
   color: var(--primary) !important;
   font-weight: 600 !important;
-  border-color: rgba(220, 255, 76, 0.28) !important;
+  border-color: var(--brand-border-subtle) !important;
 }
 
 :root:not([data-theme="dark"]) .settings-nav button.active {
-  background: rgba(19, 51, 40, 0.08) !important;
-  color: #133328 !important;
-  border-color: rgba(19, 51, 40, 0.18) !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border-color: var(--brand-border-subtle) !important;
 }
 
 .settings-nav button.active svg {
@@ -6978,7 +6986,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 :root:not([data-theme="dark"]) .settings-nav button.active svg {
-  color: #133328;
+  color: var(--primary);
 }
 
 /* Modern Settings Section Cards */
@@ -7081,7 +7089,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: rgba(220, 255, 76, 0.12);
+  background: var(--primary-soft);
   color: var(--primary);
   display: grid;
   place-items: center;
@@ -7089,8 +7097,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 :root:not([data-theme="dark"]) .operational-summary-icon {
-  background: rgba(19, 51, 40, 0.08);
-  color: #133328;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .operational-summary-text {
@@ -7141,15 +7149,15 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  background: rgba(220, 255, 76, 0.12);
+  background: var(--primary-soft);
   color: var(--primary);
   display: grid;
   place-items: center;
 }
 
 :root:not([data-theme="dark"]) .location-badge {
-  background: rgba(19, 51, 40, 0.08);
-  color: #133328;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .location-status-tag {
@@ -7157,17 +7165,17 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(220, 255, 76, 0.15);
+  background: var(--primary-soft);
   color: var(--primary);
-  border: 1px solid rgba(220, 255, 76, 0.3);
+  border: 1px solid var(--brand-border-subtle);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 :root:not([data-theme="dark"]) .location-status-tag {
-  background: rgba(19, 51, 40, 0.1);
-  color: #133328;
-  border-color: rgba(19, 51, 40, 0.2);
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--brand-border-subtle);
 }
 
 .location-card-body h3 {
@@ -7221,7 +7229,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(220, 255, 76, 0.12);
+  background: var(--primary-soft);
   color: var(--primary);
   display: grid;
   place-items: center;
@@ -7229,8 +7237,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 :root:not([data-theme="dark"]) .security-icon {
-  background: rgba(19, 51, 40, 0.08);
-  color: #133328;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .security-card.superadmin .security-icon {
@@ -7325,7 +7333,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: rgba(220, 255, 76, 0.12);
+  background: var(--primary-soft);
   color: var(--primary);
   display: grid;
   place-items: center;
@@ -7333,8 +7341,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 :root:not([data-theme="dark"]) .help-icon {
-  background: rgba(19, 51, 40, 0.08);
-  color: #133328;
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .help-card strong {
