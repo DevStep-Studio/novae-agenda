@@ -5,6 +5,7 @@ import { employeeLocations, employeeSchedules, employeeServices, employees, loca
 import { recordAudit } from "@/lib/audit";
 import { hashPassword, normalizeEmail, requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
+import { PlanLimitService } from "@/lib/saas/plan-limits";
 import { saveProfessionalImage } from "@/lib/storage";
 import type { EmployeeDTO } from "@/shared/types";
 
@@ -77,6 +78,20 @@ export async function POST(request: Request) {
   const gate = await requireRole("manager");
   if (gate.response) return gate.response;
   const { auth } = gate;
+
+  // Validate SaaS Employee Limit
+  try {
+    await PlanLimitService.assertCanAddEmployee(auth.user.companyId);
+  } catch (limitErr: any) {
+    return Response.json(
+      {
+        error: limitErr.message || "Limite de funcionários do plano atingido.",
+        code: "PLAN_EMPLOYEE_LIMIT_EXCEEDED",
+        usage: limitErr.usage,
+      },
+      { status: 403 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = createSchema.safeParse(body);

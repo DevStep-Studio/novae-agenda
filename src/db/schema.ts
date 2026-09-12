@@ -407,35 +407,86 @@ export const bookingWaitlist = mysqlTable("booking_waitlist", {
   ...timestamps,
 });
 
+export const saasPlans = mysqlTable("saas_plans", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  slug: varchar("slug", { length: 50 }).notNull().unique(), // 'essencial' | 'profissional' | 'equipe' | 'negocio' | 'empresa' | 'enterprise'
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description").notNull(),
+  monthlyPrice: decimal("monthly_price", { precision: 12, scale: 2 }).notNull(),
+  annualPrice: decimal("annual_price", { precision: 12, scale: 2 }).notNull(),
+  employeeLimit: int("employee_limit").notNull(), // 2, 5, 10, 20, 50, 100
+  badge: varchar("badge", { length: 50 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: int("sort_order").default(0).notNull(),
+  gatewayPlanId: varchar("gateway_plan_id", { length: 100 }),
+  ...timestamps,
+}, (table) => ({
+  slugIdx: uniqueIndex("saas_plans_slug_idx").on(table.slug),
+  activeIdx: index("saas_plans_active_idx").on(table.isActive),
+}));
+
 export const subscriptions = mysqlTable("subscriptions", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
-  plan: varchar("plan", { length: 50 }).default("pro_monthly").notNull(), // 'trial' | 'pro_monthly' | 'pro_yearly'
-  status: varchar("status", { length: 50 }).default("trialing").notNull(), // 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired'
+  plan: varchar("plan", { length: 50 }).default("trial").notNull(), // 'trial' | 'essencial' | 'profissional' | 'equipe' | 'negocio' | 'empresa' | 'enterprise' | 'pro_monthly' | 'pro_yearly'
+  planId: varchar("plan_id", { length: 36 }).references(() => saasPlans.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 50 }).default("trialing").notNull(), // 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired' | 'suspended'
+  billingInterval: varchar("billing_interval", { length: 20 }).default("monthly").notNull(), // 'monthly' | 'yearly'
+  amount: decimal("amount", { precision: 12, scale: 2 }),
+  paymentMethod: varchar("payment_method", { length: 50 }).default("pix"), // 'pix' | 'card' | 'manual'
+  gateway: varchar("gateway", { length: 50 }).default("mercadopago").notNull(), // 'mercadopago' | 'manual' | 'simulated'
+  gatewaySubscriptionId: varchar("gateway_subscription_id", { length: 100 }),
+  gatewayPaymentId: varchar("gateway_payment_id", { length: 100 }),
   trialEndsAt: timestamp("trial_ends_at", { mode: "date" }).notNull(),
   currentPeriodStart: timestamp("current_period_start", { mode: "date" }),
   currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+  cancelledAt: timestamp("cancelled_at", { mode: "date" }),
   mercadoPagoSubscriptionId: varchar("mercado_pago_subscription_id", { length: 100 }),
   mercadoPagoPayerId: varchar("mercado_pago_payer_id", { length: 100 }),
   ...timestamps,
 }, (table) => ({
   companyIdx: uniqueIndex("subscriptions_company_idx").on(table.companyId),
   statusIdx: index("subscriptions_status_idx").on(table.status),
+  planIdx: index("subscriptions_plan_idx").on(table.plan),
 }));
 
 export const subscriptionInvoices = mysqlTable("subscription_invoices", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   subscriptionId: varchar("subscription_id", { length: 36 }).notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
   companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  planSlug: varchar("plan_slug", { length: 50 }),
+  billingInterval: varchar("billing_interval", { length: 20 }).default("monthly").notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-  status: varchar("status", { length: 50 }).default("paid").notNull(), // 'paid' | 'pending' | 'failed'
+  paymentMethod: varchar("payment_method", { length: 50 }).default("pix").notNull(), // 'pix' | 'card' | 'manual'
+  status: varchar("status", { length: 50 }).default("paid").notNull(), // 'paid' | 'pending' | 'failed' | 'cancelled'
+  dueAt: timestamp("due_at", { mode: "date" }),
   paidAt: timestamp("paid_at", { mode: "date" }),
+  pixQrCode: text("pix_qr_code"),
+  pixQrCodeBase64: text("pix_qr_code_base64"),
+  pixCopiaECola: text("pix_copia_e_cola"),
+  pixExpiresAt: timestamp("pix_expires_at", { mode: "date" }),
   mercadoPagoPaymentId: varchar("mercado_pago_payment_id", { length: 100 }),
   invoiceUrl: text("invoice_url"),
+  metadata: json("metadata"),
   ...timestamps,
 }, (table) => ({
   companyIdx: index("subscription_invoices_company_idx").on(table.companyId),
+  statusIdx: index("subscription_invoices_status_idx").on(table.status),
+  paymentIdIdx: index("subscription_invoices_mp_idx").on(table.mercadoPagoPaymentId),
+}));
+
+export const paymentWebhookEvents = mysqlTable("payment_webhook_events", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  gateway: varchar("gateway", { length: 50 }).notNull(), // 'mercadopago' | 'other'
+  eventId: varchar("event_id", { length: 255 }).notNull(),
+  type: varchar("type", { length: 100 }).notNull(),
+  payload: json("payload").notNull(),
+  status: varchar("status", { length: 50 }).default("processed").notNull(), // 'processed' | 'failed' | 'ignored'
+  processedAt: timestamp("processed_at", { mode: "date" }).notNull(),
+  ...timestamps,
+}, (table) => ({
+  eventIdIdx: uniqueIndex("payment_webhook_events_event_id_idx").on(table.gateway, table.eventId),
 }));
 
 export const reviews = mysqlTable("reviews", {

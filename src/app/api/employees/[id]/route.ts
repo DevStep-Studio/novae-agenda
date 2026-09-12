@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { employeeSchedules, employeeServices, employees, services } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
+import { PlanLimitService } from "@/lib/saas/plan-limits";
 import { deleteProfessionalImage, saveProfessionalImage } from "@/lib/storage";
 import type { EmployeeDTO, EmployeeScheduleDTO } from "@/shared/types";
 
@@ -92,9 +93,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!parsed.success) {
     return Response.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
+  const data = parsed.data;
+
+  const [current] = await db
+    .select({ photoUrl: employees.photoUrl, active: employees.active })
+    .from(employees)
+    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
+    .limit(1);
+  if (!current) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+
+  if (data.active === true && !current.active) {
+    try {
+      await PlanLimitService.assertCanAddEmployee(auth.user.companyId);
+    } catch (limitErr: any) {
+      return Response.json(
+        {
+          error: limitErr.message || "Limite de funcionários do plano atingido.",
+          code: "PLAN_EMPLOYEE_LIMIT_EXCEEDED",
+          usage: limitErr.usage,
+        },
+        { status: 403 }
+      );
+    }
+  }
 
   const patch: Record<string, unknown> = {};
-  const data = parsed.data;
   if (data.name !== undefined) patch.name = data.name.trim();
   if (data.jobTitle !== undefined) patch.jobTitle = data.jobTitle?.trim() || null;
   if (data.phone !== undefined) patch.phone = data.phone?.trim() || null;
@@ -102,12 +125,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (data.commissionType !== undefined) patch.commissionType = data.commissionType;
   if (data.commissionValue !== undefined) patch.commissionValue = String(data.commissionValue);
   if (data.photoUrl !== undefined) {
-    const [current] = await db
-      .select({ photoUrl: employees.photoUrl })
-      .from(employees)
-      .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
-      .limit(1);
-    if (!current) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
     try {
       patch.photoUrl = data.photoUrl
         ? await saveProfessionalImage(data.photoUrl, current.photoUrl)

@@ -19,6 +19,7 @@ import {
   users,
 } from "../src/db/schema";
 import { hashPassword } from "../src/lib/auth";
+import { seedSaasPlans } from "../src/lib/saas/plans-seed";
 
 function dateKey(offsetDays: number): string {
   const d = new Date();
@@ -28,6 +29,8 @@ function dateKey(offsetDays: number): string {
 
 async function seed() {
   console.log("🌱 Iniciando o seed de demonstração completa do Reservei...");
+  await seedSaasPlans(db);
+  console.log("✅ 6 Planos SaaS oficiais populados com sucesso.");
 
   const defaultPasswordHash = await hashPassword("senha123");
   const verified = { emailVerified: true, emailVerifiedAt: new Date() };
