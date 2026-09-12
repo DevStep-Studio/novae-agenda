@@ -4732,13 +4732,13 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-color: var(--brand-border-focus);
   background: var(--surface-tertiary, #151a26);
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: none !important;
 }
 
 .service-option-card.selected {
   background: var(--primary-soft);
   border-color: var(--primary);
-  box-shadow: 0 0 16px var(--primary-soft), inset 0 0 0 1px var(--primary);
+  box-shadow: none !important;
 }
 
 .service-card-top {
@@ -4929,7 +4929,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-color: var(--primary);
   background: var(--primary-soft);
   color: var(--text-primary);
-  box-shadow: 0 0 12px var(--primary-soft);
+  box-shadow: none !important;
 }
 .service-option.active small {
   color: var(--primary);
@@ -5009,6 +5009,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: none !important;
 }
 
 :root:not([data-theme="dark"]) .slot-chip {
@@ -5021,6 +5022,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-color: var(--primary);
   color: var(--text-primary);
   background: var(--surface-tertiary, #151a26);
+  box-shadow: none !important;
 }
 
 .slot-chip.active {
@@ -5028,7 +5030,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   color: var(--primary-foreground);
   border-color: var(--primary);
   font-weight: 700;
-  box-shadow: 0 0 12px var(--primary-soft);
+  box-shadow: none !important;
 }
 
 .slot-chip.active svg {
@@ -5089,13 +5091,13 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   background: var(--primary) !important;
   color: var(--primary-foreground) !important;
   border: 0 !important;
-  box-shadow: 0 4px 16px var(--primary-soft);
+  box-shadow: none !important;
 }
 
 .modal-actions .button-primary:hover:not(:disabled) {
   background: var(--primary-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px var(--primary-soft-hover);
+  box-shadow: none !important;
 }
 
 .modal-actions .button-ghost {
@@ -7200,14 +7202,14 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-size: 13.5px;
   font-weight: 700;
   letter-spacing: -0.2px;
-  box-shadow: 0 4px 18px var(--primary-soft);
+  box-shadow: none !important;
   transition: all 0.18s ease;
   cursor: pointer;
 }
 .auth-submit:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px var(--primary-soft-hover);
+  box-shadow: none !important;
 }
 .auth-submit:disabled {
   opacity: 0.6;
@@ -7487,14 +7489,14 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 8px var(--primary-soft);
+  box-shadow: none !important;
   white-space: nowrap;
 }
 .topbar-quick-add-btn:hover {
   background: var(--primary-hover);
   border-color: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--primary-soft-hover);
+  box-shadow: none !important;
 }
 @media (max-width: 680px) {
   .topbar-quick-add-btn span {
@@ -7585,6 +7587,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .settings-page button:focus,
 .settings-page button:active {
   outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
 }
 
@@ -7595,14 +7599,19 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .settings-page button:focus:not(:focus-visible) {
   outline: none !important;
   box-shadow: none !important;
+  -webkit-box-shadow: none !important;
 }
 
 /* For keyboard accessibility (Tab navigation) */
 .settings-nav button:focus-visible,
-.day-toggle-pill:focus-visible,
 .settings-tab:focus-visible {
   outline: 2px solid var(--primary) !important;
   outline-offset: 2px;
+}
+
+.day-toggle-pill:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* ===== Modern Settings Layout & Card Architecture ===== */
@@ -7627,7 +7636,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: none !important;
   width: 100%;
 }
 
@@ -7702,7 +7711,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border: 1px solid var(--border);
   border-radius: 16px;
   background: var(--surface);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: none !important;
   margin-bottom: 0;
 }
 
@@ -7725,7 +7734,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 
-/* Day Toggle Pills (Funcionamento) */
+/* Day Toggle Pills (Funcionamento) - Minimalist & Flat (Sem shadow box) */
 .settings-days-grid {
   display: flex;
   gap: 8px;
@@ -7747,14 +7756,22 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   user-select: none;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  text-shadow: none !important;
 }
 
 .day-toggle-pill:hover {
   background: var(--surface);
   color: var(--text-primary);
   border-color: var(--border-strong);
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  filter: none !important;
 }
 
 .day-toggle-pill.active {
@@ -7763,6 +7780,10 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 600 !important;
   border-color: var(--primary) !important;
   box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  text-shadow: none !important;
 }
 
 :root:not([data-theme="dark"]) .day-toggle-pill.active {
@@ -7770,6 +7791,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   color: var(--primary-foreground) !important;
   border-color: var(--primary) !important;
   box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  filter: none !important;
 }
 
 /* Availability Summary Banner */
@@ -8173,7 +8196,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   cursor: pointer;
 }
 .financial-bar-col.today .financial-bar-fill {
-  box-shadow: 0 0 14px var(--primary-soft);
+  box-shadow: none !important;
   border: 1px solid var(--brand-border-focus);
   border-bottom: 0;
 }
@@ -8861,7 +8884,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .service-toggle-btn:focus-visible {
-  box-shadow: 0 0 0 2px var(--brand-border-focus);
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .service-toggle-thumb {
@@ -8869,7 +8893,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   height: 18px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: none !important;
   transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease;
   transform: translateX(0);
 }
@@ -8877,7 +8901,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .service-toggle-btn.active {
   background: var(--primary);
   border-color: var(--primary);
-  box-shadow: 0 0 12px var(--primary-soft);
+  box-shadow: none !important;
 }
 
 .service-toggle-btn.active .service-toggle-thumb {
@@ -8893,7 +8917,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 :root:not([data-theme="dark"]) .service-toggle-btn.active {
   background: var(--primary);
   border-color: var(--primary);
-  box-shadow: 0 0 10px var(--primary-soft);
+  box-shadow: none !important;
 }
 
 :root:not([data-theme="dark"]) .service-toggle-btn.active .service-toggle-thumb {
