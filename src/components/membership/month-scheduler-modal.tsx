@@ -215,7 +215,7 @@ export function MonthSchedulerModal({
       }}
     >
       <div
-        className="modal-dialog modal-dialog--wide membership-scheduler-modal"
+        className="modal modal-wide membership-scheduler-modal"
         style={{
           maxWidth: 680,
           width: "94%",

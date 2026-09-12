@@ -10,6 +10,7 @@ import {
   Calendar,
   Layers,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -341,7 +342,7 @@ export function MembershipPlansView({
             if (e.target === e.currentTarget) setIsCreating(false);
           }}
         >
-          <div className="modal-dialog modal-dialog--wide">
+          <div className="modal modal-wide">
             <div className="modal-header">
               <div>
                 <span className="modal-eyebrow">Novo Plano</span>
@@ -351,11 +352,13 @@ export function MembershipPlansView({
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsCreating(false)}
+                title="Fechar"
+                aria-label="Fechar modal"
               >
-                ✕
+                <X size={17} />
               </button>
             </div>
-            <div className="modal-body" style={{ maxHeight: "75vh", overflowY: "auto", padding: "20px 24px" }}>
+            <div className="modal-body" style={{ maxHeight: "78vh", overflowY: "auto", padding: "20px 24px" }}>
               <MembershipPlanEditor
                 services={services}
                 employees={employees}
@@ -380,7 +383,7 @@ export function MembershipPlansView({
             if (e.target === e.currentTarget) setEditingPlan(null);
           }}
         >
-          <div className="modal-dialog modal-dialog--wide">
+          <div className="modal modal-wide">
             <div className="modal-header">
               <div>
                 <span className="modal-eyebrow">Editar Plano</span>
@@ -390,11 +393,13 @@ export function MembershipPlansView({
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setEditingPlan(null)}
+                title="Fechar"
+                aria-label="Fechar modal"
               >
-                ✕
+                <X size={17} />
               </button>
             </div>
-            <div className="modal-body" style={{ maxHeight: "75vh", overflowY: "auto", padding: "20px 24px" }}>
+            <div className="modal-body" style={{ maxHeight: "78vh", overflowY: "auto", padding: "20px 24px" }}>
               <MembershipPlanEditor
                 plan={editingPlan}
                 services={services}

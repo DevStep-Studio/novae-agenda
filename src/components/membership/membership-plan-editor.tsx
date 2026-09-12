@@ -8,6 +8,7 @@ import {
   Check,
   Calendar,
   ShieldCheck,
+  Plus,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -164,85 +165,80 @@ export function MembershipPlanEditor({
         </div>
       )}
 
-      {/* Basic Info */}
-      <div className="form-section">
-        <h4 className="section-title">
-          <Sparkles size={15} /> Identificação do Plano
-        </h4>
-        <div className="form-group" style={{ marginBottom: 12 }}>
-          <label htmlFor="plan-name" style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
-            Nome do Plano *
+      {/* Basic Info Card */}
+      <div className="membership-editor-card">
+        <div className="membership-editor-card-header">
+          <Sparkles size={16} className="membership-card-icon" />
+          <div>
+            <h4 className="membership-card-title">Identificação do Plano</h4>
+            <p className="membership-card-subtitle">Defina o nome comercial, descrição e preço da assinatura</p>
+          </div>
+        </div>
+
+        <div className="membership-form-group">
+          <label htmlFor="plan-name" className="membership-form-label">
+            Nome do Plano <span className="req">*</span>
           </label>
           <input
             id="plan-name"
             type="text"
-            className="input-text"
-            placeholder="Ex: Corte Semanal, Terapia Semanal, Aulas 2x/Semana, Manutenção..."
+            className="membership-input"
+            placeholder="Ex: Corte Semanal, Terapia Semanal, Aulas 2x/Semana..."
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 13 }}
           />
         </div>
 
-        <div className="form-group" style={{ marginBottom: 12 }}>
-          <label htmlFor="plan-desc" style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
+        <div className="membership-form-group">
+          <label htmlFor="plan-desc" className="membership-form-label">
             Descrição / Benefícios
           </label>
           <textarea
             id="plan-desc"
-            className="input-textarea"
+            className="membership-textarea"
             rows={2}
             placeholder="Descreva o que está incluído para encantar os seus clientes..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12, resize: "vertical" }}
           />
         </div>
 
-        <div className="form-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          <div className="form-group">
-            <label htmlFor="plan-price" style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
-              Preço Mensal (R$) *
+        <div className="membership-form-grid-2">
+          <div className="membership-form-group">
+            <label htmlFor="plan-price" className="membership-form-label">
+              Preço Mensal (R$) <span className="req">*</span>
             </label>
-            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <span style={{ position: "absolute", left: 12, fontSize: 12, color: "var(--text-muted)" }}>R$</span>
+            <div className="membership-price-input-wrap">
+              <span className="membership-price-prefix">R$</span>
               <input
                 id="plan-price"
                 type="number"
                 step="0.01"
                 min="1"
-                className="input-text"
+                className="membership-input membership-input-price"
                 placeholder="160,00"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 required
-                style={{ width: "100%", height: 38, paddingLeft: 36, paddingRight: 12, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 13 }}
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
-              Cor de Destaque
+          <div className="membership-form-group">
+            <label className="membership-form-label">
+              Cor de Destaque / Badge
             </label>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", height: 38 }}>
+            <div className="membership-color-picker-row">
               {BADGE_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setBadgeColor(c)}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "50%",
-                    backgroundColor: c,
-                    border: badgeColor === c ? "2px solid var(--text-primary)" : "1px solid transparent",
-                    boxShadow: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    outline: "none",
-                  }}
+                  className={`membership-color-btn ${badgeColor === c ? "active" : ""}`}
+                  style={{ backgroundColor: c }}
+                  title={`Selecionar cor ${c}`}
+                  aria-label={`Selecionar cor ${c}`}
                 />
               ))}
             </div>
@@ -250,15 +246,17 @@ export function MembershipPlanEditor({
         </div>
       </div>
 
-      {/* Services Included */}
-      <div className="form-section" style={{ marginTop: 20 }}>
-        <h4 className="section-title">
-          <Tag size={15} /> Serviços Incluídos no Plano
-        </h4>
-        <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 10px" }}>
-          Selecione um ou mais serviços do catálogo que fazem parte deste pacote recorrente.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+      {/* Services Included Card */}
+      <div className="membership-editor-card">
+        <div className="membership-editor-card-header">
+          <Tag size={16} className="membership-card-icon" />
+          <div>
+            <h4 className="membership-card-title">Serviços Incluídos no Plano</h4>
+            <p className="membership-card-subtitle">Selecione os serviços do catálogo que fazem parte deste pacote</p>
+          </div>
+        </div>
+
+        <div className="membership-service-cards-grid">
           {services.map((svc) => {
             const isSelected = selectedServiceIds.includes(svc.id);
             return (
@@ -266,109 +264,99 @@ export function MembershipPlanEditor({
                 type="button"
                 key={svc.id}
                 onClick={() => toggleService(svc.id)}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: isSelected ? "1px solid var(--primary)" : "1px solid var(--border)",
-                  background: isSelected ? "var(--primary-soft)" : "var(--surface-secondary)",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  boxShadow: "none",
-                  transition: "all 0.15s ease",
-                }}
+                className={`membership-service-select-card ${isSelected ? "selected" : ""}`}
               >
-                <div>
-                  <strong style={{ display: "block", fontSize: 12, color: "var(--text-primary)" }}>{svc.name}</strong>
-                  <small style={{ color: "var(--text-muted)", fontSize: 11 }}>
+                <div className="membership-service-select-info">
+                  <strong className="membership-service-select-name">{svc.name}</strong>
+                  <span className="membership-service-select-meta">
                     {formatCurrency(svc.price)} • {svc.durationMinutes} min
-                  </small>
+                  </span>
                 </div>
-                {isSelected && <Check size={16} color="var(--primary)" />}
+                {isSelected ? (
+                  <div className="membership-service-check">
+                    <Check size={14} />
+                  </div>
+                ) : (
+                  <div className="membership-service-plus">
+                    <Plus size={13} />
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
+
         {selectedServices.length > 0 && (
-          <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)" }}>
-            Soma avulsa dos serviços: <strong style={{ color: "var(--text-primary)" }}>{formatCurrency(estimatedSumAvulso)}</strong> por atendimento.
+          <div className="membership-services-sum-bar">
+            <span>Soma avulsa dos serviços:</span>
+            <strong>{formatCurrency(estimatedSumAvulso)}</strong>
+            <span className="membership-sum-note">por atendimento</span>
           </div>
         )}
       </div>
 
-      {/* Frequency & Calendar Rules */}
-      <div className="form-section" style={{ marginTop: 20 }}>
-        <h4 className="section-title">
-          <Calendar size={15} /> Modelo de Frequência & Calendário
-        </h4>
+      {/* Frequency & Calendar Rules Card */}
+      <div className="membership-editor-card">
+        <div className="membership-editor-card-header">
+          <Calendar size={16} className="membership-card-icon" />
+          <div>
+            <h4 className="membership-card-title">Modelo de Frequência & Calendário</h4>
+            <p className="membership-card-subtitle">Como o sistema deve calcular e agendar as sessões mensais</p>
+          </div>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 8 }}>
+        <div className="membership-freq-options-grid">
           <label
-            style={{
-              padding: "12px 14px",
-              borderRadius: 8,
-              border: frequencyType === "WEEKLY_CALENDAR_BASED" ? "1px solid var(--primary)" : "1px solid var(--border)",
-              background: frequencyType === "WEEKLY_CALENDAR_BASED" ? "var(--primary-soft)" : "var(--surface-secondary)",
-              cursor: "pointer",
-              display: "block",
-              boxShadow: "none",
-            }}
+            className={`membership-freq-option-card ${frequencyType === "WEEKLY_CALENDAR_BASED" ? "active" : ""}`}
+            onClick={() => setFrequencyType("WEEKLY_CALENDAR_BASED")}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="membership-freq-option-header">
               <input
                 type="radio"
                 name="frequencyType"
                 value="WEEKLY_CALENDAR_BASED"
                 checked={frequencyType === "WEEKLY_CALENDAR_BASED"}
                 onChange={() => setFrequencyType("WEEKLY_CALENDAR_BASED")}
+                className="membership-radio"
               />
-              <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Recorrência Semanal</strong>
+              <strong className="membership-freq-option-title">Recorrência Semanal</strong>
             </div>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0 20px" }}>
-              Calcula ocorrências reais no mês (ex: 4 ou 5 semanas conforme o dia escolhido).
+            <p className="membership-freq-option-desc">
+              Calcula ocorrências reais no mês (ex: 4 ou 5 semanas conforme o dia escolhido no calendário).
             </p>
           </label>
 
           <label
-            style={{
-              padding: "12px 14px",
-              borderRadius: 8,
-              border: frequencyType === "FIXED_MONTHLY_QUOTA" ? "1px solid var(--primary)" : "1px solid var(--border)",
-              background: frequencyType === "FIXED_MONTHLY_QUOTA" ? "var(--primary-soft)" : "var(--surface-secondary)",
-              cursor: "pointer",
-              display: "block",
-              boxShadow: "none",
-            }}
+            className={`membership-freq-option-card ${frequencyType === "FIXED_MONTHLY_QUOTA" ? "active" : ""}`}
+            onClick={() => setFrequencyType("FIXED_MONTHLY_QUOTA")}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="membership-freq-option-header">
               <input
                 type="radio"
                 name="frequencyType"
                 value="FIXED_MONTHLY_QUOTA"
                 checked={frequencyType === "FIXED_MONTHLY_QUOTA"}
                 onChange={() => setFrequencyType("FIXED_MONTHLY_QUOTA")}
+                className="membership-radio"
               />
-              <strong style={{ fontSize: 13, color: "var(--text-primary)" }}>Franquia Mensal Fixa</strong>
+              <strong className="membership-freq-option-title">Franquia Mensal Fixa</strong>
             </div>
-            <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "4px 0 0 20px" }}>
-              Quantidade fixa de sessões por mês (ex: sempre 4 ou 8 atendimentos/mês).
+            <p className="membership-freq-option-desc">
+              Quantidade fixa de sessões por mês (ex: sempre 4 ou 8 atendimentos/mês, independente das semanas).
             </p>
           </label>
         </div>
 
         {frequencyType === "WEEKLY_CALENDAR_BASED" ? (
-          <div className="form-group" style={{ marginTop: 12 }}>
-            <label htmlFor="weekly-freq" style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
+          <div className="membership-form-group" style={{ marginTop: 14 }}>
+            <label htmlFor="weekly-freq" className="membership-form-label">
               Frequência Semanal
             </label>
             <select
               id="weekly-freq"
-              className="input-select"
+              className="membership-select"
               value={weeklyFrequency}
               onChange={(e) => setWeeklyFrequency(Number(e.target.value))}
-              style={{ width: "100%", height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12 }}
             >
               <option value={1}>1 atendimento por semana (4 ou 5 no mês)</option>
               <option value={2}>2 atendimentos por semana (ex: Terça + Quinta)</option>
@@ -378,8 +366,8 @@ export function MembershipPlanEditor({
             </select>
           </div>
         ) : (
-          <div className="form-group" style={{ marginTop: 12 }}>
-            <label htmlFor="sessions-period" style={{ display: "block", fontSize: 12, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 4 }}>
+          <div className="membership-form-group" style={{ marginTop: 14 }}>
+            <label htmlFor="sessions-period" className="membership-form-label">
               Sessões Fixas por Mês
             </label>
             <input
@@ -387,25 +375,26 @@ export function MembershipPlanEditor({
               type="number"
               min="1"
               max="60"
-              className="input-text"
+              className="membership-input"
               value={sessionsPerPeriod}
               onChange={(e) => setSessionsPerPeriod(Number(e.target.value))}
-              style={{ width: "100%", height: 38, padding: "0 12px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 13 }}
             />
           </div>
         )}
       </div>
 
-      {/* Available Employees */}
+      {/* Available Employees Card */}
       {employees.length > 0 && (
-        <div className="form-section" style={{ marginTop: 20 }}>
-          <h4 className="section-title">
-            <Users size={15} /> Profissionais Disponíveis
-          </h4>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 10px" }}>
-            Selecione quais profissionais podem atender por este plano (deixe em branco para permitir todos).
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div className="membership-editor-card">
+          <div className="membership-editor-card-header">
+            <Users size={16} className="membership-card-icon" />
+            <div>
+              <h4 className="membership-card-title">Profissionais Disponíveis</h4>
+              <p className="membership-card-subtitle">Selecione quais profissionais podem atender por este plano (vazio = todos)</p>
+            </div>
+          </div>
+
+          <div className="membership-employees-chips-wrap">
             {employees.map((emp) => {
               const isSelected = selectedEmployeeIds.includes(emp.id);
               return (
@@ -413,18 +402,10 @@ export function MembershipPlanEditor({
                   type="button"
                   key={emp.id}
                   onClick={() => toggleEmployee(emp.id)}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    fontSize: 12,
-                    border: isSelected ? "1px solid var(--primary)" : "1px solid var(--border)",
-                    background: isSelected ? "var(--primary)" : "var(--surface-secondary)",
-                    color: isSelected ? "var(--primary-foreground)" : "var(--text-secondary)",
-                    cursor: "pointer",
-                    boxShadow: "none",
-                  }}
+                  className={`membership-emp-chip ${isSelected ? "selected" : ""}`}
                 >
-                  {emp.name} {isSelected ? "✓" : "+"}
+                  <span>{emp.name}</span>
+                  <span className="chip-indicator">{isSelected ? "✓" : "+"}</span>
                 </button>
               );
             })}
@@ -432,118 +413,116 @@ export function MembershipPlanEditor({
         </div>
       )}
 
-      {/* Rules and Policies */}
-      <div className="form-section" style={{ marginTop: 20 }}>
-        <h4 className="section-title">
-          <ShieldCheck size={15} /> Políticas e Regras de Sessão
-        </h4>
+      {/* Policies Card */}
+      <div className="membership-editor-card">
+        <div className="membership-editor-card-header">
+          <ShieldCheck size={16} className="membership-card-icon" />
+          <div>
+            <h4 className="membership-card-title">Políticas e Regras de Sessão</h4>
+            <p className="membership-card-subtitle">Regras de remarcação, faltas e validade das sessões</p>
+          </div>
+        </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+        <div className="membership-policies-list">
+          <label className="membership-policy-toggle">
             <input
               type="checkbox"
               checked={allowReschedule}
               onChange={(e) => setAllowReschedule(e.target.checked)}
+              className="membership-checkbox"
             />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Permitir remarcação de sessões agendadas</span>
+            <div className="policy-info">
+              <span className="policy-title">Permitir remarcação de sessões agendadas</span>
+              <span className="policy-desc">Cliente pode trocar o horário de uma sessão do plano</span>
+            </div>
           </label>
 
           {allowReschedule && (
-            <div style={{ marginLeft: 22, display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                Antecedência mínima para remarcar:
-              </span>
+            <div className="membership-reschedule-hours-row">
+              <span className="reschedule-label">Antecedência mínima para remarcar:</span>
               <input
                 type="number"
                 min="0"
                 max="72"
                 value={rescheduleHoursNotice}
                 onChange={(e) => setRescheduleHoursNotice(Number(e.target.value))}
-                style={{ width: 56, height: 28, padding: "0 6px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 12 }}
+                className="membership-input-mini"
               />
-              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>horas</span>
+              <span className="reschedule-unit">horas</span>
             </div>
           )}
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <label className="membership-policy-toggle">
             <input
               type="checkbox"
               checked={allowCarryOver}
               onChange={(e) => setAllowCarryOver(e.target.checked)}
+              className="membership-checkbox"
             />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-              Acumular sessões não utilizadas para o próximo mês (padrão: não acumula)
-            </span>
+            <div className="policy-info">
+              <span className="policy-title">Acumular sessões não utilizadas para o mês seguinte</span>
+              <span className="policy-desc">Sessões não realizadas no mês corrente não expiram</span>
+            </div>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <label className="membership-policy-toggle">
             <input
               type="checkbox"
               checked={noShowConsumesSession}
               onChange={(e) => setNoShowConsumesSession(e.target.checked)}
+              className="membership-checkbox"
             />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-              Falta sem aviso prévio (No-show) consome a sessão do período
-            </span>
+            <div className="policy-info">
+              <span className="policy-title">Falta sem aviso prévio (No-show) consome a sessão</span>
+              <span className="policy-desc">Não permite reagendar sessão perdida por não comparecimento</span>
+            </div>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <label className="membership-policy-toggle">
             <input
               type="checkbox"
               checked={lateCancelConsumesSession}
               onChange={(e) => setLateCancelConsumesSession(e.target.checked)}
+              className="membership-checkbox"
             />
-            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-              Cancelamento tardio fora do prazo consome a sessão do período
-            </span>
+            <div className="policy-info">
+              <span className="policy-title">Cancelamento tardio fora do prazo consome a sessão</span>
+              <span className="policy-desc">Cancelamentos em cima da hora contam como utilizados</span>
+            </div>
           </label>
         </div>
       </div>
 
-      {/* Active Status */}
-      <div className="form-section" style={{ marginTop: 20 }}>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+      {/* Active Status Card */}
+      <div className="membership-editor-card">
+        <label className="membership-policy-toggle">
           <input
             type="checkbox"
             checked={active}
             onChange={(e) => setActive(e.target.checked)}
+            className="membership-checkbox"
           />
-          <div>
-            <strong style={{ fontSize: 12, color: "var(--text-primary)", display: "block" }}>
-              Plano Ativo para Novas Adesões
-            </strong>
-            <p style={{ margin: 0, fontSize: 11, color: "var(--text-muted)" }}>
-              Se desativado, mensalistas existentes continuam com o plano normalmente.
-            </p>
+          <div className="policy-info">
+            <span className="policy-title">Plano Ativo para Novas Adesões</span>
+            <span className="policy-desc">Se desativado, mensalistas existentes continuam normalmente mas novos clientes não podem aderir</span>
           </div>
         </label>
       </div>
 
       {/* Footer Buttons */}
-      <div
-        style={{
-          marginTop: 24,
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 10,
-          borderTop: "1px solid var(--border)",
-          paddingTop: 16,
-        }}
-      >
+      <div className="membership-editor-footer">
         <button
           type="button"
-          className="button button-secondary"
+          className="membership-btn-secondary"
           onClick={() => onDone()}
           disabled={busy}
-          style={{ height: 36, padding: "0 16px", borderRadius: 8, fontSize: 12 }}
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="button"
+          className="membership-btn-primary"
           disabled={busy}
-          style={{ height: 36, padding: "0 18px", borderRadius: 8, fontSize: 12 }}
         >
           {busy ? "Salvando..." : plan?.id ? "Salvar Alterações" : "Criar Plano Mensal"}
         </button>

@@ -120,7 +120,7 @@ export function AssignMembershipModal({
         if (e.target === e.currentTarget && !busy) onClose();
       }}
     >
-      <div className="modal-dialog" style={{ maxWidth: 540 }}>
+      <div className="modal" style={{ maxWidth: 540 }}>
         <div className="modal-header">
           <div>
             <span className="modal-eyebrow">Mensalista</span>
@@ -129,8 +129,15 @@ export function AssignMembershipModal({
               Cliente: <strong>{clientName}</strong>
             </p>
           </div>
-          <button type="button" className="modal-close-btn" onClick={onClose} disabled={busy}>
-            <X size={18} />
+          <button
+            type="button"
+            className="modal-close-btn"
+            onClick={onClose}
+            disabled={busy}
+            title="Fechar"
+            aria-label="Fechar modal"
+          >
+            <X size={17} />
           </button>
         </div>
 

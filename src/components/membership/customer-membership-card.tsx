@@ -14,6 +14,7 @@ import {
   Ban,
   DollarSign,
   CalendarPlus,
+  X,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -323,14 +324,20 @@ export function CustomerMembershipCard({
             if (e.target === e.currentTarget && !paying) setPayModalOpen(false);
           }}
         >
-          <div className="modal-dialog" style={{ maxWidth: 420 }}>
+          <div className="modal" style={{ maxWidth: 420 }}>
             <div className="modal-header">
               <div>
                 <span className="modal-eyebrow">Financeiro</span>
                 <h3 className="modal-title">Registrar Mensalidade Paga</h3>
               </div>
-              <button type="button" className="modal-close-btn" onClick={() => setPayModalOpen(false)}>
-                ✕
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setPayModalOpen(false)}
+                title="Fechar"
+                aria-label="Fechar modal"
+              >
+                <X size={17} />
               </button>
             </div>
             <div className="modal-body" style={{ padding: 20 }}>
