@@ -3160,6 +3160,234 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 
 .category-tabs, .report-tabs { display: flex; align-items: center; gap: 4px; margin-bottom: 23px; padding-bottom: 1px; border-bottom: 1px solid var(--border); }.category-tabs button, .report-tabs button { position: relative; border: 0; background: transparent; padding: 0 13px 11px; color: var(--text-secondary); font-size: 12px; }.category-tabs button.active, .report-tabs button.active { color: var(--primary); font-weight: 600; }.category-tabs button.active:after, .report-tabs button.active:after { content: ""; position: absolute; bottom: -1px; left: 10px; right: 10px; height: 2px; border-radius: 2px; background: var(--primary); }
 
+/* ============================================================
+   MEMBERSHIP PLANS (Minimalist SaaS Redesign)
+   ============================================================ */
+.membership-plans-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.membership-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.membership-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.membership-plan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.membership-plan-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: none !important;
+}
+.membership-plan-card.inactive {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.membership-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.membership-freq-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  box-shadow: none !important;
+}
+
+.membership-plan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.membership-plan-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.membership-plan-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.membership-price-block {
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  box-shadow: none !important;
+}
+.membership-price-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.membership-price-val {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.membership-price-val strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.membership-price-val span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.membership-billing-mode {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.membership-billing-mode span {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.membership-billing-mode strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.membership-services-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.membership-services-header {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.membership-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.membership-service-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.membership-service-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.membership-check-icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.membership-service-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.membership-rules-block {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.membership-rule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.membership-rule-item strong {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.membership-card-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.membership-members-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.membership-members-count strong {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.membership-members-count span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.membership-status-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.membership-status-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+.membership-status-label.active {
+  color: #22c55e;
+}
+.membership-status-label.paused {
+  color: var(--text-muted);
+}
+
 /* Service Cards with Image Background */
 .service-grid {
   display: grid;

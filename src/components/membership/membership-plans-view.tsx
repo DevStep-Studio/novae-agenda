@@ -5,14 +5,10 @@ import {
   Sparkles,
   Plus,
   Pencil,
-  Tag,
-  Clock3,
   Users,
   CheckCircle2,
-  AlertCircle,
   Calendar,
   Layers,
-  ArrowRight,
   TrendingUp,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
@@ -78,92 +74,65 @@ export function MembershipPlansView({
 
   return (
     <div className="membership-plans-container">
-      {/* Top Banner & KPI Bar */}
-      <div
-        className="membership-intro-card"
-        style={{
-          background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 100%)",
-          border: "1px solid rgba(99,102,241,0.25)",
-          borderRadius: "var(--radius-lg, 12px)",
-          padding: "20px 24px",
-          marginBottom: 24,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 16,
-        }}
-      >
+      {/* Page Header matching standard app view */}
+      <div className="page-intro" style={{ marginBottom: 0 }}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--brand, #6366f1)" }}>
-            <Sparkles size={18} />
-            <span style={{ fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Planos Recorrentes & Mensalistas
-            </span>
-          </div>
-          <h2 style={{ fontSize: "1.4rem", margin: "4px 0 6px", fontWeight: 700 }}>
-            Planos Mensais para Clientes
-          </h2>
-          <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: 620 }}>
-            Ofereça planos semanais ou franquias mensais personalizadas para barbeiros, psicólogos, professores,
-            manicures, personal trainers e clínicas. Garanta receita recorrente com agendamento do mês inteiro.
+          <p className="eyebrow">Recorrência & Mensalistas</p>
+          <h1>Planos Mensais</h1>
+          <p className="intro-copy">
+            Ofereça mensalidades personalizadas para fidelizar seus clientes e garantir receita previsível.
           </p>
         </div>
+        <button
+          type="button"
+          className="button"
+          onClick={() => setIsCreating(true)}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7 }}
+        >
+          <Plus size={16} />
+          <span>Novo plano mensal</span>
+        </button>
+      </div>
 
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <div
-            style={{
-              padding: "10px 16px",
-              background: "var(--bg-card, #1e1e1e)",
-              border: "1px solid var(--border-color, #333)",
-              borderRadius: "var(--radius-md, 8px)",
-              textAlign: "center",
-            }}
-          >
-            <small style={{ color: "var(--text-secondary)", display: "block", fontSize: "0.75rem" }}>
-              Mensalistas Ativos
-            </small>
-            <strong style={{ fontSize: "1.2rem", color: "var(--brand, #6366f1)" }}>
-              {totalActiveMembers}
-            </strong>
+      {/* Metrics Grid */}
+      <div className="metrics-grid membership-metrics-grid">
+        <div className="metric-card">
+          <div className="metric-icon metric-teal">
+            <Users size={18} />
           </div>
-
-          <div
-            style={{
-              padding: "10px 16px",
-              background: "var(--bg-card, #1e1e1e)",
-              border: "1px solid var(--border-color, #333)",
-              borderRadius: "var(--radius-md, 8px)",
-              textAlign: "center",
-            }}
-          >
-            <small style={{ color: "var(--text-secondary)", display: "block", fontSize: "0.75rem" }}>
-              Planos Criados
-            </small>
-            <strong style={{ fontSize: "1.2rem" }}>{plans.length}</strong>
+          <div className="metric-copy">
+            <p>Mensalistas ativos</p>
+            <strong>{totalActiveMembers}</strong>
+            <span className="metric-detail">em planos recorrentes</span>
           </div>
+        </div>
 
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setIsCreating(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "12px 20px",
-              fontWeight: 600,
-            }}
-          >
-            <Plus size={18} />
-            <span>Novo Plano Mensal</span>
-          </button>
+        <div className="metric-card">
+          <div className="metric-icon metric-teal">
+            <Layers size={18} />
+          </div>
+          <div className="metric-copy">
+            <p>Planos cadastrados</p>
+            <strong>{plans.length}</strong>
+            <span className="metric-detail">{plans.filter((p) => p.active).length} ativos para adesão</span>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="metric-icon metric-teal">
+            <TrendingUp size={18} />
+          </div>
+          <div className="metric-copy">
+            <p>Preço médio</p>
+            <strong>{formatCurrency(averagePrice)}</strong>
+            <span className="metric-detail">por mensalidade</span>
+          </div>
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs when plans exist */}
       {plans.length > 0 && (
-        <div className="category-tabs" style={{ marginBottom: 20 }}>
+        <div className="category-tabs" style={{ marginBottom: 4 }}>
           <button
             type="button"
             className={filter === "all" ? "active" : ""}
@@ -189,295 +158,180 @@ export function MembershipPlansView({
       )}
 
       {/* Grid of Membership Plans */}
-      <div
-        className="membership-plan-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-          gap: 20,
-        }}
-      >
-        {visiblePlans.map((plan) => {
-          const badgeBg = plan.badgeColor || "#6366f1";
-          return (
-            <article
-              key={plan.id}
-              className={`membership-plan-card ${!plan.active ? "inactive" : ""}`}
-              style={{
-                background: "var(--bg-card, #1e1e1e)",
-                border: plan.active ? "1px solid var(--border-color, #333)" : "1px dashed var(--border-color, #444)",
-                borderRadius: "var(--radius-lg, 12px)",
-                padding: "20px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                position: "relative",
-                transition: "transform 0.15s ease, border-color 0.15s ease",
-                opacity: plan.active ? 1 : 0.7,
-              }}
-            >
-              <div>
-                {/* Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                  <span
-                    style={{
-                      background: `${badgeBg}22`,
-                      color: badgeBg,
-                      border: `1px solid ${badgeBg}55`,
-                      padding: "4px 10px",
-                      borderRadius: "16px",
-                      fontSize: "0.75rem",
-                      fontWeight: 700,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
+      {visiblePlans.length > 0 ? (
+        <div className="membership-plan-grid">
+          {visiblePlans.map((plan) => {
+            const freqLabel =
+              plan.frequencyType === "WEEKLY_CALENDAR_BASED"
+                ? plan.weeklyFrequency === 1
+                  ? "Semanal (4 a 5 sessões/mês)"
+                  : `${plan.weeklyFrequency}x por semana`
+                : `${plan.sessionsPerPeriod} sessões/mês (fixo)`;
+
+            return (
+              <article
+                key={plan.id}
+                className={`membership-plan-card ${!plan.active ? "inactive" : ""}`}
+              >
+                {/* Header with Frequency Tag & Edit Action */}
+                <div className="membership-card-head">
+                  <span className="membership-freq-badge">
                     <Calendar size={12} />
-                    {plan.frequencyType === "WEEKLY_CALENDAR_BASED"
-                      ? plan.weeklyFrequency === 1
-                        ? "Semanal (4 a 5 sessões/mês)"
-                        : `${plan.weeklyFrequency}x por semana`
-                      : `${plan.sessionsPerPeriod} sessões/mês (fixo)`}
+                    <span>{freqLabel}</span>
                   </span>
 
                   <button
                     type="button"
                     onClick={() => setEditingPlan(plan)}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "var(--text-secondary)",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: "0.8rem",
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                    }}
-                    title="Editar plano"
+                    className="client-action-btn view"
+                    title="Editar plano mensal"
                   >
                     <Pencil size={13} />
-                    <span>Editar</span>
                   </button>
                 </div>
 
-                {/* Plan Title & Desc */}
-                <h3 style={{ fontSize: "1.2rem", fontWeight: 700, margin: "0 0 6px" }}>
-                  {plan.name}
-                </h3>
-                {plan.description && (
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: "0 0 16px", lineHeight: 1.4 }}>
-                    {plan.description}
-                  </p>
-                )}
+                {/* Plan Info */}
+                <div className="membership-plan-info">
+                  <h3 className="membership-plan-title">{plan.name}</h3>
+                  {plan.description && (
+                    <p className="membership-plan-desc">{plan.description}</p>
+                  )}
+                </div>
 
-                {/* Price Display */}
-                <div
-                  style={{
-                    background: "var(--bg-secondary, #252525)",
-                    padding: "12px 16px",
-                    borderRadius: "var(--radius-md, 8px)",
-                    marginBottom: 16,
-                    display: "flex",
-                    alignItems: "baseline",
-                    justifyContent: "space-between",
-                  }}
-                >
+                {/* Price Block */}
+                <div className="membership-price-block">
                   <div>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "block" }}>
-                      Mensalidade do Cliente
-                    </span>
-                    <strong style={{ fontSize: "1.4rem", fontWeight: 800, color: "var(--brand, #6366f1)" }}>
-                      {formatCurrency(plan.price)}
-                    </strong>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginLeft: 4 }}>
-                      /mês
-                    </span>
+                    <span className="membership-price-label">Mensalidade</span>
+                    <div className="membership-price-val">
+                      <strong>{formatCurrency(plan.price)}</strong>
+                      <span>/mês</span>
+                    </div>
                   </div>
 
-                  <div style={{ textAlign: "right" }}>
-                    <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", display: "block" }}>
-                      Cobrança
-                    </span>
-                    <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Presencial</span>
+                  <div className="membership-billing-mode">
+                    <span>Cobrança</span>
+                    <strong>Presencial</strong>
                   </div>
                 </div>
 
                 {/* Included Services */}
-                <div style={{ marginBottom: 16 }}>
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                      color: "var(--text-secondary)",
-                      display: "block",
-                      marginBottom: 8,
-                      fontWeight: 700,
-                    }}
-                  >
-                    Serviços Incluídos
-                  </span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div className="membership-services-section">
+                  <span className="membership-services-header">Serviços Incluídos</span>
+                  <div className="membership-services-list">
                     {plan.services.map((s) => (
-                      <div
-                        key={s.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <CheckCircle2 size={14} color={badgeBg} />
+                      <div key={s.id} className="membership-service-item">
+                        <span className="membership-service-name">
+                          <CheckCircle2 size={13} className="membership-check-icon" />
                           <span>{s.name}</span>
                         </span>
-                        <small style={{ color: "var(--text-secondary)" }}>
+                        <span className="membership-service-meta">
                           {formatCurrency(s.price)} avulso ({s.durationMinutes} min)
-                        </small>
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Rules Summary */}
-                <div
-                  style={{
-                    borderTop: "1px solid var(--border-color, #333)",
-                    paddingTop: 12,
-                    marginBottom: 16,
-                    fontSize: "0.8rem",
-                    color: "var(--text-secondary)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                  }}
-                >
-                  <div>
-                    ✓ Remarcação: {plan.allowReschedule ? `Permitida até ${plan.rescheduleHoursNotice}h antes` : "Não permitida"}
+                <div className="membership-rules-block">
+                  <div className="membership-rule-item">
+                    <span>Remarcação:</span>
+                    <strong>
+                      {plan.allowReschedule
+                        ? `Até ${plan.rescheduleHoursNotice}h antes`
+                        : "Não permitida"}
+                    </strong>
                   </div>
-                  <div>
-                    ✓ Expiração: {plan.allowCarryOver ? "Acumula para o próximo mês" : "Expira no final do mês"}
+                  <div className="membership-rule-item">
+                    <span>Expiração:</span>
+                    <strong>
+                      {plan.allowCarryOver ? "Acumula para o próximo mês" : "Expira no final do mês"}
+                    </strong>
                   </div>
                 </div>
-              </div>
 
-              {/* Footer */}
-              <div
-                style={{
-                  borderTop: "1px solid var(--border-color, #333)",
-                  paddingTop: 14,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Users size={15} color="var(--text-secondary)" />
-                  <strong style={{ fontSize: "0.85rem" }}>
-                    {plan.activeMembersCount || 0}{" "}
-                    <span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>
-                      mensalistas
+                {/* Footer with Subscribers count & Status Switch */}
+                <div className="membership-card-footer">
+                  <div className="membership-members-count">
+                    <Users size={14} />
+                    <strong>{plan.activeMembersCount || 0}</strong>
+                    <span>{plan.activeMembersCount === 1 ? "mensalista" : "mensalistas"}</span>
+                  </div>
+
+                  <div className="membership-status-toggle">
+                    <span
+                      className={`membership-status-label ${
+                        plan.active ? "active" : "paused"
+                      }`}
+                    >
+                      {plan.active ? "Ativo" : "Pausado"}
                     </span>
-                  </strong>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={plan.active}
+                      className={`service-toggle-btn ${plan.active ? "active" : ""}`}
+                      onClick={() => handleToggleActive(plan)}
+                      title={
+                        plan.active
+                          ? "Clique para desativar novas adesões"
+                          : "Clique para ativar plano"
+                      }
+                    >
+                      <span className="service-toggle-thumb" />
+                    </button>
+                  </div>
                 </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: "0.8rem", color: plan.active ? "#10b981" : "var(--text-secondary)" }}>
-                    {plan.active ? "Ativo" : "Pausado"}
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={plan.active}
-                    className={`service-toggle-btn ${plan.active ? "active" : ""}`}
-                    onClick={() => handleToggleActive(plan)}
-                    title={plan.active ? "Clique para desativar novas adesões" : "Clique para ativar plano"}
-                  >
-                    <span className="service-toggle-thumb" />
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-
-        {/* Add Plan Card */}
-        <button
-          type="button"
-          onClick={() => setIsCreating(true)}
+              </article>
+            );
+          })}
+        </div>
+      ) : !loading ? (
+        <div
+          className="empty-state"
           style={{
-            background: "transparent",
-            border: "2px dashed var(--border-color, #333)",
-            borderRadius: "var(--radius-lg, 12px)",
-            padding: "32px 20px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            color: "var(--text-secondary)",
-            cursor: "pointer",
             minHeight: 280,
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--brand, #6366f1)";
-            e.currentTarget.style.color = "var(--brand, #6366f1)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--border-color, #333)";
-            e.currentTarget.style.color = "var(--text-secondary)";
+            border: "1px dashed var(--border)",
+            borderRadius: 12,
+            background: "var(--surface)",
+            padding: "40px 20px",
           }}
         >
-          <div
+          <div className="empty-icon">
+            <Sparkles size={22} />
+          </div>
+          <h3
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              background: "rgba(99,102,241,0.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--brand, #6366f1)",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--text-primary)",
+              margin: "6px 0 2px",
             }}
           >
-            <Plus size={24} />
-          </div>
-          <strong style={{ fontSize: "1.05rem", color: "var(--text-primary)" }}>
-            Criar Novo Plano Mensal
-          </strong>
-          <small style={{ textAlign: "center", maxWidth: 220, fontSize: "0.8rem" }}>
-            Defina preço, serviços incluídos e recorrência semanal ou fixa
-          </small>
-        </button>
-      </div>
-
-      {/* Empty State */}
-      {visiblePlans.length === 0 && !loading && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "48px 20px",
-            background: "var(--bg-card, #1e1e1e)",
-            borderRadius: "var(--radius-lg, 12px)",
-            border: "1px solid var(--border-color, #333)",
-            marginTop: 20,
-          }}
-        >
-          <Sparkles size={36} color="var(--brand, #6366f1)" style={{ margin: "0 auto 12px" }} />
-          <h3 style={{ fontSize: "1.1rem", marginBottom: 6 }}>Nenhum plano mensal cadastrado</h3>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", maxWidth: 460, margin: "0 auto 16px" }}>
-            Crie planos mensais para fidelizar seus clientes com agendamentos automáticos e pagamento recorrente.
+            Nenhum plano mensal cadastrado
+          </h3>
+          <p
+            style={{
+              maxWidth: 380,
+              color: "var(--text-secondary)",
+              fontSize: 12,
+              lineHeight: 1.5,
+              margin: "0 auto 16px",
+            }}
+          >
+            Crie planos mensais para fidelizar seus clientes com agendamentos automáticos e previsibilidade de receita.
           </p>
-          <button type="button" className="btn-primary" onClick={() => setIsCreating(true)}>
-            <Plus size={16} /> Criar Primeiro Plano
+          <button
+            type="button"
+            className="button"
+            onClick={() => setIsCreating(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, margin: "0 auto" }}
+          >
+            <Plus size={16} />
+            <span>Criar Primeiro Plano</span>
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* Create Modal */}
       {isCreating && (

@@ -1761,42 +1761,20 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
   return (
     <div className="page-content">
       {/* Sub tabs: SERVIÇOS AVULSOS | PLANOS MENSAIS */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, borderBottom: "1px solid var(--border-color, #333)", paddingBottom: 12 }}>
+      <div className="category-tabs" style={{ marginBottom: 24 }}>
         <button
           type="button"
+          className={subTab === "services" ? "active" : ""}
           onClick={() => setSubTab("services")}
-          style={{
-            padding: "8px 18px",
-            borderRadius: "var(--radius-md, 8px)",
-            fontWeight: 700,
-            fontSize: "0.9rem",
-            border: subTab === "services" ? "1px solid var(--brand, #6366f1)" : "1px solid transparent",
-            background: subTab === "services" ? "var(--brand-surface, rgba(99,102,241,0.12))" : "transparent",
-            color: subTab === "services" ? "var(--brand, #6366f1)" : "var(--text-secondary)",
-            cursor: "pointer",
-          }}
         >
           Serviços Avulsos
         </button>
         <button
           type="button"
+          className={subTab === "memberships" ? "active" : ""}
           onClick={() => setSubTab("memberships")}
-          style={{
-            padding: "8px 18px",
-            borderRadius: "var(--radius-md, 8px)",
-            fontWeight: 700,
-            fontSize: "0.9rem",
-            border: subTab === "memberships" ? "1px solid var(--brand, #6366f1)" : "1px solid transparent",
-            background: subTab === "memberships" ? "var(--brand-surface, rgba(99,102,241,0.12))" : "transparent",
-            color: subTab === "memberships" ? "var(--brand, #6366f1)" : "var(--text-secondary)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
         >
-          <Sparkles size={16} />
-          <span>Planos Mensais</span>
+          Planos Mensais
         </button>
       </div>
 
