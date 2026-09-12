@@ -7,9 +7,10 @@ export const dynamic = "force-dynamic";
 const cardSchema = z.object({
   planSlug: z.string().min(1, "Selecione um plano válido."),
   billingInterval: z.enum(["monthly", "yearly"]).default("monthly"),
-  cardToken: z.string().min(1, "Token do cartão não fornecido."),
+  cardToken: z.string().optional(),
   paymentMethodId: z.string().optional(),
   installments: z.number().int().min(1).max(12).optional().default(1),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
       cardToken: parsed.data.cardToken,
       paymentMethodId: parsed.data.paymentMethodId,
       installments: parsed.data.installments,
+      couponCode: parsed.data.couponCode,
       payerEmail: auth.user.email,
       payerName: auth.user.name,
     });
@@ -41,17 +43,26 @@ export async function POST(request: Request) {
           approved: true,
           status: result.status,
           paymentId: result.paymentId,
-          message: "Pagamento aprovado com sucesso! Sua assinatura está ativa.",
+          subtotal: result.subtotal,
+          discount: result.discount,
+          amount: result.amount,
+          isFreeWithCoupon: result.isFreeWithCoupon,
+          message: result.isFreeWithCoupon
+            ? "Cupom de 100% aplicado! Sua assinatura foi ativada com sucesso."
+            : "Pagamento aprovado com sucesso! Sua assinatura está ativa.",
         },
       });
     }
 
-    if (result.status === "in_process") {
+    if (result.status === "in_process" || result.status === "pending") {
       return Response.json({
         data: {
           approved: false,
           status: result.status,
           paymentId: result.paymentId,
+          subtotal: result.subtotal,
+          discount: result.discount,
+          amount: result.amount,
           message: "Estamos confirmando seu pagamento. A liberação ocorrerá assim que processado.",
         },
       });
@@ -70,9 +81,10 @@ export async function POST(request: Request) {
     );
   } catch (error: any) {
     console.error("[SaaS Card Checkout API] Error processing card payment:", error);
+    const statusCode = error.statusCode || 500;
     return Response.json(
       { error: error.message || "Não foi possível processar o pagamento com cartão. Tente novamente." },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }

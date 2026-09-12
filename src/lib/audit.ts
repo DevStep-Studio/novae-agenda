@@ -14,9 +14,9 @@ export type AuditEntry = {
  * Records a sensitive action to the audit trail. Never throws — a failed audit write
  * must not break the operation it describes.
  */
-export async function recordAudit(entry: AuditEntry): Promise<void> {
+export async function recordAudit(entry: AuditEntry, executor: any = db): Promise<void> {
   try {
-    await db.insert(auditLogs).values({
+    await executor.insert(auditLogs).values({
       companyId: entry.companyId,
       userId: entry.userId ?? null,
       action: entry.action,
@@ -25,6 +25,8 @@ export async function recordAudit(entry: AuditEntry): Promise<void> {
       metadata: entry.metadata ?? null,
     });
   } catch (error) {
-    console.error("[audit] failed to record entry", entry.action, error);
+    if (process.env.NODE_ENV !== "test") {
+      console.error("[audit] failed to record entry", entry.action, error);
+    }
   }
 }

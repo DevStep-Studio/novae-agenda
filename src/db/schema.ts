@@ -426,21 +426,58 @@ export const saasPlans = mysqlTable("saas_plans", {
   activeIdx: index("saas_plans_active_idx").on(table.isActive),
 }));
 
+export const saasCoupons = mysqlTable("saas_coupons", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  discountType: varchar("discount_type", { length: 50 }).notNull(), // 'PERCENTAGE' | 'FIXED_AMOUNT'
+  discountValue: decimal("discount_value", { precision: 12, scale: 2 }).notNull(),
+  maxDiscountAmount: decimal("max_discount_amount", { precision: 12, scale: 2 }),
+  appliesTo: varchar("applies_to", { length: 50 }).default("ALL_PLANS").notNull(), // 'ALL_PLANS' | 'SPECIFIC_PLANS'
+  startsAt: timestamp("starts_at", { mode: "date" }),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
+  maxRedemptions: int("max_redemptions"),
+  maxRedemptionsPerBusiness: int("max_redemptions_per_business").default(1).notNull(),
+  durationType: varchar("duration_type", { length: 50 }).default("ONCE").notNull(), // 'ONCE' | 'LIMITED_CYCLES' | 'FOREVER'
+  durationCycles: int("duration_cycles").default(1),
+  minimumPlanAmount: decimal("minimum_plan_amount", { precision: 12, scale: 2 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  ...timestamps,
+}, (table) => ({
+  codeIdx: uniqueIndex("saas_coupons_code_idx").on(table.code),
+  activeIdx: index("saas_coupons_active_idx").on(table.isActive),
+  expiresIdx: index("saas_coupons_expires_idx").on(table.expiresAt),
+}));
+
+export const saasCouponPlans = mysqlTable("saas_coupon_plans", {
+  couponId: varchar("coupon_id", { length: 36 }).notNull().references(() => saasCoupons.id, { onDelete: "cascade" }),
+  planId: varchar("plan_id", { length: 36 }).notNull().references(() => saasPlans.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.couponId, table.planId] }),
+}));
+
 export const subscriptions = mysqlTable("subscriptions", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
   plan: varchar("plan", { length: 50 }).default("trial").notNull(), // 'trial' | 'essencial' | 'profissional' | 'equipe' | 'negocio' | 'empresa' | 'enterprise' | 'pro_monthly' | 'pro_yearly'
   planId: varchar("plan_id", { length: 36 }).references(() => saasPlans.id, { onDelete: "set null" }),
-  status: varchar("status", { length: 50 }).default("trialing").notNull(), // 'trialing' | 'active' | 'past_due' | 'cancelled' | 'expired' | 'suspended'
+  status: varchar("status", { length: 50 }).default("trialing").notNull(), // 'trialing' | 'pending' | 'active' | 'past_due' | 'payment_failed' | 'cancelled' | 'expired' | 'suspended'
   billingInterval: varchar("billing_interval", { length: 20 }).default("monthly").notNull(), // 'monthly' | 'yearly'
   amount: decimal("amount", { precision: 12, scale: 2 }),
+  priceSnapshot: decimal("price_snapshot", { precision: 12, scale: 2 }),
+  discountSnapshot: decimal("discount_snapshot", { precision: 12, scale: 2 }).default("0.00"),
+  finalPriceSnapshot: decimal("final_price_snapshot", { precision: 12, scale: 2 }),
+  appliedCouponId: varchar("applied_coupon_id", { length: 36 }).references(() => saasCoupons.id, { onDelete: "set null" }),
   paymentMethod: varchar("payment_method", { length: 50 }).default("pix"), // 'pix' | 'card' | 'manual'
   gateway: varchar("gateway", { length: 50 }).default("mercadopago").notNull(), // 'mercadopago' | 'manual' | 'simulated'
+  gatewayCustomerId: varchar("gateway_customer_id", { length: 100 }),
   gatewaySubscriptionId: varchar("gateway_subscription_id", { length: 100 }),
   gatewayPaymentId: varchar("gateway_payment_id", { length: 100 }),
   trialEndsAt: timestamp("trial_ends_at", { mode: "date" }).notNull(),
   currentPeriodStart: timestamp("current_period_start", { mode: "date" }),
   currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
+  nextPaymentAt: timestamp("next_payment_at", { mode: "date" }),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
   cancelledAt: timestamp("cancelled_at", { mode: "date" }),
   mercadoPagoSubscriptionId: varchar("mercado_pago_subscription_id", { length: 100 }),
@@ -456,18 +493,26 @@ export const subscriptionInvoices = mysqlTable("subscription_invoices", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   subscriptionId: varchar("subscription_id", { length: 36 }).notNull().references(() => subscriptions.id, { onDelete: "cascade" }),
   companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  number: varchar("number", { length: 50 }),
   planSlug: varchar("plan_slug", { length: 50 }),
   billingInterval: varchar("billing_interval", { length: 20 }).default("monthly").notNull(),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
+  discount: decimal("discount", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 10 }).default("BRL").notNull(),
   paymentMethod: varchar("payment_method", { length: 50 }).default("pix").notNull(), // 'pix' | 'card' | 'manual'
-  status: varchar("status", { length: 50 }).default("paid").notNull(), // 'paid' | 'pending' | 'failed' | 'cancelled'
+  status: varchar("status", { length: 50 }).default("paid").notNull(), // 'paid' | 'pending' | 'failed' | 'cancelled' | 'refunded' | 'expired'
   dueAt: timestamp("due_at", { mode: "date" }),
   paidAt: timestamp("paid_at", { mode: "date" }),
+  failedAt: timestamp("failed_at", { mode: "date" }),
   pixQrCode: text("pix_qr_code"),
   pixQrCodeBase64: text("pix_qr_code_base64"),
   pixCopiaECola: text("pix_copia_e_cola"),
   pixExpiresAt: timestamp("pix_expires_at", { mode: "date" }),
   mercadoPagoPaymentId: varchar("mercado_pago_payment_id", { length: 100 }),
+  gatewayStatus: varchar("gateway_status", { length: 50 }),
+  gatewayStatusDetail: varchar("gateway_status_detail", { length: 100 }),
   invoiceUrl: text("invoice_url"),
   metadata: json("metadata"),
   ...timestamps,
@@ -477,6 +522,26 @@ export const subscriptionInvoices = mysqlTable("subscription_invoices", {
   paymentIdIdx: index("subscription_invoices_mp_idx").on(table.mercadoPagoPaymentId),
 }));
 
+export const saasCouponRedemptions = mysqlTable("saas_coupon_redemptions", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  couponId: varchar("coupon_id", { length: 36 }).notNull().references(() => saasCoupons.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  subscriptionId: varchar("subscription_id", { length: 36 }).references(() => subscriptions.id, { onDelete: "set null" }),
+  invoiceId: varchar("invoice_id", { length: 36 }).references(() => subscriptionInvoices.id, { onDelete: "set null" }),
+  originalAmount: decimal("original_amount", { precision: 12, scale: 2 }).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).notNull(),
+  finalAmount: decimal("final_amount", { precision: 12, scale: 2 }).notNull(),
+  cycleNumber: int("cycle_number").default(1).notNull(),
+  status: varchar("status", { length: 50 }).default("pending").notNull(), // 'pending' | 'confirmed' | 'cancelled'
+  redeemedAt: timestamp("redeemed_at", { mode: "date" }),
+  ...timestamps,
+}, (table) => ({
+  couponIdx: index("saas_coupon_redemptions_coupon_idx").on(table.couponId),
+  companyIdx: index("saas_coupon_redemptions_company_idx").on(table.companyId),
+  subscriptionIdx: index("saas_coupon_redemptions_sub_idx").on(table.subscriptionId),
+  statusIdx: index("saas_coupon_redemptions_status_idx").on(table.status),
+}));
+
 export const paymentWebhookEvents = mysqlTable("payment_webhook_events", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   gateway: varchar("gateway", { length: 50 }).notNull(), // 'mercadopago' | 'other'
@@ -484,7 +549,9 @@ export const paymentWebhookEvents = mysqlTable("payment_webhook_events", {
   type: varchar("type", { length: 100 }).notNull(),
   payload: json("payload").notNull(),
   status: varchar("status", { length: 50 }).default("processed").notNull(), // 'processed' | 'failed' | 'ignored'
-  processedAt: timestamp("processed_at", { mode: "date" }).notNull(),
+  processedAt: timestamp("processed_at", { mode: "date" }),
+  failedAt: timestamp("failed_at", { mode: "date" }),
+  errorMessage: text("error_message"),
   ...timestamps,
 }, (table) => ({
   eventIdIdx: uniqueIndex("payment_webhook_events_event_id_idx").on(table.gateway, table.eventId),

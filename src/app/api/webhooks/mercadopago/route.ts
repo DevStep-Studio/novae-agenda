@@ -1,7 +1,8 @@
 import { db } from "@/db";
-import { notifications, paymentWebhookEvents, users } from "@/db/schema";
+import { notifications, paymentWebhookEvents, subscriptionInvoices, subscriptions, users } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { saasPaymentProvider } from "@/lib/saas/payment-provider";
+import { SaasCouponService } from "@/lib/saas/coupon-service";
+import { MercadoPagoStatusMapper, saasPaymentProvider } from "@/lib/saas/payment-provider";
 import { and, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -37,9 +38,10 @@ export async function POST(request: Request) {
       return Response.json({ received: true, idempotent: true });
     }
 
-    // 2. Insert event record as processed
+    // 2. Insert event record as pending/processing
+    const eventId = crypto.randomUUID();
     await db.insert(paymentWebhookEvents).values({
-      id: crypto.randomUUID(),
+      id: eventId,
       gateway: "mercadopago",
       eventId: eventUniqueId,
       type: action,
@@ -59,22 +61,29 @@ export async function POST(request: Request) {
 
           if (res.ok) {
             const paymentInfo = await res.json();
-            if (paymentInfo.status === "approved" && paymentInfo.external_reference) {
-              let ref: any = {};
+            const rawStatus = paymentInfo.status as string;
+            const internalStatus = MercadoPagoStatusMapper.toInternal(rawStatus);
+
+            let ref: any = {};
+            if (paymentInfo.external_reference) {
               try {
                 ref = JSON.parse(paymentInfo.external_reference);
               } catch {
                 ref = {};
               }
+            }
 
-              const companyId = ref.companyId;
-              const planSlug = ref.planSlug || ref.planKey;
-              const billingInterval = ref.billingInterval || "monthly";
+            const companyId = ref.companyId;
+            const planSlug = ref.planSlug || ref.planKey;
+            const billingInterval = ref.billingInterval || "monthly";
+            const couponId = ref.couponId;
+            const invoiceId = ref.invoiceId;
 
-              if (companyId && planSlug) {
-                const amount = Number(paymentInfo.transaction_amount || 0);
-                const paymentMethod = paymentInfo.payment_method_id === "pix" ? "pix" : "card";
+            if (companyId && planSlug) {
+              const amount = Number(paymentInfo.transaction_amount || 0);
+              const paymentMethod = paymentInfo.payment_method_id === "pix" ? "pix" : "card";
 
+              if (internalStatus === "APPROVED") {
                 await saasPaymentProvider.activateCompanySubscription({
                   companyId,
                   planSlug,
@@ -82,45 +91,62 @@ export async function POST(request: Request) {
                   amount,
                   paymentMethod,
                   gatewayPaymentId: String(paymentId),
-                  invoiceId: ref.invoiceId,
+                  invoiceId,
+                  couponId,
                 });
 
-                // Notify owner
-                const [owner] = await db
-                  .select({ id: users.id })
-                  .from(users)
-                  .where(and(eq(users.companyId, companyId), eq(users.role, "owner")))
-                  .limit(1);
-
-                if (owner) {
-                  await db.insert(notifications).values({
-                    id: crypto.randomUUID(),
+                if (couponId || invoiceId) {
+                  await SaasCouponService.confirmCouponRedemption({
+                    couponId,
+                    invoiceId,
                     companyId,
-                    userId: owner.id,
-                    type: "subscription_active",
-                    title: "Pagamento de assinatura aprovado!",
-                    body: `Seu pagamento de R$ ${amount.toFixed(2)} foi confirmado. O plano ${planSlug.toUpperCase()} está ativo com todos os recursos liberados.`,
-                    createdAt: new Date(),
+                  });
+                }
+              } else if (internalStatus === "REJECTED" || internalStatus === "CANCELLED" || internalStatus === "EXPIRED") {
+                // Update invoice as failed/cancelled
+                if (invoiceId) {
+                  await db
+                    .update(subscriptionInvoices)
+                    .set({
+                      status: MercadoPagoStatusMapper.toInvoiceStatus(internalStatus),
+                      failedAt: new Date(),
+                      gatewayStatus: rawStatus,
+                      gatewayStatusDetail: paymentInfo.status_detail,
+                    })
+                    .where(eq(subscriptionInvoices.id, invoiceId));
+                }
+
+                if (couponId || invoiceId) {
+                  await SaasCouponService.cancelCouponRedemption({
+                    invoiceId,
                   });
                 }
 
                 await recordAudit({
                   companyId,
-                  action: "subscription.paid",
+                  action: "payment.failed",
                   entity: "subscription",
-                  metadata: { paymentId, planSlug, amount, billingInterval },
+                  metadata: { paymentId, status: rawStatus, detail: paymentInfo.status_detail },
                 });
               }
             }
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("[MercadoPago Webhook] Error fetching payment info:", err);
+          await db
+            .update(paymentWebhookEvents)
+            .set({
+              status: "failed",
+              failedAt: new Date(),
+              errorMessage: err?.message || String(err),
+            })
+            .where(eq(paymentWebhookEvents.id, eventId));
         }
       }
     }
 
     return Response.json({ received: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[MercadoPago Webhook] Global handler error:", error);
     return Response.json({ received: true, error: "Processed with warning" });
   }

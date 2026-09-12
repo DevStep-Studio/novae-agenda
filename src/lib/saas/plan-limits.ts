@@ -62,6 +62,30 @@ export class PlanLimitService {
   }
 
   /**
+   * Retrieves the employee limit for a given company.
+   */
+  static async getEmployeeLimit(companyId: string, executor: any = db): Promise<number> {
+    const usage = await this.getUsageInfo(companyId, executor);
+    return usage.employeeLimit;
+  }
+
+  /**
+   * Checks if a company can add another employee.
+   */
+  static async canAddEmployee(companyId: string, executor: any = db): Promise<boolean> {
+    const usage = await this.getUsageInfo(companyId, executor);
+    return usage.canAddEmployee;
+  }
+
+  /**
+   * Retrieves remaining available employee seats for a company.
+   */
+  static async getRemainingSeats(companyId: string, executor: any = db): Promise<number> {
+    const usage = await this.getUsageInfo(companyId, executor);
+    return usage.remainingSeats;
+  }
+
+  /**
    * Retrieves complete plan usage and limits for a company.
    */
   static async getUsageInfo(companyId: string, executor: any = db): Promise<PlanUsageInfo> {

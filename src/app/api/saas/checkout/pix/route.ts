@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 const pixSchema = z.object({
   planSlug: z.string().min(1, "Selecione um plano válido."),
   billingInterval: z.enum(["monthly", "yearly"]).default("monthly"),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
       companyId: auth.user.companyId,
       planSlug: parsed.data.planSlug,
       billingInterval: parsed.data.billingInterval,
+      couponCode: parsed.data.couponCode,
       payerEmail: auth.user.email,
       payerName: auth.user.name,
     });
@@ -32,9 +34,10 @@ export async function POST(request: Request) {
     return Response.json({ data: result }, { status: 201 });
   } catch (error: any) {
     console.error("[SaaS PIX Checkout API] Error generating PIX:", error);
+    const statusCode = error.statusCode || 500;
     return Response.json(
       { error: error.message || "Não foi possível gerar a cobrança PIX. Tente novamente." },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }
