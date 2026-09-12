@@ -2597,18 +2597,21 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   margin-bottom: 22px;
 }
 .client-metrics-grid .metric-card {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .client-metrics-grid .metric-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--brand-border-subtle);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  transform: none;
+  border-color: var(--border-strong);
+  box-shadow: none !important;
 }
 
 .clients-panel {
   padding: 0;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: none !important;
 }
 
 /* Segmented Tabs Bar ("Aba acima") */
@@ -2644,7 +2647,8 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
-  border-radius: 8px 8px 0 0;
+  border-radius: 6px 6px 0 0;
+  box-shadow: none !important;
 }
 .client-tab-btn:hover {
   color: var(--text-primary);
@@ -2652,7 +2656,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 }
 .client-tab-btn.active {
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
   border-bottom-color: var(--primary);
   background: var(--surface);
 }
@@ -2666,10 +2670,11 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   padding: 0 6px;
   border-radius: 20px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   background: var(--surface);
   color: var(--text-muted);
   border: 1px solid var(--border);
+  box-shadow: none !important;
   transition: all 0.15s ease;
 }
 .client-tab-btn.active .client-tab-pill {
@@ -2684,10 +2689,11 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 14px 20px;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: none !important;
 }
 
 .client-search-wrapper {
@@ -2696,20 +2702,21 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   max-width: 440px;
 }
 .client-search-box {
-  height: 38px;
+  height: 36px;
   display: flex;
   align-items: center;
   gap: 9px;
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   padding: 0 12px;
   background: var(--surface-secondary);
-  transition: all 0.15s ease;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .client-search-box:focus-within {
-  border-color: var(--primary);
+  border-color: var(--border-strong);
   background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(220, 255, 76, 0.12);
+  box-shadow: none !important;
 }
 .client-search-box input {
   flex: 1;
@@ -2742,13 +2749,14 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 .client-sort-select {
   height: 34px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface-secondary);
   color: var(--text-primary);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
+  box-shadow: none !important;
 }
 .client-sort-select:hover {
   border-color: var(--border-strong);
@@ -2769,7 +2777,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   border-collapse: collapse;
 }
 .client-data-table th {
-  padding: 11px 16px;
+  padding: 12px 16px;
   background: var(--surface-secondary);
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
@@ -2797,8 +2805,8 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 }
 .client-data-table th:nth-child(2),
 .client-data-table td:nth-child(2) {
-  width: 165px;
-  min-width: 165px;
+  width: 170px;
+  min-width: 170px;
 }
 .client-data-table th:nth-child(3),
 .client-data-table td:nth-child(3) {
@@ -2825,10 +2833,10 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   transition: background 0.12s ease;
 }
 .client-table-row:hover {
-  background: rgba(220, 255, 76, 0.025);
+  background: rgba(255, 255, 255, 0.025);
 }
 :root:not([data-theme="dark"]) .client-table-row:hover {
-  background: rgba(31, 111, 102, 0.03);
+  background: rgba(0, 0, 0, 0.02);
 }
 .client-table-row:last-child td {
   border-bottom: 0;
@@ -2869,13 +2877,14 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 .client-badge {
   display: inline-flex;
   align-items: center;
-  padding: 1px 6px;
+  padding: 1.5px 6px;
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  line-height: 1.4;
+  line-height: 1.3;
+  box-shadow: none !important;
 }
 .badge-vip {
   background: rgba(245, 158, 11, 0.12);
@@ -2883,130 +2892,119 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   border: 1px solid rgba(245, 158, 11, 0.25);
 }
 .badge-frequent {
-  background: rgba(220, 255, 76, 0.09);
-  color: #c8f53c;
-  border: 1px solid rgba(220, 255, 76, 0.2);
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 :root:not([data-theme="dark"]) .badge-frequent {
-  background: rgba(16, 185, 129, 0.1);
+  background: #ecfdf5;
   color: #047857;
-  border-color: rgba(16, 185, 129, 0.2);
+  border-color: #a7f3d0;
 }
 .badge-new {
   background: rgba(168, 85, 247, 0.1);
   color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.22);
 }
 :root:not([data-theme="dark"]) .badge-new {
-  background: rgba(147, 51, 234, 0.08);
+  background: #f5f3ff;
   color: #7e22ce;
-  border-color: rgba(147, 51, 234, 0.2);
+  border-color: #ddd6fe;
 }
 
-/* Contact Column: Clean, fixed-width WhatsApp pill/button with standard dimensions */
+/* Contact Column: Clean, flat WhatsApp pill + status */
 .client-contact-col {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   align-items: flex-start;
 }
 .client-whatsapp-btn,
 .client-whatsapp-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 146px;
-  min-width: 146px;
-  max-width: 146px;
-  height: 30px;
+  gap: 6px;
+  padding: 3px 8px;
+  height: 26px;
   box-sizing: border-box;
-  padding: 0 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 12px;
-  font-weight: 600;
-  color: #25d366;
-  background: rgba(37, 211, 102, 0.12);
-  border: 1px solid rgba(37, 211, 102, 0.32);
+  font-weight: 500;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
   text-decoration: none;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .client-whatsapp-icon {
-  color: #25d366;
+  color: #22c55e;
   flex-shrink: 0;
-  transition: all 0.18s ease;
 }
 .client-whatsapp-btn:hover,
 .client-whatsapp-link:hover {
-  background: rgba(37, 211, 102, 0.22);
-  border-color: #25d366;
-  color: #ffffff;
-  box-shadow: 0 0 12px rgba(37, 211, 102, 0.3);
-  transform: translateY(-1px);
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #4ade80;
   text-decoration: none;
+  box-shadow: none !important;
+  transform: none;
 }
 .client-whatsapp-btn:hover .client-whatsapp-icon,
 .client-whatsapp-link:hover .client-whatsapp-icon {
-  color: #ffffff;
-  transform: scale(1.1);
+  color: #4ade80;
+  transform: none;
 }
 
 :root:not([data-theme="dark"]) .client-whatsapp-btn,
 :root:not([data-theme="dark"]) .client-whatsapp-link {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #059669;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
 }
 :root:not([data-theme="dark"]) .client-whatsapp-btn .client-whatsapp-icon,
 :root:not([data-theme="dark"]) .client-whatsapp-link .client-whatsapp-icon {
-  color: #059669;
+  color: #15803d;
 }
 :root:not([data-theme="dark"]) .client-whatsapp-btn:hover,
 :root:not([data-theme="dark"]) .client-whatsapp-link:hover {
-  background: #d1fae5;
-  border-color: #059669;
-  color: #047857;
-  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .client-whatsapp-btn:hover .client-whatsapp-icon,
 :root:not([data-theme="dark"]) .client-whatsapp-link:hover .client-whatsapp-icon {
-  color: #047857;
+  color: #166534;
 }
 
 .client-whatsapp-empty {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 146px;
-  min-width: 146px;
-  max-width: 146px;
-  height: 30px;
-  box-sizing: border-box;
   color: var(--text-muted);
   font-size: 12px;
+  height: 26px;
 }
 
-/* Card / Pill de Agendamento Ativo */
+/* Minimalist Inline Upcoming Appointment Status */
 .client-has-upcoming-card,
 .client-has-upcoming {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 8px 3px 6px;
-  border-radius: 6px;
-  background: rgba(34, 197, 94, 0.10);
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+  border: none;
   color: #4ade80;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   line-height: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  width: fit-content;
+  box-shadow: none !important;
 }
 
 .client-has-upcoming-card .upcoming-dot,
@@ -3015,14 +3013,8 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   height: 5px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 6px #22c55e;
+  box-shadow: none !important;
   flex-shrink: 0;
-  animation: upcomingPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes upcomingPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.85); }
 }
 
 .client-has-upcoming-card .upcoming-icon,
@@ -3034,20 +3026,20 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 
 :root:not([data-theme="dark"]) .client-has-upcoming-card,
 :root:not([data-theme="dark"]) .client-has-upcoming {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-  color: #15803d;
-  box-shadow: none;
+  background: transparent;
+  border: none;
+  color: #16a34a;
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .client-has-upcoming-card .upcoming-dot,
 :root:not([data-theme="dark"]) .client-has-upcoming .upcoming-dot {
   background: #16a34a;
-  box-shadow: 0 0 4px #16a34a;
+  box-shadow: none !important;
 }
 :root:not([data-theme="dark"]) .client-has-upcoming-card .upcoming-icon,
 :root:not([data-theme="dark"]) .client-has-upcoming .upcoming-icon,
 :root:not([data-theme="dark"]) .client-has-upcoming svg {
-  color: #15803d;
+  color: #16a34a;
 }
 
 /* Visit & Attendance Columns */
@@ -3098,7 +3090,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   font-variant-numeric: tabular-nums;
 }
 
-/* Actions Column */
+/* Actions Column: Clean Flat Minimalist Buttons */
 .client-actions-cell {
   display: flex;
   align-items: center;
@@ -3114,35 +3106,34 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   border: 1px solid var(--border);
   background: var(--surface-secondary);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  box-shadow: none !important;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .client-action-btn:hover {
   background: var(--surface);
   color: var(--text-primary);
   border-color: var(--border-strong);
+  box-shadow: none !important;
 }
 .client-action-btn.schedule {
   gap: 5px;
-  width: 84px;
-  min-width: 84px;
-  max-width: 84px;
+  padding: 0 10px;
   height: 28px;
   box-sizing: border-box;
-  padding: 0;
   justify-content: center;
-  border-color: var(--border);
+  border: 1px solid var(--border);
   background: var(--surface-secondary);
   color: var(--text-secondary);
+  box-shadow: none !important;
 }
 .client-action-btn.schedule:hover {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border-color: var(--primary);
-  font-weight: 600;
-  box-shadow: none;
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  box-shadow: none !important;
 }
 .client-action-btn.schedule:hover svg {
   stroke: currentColor;
@@ -3155,11 +3146,13 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   box-sizing: border-box;
   padding: 0;
   color: var(--text-muted);
+  box-shadow: none !important;
 }
 .client-action-btn.view:hover {
   color: var(--text-primary);
   background: var(--surface);
   border-color: var(--border-strong);
+  box-shadow: none !important;
 }
 
 /* Legacy table helpers preserved */

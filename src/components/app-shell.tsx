@@ -1079,7 +1079,6 @@ function ClientsPage({
                           {hasUpcoming && (
                             <span className="client-has-upcoming-card" title="Possui agendamento ativo">
                               <span className="upcoming-dot" />
-                              <CalendarDays size={11} className="upcoming-icon" />
                               <span>Agendado</span>
                             </span>
                           )}
