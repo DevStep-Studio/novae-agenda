@@ -201,8 +201,8 @@ export async function loadAvailability(
                   ),
                 ),
               ),
-          () =>
-            executor
+          () => {
+            const query = executor
               .select()
               .from(appointments)
               .where(
@@ -219,7 +219,9 @@ export async function loadAvailability(
                       )
                     : undefined,
                 ),
-              ),
+              );
+            return executor !== db ? query.for("update") : query;
+          },
           () =>
             executor
               .select()

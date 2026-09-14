@@ -39,9 +39,9 @@ export function EmployeeDashboard() {
     day: "2-digit",
   }).format(new Date());
 
-  const loadAppointments = useCallback(async () => {
+  const loadAppointments = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await api<AppointmentDTO[]>(`/api/appointments?from=${todayStr}`);
       setAppointments(Array.isArray(res) ? res : []);
     } catch {
@@ -52,8 +52,22 @@ export function EmployeeDashboard() {
   }, [todayStr]);
 
   useEffect(() => {
-    void loadAppointments();
-  }, [loadAppointments]);
+    let cancelled = false;
+    async function init() {
+      try {
+        const res = await api<AppointmentDTO[]>(`/api/appointments?from=${todayStr}`);
+        if (!cancelled) setAppointments(Array.isArray(res) ? res : []);
+      } catch {
+        if (!cancelled) setAppointments([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void init();
+    return () => {
+      cancelled = true;
+    };
+  }, [todayStr]);
 
   const handleUpdateStatus = async (appointmentId: string, newStatus: AppointmentStatus) => {
     try {

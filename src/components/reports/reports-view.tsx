@@ -91,11 +91,22 @@ export function ReportsView() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const handleSelectRange = (newRange: typeof range) => {
+    setLoading(true);
+    setError(null);
+    setRange(newRange);
+  };
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    setReloadKey((k) => k + 1);
+  };
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
 
     api<ReportData | { data: ReportData }>(`/api/reports?range=${range}`)
       .then((res: any) => {
@@ -120,7 +131,7 @@ export function ReportsView() {
     return () => {
       active = false;
     };
-  }, [range]);
+  }, [range, reloadKey]);
 
   const handleExportCsv = () => {
     if (!data) return;
@@ -225,7 +236,7 @@ export function ReportsView() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setRange(item.id)}
+                onClick={() => handleSelectRange(item.id)}
                 className={`reports-range-btn ${active ? "active" : ""}`}
                 style={{
                   padding: "8px 16px",
@@ -309,7 +320,7 @@ export function ReportsView() {
           <p style={{ margin: 0, color: "var(--text-primary)", fontSize: 14 }}>{error}</p>
           <button
             type="button"
-            onClick={() => setRange(range)}
+            onClick={handleRetry}
             className="button-secondary"
             style={{
               padding: "8px 18px",

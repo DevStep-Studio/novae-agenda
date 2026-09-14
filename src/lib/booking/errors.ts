@@ -17,14 +17,15 @@ export function bookingError(error: unknown): Response {
       { error: error.issues[0]?.message ?? "Dados inválidos." },
       { status: 400 },
     );
-  const cause = error as { code?: string; cause?: { code?: string } };
+  const cause = error as { code?: string; errno?: number; cause?: { code?: string; errno?: number } };
   const code = cause?.code ?? cause?.cause?.code;
-  if (["23P01", "40001", "40P01"].includes(code ?? ""))
+  const errno = cause?.errno ?? cause?.cause?.errno;
+  if (["23P01", "40001", "40P01", "ER_LOCK_DEADLOCK", "ER_LOCK_WAIT_TIMEOUT"].includes(code ?? "") || errno === 1213 || errno === 1205)
     return Response.json(
       { error: "Este horário acabou de ser reservado. Escolha outro horário." },
       { status: 409 },
     );
-  if (code === "23505")
+  if (code === "23505" || code === "ER_DUP_ENTRY" || errno === 1062)
     return Response.json(
       {
         error: "Este registro já existe. Atualize a página e tente novamente.",
@@ -39,12 +40,30 @@ export function bookingError(error: unknown): Response {
 }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (
-    origin &&
-    origin !== new URL(request.url).origin &&
-    origin !== process.env.APP_URL?.replace(/\/$/, "")
-  )
-    throw new BookingError("Origem da solicitação inválida.", 403);
-  if (request.headers.get("sec-fetch-site") === "cross-site")
-    throw new BookingError("Origem da solicitação inválida.", 403);
+  if (!origin) return;
+
+  try {
+    const reqUrl = new URL(request.url);
+    if (origin === reqUrl.origin) return;
+
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host");
+    if (host) {
+      const proto = request.headers.get("x-forwarded-proto") || reqUrl.protocol.replace(":", "");
+      if (origin === `${proto}://${host}`) return;
+    }
+
+    const originUrl = new URL(origin);
+    const isLocalOrigin = originUrl.hostname === "localhost" || originUrl.hostname === "127.0.0.1";
+    const isLocalReq = reqUrl.hostname === "localhost" || reqUrl.hostname === "127.0.0.1" || reqUrl.hostname === "0.0.0.0";
+    if (isLocalOrigin && isLocalReq && originUrl.port === reqUrl.port) return;
+
+    const appUrl = process.env.APP_URL?.replace(/\/$/, "");
+    if (appUrl && origin === appUrl) return;
+
+    if (request.headers.get("sec-fetch-site") === "cross-site") {
+      throw new BookingError("Origem da solicitação inválida.", 403);
+    }
+  } catch (e) {
+    if (e instanceof BookingError) throw e;
+  }
 }

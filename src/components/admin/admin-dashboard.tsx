@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ShieldAlert,
   Building2,
@@ -33,7 +33,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api<SuperadminStatsDTO>("/api/superadmin");
@@ -43,10 +43,24 @@ export function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadStats();
+    let cancelled = false;
+    async function init() {
+      try {
+        const res = await api<SuperadminStatsDTO>("/api/superadmin");
+        if (!cancelled) setStats(res || null);
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void init();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredCompanies = (stats?.recentCompanies || []).filter((c) => {

@@ -28,19 +28,22 @@ export function OnboardingChecklistCard({
   const [collapsed, setCollapsed] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const fetchStatus = async () => {
-    try {
-      const res = await api<SetupStatusResponse>("/api/company/setup-status");
-      setData(res);
-    } catch {
-      // Ignora erro silencioso no dashboard
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchStatus();
+    let cancelled = false;
+    async function fetchStatus() {
+      try {
+        const res = await api<SetupStatusResponse>("/api/company/setup-status");
+        if (!cancelled) setData(res);
+      } catch {
+        // Ignora erro silencioso no dashboard
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void fetchStatus();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading || !data) return null;

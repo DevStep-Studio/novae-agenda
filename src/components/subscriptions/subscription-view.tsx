@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Check,
   Users,
@@ -23,11 +23,13 @@ interface SubscriptionDetails {
   isEffectiveActive: boolean;
   billingInterval: "monthly" | "yearly";
   amount: number;
-  paymentMethod: string;
-  currentPeriodStart: string | null;
+  paymentMethod: string | null;
+  gateway?: string;
+  currentPeriodStart?: string | null;
   currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
+  cancelAtPeriodEnd?: boolean;
   trialEndsAt: string | null;
+  cancelledAt: string | null;
 }
 
 interface UsageDetails {
@@ -38,17 +40,22 @@ interface UsageDetails {
   isExceeded: boolean;
   canAddEmployee: boolean;
   percentage: number;
+  employeesCount?: number;
+  employeesLimit?: number;
+  isWithinLimit?: boolean;
 }
 
 interface InvoiceItem {
   id: string;
+  number: string | null;
   planSlug: string;
   billingInterval: string;
   amount: number;
-  paymentMethod: string;
+  currency?: string;
   status: string;
-  dueAt: string | null;
-  paidAt: string | null;
+  paymentMethod: string;
+  dueAt?: string | null;
+  paidAt?: string | null;
   createdAt: string;
 }
 
@@ -65,9 +72,9 @@ export function SubscriptionView() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const [subRes, plansRes] = await Promise.all([
         api<{
           subscription: SubscriptionDetails;
@@ -84,10 +91,35 @@ export function SubscriptionView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    async function init() {
+      try {
+        const [subRes, plansRes] = await Promise.all([
+          api<{
+            subscription: SubscriptionDetails;
+            usage: UsageDetails;
+            invoices: InvoiceItem[];
+          }>("/api/saas/subscription"),
+          api<CheckoutPlan[]>("/api/saas/plans"),
+        ]);
+        if (!cancelled) {
+          setSubData(subRes || null);
+          setPlans(Array.isArray(plansRes) ? plansRes : []);
+        }
+      } catch (err: any) {
+        console.error("Erro ao carregar dados de assinatura:", err);
+        if (!cancelled) setPlans([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void init();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleOpenCheckout = (plan: CheckoutPlan) => {

@@ -1,54 +1,12 @@
 {
   "version": "7",
-  "dialect": "postgresql",
+  "dialect": "mysql",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1788492024646,
-      "tag": "0000_baseline",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1788492078307,
-      "tag": "0001_sprint1_auth_notifications_audit",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1788891534199,
-      "tag": "0002_complete_system_upgrade",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1788891575660,
-      "tag": "0003_public_booking",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1788891575661,
-      "tag": "0004_saas_subscriptions_and_reviews",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1789004540106,
-      "tag": "0005_booking_friction",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1789095805393,
-      "tag": "0006_cultured_squirrel_girl",
+      "version": "5",
+      "when": 1789394418536,
+      "tag": "0000_busy_leopardon",
       "breakpoints": true
     }
   ]

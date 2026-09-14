@@ -46,27 +46,36 @@ export function AssignMembershipModal({
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      setLoading(true);
-      Promise.all([
-        api<MembershipPlanDTO[]>("/api/membership-plans"),
-        api<EmployeeDTO[]>("/api/employees"),
-      ])
-        .then(([plansData, empData]) => {
+    if (!isOpen) return;
+    let cancelled = false;
+    async function loadData() {
+      try {
+        const [plansData, empData] = await Promise.all([
+          api<MembershipPlanDTO[]>("/api/membership-plans"),
+          api<EmployeeDTO[]>("/api/employees"),
+        ]);
+        if (!cancelled) {
           setPlans(plansData || []);
           setEmployees(empData || []);
-          if (plansData?.length > 0) {
+          if (plansData && plansData.length > 0) {
             setSelectedPlanId(plansData[0].id);
           }
-        })
-        .catch(() => {
+        }
+      } catch {
+        if (!cancelled) {
           notify("Erro ao carregar planos disponíveis.", "error");
-        })
-        .finally(() => {
+        }
+      } finally {
+        if (!cancelled) {
           setLoading(false);
-        });
+        }
+      }
     }
-  }, [isOpen]);
+    void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, notify]);
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId);
 

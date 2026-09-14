@@ -5443,13 +5443,13 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           />
         );
       case "configuracoes":
-        return <SettingsPage theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} />;
+        return <SettingsPage key={session?.userId} theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} />;
       case "agenda":
-        return <CalendarPage />;
+        return <CalendarPage calMode={calMode} selectedDate={selectedDate} />;
     }
   };
 
-  function CalendarPage() {
+  function CalendarPage({ calMode, selectedDate }: { calMode: CalendarMode; selectedDate: string }) {
     const byEmployee = appointments.filter((a) => employeeFilter === "all" || a.employeeId === employeeFilter);
     const displayed = byEmployee.filter((a) => a.date === selectedDate);
 
@@ -6024,16 +6024,6 @@ function ProfilePage({
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (session) {
-      setName(session.name);
-      setPhone(session.phone ?? "");
-      if (session.company.logoUrl) setAvatarUrl(session.company.logoUrl);
-      if (session.company.bannerUrl) setBannerUrl(session.company.bannerUrl);
-      if (session.company.primaryColor) setPrimaryColor(session.company.primaryColor);
-    }
-  }, [session]);
 
   const handleBannerUpload = async (file?: File) => {
     if (!file) return;

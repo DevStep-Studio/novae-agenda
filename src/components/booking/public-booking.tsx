@@ -118,7 +118,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [waitlistEmployee, setWaitlistEmployee] = useState("");
   const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cash" | "card" | "">("");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cash" | "card">("pix");
   const [extras, setExtras] = useState<Record<string, number>>({});
   const [coupon, setCoupon] = useState("");
   const [error, setError] = useState("");
@@ -222,6 +222,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           setNotes(draft.notes || "");
           setExtras(draft.extras || {});
           setCoupon(draft.coupon || "");
+          if (draft.paymentMethod) setPaymentMethod(draft.paymentMethod);
           if (draft.requestId) setRequestId(draft.requestId);
         }
       }
@@ -288,6 +289,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             locationId,
             step,
             notes,
+            paymentMethod,
             extras,
             coupon,
             requestId,
@@ -303,6 +305,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     locationId,
     step,
     notes,
+    paymentMethod,
     extras,
     coupon,
     ready,

@@ -89,6 +89,14 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   }
 }
 
+export function isSecureCookie(): boolean {
+  if (process.env.NODE_ENV !== "production") return false;
+  if (process.env.SECURE_COOKIES === "true") return true;
+  if (process.env.SECURE_COOKIES === "false") return false;
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
+  return Boolean(appUrl && appUrl.startsWith("https://"));
+}
+
 export async function createSession(userId: string): Promise<void> {
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
@@ -100,7 +108,7 @@ export async function createSession(userId: string): Promise<void> {
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecureCookie(),
     maxAge: MAX_AGE_SECONDS,
     path: "/",
   });

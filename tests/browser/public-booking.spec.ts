@@ -54,7 +54,7 @@ test("fast booking, rescheduling and responsive customer portal use real slots",
   await page.getByRole("button", { name: "Confirmar novo horário" }).click();
   await expect(page.getByText("Seu horário foi atualizado.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cancelar agendamento", exact: true }).click();
-  await page.getByRole("button", { name: "Sim, cancelar agendamento" }).click();
+  await page.getByRole("button", { name: /Sim, (confirmar cancelamento|cancelar agendamento)/ }).click();
   await expect(page.getByText("Agendamento cancelado.", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });

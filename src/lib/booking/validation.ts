@@ -53,9 +53,11 @@ export const createBookingSchema = searchSchema.extend({
   idempotencyKey: z.uuid(),
   // How the customer intends to pay at the establishment. Payment for the
   // service itself is always presential — this never triggers an online charge.
-  intendedPaymentMethod: z.enum(["pix", "cash", "card"], {
-    message: "Escolha como pretende pagar no estabelecimento.",
-  }),
+  intendedPaymentMethod: z
+    .enum(["pix", "cash", "card"], {
+      message: "Escolha como pretende pagar no estabelecimento.",
+    })
+    .default("pix"),
   products: z
     .array(
       z.object({

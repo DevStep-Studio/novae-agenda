@@ -63,15 +63,13 @@ export function TransparentCheckoutModal({
 
   const price = billingInterval === "yearly" ? plan.annualPrice : plan.monthlyPrice;
 
-  // Reset states when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setErrorMsg(null);
-      setSuccessMsg(null);
-      setPixData(null);
-      setCopied(false);
-    }
-  }, [isOpen, plan.slug, billingInterval]);
+  const handleCloseModal = () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setPixData(null);
+    setCopied(false);
+    onClose();
+  };
 
   // Generate PIX automatically when PIX tab is selected
   const handleGeneratePix = async () => {
@@ -119,7 +117,7 @@ export function TransparentCheckoutModal({
         setSuccessMsg("Pagamento confirmado! Sua assinatura foi ativada.");
         setTimeout(() => {
           onSuccess();
-          onClose();
+          handleCloseModal();
         }, 1500);
       } else {
         setErrorMsg("Pagamento ainda não identificado. Se você já pagou, aguarde alguns instantes.");
@@ -165,7 +163,7 @@ export function TransparentCheckoutModal({
         setSuccessMsg(res.message || "Assinatura ativada com sucesso!");
         setTimeout(() => {
           onSuccess();
-          onClose();
+          handleCloseModal();
         }, 1500);
       } else {
         setErrorMsg(res?.message || "Pagamento recusado. Verifique os dados do cartão.");
@@ -192,7 +190,7 @@ export function TransparentCheckoutModal({
         zIndex: 9999,
         padding: 16,
       }}
-      onClick={onClose}
+      onClick={handleCloseModal}
     >
       <div
         style={{
@@ -234,7 +232,7 @@ export function TransparentCheckoutModal({
             </h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleCloseModal}
             style={{
               background: "transparent",
               border: "none",

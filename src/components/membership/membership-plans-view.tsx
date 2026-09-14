@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Sparkles,
   Plus,
@@ -32,8 +32,8 @@ export function MembershipPlansView({
   const [editingPlan, setEditingPlan] = useState<MembershipPlanDTO | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const loadPlans = async () => {
-    setLoading(true);
+  const loadPlans = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await api<MembershipPlanDTO[]>("/api/membership-plans?includeInactive=true");
       setPlans(data || []);
@@ -42,11 +42,25 @@ export function MembershipPlansView({
     } finally {
       setLoading(false);
     }
-  };
+  }, [notify]);
 
   useEffect(() => {
-    loadPlans();
-  }, []);
+    let cancelled = false;
+    async function init() {
+      try {
+        const data = await api<MembershipPlanDTO[]>("/api/membership-plans?includeInactive=true");
+        if (!cancelled) setPlans(data || []);
+      } catch (err: any) {
+        if (!cancelled) notify(err instanceof ApiError ? err.message : "Erro ao carregar planos.", "error");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void init();
+    return () => {
+      cancelled = true;
+    };
+  }, [notify]);
 
   const handleToggleActive = async (plan: MembershipPlanDTO) => {
     try {

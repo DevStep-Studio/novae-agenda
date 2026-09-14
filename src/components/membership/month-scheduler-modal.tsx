@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Clock3,
   Check,
@@ -45,9 +45,8 @@ export function MonthSchedulerModal({
   const [step, setStep] = useState<"schedule" | "confirm">("schedule");
   const [monthOffset, setMonthOffset] = useState(0); // 0 = current/upcoming month
 
-  const loadMonthData = async (offset = 0) => {
+  const loadMonthData = useCallback(async (offset = 0) => {
     setLoading(true);
-    setConflicts([]);
     try {
       const now = new Date();
       now.setMonth(now.getMonth() + offset);
@@ -65,6 +64,7 @@ export function MonthSchedulerModal({
           : `/api/my/membership/month-slots?year=${year}&month=${month}`,
       );
 
+      setConflicts([]);
       setMembership(res.membership);
       setDays(res.days);
       setAllowance(res.allowance);
@@ -84,13 +84,60 @@ export function MonthSchedulerModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [isOwnerView, customerMembershipId, notify]);
 
   useEffect(() => {
-    if (isOpen) {
-      loadMonthData(monthOffset);
+    if (!isOpen) return;
+    let cancelled = false;
+    async function init() {
+      try {
+        const now = new Date();
+        now.setMonth(now.getMonth() + monthOffset);
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+
+        const res = await api<{
+          membership: CustomerMembershipDTO;
+          period: any;
+          days: MonthSlotDay[];
+          allowance: number;
+        }>(
+          isOwnerView
+            ? `/api/customer-memberships/${customerMembershipId}/month-slots?year=${year}&month=${month}`
+            : `/api/my/membership/month-slots?year=${year}&month=${month}`,
+        );
+
+        if (!cancelled) {
+          setConflicts([]);
+          setMembership(res.membership);
+          setDays(res.days);
+          setAllowance(res.allowance);
+
+          const initial: Record<string, string> = {};
+          for (const d of res.days) {
+            if (d.isBooked && d.existingAppointment) {
+              initial[d.date] = d.existingAppointment.startTime;
+            } else if (d.selectedStartTime && d.availableSlots.some((s) => s.startTime === d.selectedStartTime)) {
+              initial[d.date] = d.selectedStartTime;
+            }
+          }
+          setSelectedSlots(initial);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          notify(err instanceof ApiError ? err.message : "Erro ao carregar horários do mês.", "error");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
-  }, [isOpen, customerMembershipId, monthOffset]);
+    void init();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, monthOffset, isOwnerView, customerMembershipId, notify]);
 
   const selectedCount = Object.keys(selectedSlots).filter((d) => Boolean(selectedSlots[d])).length;
   const progressPercent = Math.min(100, Math.round((selectedCount / allowance) * 100));

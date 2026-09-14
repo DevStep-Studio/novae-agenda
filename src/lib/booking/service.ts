@@ -34,6 +34,11 @@ export async function lockCompany(tx: DbExecutor, companyId: string) {
     sql`SELECT id FROM companies WHERE id = ${companyId} FOR UPDATE`,
   );
 }
+export async function lockCompanyBySlug(tx: DbExecutor, slug: string) {
+  await tx.execute(
+    sql`SELECT id FROM companies WHERE public_slug = ${slug} FOR UPDATE`,
+  );
+}
 export async function bookingEvent(
   tx: DbExecutor,
   booking: typeof bookings.$inferSelect,
@@ -181,8 +186,7 @@ export async function createBooking(
     throw new BookingError("Informe seu telefone antes de confirmar.");
   const phone = user.phone;
   return db.transaction(async (tx) => {
-    const initialCompany = await publicCompany(input.slug, tx);
-    await lockCompany(tx, initialCompany.id);
+    await lockCompanyBySlug(tx, input.slug);
     const company = await publicCompany(input.slug, tx);
     const subscription = await assertSubscriptionActive(company.id, tx);
     if (!subscription.ok) throw new BookingError("Este estabelecimento não está recebendo novos agendamentos.", 403);
