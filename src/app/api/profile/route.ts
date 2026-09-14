@@ -116,11 +116,48 @@ export async function PATCH(request: Request) {
     await db.update(users).set(userPatch).where(eq(users.id, auth.user.userId));
   }
 
-  // 2. Update company row and settings if companyName, businessType, avatarUrl, bannerUrl, primaryColor or secondaryColor given
+  // 2. Resolve or provision companyId if owner/admin
+  let targetCompanyId = auth.user.companyId || null;
+
+  if (!targetCompanyId) {
+    const [userRow] = await db
+      .select({ companyId: users.companyId, role: users.role, name: users.name })
+      .from(users)
+      .where(eq(users.id, auth.user.userId))
+      .limit(1);
+
+    if (userRow?.companyId) {
+      targetCompanyId = userRow.companyId;
+    } else if (auth.user.role === "owner" || auth.user.role === "admin") {
+      // Auto-provision company for owner/admin if missing
+      const newCompanyId = crypto.randomUUID();
+      const initialCompanyName = companyName?.trim() || userRow?.name || "Meu Estabelecimento";
+      await db.insert(companies).values({
+        id: newCompanyId,
+        name: initialCompanyName,
+        businessType: businessType?.trim() || null,
+        primaryColor: primaryColor || "#3b82f6",
+        secondaryColor: secondaryColor || "#18181b",
+        onboarded: true,
+      });
+      await db.update(users).set({ companyId: newCompanyId, updatedAt: new Date() }).where(eq(users.id, auth.user.userId));
+      targetCompanyId = newCompanyId;
+    }
+  }
+
+  // 3. Update company row and settings if targetCompanyId exists
   let savedAvatarUrl: string | null | undefined = undefined;
   let savedBannerUrl: string | null | undefined = undefined;
 
-  if (auth.user.companyId) {
+  if (targetCompanyId) {
+    const [currentCompany] = await db
+      .select({ logoUrl: companies.logoUrl })
+      .from(companies)
+      .where(eq(companies.id, targetCompanyId))
+      .limit(1);
+
+    const currentBanner = await getRawCompanySetting(targetCompanyId, "banner_url");
+
     const companyPatch: Record<string, unknown> = {};
 
     if (companyName !== undefined && (auth.user.role === "owner" || auth.user.role === "admin")) {
@@ -130,7 +167,7 @@ export async function PATCH(request: Request) {
       companyPatch.businessType = businessType ? businessType.trim() : null;
     }
     if (avatarUrl !== undefined) {
-      savedAvatarUrl = avatarUrl ? await saveBrandingImage(avatarUrl) : null;
+      savedAvatarUrl = avatarUrl ? await saveBrandingImage(avatarUrl, currentCompany?.logoUrl) : null;
       companyPatch.logoUrl = savedAvatarUrl;
     }
     if (primaryColor !== undefined) companyPatch.primaryColor = primaryColor;
@@ -141,21 +178,21 @@ export async function PATCH(request: Request) {
       await db
         .update(companies)
         .set(companyPatch)
-        .where(eq(companies.id, auth.user.companyId));
+        .where(eq(companies.id, targetCompanyId));
     }
 
-    // 3. Update raw settings (banner, cover, avatar and dashboard preferences)
+    // Update raw settings (banner, cover, avatar and dashboard preferences)
     if (bannerUrl !== undefined) {
-      savedBannerUrl = bannerUrl ? await saveBrandingImage(bannerUrl) : "";
-      await setRawCompanySetting(auth.user.companyId, "banner_url", savedBannerUrl);
-      await setRawCompanySetting(auth.user.companyId, "cover_url", savedBannerUrl);
+      savedBannerUrl = bannerUrl ? await saveBrandingImage(bannerUrl, currentBanner) : "";
+      await setRawCompanySetting(targetCompanyId, "banner_url", savedBannerUrl);
+      await setRawCompanySetting(targetCompanyId, "cover_url", savedBannerUrl);
     }
     if (savedAvatarUrl !== undefined) {
-      await setRawCompanySetting(auth.user.companyId, "avatar_url", savedAvatarUrl ?? "");
+      await setRawCompanySetting(targetCompanyId, "avatar_url", savedAvatarUrl ?? "");
     }
     if (dashboardPreferences !== undefined) {
       await setRawCompanySetting(
-        auth.user.companyId,
+        targetCompanyId,
         "dashboard_preferences",
         JSON.stringify(dashboardPreferences),
       );
@@ -169,7 +206,7 @@ export async function PATCH(request: Request) {
       companyName,
       businessType,
       avatarUrl: savedAvatarUrl !== undefined ? savedAvatarUrl : avatarUrl,
-      bannerUrl: savedBannerUrl !== undefined ? savedBannerUrl : bannerUrl,
+      bannerUrl: savedBannerUrl !== undefined ? (savedBannerUrl || null) : (bannerUrl || null),
       primaryColor,
       dashboardPreferences,
     },

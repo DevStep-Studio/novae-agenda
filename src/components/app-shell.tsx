@@ -2850,11 +2850,13 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
   const saveBranding = async () => {
     setSavingBranding(true);
     try {
-      await updateProfile({
+      const result = await updateProfile({
         avatarUrl: brandingLogo.trim() || null,
         bannerUrl: brandingBanner.trim() || null,
         primaryColor: brandingPrimaryColor.trim() || undefined,
       });
+      if (result?.res?.avatarUrl !== undefined) setBrandingLogo(result.res.avatarUrl ?? "");
+      if (result?.res?.bannerUrl !== undefined) setBrandingBanner(result.res.bannerUrl ?? "");
       notify("Identidade visual e cores salvas com sucesso!");
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Erro ao salvar identidade visual.", "error");
@@ -5395,7 +5397,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       case "perfil":
         return (
           <ProfilePage
-            key={`${session?.userId ?? "u"}-${session?.company?.id ?? "c"}-${session?.company?.name ?? ""}-${session?.company?.businessType ?? ""}`}
+            key={`${session?.userId ?? "u"}-${session?.company?.id ?? "c"}-${session?.company?.name ?? ""}-${session?.company?.businessType ?? ""}-${session?.company?.logoUrl ?? ""}-${session?.company?.bannerUrl ?? ""}-${session?.company?.primaryColor ?? ""}`}
             session={session}
             onSettings={() => navigate("configuracoes")}
             onSuperadmin={session?.isSuperadmin ? () => setSuperadminOpen(true) : undefined}
@@ -6031,6 +6033,8 @@ function ProfilePage({
   const [saving, setSaving] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
   const bannerFileInputRef = useRef<HTMLInputElement>(null);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -6040,6 +6044,7 @@ function ProfilePage({
     try {
       const dataUrl = await prepareImageUpload(file, { maxDimension: 1600, square: false });
       setBannerUrl(dataUrl);
+      setBannerError(false);
       notify("Banner carregado! Clique em 'Salvar alterações' para aplicar a todos os usuários.");
     } catch (err) {
       notify(err instanceof Error ? err.message : "Erro ao carregar banner.", "error");
@@ -6055,6 +6060,7 @@ function ProfilePage({
     try {
       const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
       setAvatarUrl(dataUrl);
+      setAvatarError(false);
       notify("Logo / foto carregada! Clique em 'Salvar alterações' para aplicar a todos os usuários.");
     } catch (err) {
       notify(err instanceof Error ? err.message : "Erro ao carregar foto/logo.", "error");
@@ -6072,7 +6078,7 @@ function ProfilePage({
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateProfile({
+      const result = await updateProfile({
         name: name.trim() || undefined,
         phone: phone.trim() || undefined,
         companyName: companyName.trim() || undefined,
@@ -6082,6 +6088,14 @@ function ProfilePage({
         primaryColor: primaryColor.trim() || undefined,
         dashboardPreferences: dashboardPrefs,
       });
+      if (result?.res?.avatarUrl !== undefined) {
+        setAvatarUrl(result.res.avatarUrl ?? "");
+        setAvatarError(false);
+      }
+      if (result?.res?.bannerUrl !== undefined) {
+        setBannerUrl(result.res.bannerUrl ?? "");
+        setBannerError(false);
+      }
       notify("Dados e personalizações salvos com sucesso!");
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Erro ao salvar alterações.", "error");
@@ -6111,7 +6125,7 @@ function ProfilePage({
           <div
             className="profile-hero-cover"
             style={{
-              backgroundImage: bannerUrl ? `url('${bannerUrl}')` : undefined,
+              backgroundImage: bannerUrl && !bannerError ? `url('${bannerUrl}')` : undefined,
               backgroundPosition: "center",
               backgroundSize: "cover",
               backgroundColor: "var(--surface-secondary)",
@@ -6123,10 +6137,17 @@ function ProfilePage({
           <div className="profile-hero-content">
             <div className="profile-hero-left">
               <div className="profile-hero-avatar-wrap">
-                {avatarUrl ? (
-                  <NextImage src={avatarUrl} alt={session?.company.name || "Avatar"} width={80} height={80} unoptimized />
+                {avatarUrl && !avatarError ? (
+                  <NextImage
+                    src={avatarUrl}
+                    alt={companyName || session?.company.name || "Avatar"}
+                    width={80}
+                    height={80}
+                    unoptimized
+                    onError={() => setAvatarError(true)}
+                  />
                 ) : (
-                  <span className="profile-hero-avatar-fallback">{initials(name || session?.company.name || "U")}</span>
+                  <span className="profile-hero-avatar-fallback">{initials(companyName || session?.company.name || name || "U")}</span>
                 )}
               </div>
               <div className="profile-hero-details">
@@ -6274,11 +6295,14 @@ function ProfilePage({
                 <input
                   className="input"
                   value={bannerUrl}
-                  onChange={(e) => setBannerUrl(e.target.value)}
+                  onChange={(e) => {
+                    setBannerUrl(e.target.value);
+                    setBannerError(false);
+                  }}
                   placeholder="https://exemplo.com/banner.jpg ou faça upload acima"
                 />
                 {bannerUrl && (
-                  <Button variant="secondary" onClick={() => setBannerUrl("")}>
+                  <Button variant="secondary" onClick={() => { setBannerUrl(""); setBannerError(false); }}>
                     Limpar
                   </Button>
                 )}
@@ -6294,7 +6318,10 @@ function ProfilePage({
                       key={preset.id}
                       className={`banner-preset-card ${bannerUrl === preset.url ? "active" : ""}`}
                       style={{ backgroundImage: `url('${preset.url}')` }}
-                      onClick={() => setBannerUrl(preset.url)}
+                      onClick={() => {
+                        setBannerUrl(preset.url);
+                        setBannerError(false);
+                      }}
                     >
                       <span>{preset.name}</span>
                     </div>
@@ -6333,11 +6360,14 @@ function ProfilePage({
                 <input
                   className="input"
                   value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  onChange={(e) => {
+                    setAvatarUrl(e.target.value);
+                    setAvatarError(false);
+                  }}
                   placeholder="https://exemplo.com/foto.jpg ou faça upload acima"
                 />
                 {avatarUrl && (
-                  <Button variant="secondary" onClick={() => setAvatarUrl("")}>
+                  <Button variant="secondary" onClick={() => { setAvatarUrl(""); setAvatarError(false); }}>
                     Limpar
                   </Button>
                 )}
@@ -6353,7 +6383,10 @@ function ProfilePage({
                       type="button"
                       key={preset.id}
                       className={`avatar-preset-btn ${avatarUrl === preset.url ? "active" : ""}`}
-                      onClick={() => setAvatarUrl(preset.url)}
+                      onClick={() => {
+                        setAvatarUrl(preset.url);
+                        setAvatarError(false);
+                      }}
                       title={preset.name}
                     >
                       <NextImage src={preset.url} alt={preset.name} width={40} height={40} unoptimized />

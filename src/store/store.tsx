@@ -81,7 +81,19 @@ type Store = DataState & {
     primaryColor?: string;
     secondaryColor?: string;
     dashboardPreferences?: import("@/shared/types").DashboardPreferences;
-  }) => Promise<void>;
+  }) => Promise<{
+    res: {
+      ok: boolean;
+      name?: string;
+      companyName?: string;
+      businessType?: string;
+      avatarUrl?: string | null;
+      bannerUrl?: string | null;
+      primaryColor?: string;
+      dashboardPreferences?: import("@/shared/types").DashboardPreferences;
+    };
+    session: import("@/shared/types").SessionInfo | null;
+  }>;
   updateDashboardPreferences: (prefs: import("@/shared/types").DashboardPreferences) => Promise<void>;
   notify: (message: string, tone?: "success" | "error") => void;
   dismissToast: (id: string) => void;
@@ -365,11 +377,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     secondaryColor?: string;
     dashboardPreferences?: import("@/shared/types").DashboardPreferences;
   }) => {
-    await api("/api/profile", { method: "PATCH", body: JSON.stringify(input) });
+    const res = await api<{
+      ok: boolean;
+      name?: string;
+      companyName?: string;
+      businessType?: string;
+      avatarUrl?: string | null;
+      bannerUrl?: string | null;
+      primaryColor?: string;
+      dashboardPreferences?: import("@/shared/types").DashboardPreferences;
+    }>("/api/profile", { method: "PATCH", body: JSON.stringify(input) });
     if (input.primaryColor) {
       applyPrimaryColor(input.primaryColor);
     }
-    await reloadSession();
+    const updatedSession = await reloadSession();
+    return { res, session: updatedSession };
   }, [reloadSession]);
 
   const updateDashboardPreferences = useCallback(async (prefs: import("@/shared/types").DashboardPreferences) => {
