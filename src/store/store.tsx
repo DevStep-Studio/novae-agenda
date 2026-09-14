@@ -515,4 +515,9 @@ export function useStore(): Store {
   return ctx;
 }
 
+export function useOptionalStore(): Store | null {
+  return useContext(StoreContext);
+}
+
+
 export type { ClientDetailDTO };

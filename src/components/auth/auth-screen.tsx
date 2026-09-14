@@ -1,30 +1,51 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   ArrowLeft,
-  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  AlertCircle,
   Eye,
   EyeOff,
   Lock,
   Mail,
-  User,
-  KeyRound,
-  CheckCircle2,
   MailCheck,
-  ShieldCheck,
   RotateCcw,
+  Sparkles,
+  User,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
-import { useStore } from "@/store/store";
+import { useOptionalStore } from "@/store/store";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 
-type Mode = "login" | "register" | "forgot-password";
+export type AuthMode = "login" | "register" | "forgot-password" | "reservas";
 type RecoveryStep = "request_email" | "email_sent";
 
-export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboarding: boolean) => void }) {
-  const { reloadSession } = useStore();
-  const [mode, setMode] = useState<Mode>("login");
+interface AuthScreenProps {
+  onAuthenticated?: (needsOnboarding: boolean) => void;
+  initialMode?: AuthMode;
+}
+
+export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
+  const store = useOptionalStore();
+
+  const [mode, setMode] = useState<AuthMode>(() => {
+    if (initialMode) return initialMode;
+    if (typeof window !== "undefined") {
+      const urlMode = new URLSearchParams(window.location.search).get("mode");
+      if (
+        urlMode === "register" ||
+        urlMode === "forgot-password" ||
+        urlMode === "reservas"
+      ) {
+        return urlMode;
+      }
+    }
+    return "login";
+  });
+
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("request_email");
 
   // Form states
@@ -33,6 +54,7 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [remember, setRemember] = useState(true);
 
   // Recovery states
@@ -53,13 +75,22 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  const handleModeChange = (newMode: Mode) => {
+  const handleModeChange = (newMode: AuthMode) => {
     setMode(newMode);
     setError(null);
     setSuccessBanner(null);
     if (newMode === "forgot-password") {
       setRecoveryStep("request_email");
       setRecoveryEmail(email);
+    }
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (newMode === "login") {
+        url.searchParams.delete("mode");
+      } else {
+        url.searchParams.set("mode", newMode);
+      }
+      window.history.replaceState({}, "", url.toString());
     }
   };
 
@@ -68,39 +99,118 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     setRecoveryStep("request_email");
     setError(null);
     setSuccessBanner(null);
-    setMode("forgot-password");
+    handleModeChange("forgot-password");
   };
 
-  // Submit for Login / Register
+  // Submit for Login, Register or Reservas
   const submitAuth = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setSuccessBanner(null);
     setLoading(true);
+
     try {
-      if (mode === "login") {
-        await api<{ data: { userId: string; targetPortal?: string } }>("/api/auth/login", {
+      if (mode === "login" || mode === "reservas") {
+        const response = await api<{
+          data: { userId: string; targetPortal?: string; role?: string };
+        }>("/api/auth/login", {
           method: "POST",
           body: JSON.stringify({ email: email.trim(), password }),
         });
-        const updatedSession = await reloadSession();
-        onAuthenticated(Boolean(!updatedSession?.company?.onboarded && updatedSession?.primaryRole !== "client"));
-      } else {
+
+        const updatedSession = store ? await store.reloadSession() : null;
+
+        if (mode === "reservas" || response.data?.targetPortal === "/cliente") {
+          if (onAuthenticated) {
+            onAuthenticated(false);
+          } else {
+            window.location.assign("/minhas-reservas");
+          }
+          return;
+        }
+
+        if (onAuthenticated) {
+          onAuthenticated(
+            Boolean(
+              !updatedSession?.company?.onboarded &&
+                updatedSession?.primaryRole !== "client"
+            )
+          );
+        } else {
+          window.location.assign(response.data?.targetPortal || "/gestao");
+        }
+      } else if (mode === "register") {
+        if (password !== confirmPassword) {
+          setError("As senhas informadas não conferem.");
+          setLoading(false);
+          return;
+        }
+
         await api("/api/auth/register", {
           method: "POST",
-          body: JSON.stringify({ name: name.trim(), email: email.trim(), password, confirmPassword }),
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            confirmPassword,
+            accountType: "professional",
+          }),
         });
-        const updatedSession = await reloadSession();
-        onAuthenticated(Boolean(!updatedSession?.company?.onboarded && updatedSession?.primaryRole !== "client"));
+
+        const updatedSession = store ? await store.reloadSession() : null;
+        if (onAuthenticated) {
+          onAuthenticated(
+            Boolean(
+              !updatedSession?.company?.onboarded &&
+                updatedSession?.primaryRole !== "client"
+            )
+          );
+        } else {
+          window.location.assign("/gestao");
+        }
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Não foi possível concluir. Tente novamente.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível concluir a ação. Verifique suas credenciais."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Submit email for Forgot Password (Google-style Step 1)
+  // Quick 1-click Demo for Carlos Silva (Reservas / Cliente)
+  const handleCustomerDemo = async () => {
+    setError(null);
+    setSuccessBanner(null);
+    setLoading(true);
+    try {
+      await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: "cliente@email.com",
+          password: "senha123",
+        }),
+      });
+
+      if (store) await store.reloadSession();
+
+      if (onAuthenticated) {
+        onAuthenticated(false);
+      } else {
+        window.location.assign("/minhas-reservas");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Erro ao entrar como demo."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit email for Forgot Password
   const submitRecoveryEmail = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!recoveryEmail.trim()) {
@@ -110,14 +220,21 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     setError(null);
     setLoading(true);
     try {
-      await api<{ success: boolean; message: string }>("/api/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email: recoveryEmail.trim() }),
-      });
+      await api<{ success: boolean; message: string }>(
+        "/api/auth/forgot-password",
+        {
+          method: "POST",
+          body: JSON.stringify({ email: recoveryEmail.trim() }),
+        }
+      );
       setRecoveryStep("email_sent");
       setResendCooldown(30);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Não foi possível processar a recuperação. Tente novamente.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível processar a recuperação. Tente novamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -129,209 +246,198 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
     setError(null);
     setLoading(true);
     try {
-      await api<{ success: boolean; message: string }>("/api/auth/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email: recoveryEmail.trim() }),
-      });
+      await api<{ success: boolean; message: string }>(
+        "/api/auth/forgot-password",
+        {
+          method: "POST",
+          body: JSON.stringify({ email: recoveryEmail.trim() }),
+        }
+      );
       setResendCooldown(30);
       setSuccessBanner("Instruções reenviadas com sucesso!");
       setTimeout(() => setSuccessBanner(null), 4000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Erro ao reenviar e-mail.");
+      setError(
+        err instanceof ApiError ? err.message : "Erro ao reenviar e-mail."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-brand">
-        <ReserveiLogo size={40} priority />
+    <div className="auth-split-layout">
+      {/* ========================================================= */}
+      {/* PAINEL ESQUERDO: IMAGEM FORNECIDA PELO USUÁRIO            */}
+      {/* ========================================================= */}
+      <div className="auth-split-image-pane">
+        <Image
+          src="/login-img.png"
+          alt="Reservei - Agende com facilidade"
+          fill
+          priority
+          sizes="(max-width: 900px) 100vw, 52vw"
+          style={{ objectFit: "cover", objectPosition: "center" }}
+        />
       </div>
 
-      <div className="auth-card">
-        {/* ========================================================= */}
-        {/* RECOVERY MODE (Esqueci minha senha - Inspirado no Google) */}
-        {/* ========================================================= */}
-        {mode === "forgot-password" ? (
-          <div className="auth-view-animated">
-            {recoveryStep === "request_email" && (
-              <>
-                <div className="auth-recovery-header">
-                  <div className="auth-recovery-badge">
-                    <KeyRound size={13} />
-                    Recuperação de conta
-                  </div>
-                  <h1>Recuperar acesso</h1>
-                  <p className="auth-subtitle">
-                    Informe o e-mail cadastrado na sua conta para receber as instruções de recuperação.
-                  </p>
-                </div>
+      {/* ========================================================= */}
+      {/* PAINEL DIREITO: FORMULÁRIOS DE AUTENTICAÇÃO               */}
+      {/* ========================================================= */}
+      <div className="auth-split-form-pane">
+        {/* Topbar com logo Reservei alinhado à esquerda */}
+        <div className="auth-split-topbar">
+          <ReserveiLogo size={34} priority />
+        </div>
 
-                {error && (
-                  <div className="auth-error">
-                    <span>{error}</span>
-                  </div>
-                )}
+        <div className="auth-split-form-container">
+          {/* Feedback de erro */}
+          {error && (
+            <div className="auth-split-error" role="alert">
+              <AlertCircle size={16} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
 
-                <div className="auth-info-banner">
-                  <ShieldCheck size={16} />
-                  <div>
-                    <strong>Recuperação segura</strong>
-                    <div>Enviaremos um link de confirmação para validar a propriedade da sua conta.</div>
-                  </div>
-                </div>
+          {/* Feedback de sucesso */}
+          {successBanner && (
+            <div className="auth-split-success" role="status">
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span>{successBanner}</span>
+            </div>
+          )}
 
-                <form onSubmit={submitRecoveryEmail} className="auth-form">
-                  <label className="field">
-                    <span className="field-label">E-mail cadastrado</span>
-                    <div className="input-with-icon">
-                      <Mail size={15} />
-                      <input
-                        className="input"
-                        type="email"
-                        value={recoveryEmail}
-                        onChange={(e) => setRecoveryEmail(e.target.value)}
-                        placeholder="voce@email.com"
-                        autoComplete="email"
-                        required
-                        autoFocus
-                      />
-                    </div>
+          {/* ======================================================= */}
+          {/* MODO 1: LOGIN (Acesse sua conta)                         */}
+          {/* ======================================================= */}
+          {mode === "login" && (
+            <>
+              <h1 className="auth-split-title">Acesse sua conta</h1>
+              <p className="auth-split-subtitle">
+                Entre para gerenciar seu plano e acessar todos os seus recursos.
+              </p>
+
+              <form onSubmit={submitAuth} className="auth-split-form">
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    E-mail <span className="auth-split-asterisk">*</span>
                   </label>
+                  <div className="auth-split-input-wrap">
+                    <Mail className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
 
-                  <div className="auth-actions-split">
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    Senha <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <Lock className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                    />
                     <button
                       type="button"
-                      className="auth-dark-btn"
-                      onClick={() => handleModeChange("login")}
+                      className="auth-split-input-eye"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={
+                        showPassword ? "Ocultar senha" : "Exibir senha"
+                      }
                     >
-                      <ArrowLeft size={14} /> Voltar ao login
-                    </button>
-                    <button type="submit" className="auth-submit" disabled={loading}>
-                      {loading ? "Aguarde..." : "Avançar"} {!loading && <ArrowRight size={16} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                </form>
-              </>
-            )}
-
-            {recoveryStep === "email_sent" && (
-              <>
-                <div className="auth-recovery-header">
-                  <div className="auth-recovery-badge">
-                    <MailCheck size={13} />
-                    Instruções enviadas
-                  </div>
-                  <h1>Verifique seu e-mail</h1>
-                  <p className="auth-subtitle">
-                    Instruções de redefinição foram enviadas para o endereço informado.
-                  </p>
                 </div>
 
-                {successBanner && (
-                  <div className="auth-success-banner">
-                    <CheckCircle2 size={15} />
-                    <span>{successBanner}</span>
-                  </div>
-                )}
-                {error && (
-                  <div className="auth-error">
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <div className="auth-success-card">
-                  <div className="auth-success-icon">
-                    <MailCheck size={26} />
-                  </div>
-                  <div className="auth-email-pill">
-                    <Mail size={13} />
-                    <span>{recoveryEmail}</span>
-                  </div>
-                  <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "12px", lineHeight: 1.5, maxWidth: "320px" }}>
-                    Abra sua caixa de entrada e clique no link de recuperação. O link expira em 1 hora.
-                  </p>
-                </div>
-
-                <div className="auth-actions-split">
-                  <button
-                    type="button"
-                    className="auth-submit"
-                    onClick={() => handleModeChange("login")}
-                  >
-                    <ArrowLeft size={14} /> Voltar ao login
-                  </button>
-                </div>
-
-                <div className="auth-resend-row">
-                  <span>Não recebeu o e-mail?</span>
-                  <button
-                    type="button"
-                    className="auth-link"
-                    disabled={resendCooldown > 0 || loading}
-                    onClick={handleResendRecoveryEmail}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
-                  >
-                    <RotateCcw size={12} />
-                    {resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar e-mail"}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          /* ========================================================= */
-          /* LOGIN / REGISTER MODE                                      */
-          /* ========================================================= */
-          <div className="auth-view-animated">
-            <h1>
-              {mode === "login" ? "Bem-vindo ao Reservei" : "Crie sua conta"}
-            </h1>
-            <p className="auth-subtitle">
-              {mode === "login"
-                ? "Entre com seu e-mail e senha para acessar o sistema."
-                : "Agendamentos simples e gestão completa em um só lugar."}
-            </p>
-
-            <div className="auth-tabs">
-              <button
-                type="button"
-                className={mode === "login" ? "active" : ""}
-                onClick={() => handleModeChange("login")}
-              >
-                Entrar
-              </button>
-              <button
-                type="button"
-                className={mode === "register" ? "active" : ""}
-                onClick={() => handleModeChange("register")}
-              >
-                Criar conta
-              </button>
-            </div>
-
-            {successBanner && (
-              <div className="auth-success-banner">
-                <CheckCircle2 size={15} />
-                <span>{successBanner}</span>
-              </div>
-            )}
-
-            {error && (
-              <div className="auth-error">
-                <span>{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={submitAuth} className="auth-form">
-              {mode === "register" && (
-                <label className="field">
-                  <span className="field-label">Nome</span>
-                  <div className="input-with-icon">
-                    <User size={15} />
+                <div className="auth-split-row">
+                  <label className="auth-split-remember">
                     <input
-                      className="input"
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                    />
+                    <span>Lembrar de mim</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="auth-split-link-btn"
+                    onClick={handleOpenForgotPassword}
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  className="auth-split-primary-btn"
+                  disabled={loading}
+                >
+                  {loading ? "Entrando..." : "Entrar"}
+                </button>
+              </form>
+
+              <div className="auth-split-divider">
+                <div className="auth-split-divider-line" />
+                <span className="auth-split-divider-text">ou acesse com</span>
+                <div className="auth-split-divider-line" />
+              </div>
+
+              <button
+                type="button"
+                className="auth-split-secondary-btn"
+                onClick={() => handleModeChange("reservas")}
+              >
+                <CalendarDays size={16} />
+                <span>Ver minhas reservas</span>
+              </button>
+
+              <div className="auth-split-switch-row">
+                Não tem conta?{" "}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange("register")}
+                >
+                  Criar conta grátis
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ======================================================= */}
+          {/* MODO 2: REGISTRO (Crie sua conta)                        */}
+          {/* ======================================================= */}
+          {mode === "register" && (
+            <>
+              <h1 className="auth-split-title">Crie sua conta</h1>
+              <p className="auth-split-subtitle">
+                Comece gratuitamente e modernize seus agendamentos hoje mesmo.
+              </p>
+
+              <form onSubmit={submitAuth} className="auth-split-form">
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    Nome completo <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <User className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
+                      type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Seu nome completo"
@@ -340,56 +446,67 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
                       minLength={2}
                     />
                   </div>
-                </label>
-              )}
-              <label className="field">
-                <span className="field-label">E-mail</span>
-                <div className="input-with-icon">
-                  <Mail size={15} />
-                  <input
-                    className="input"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="voce@email.com"
-                    autoComplete="email"
-                    required
-                  />
                 </div>
-              </label>
-              <label className="field">
-                <span className="field-label">Senha</span>
-                <div className="input-with-icon">
-                  <Lock size={15} />
-                  <input
-                    className="input"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete={mode === "login" ? "current-password" : "new-password"}
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    className="input-eye"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label="Mostrar senha"
-                  >
-                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-                {mode === "register" && <span className="field-hint">Pelo menos 8 caracteres</span>}
-              </label>
-              {mode === "register" && (
-                <label className="field">
-                  <span className="field-label">Confirmar senha</span>
-                  <div className="input-with-icon">
-                    <Lock size={15} />
+
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    E-mail <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <Mail className="auth-split-input-icon" size={17} />
                     <input
-                      className="input"
+                      className="auth-split-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    Senha <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <Lock className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
                       type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      className="auth-split-input-eye"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={
+                        showPassword ? "Ocultar senha" : "Exibir senha"
+                      }
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <span className="auth-split-field-hint">
+                    Pelo menos 8 caracteres
+                  </span>
+                </div>
+
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    Confirmar senha <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <Lock className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
+                      type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
@@ -397,47 +514,357 @@ export function AuthScreen({ onAuthenticated }: { onAuthenticated: (needsOnboard
                       required
                       minLength={8}
                     />
+                    <button
+                      type="button"
+                      className="auth-split-input-eye"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      aria-label={
+                        showConfirmPassword ? "Ocultar senha" : "Exibir senha"
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={16} />
+                      ) : (
+                        <Eye size={16} />
+                      )}
+                    </button>
                   </div>
-                </label>
-              )}
+                </div>
 
-              {mode === "login" && (
-                <div className="auth-row">
-                  <label className="remember">
+                <button
+                  type="submit"
+                  className="auth-split-primary-btn"
+                  disabled={loading}
+                >
+                  {loading ? "Criando conta..." : "Criar conta grátis"}
+                </button>
+              </form>
+
+              <div className="auth-split-divider">
+                <div className="auth-split-divider-line" />
+                <span className="auth-split-divider-text">ou acesse com</span>
+                <div className="auth-split-divider-line" />
+              </div>
+
+              <button
+                type="button"
+                className="auth-split-secondary-btn"
+                onClick={() => handleModeChange("reservas")}
+              >
+                <CalendarDays size={16} />
+                <span>Ver minhas reservas</span>
+              </button>
+
+              <div className="auth-split-switch-row">
+                Já tem uma conta?{" "}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange("login")}
+                >
+                  Entrar
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ======================================================= */}
+          {/* MODO 3: RECUPERAR SENHA (Esqueci a senha)                */}
+          {/* ======================================================= */}
+          {mode === "forgot-password" && (
+            <>
+              {recoveryStep === "request_email" ? (
+                <>
+                  <h1 className="auth-split-title">Recuperar senha</h1>
+                  <p className="auth-split-subtitle">
+                    Informe o e-mail cadastrado na sua conta para receber as
+                    instruções de recuperação.
+                  </p>
+
+                  <form onSubmit={submitRecoveryEmail} className="auth-split-form">
+                    <div className="auth-split-field">
+                      <label className="auth-split-label">
+                        E-mail cadastrado{" "}
+                        <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <div className="auth-split-input-wrap">
+                        <Mail className="auth-split-input-icon" size={17} />
+                        <input
+                          className="auth-split-input"
+                          type="email"
+                          value={recoveryEmail}
+                          onChange={(e) => setRecoveryEmail(e.target.value)}
+                          placeholder="seu@email.com"
+                          autoComplete="email"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="auth-split-primary-btn"
+                      disabled={loading}
+                    >
+                      {loading ? "Enviando..." : "Enviar instruções"}
+                    </button>
+                  </form>
+
+                  <div className="auth-split-divider">
+                    <div className="auth-split-divider-line" />
+                    <span className="auth-split-divider-text">
+                      ou continue para
+                    </span>
+                    <div className="auth-split-divider-line" />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="auth-split-secondary-btn"
+                    onClick={() => handleModeChange("reservas")}
+                  >
+                    <CalendarDays size={16} />
+                    <span>Ver minhas reservas</span>
+                  </button>
+
+                  <div className="auth-split-switch-row">
+                    Lembrou sua senha?{" "}
+                    <button
+                      type="button"
+                      onClick={() => handleModeChange("login")}
+                    >
+                      Voltar ao login
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1 className="auth-split-title">Verifique seu e-mail</h1>
+                  <p className="auth-split-subtitle">
+                    Enviamos as orientações de redefinição para o endereço
+                    abaixo.
+                  </p>
+
+                  <div className="auth-split-card-sent">
+                    <div className="auth-split-card-sent-icon">
+                      <MailCheck size={26} />
+                    </div>
+                    <div className="auth-split-email-pill">
+                      <Mail size={14} />
+                      <span>{recoveryEmail}</span>
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "12.5px",
+                        color: "var(--text-secondary)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      Abra sua caixa de entrada e clique no link de recuperação
+                      para definir uma nova senha. O link expira em 1 hora.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="auth-split-primary-btn"
+                    onClick={() => handleModeChange("login")}
+                  >
+                    Voltar ao login
+                  </button>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px",
+                      marginTop: "16px",
+                      fontSize: "13px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    <span>Não recebeu o e-mail?</span>
+                    <button
+                      type="button"
+                      className="auth-split-link-btn"
+                      disabled={resendCooldown > 0 || loading}
+                      onClick={handleResendRecoveryEmail}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      <RotateCcw size={13} />
+                      {resendCooldown > 0
+                        ? `Reenviar em ${resendCooldown}s`
+                        : "Reenviar e-mail"}
+                    </button>
+                  </div>
+
+                  <div className="auth-split-divider">
+                    <div className="auth-split-divider-line" />
+                    <span className="auth-split-divider-text">
+                      ou continue para
+                    </span>
+                    <div className="auth-split-divider-line" />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="auth-split-secondary-btn"
+                    onClick={() => handleModeChange("reservas")}
+                  >
+                    <CalendarDays size={16} />
+                    <span>Ver minhas reservas</span>
+                  </button>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ======================================================= */}
+          {/* MODO 4: VER MINHAS RESERVAS (Portal do Cliente)          */}
+          {/* ======================================================= */}
+          {mode === "reservas" && (
+            <>
+              <h1 className="auth-split-title">Minhas Reservas</h1>
+              <p className="auth-split-subtitle">
+                Acesse sua conta para consultar, remarcar ou cancelar seus
+                agendamentos.
+              </p>
+
+              <form onSubmit={submitAuth} className="auth-split-form">
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    E-mail cadastrado{" "}
+                    <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <Mail className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seu@email.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="auth-split-field">
+                  <label className="auth-split-label">
+                    Senha <span className="auth-split-asterisk">*</span>
+                  </label>
+                  <div className="auth-split-input-wrap">
+                    <Lock className="auth-split-input-icon" size={17} />
+                    <input
+                      className="auth-split-input"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="auth-split-input-eye"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={
+                        showPassword ? "Ocultar senha" : "Exibir senha"
+                      }
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="auth-split-row">
+                  <label className="auth-split-remember">
                     <input
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
                     />
-                    <span>Lembrar meu acesso</span>
+                    <span>Lembrar de mim</span>
                   </label>
                   <button
                     type="button"
-                    className="auth-link"
+                    className="auth-split-link-btn"
                     onClick={handleOpenForgotPassword}
                   >
                     Esqueci minha senha
                   </button>
                 </div>
-              )}
 
-              <button type="submit" className="auth-submit" disabled={loading}>
-                {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}{" "}
-                {!loading && <ArrowRight size={16} />}
+                <button
+                  type="submit"
+                  className="auth-split-primary-btn"
+                  disabled={loading}
+                >
+                  {loading ? "Acessando..." : "Acessar minhas reservas"}
+                </button>
+
+                {/* Acesso rápido para testes em modo desenvolvimento */}
+                <button
+                  type="button"
+                  className="auth-split-demo-btn"
+                  onClick={handleCustomerDemo}
+                  disabled={loading}
+                >
+                  <Sparkles size={14} />
+                  <span>⚡ Demo: Entrar como Carlos Silva (1-clique)</span>
+                </button>
+              </form>
+
+              <div className="auth-split-divider">
+                <div className="auth-split-divider-line" />
+                <span className="auth-split-divider-text">
+                  ou painel de gestão
+                </span>
+                <div className="auth-split-divider-line" />
+              </div>
+
+              <button
+                type="button"
+                className="auth-split-secondary-btn"
+                onClick={() => handleModeChange("login")}
+              >
+                <ArrowLeft size={15} />
+                <span>Entrar no painel do estabelecimento</span>
               </button>
-            </form>
 
-            <button
-              type="button"
-              className="auth-back"
-              onClick={() => handleModeChange(mode === "login" ? "register" : "login")}
-            >
-              <ArrowLeft size={14} /> {mode === "login" ? "Ainda não tenho conta" : "Já tenho uma conta"}
-            </button>
-          </div>
-        )}
+              <div className="auth-split-switch-row">
+                Ainda não tem agendamento?{" "}
+                <button
+                  type="button"
+                  onClick={() => handleModeChange("register")}
+                >
+                  Criar conta de profissional
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Rodapé com termos e privacidade */}
+        <div className="auth-split-footer">
+          Ao continuar, você concorda com nossos{" "}
+          <a href="/termos" target="_blank" rel="noreferrer">
+            Termos de Uso
+          </a>{" "}
+          e{" "}
+          <a href="/privacidade" target="_blank" rel="noreferrer">
+            Política de Privacidade
+          </a>
+          .
+        </div>
       </div>
-      <p className="auth-footer">reservei · gestão e agendamento inteligente</p>
     </div>
   );
 }

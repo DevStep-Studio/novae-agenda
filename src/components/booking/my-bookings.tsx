@@ -29,6 +29,7 @@ import { STATUS_LABELS } from "@/lib/client-utils";
 import type { AppointmentStatus } from "@/shared/types";
 import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
+import { AuthScreen } from "@/components/auth/auth-screen";
 import {
   b,
   BookingAvatar,
@@ -187,6 +188,24 @@ export function MyBookings({
       .toISOString()
       .replace(/[-:]/g, "")
       .replace(/\.\d{3}Z$/, "Z");
+
+  if (!user && !embedded) {
+    return (
+      <AuthScreen
+        initialMode="reservas"
+        onAuthenticated={async () => {
+          try {
+            const identity = await api<Customer | null>("/api/my/session");
+            setUser(identity);
+            if (identity) void load();
+          } catch {
+            window.location.reload();
+          }
+        }}
+      />
+    );
+  }
+
   const content = (
       <Content className={`${b.main} ${current ? b.success : ""} ${user && !current ? b.bookingsPage : ""}`}>
         <ErrorMessage message={error} />
