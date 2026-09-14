@@ -185,7 +185,18 @@ export function SubscriptionView() {
   };
 
   return (
-    <div style={{ maxWidth: 1120, margin: "0 auto", paddingBottom: 60, fontFamily: "inherit" }}>
+    <div
+      className="page-content subscription-page-content"
+      style={{
+        maxWidth: 1160,
+        margin: "0 auto",
+        paddingTop: 32,
+        paddingBottom: 80,
+        paddingLeft: 24,
+        paddingRight: 24,
+        fontFamily: "inherit",
+      }}
+    >
       {/* Toast Alert */}
       {actionMessage && (
         <div
@@ -683,6 +694,8 @@ export function SubscriptionView() {
           plan={selectedPlanForCheckout}
           billingInterval={billingCycle}
           isOpen={isCheckoutOpen}
+          availablePlans={plans}
+          onSelectPlan={(plan) => setSelectedPlanForCheckout(plan)}
           onClose={() => setIsCheckoutOpen(false)}
           onSuccess={() => {
             setActionMessage({ type: "success", text: "Assinatura ativada com sucesso!" });
