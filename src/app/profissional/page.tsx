@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { StoreProvider, useStore } from "@/store/store";
 import { EmployeeDashboard } from "@/components/employee/employee-dashboard";
 import { AuthScreen } from "@/components/auth/auth-screen";

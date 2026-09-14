@@ -1,6 +1,6 @@
 import { eq, or } from "drizzle-orm";
 import { db } from "@/db";
-import { appointments, clients, payments, reviews, users } from "@/db/schema";
+import { appointments, clients, reviews, users } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";

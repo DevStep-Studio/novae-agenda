@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { companies, companySettings, users } from "@/db/schema";
+import { companies, users } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { getRawCompanySetting, setRawCompanySetting } from "@/lib/settings";
 import { saveBrandingImage } from "@/lib/storage";

@@ -2,7 +2,7 @@ import { quoteBooking, quoteSchema } from "@/lib/booking/pricing";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { bookingEvents, bookingWaitlist, notifications, users } from "@/db/schema";
+import { bookingEvents, bookingWaitlist, notifications } from "@/db/schema";
 import { getIdentity } from "@/lib/auth";
 import { publicCatalog, publicCompany } from "@/lib/booking/catalog";
 import { loadAvailability } from "@/lib/booking/engine";

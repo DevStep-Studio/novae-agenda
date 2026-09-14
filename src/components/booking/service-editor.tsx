@@ -18,7 +18,6 @@ import {
   Link2,
   SlidersHorizontal,
   Loader2,
-  Clock3,
   Coins,
   FileText,
 } from "lucide-react";

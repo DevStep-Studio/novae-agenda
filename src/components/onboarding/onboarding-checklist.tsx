@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircle2,
   Circle,
@@ -9,8 +9,6 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
-  Copy,
   Check,
 } from "lucide-react";
 import { api } from "@/lib/api-client";

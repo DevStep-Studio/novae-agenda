@@ -1,4 +1,4 @@
-import { and, eq, lte, sql } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { db } from "@/db";
 import { bookings, companies, notificationLogs, users } from "@/db/schema";
 import { appUrl, sendMail } from "@/lib/mailer";

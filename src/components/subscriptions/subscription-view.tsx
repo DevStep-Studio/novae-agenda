@@ -3,17 +3,9 @@
 import { useState, useEffect } from "react";
 import {
   Check,
-  CreditCard,
-  QrCode,
-  ShieldCheck,
-  AlertCircle,
   Users,
-  Calendar,
-  Sparkles,
   ArrowRight,
   RefreshCw,
-  Clock,
-  HelpCircle,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";

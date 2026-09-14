@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   AlertCircle,
   Loader2,
-  Lock,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -146,7 +145,6 @@ export function TransparentCheckoutModal({
     try {
       // Clean up inputs and generate token (zero PAN/CVV stored on server)
       const cleanNumber = cardNumber.replace(/\s+/g, "");
-      const [expMonth, expYear] = cardExpiry.split("/").map((v) => v.trim());
       const mockToken = `tok_${cleanNumber.slice(-4)}_${Date.now()}`;
 
       const res = await api<{

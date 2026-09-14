@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appointments,
@@ -20,7 +20,6 @@ import { parseCopyOverrides, parseSectionsConfig } from "./customization";
 import { DEFAULT_FONT_PACK } from "./fonts";
 import { getCompanySettings } from "@/lib/settings";
 import { localDate } from "./time";
-import { toSlug } from "./validation";
 
 export async function publicCompany(slug: string, executor: DbExecutor = db) {
   const normalizedSlug = slug.toLowerCase().trim();

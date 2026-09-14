@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { appointments, auditLogs, companies, employees, locations, subscriptions, users } from "@/db/schema";
 import { requireSuperadmin } from "@/lib/auth";

@@ -13,14 +13,12 @@ import {
   Trash2,
   Globe,
   Building2,
-  MapPin,
   Phone,
   Clock,
   Palette,
   Sparkles,
   ShoppingBag,
   Tag,
-  Calendar,
   Download,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";

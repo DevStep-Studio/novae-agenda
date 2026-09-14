@@ -1,6 +1,6 @@
 import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { notifications, users, employees } from "@/db/schema";
+import { notifications, employees } from "@/db/schema";
 import { eventBus, type AppEvent } from "./event-bus";
 import type { NotificationDTO } from "@/shared/types";
 

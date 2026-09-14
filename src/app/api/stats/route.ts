@@ -10,7 +10,7 @@ import {
   payments,
   services,
 } from "@/db/schema";
-import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { centsToNumber, todayKey } from "@/lib/domain";
 import type { PaymentMethod, StatsResponse } from "@/shared/types";
 

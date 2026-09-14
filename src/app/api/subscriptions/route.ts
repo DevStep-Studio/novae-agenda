@@ -1,5 +1,5 @@
 import { requireRole } from "@/lib/auth";
-import { getCompanySubscription, PLANS, type PlanKey } from "@/lib/subscriptions";
+import { getCompanySubscription, PLANS } from "@/lib/subscriptions";
 import { createSubscriptionCheckout, activateSubscription } from "@/lib/mercadopago";
 import { db } from "@/db";
 import { subscriptionInvoices } from "@/db/schema";

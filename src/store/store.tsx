@@ -328,6 +328,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await reloadSettings();
   }, [reloadSettings]);
 
+  const reloadSession = useCallback(async () => {
+    try {
+      const data = await api<SessionInfo>("/api/auth/session");
+      setSession(data);
+      if (data) {
+        if (data.company?.primaryColor) {
+          applyPrimaryColor(data.company.primaryColor);
+        }
+        if (data.locations?.length) {
+          setLocations(data.locations);
+          setActiveLocationId((cur) => cur ?? data.locations[0].id);
+        }
+        if (data.primaryRole !== "client") {
+          await refreshAll();
+        }
+      }
+      return data;
+    } catch {
+      setSession(null);
+      return null;
+    }
+  }, [refreshAll]);
+
   const updateProfile = useCallback(async (input: {
     name?: string;
     phone?: string;
@@ -341,7 +364,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applyPrimaryColor(input.primaryColor);
     }
     await reloadSession();
-  }, []);
+  }, [reloadSession]);
 
   const updateDashboardPreferences = useCallback(async (prefs: import("@/shared/types").DashboardPreferences) => {
     // Optimistic update
@@ -368,29 +391,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await api("/api/auth/logout", { method: "POST" });
     window.location.reload();
   }, []);
-
-  const reloadSession = useCallback(async () => {
-    try {
-      const data = await api<SessionInfo>("/api/auth/session");
-      setSession(data);
-      if (data) {
-        if (data.company?.primaryColor) {
-          applyPrimaryColor(data.company.primaryColor);
-        }
-        if (data.locations?.length) {
-          setLocations(data.locations);
-          setActiveLocationId((cur) => cur ?? data.locations[0].id);
-        }
-        if (data.primaryRole !== "client") {
-          await refreshAll();
-        }
-      }
-      return data;
-    } catch {
-      setSession(null);
-      return null;
-    }
-  }, [refreshAll]);
 
   // Bootstrap session + data
   const booted = useRef(false);

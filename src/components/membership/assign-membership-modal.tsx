@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Sparkles, Calendar, Clock3, User, Coins, ShieldCheck, X } from "lucide-react";
+import { Sparkles, Calendar, Clock3, User, X } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
 import type { MembershipPlanDTO, EmployeeDTO, CustomerMembershipDTO } from "@/shared/types";

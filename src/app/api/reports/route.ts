@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appointmentServices,
@@ -6,9 +6,7 @@ import {
   clients,
   employeeSchedules,
   employees,
-  locations,
   payments,
-  services,
 } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { centsToNumber, todayKey } from "@/lib/domain";

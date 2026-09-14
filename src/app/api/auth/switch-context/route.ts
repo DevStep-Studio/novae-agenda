@@ -3,7 +3,6 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companyMemberships, companies } from "@/db/schema";
 import { requireAuth, unauthorized, forbidden } from "@/lib/auth";
-import { isUuid } from "@/lib/domain";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";

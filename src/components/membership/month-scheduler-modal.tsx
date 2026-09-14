@@ -1,24 +1,16 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
-  Calendar,
   Clock3,
   Check,
   Sparkles,
   AlertTriangle,
-  RotateCcw,
-  CheckCircle2,
   ChevronRight,
-  User,
-  ShieldCheck,
   CalendarCheck,
   X,
-  Layers,
-  ArrowRight,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
-import { formatCurrency } from "@/lib/client-utils";
 import type {
   CustomerMembershipDTO,
   MonthSlotDay,
@@ -202,10 +194,6 @@ export function MonthSchedulerModal({
   };
 
   if (!isOpen) return null;
-
-  const currentMonthLabel = days[0]?.dateLabel
-    ? days[0].dateLabel.split(" ").slice(2).join(" ")
-    : "este mês";
 
   return (
     <div

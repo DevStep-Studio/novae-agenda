@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { X, Printer, Download, DollarSign, Wallet, CreditCard, Banknote, Landmark, Percent } from "lucide-react";
+import { X, Printer, Download, Wallet, CreditCard, Banknote, Landmark } from "lucide-react";
 import type { AppointmentDTO, EmployeeDTO, LocationDTO, StatsResponse } from "@/shared/types";
 import { formatCurrency, PAYMENT_LABELS } from "@/lib/client-utils";
 

@@ -1,7 +1,6 @@
 import { db } from "@/db";
 import { saasCoupons } from "@/db/schema";
 import { requireSuperadmin } from "@/lib/auth";
-import { SaasCouponService } from "@/lib/saas/coupon-service";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 

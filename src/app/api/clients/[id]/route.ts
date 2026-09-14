@@ -2,7 +2,7 @@ import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { appointments, clients, employees, locations, services, appointmentServices, payments } from "@/db/schema";
-import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import { deleteClientImage, saveClientImage } from "@/lib/storage";
 import { getCustomerActiveMembership } from "@/lib/membership/membership-service";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, Check, Lock, ArrowRight } from "lucide-react";
+import { Lock } from "lucide-react";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 
 type Props = {

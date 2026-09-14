@@ -3,22 +3,14 @@
 import { useState } from "react";
 import {
   Sparkles,
-  Calendar,
-  Clock3,
-  CheckCircle2,
-  AlertCircle,
-  Coins,
-  ChevronRight,
   Plus,
-  RotateCcw,
-  Ban,
   DollarSign,
   CalendarPlus,
   X,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
-import type { CustomerMembershipDTO, PaymentMethod } from "@/shared/types";
+import type { CustomerMembershipDTO } from "@/shared/types";
 import { MonthSchedulerModal } from "./month-scheduler-modal";
 import { AssignMembershipModal } from "./assign-membership-modal";
 

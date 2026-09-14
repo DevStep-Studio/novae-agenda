@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { companies, saasCouponRedemptions, saasCoupons } from "@/db/schema";
 import { requireSuperadmin } from "@/lib/auth";
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 

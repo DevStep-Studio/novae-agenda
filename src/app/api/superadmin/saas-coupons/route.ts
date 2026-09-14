@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { saasCouponPlans, saasCouponRedemptions, saasCoupons, saasPlans } from "@/db/schema";
+import { saasCouponPlans, saasCouponRedemptions, saasCoupons } from "@/db/schema";
 import { requireSuperadmin } from "@/lib/auth";
 import { SaasCouponService } from "@/lib/saas/coupon-service";
 import { seedSaasCoupons } from "@/lib/saas/coupons-seed";

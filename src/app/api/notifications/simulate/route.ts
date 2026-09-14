@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { appointments, clients, notifications } from "@/db/schema";
+import { appointments, clients } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { processBookingNotifications } from "@/lib/booking/notifications";
 import { NotificationService } from "@/lib/notifications/service";

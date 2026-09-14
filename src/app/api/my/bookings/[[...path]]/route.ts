@@ -1,7 +1,4 @@
-import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/db";
-import { bookings } from "@/db/schema";
 import { getIdentity } from "@/lib/auth";
 import { BookingError, bookingError, sameOrigin } from "@/lib/booking/errors";
 import {

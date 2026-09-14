@@ -7,11 +7,10 @@ import { z } from "zod";
 import { db } from "@/db";
 import { companies } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import {
   getCompanySettings,
   setCompanySetting,
-  type CompanySettings,
 } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";

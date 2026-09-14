@@ -94,7 +94,6 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial branding from API
   async function loadBranding() {
