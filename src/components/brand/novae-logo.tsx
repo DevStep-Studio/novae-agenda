@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 
 export interface ReserveiLogoProps {
   variant?: "full" | "symbol" | "wordmark";
@@ -80,11 +81,12 @@ export function ReserveiLogo({
           className={`reservei-symbol-wrap ${className}`}
           style={{ display: "inline-flex", alignItems: "center", ...style }}
         >
-          <img
+          <Image
             src="/symbol.png"
             alt={alt}
             width={height}
             height={height}
+            unoptimized
             className="reservei-symbol-img reservei-logo-dark"
             style={{
               height: `${height}px`,
@@ -95,13 +97,13 @@ export function ReserveiLogo({
               flexShrink: 0,
             }}
             loading={priority ? "eager" : "lazy"}
-            decoding="async"
           />
-          <img
+          <Image
             src="/symbol-black.png"
             alt={alt}
             width={height}
             height={height}
+            unoptimized
             className="reservei-symbol-img reservei-logo-light"
             style={{
               height: `${height}px`,
@@ -112,7 +114,6 @@ export function ReserveiLogo({
               flexShrink: 0,
             }}
             loading={priority ? "eager" : "lazy"}
-            decoding="async"
           />
         </span>
       );
@@ -126,11 +127,12 @@ export function ReserveiLogo({
         : "/symbol.png";
 
     return (
-      <img
+      <Image
         src={symbolSrc}
         alt={alt}
         width={height}
         height={height}
+        unoptimized
         className={`reservei-symbol-img ${className}`}
         style={{
           height: `${height}px`,
@@ -142,7 +144,6 @@ export function ReserveiLogo({
           ...style,
         }}
         loading={priority ? "eager" : "lazy"}
-        decoding="async"
       />
     );
   }
@@ -156,11 +157,12 @@ export function ReserveiLogo({
         className={`reservei-logo-wrap ${className}`}
         style={{ display: "inline-flex", alignItems: "center", ...style }}
       >
-        <img
+        <Image
           src="/logo.png"
           alt={alt}
           width={width}
           height={height}
+          unoptimized
           className="reservei-logo-img reservei-logo-dark"
           style={{
             height: `${height}px`,
@@ -172,13 +174,13 @@ export function ReserveiLogo({
             flexShrink: 0,
           }}
           loading={priority ? "eager" : "lazy"}
-          decoding="async"
         />
-        <img
+        <Image
           src="/logo-black.png"
           alt={alt}
           width={width}
           height={height}
+          unoptimized
           className="reservei-logo-img reservei-logo-light"
           style={{
             height: `${height}px`,
@@ -190,7 +192,6 @@ export function ReserveiLogo({
             flexShrink: 0,
           }}
           loading={priority ? "eager" : "lazy"}
-          decoding="async"
         />
       </span>
     );
@@ -204,11 +205,12 @@ export function ReserveiLogo({
       : "/logo.png";
 
   return (
-    <img
+    <Image
       src={logoSrc}
       alt={alt}
       width={width}
       height={height}
+      unoptimized
       className={`reservei-logo-img ${className}`}
       style={{
         height: `${height}px`,
@@ -221,7 +223,6 @@ export function ReserveiLogo({
         ...style,
       }}
       loading={priority ? "eager" : "lazy"}
-      decoding="async"
     />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import NextImage from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
@@ -130,12 +131,14 @@ function Avatar({
       title={name}
     >
       {hasPhoto ? (
-        <img
+        <NextImage
           src={photoUrl!}
           alt={name}
           onError={() => setError(true)}
           className="avatar-img"
-          loading="lazy"
+          width={40}
+          height={40}
+          unoptimized
         />
       ) : (
         <span className="avatar-initials">{initials(name)}</span>
@@ -352,10 +355,13 @@ function DashboardPage({
                 style={{ cursor: onOpenProfile ? "pointer" : "default" }}
               >
                 {logoUrl ? (
-                  <img
+                  <NextImage
                     src={logoUrl}
                     alt={session?.company.name || "Logo"}
                     className="dashboard-banner-avatar-img"
+                    width={72}
+                    height={72}
+                    unoptimized
                   />
                 ) : (
                   <div className="dashboard-banner-avatar-fallback">
@@ -3094,7 +3100,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                           onClick={() => setBrandingLogo(preset.url)}
                           title={preset.name}
                         >
-                          <img src={preset.url} alt={preset.name} />
+                          <NextImage src={preset.url} alt={preset.name} width={40} height={40} unoptimized />
                         </button>
                       ))}
                     </div>
@@ -3914,7 +3920,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       <form onSubmit={submit} noValidate>
         <div className="client-photo-field">
           <div className="client-photo-preview" aria-hidden="true">
-            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Cliente")}</span>}
+            {photoUrl ? <NextImage src={photoUrl} alt="" width={64} height={64} unoptimized /> : <span>{initials(name || "Cliente")}</span>}
           </div>
           <div className="client-photo-copy">
             <strong>Foto do cliente</strong>
@@ -4063,7 +4069,7 @@ function EditClientModal({
       <form onSubmit={submit} noValidate>
         <div className="client-photo-field">
           <div className="client-photo-preview" aria-hidden="true">
-            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Cliente")}</span>}
+            {photoUrl ? <NextImage src={photoUrl} alt="" width={64} height={64} unoptimized /> : <span>{initials(name || "Cliente")}</span>}
           </div>
           <div className="client-photo-copy">
             <strong>Foto do cliente</strong>
@@ -4429,7 +4435,7 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
       <form onSubmit={submit}>
         <div className="employee-photo-field">
           <div className="employee-photo-preview" aria-hidden="true">
-            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Profissional")}</span>}
+            {photoUrl ? <NextImage src={photoUrl} alt="" width={64} height={64} unoptimized /> : <span>{initials(name || "Profissional")}</span>}
           </div>
           <div className="employee-photo-copy">
             <strong>Foto do profissional</strong>
@@ -4642,7 +4648,7 @@ function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClo
       <form onSubmit={submit}>
         <div className="employee-photo-field">
           <div className="employee-photo-preview" aria-hidden="true">
-            {photoUrl ? <img src={photoUrl} alt="" /> : <span>{initials(name || "Profissional")}</span>}
+            {photoUrl ? <NextImage src={photoUrl} alt="" width={64} height={64} unoptimized /> : <span>{initials(name || "Profissional")}</span>}
           </div>
           <div className="employee-photo-copy">
             <strong>Foto do profissional</strong>
@@ -6113,7 +6119,7 @@ function ProfilePage({
             <div className="profile-hero-left">
               <div className="profile-hero-avatar-wrap">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={session?.company.name} />
+                  <NextImage src={avatarUrl} alt={session?.company.name || "Avatar"} width={80} height={80} unoptimized />
                 ) : (
                   <span className="profile-hero-avatar-fallback">{initials(name || session?.company.name || "U")}</span>
                 )}
@@ -6345,7 +6351,7 @@ function ProfilePage({
                       onClick={() => setAvatarUrl(preset.url)}
                       title={preset.name}
                     >
-                      <img src={preset.url} alt={preset.name} />
+                      <NextImage src={preset.url} alt={preset.name} width={40} height={40} unoptimized />
                     </button>
                   ))}
                 </div>
@@ -6703,7 +6709,7 @@ function DayCalendar({
                   style={{ backgroundColor: emp.color || "var(--primary)" }}
                 >
                   {emp.photoUrl ? (
-                    <img src={emp.photoUrl} alt={emp.name} className="employee-column-img" />
+                    <NextImage src={emp.photoUrl} alt={emp.name} width={40} height={40} className="employee-column-img" unoptimized />
                   ) : (
                     <span>{emp.initials || emp.name.slice(0, 2).toUpperCase()}</span>
                   )}

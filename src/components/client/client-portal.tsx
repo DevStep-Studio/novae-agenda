@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -575,9 +576,12 @@ export function ClientPortal({
                   >
                     <div className={styles.companyLogo}>
                       {comp.logoUrl ? (
-                        <img
+                        <Image
                           src={comp.logoUrl}
                           alt={comp.name}
+                          width={48}
+                          height={48}
+                          unoptimized
                           style={{ width: "100%", height: "100%", borderRadius: 12, objectFit: "cover" }}
                         />
                       ) : (

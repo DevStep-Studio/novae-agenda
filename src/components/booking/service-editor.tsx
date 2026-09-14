@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, type FormEvent } from "react";
+import NextImage from "next/image";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import type { ServiceDTO } from "@/shared/types";
@@ -451,10 +452,13 @@ export function ServiceEditor({
               </div>
             ) : (
               <div className={styles.imagePreviewCard}>
-                <img
+                <NextImage
                   src={imageUrl}
                   alt="Prévia do serviço"
+                  width={72}
+                  height={72}
                   className={styles.imagePreviewLarge}
+                  unoptimized
                 />
                 <div className={styles.imagePreviewMeta}>
                   <span className={styles.imageSuccessBadge}>

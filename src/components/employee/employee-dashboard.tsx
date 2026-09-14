@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import {
   Calendar,
   Clock,
@@ -115,9 +116,12 @@ export function EmployeeDashboard() {
         <div className={styles.logoArea}>
           {session?.company.logoUrl ? (
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img
+              <Image
                 src={session.company.logoUrl}
                 alt={session.company.name}
+                width={36}
+                height={36}
+                unoptimized
                 style={{ width: "36px", height: "36px", borderRadius: "10px", objectFit: "cover", border: "1px solid var(--border)" }}
               />
               <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--text-primary)" }}>{session.company.name}</span>
@@ -265,9 +269,12 @@ export function EmployeeDashboard() {
                       </p>
                     </div>
                     {session?.company.logoUrl && (
-                      <img
+                      <Image
                         src={session.company.logoUrl}
                         alt={session.company.name}
+                        width={56}
+                        height={56}
+                        unoptimized
                         style={{ width: "56px", height: "56px", borderRadius: "14px", objectFit: "cover", border: "2px solid rgba(255, 255, 255, 0.2)" }}
                       />
                     )}

@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Check, ChevronDown, Clock3, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { AvailableSlot } from "@/lib/booking/engine";
@@ -24,7 +25,7 @@ function ProfessionalAvatar({ professional, any = false }: { professional?: Prof
   return (
     <span className={b.professionalAvatar}>
       {professional?.photoUrl && failedSrc !== professional.photoUrl
-        ? <img src={professional.photoUrl} alt="" onError={() => setFailedSrc(professional.photoUrl)} />
+        ? <Image src={professional.photoUrl} alt="" width={40} height={40} onError={() => setFailedSrc(professional.photoUrl)} unoptimized />
         : <span>{initials(professional?.name || "Profissional")}</span>}
     </span>
   );

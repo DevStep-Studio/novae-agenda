@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { UserRound } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
@@ -97,12 +98,15 @@ export function PublicFrame({
       {/* Optional Cover Header */}
       {coverUrl && (
         <div className={styles.coverBannerWrap}>
-          <img
+          <Image
             src={coverUrl}
             alt=""
+            width={1200}
+            height={280}
             className={styles.coverBannerImg}
             style={{ objectPosition: `center ${coverPosition}` }}
-            loading="eager"
+            priority
+            unoptimized
           />
           <div className={styles.coverBannerOverlay} />
         </div>
@@ -119,10 +123,13 @@ export function PublicFrame({
                 <span className={styles.headerDivider}>/</span>
                 <div className={styles.headerCompany}>
                   {company.logoUrl ? (
-                    <img
+                    <Image
                       src={company.logoUrl}
                       alt=""
+                      width={32}
+                      height={32}
                       className={styles.headerCompanyLogo}
+                      unoptimized
                     />
                   ) : (
                     <span className={styles.headerCompanyAvatar}>
@@ -197,7 +204,7 @@ export function BookingAvatar({
     .toUpperCase();
   return (
     <span className={`${styles.bookingAvatar} ${styles[`bookingAvatar${size.toUpperCase()}`]}`} aria-hidden="true">
-      {src && failedSrc !== src ? <img src={src} alt="" onError={() => setFailedSrc(src)} /> : fallback || "?"}
+      {src && failedSrc !== src ? <Image src={src} alt="" width={40} height={40} onError={() => setFailedSrc(src)} unoptimized /> : fallback || "?"}
     </span>
   );
 }

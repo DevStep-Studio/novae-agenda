@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import Image from "next/image";
 import QRCode from "qrcode";
 import {
   Copy,
@@ -401,7 +402,7 @@ export function BookingSettings() {
         {showQr && qr && (
           <div className={styles.qrSection}>
             <div className={styles.qrImageWrap}>
-              <img src={qr} className={styles.qrImage} alt="QR Code para agendar" />
+              <Image src={qr} className={styles.qrImage} alt="QR Code para agendar" width={140} height={140} unoptimized />
             </div>
             <div className={styles.qrContent}>
               <h4 className={styles.qrTitle}>QR Code para balcão e impressos</h4>

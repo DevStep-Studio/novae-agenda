@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -258,10 +259,13 @@ export function MyBookings({
               <div className={b.detailCardHeader}>
                 <div className={b.detailCompanyInfo}>
                   {current.company.logoUrl ? (
-                    <img
+                    <Image
                       src={current.company.logoUrl}
                       alt={current.company.name}
+                      width={44}
+                      height={44}
                       className={b.detailCompanyAvatar}
+                      unoptimized
                     />
                   ) : (
                     <span className={b.detailCompanyAvatar}>
@@ -649,7 +653,7 @@ export function MyBookings({
                             <span><strong>{firstItem?.employeeName}</strong><small>{firstItem?.employeeJobTitle || "Profissional"}</small></span>
                           </span>
                           <span className={b.bookingCompany}>
-                            {r.company.logoUrl ? <img src={r.company.logoUrl} alt="" /> : <span>{r.company.name.slice(0, 1)}</span>}
+                            {r.company.logoUrl ? <Image src={r.company.logoUrl} alt="" width={28} height={28} unoptimized /> : <span>{r.company.name.slice(0, 1)}</span>}
                             <strong>{r.company.name}</strong>
                           </span>
                           {featured && r.company.address && <span><MapPin size={15} /> {r.company.address}</span>}

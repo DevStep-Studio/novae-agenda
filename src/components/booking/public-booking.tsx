@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
 
+import Image from "next/image";
 import {
   useCallback,
   useEffect,
@@ -469,11 +470,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 <div className={b.summaryItemRow}>
                   <div className={b.summaryItemLeft}>
                     {service.imageUrl && !failedImages[service.id] ? (
-                      <img
+                      <Image
                         className={b.summaryItemThumb}
                         src={service.imageUrl}
                         alt={service.name}
-                        loading="lazy"
+                        width={40}
+                        height={40}
+                        unoptimized
                         onError={() => setFailedImages((prev) => ({ ...prev, [service.id]: true }))}
                       />
                     ) : (
@@ -861,7 +864,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   {/* Establishment Hero Info */}
                   <div className={b.profile}>
                     {company.logoUrl ? (
-                      <img className={b.avatar} src={company.logoUrl} alt="" />
+                      <Image className={b.avatar} src={company.logoUrl} alt="" width={54} height={54} unoptimized />
                     ) : (
                       <span className={b.avatar}>
                         {company.name.slice(0, 1)}
@@ -1123,11 +1126,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
                                   <div className={b.serviceBody}>
                                     {service.imageUrl && !failedImages[service.id] ? (
-                                      <img
+                                      <Image
                                         className={b.serviceImage}
                                         src={service.imageUrl}
                                         alt={service.name}
-                                        loading="lazy"
+                                        width={64}
+                                        height={64}
+                                        unoptimized
                                         onError={() => setFailedImages((prev) => ({ ...prev, [service.id]: true }))}
                                       />
                                     ) : (
@@ -1255,11 +1260,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         return company.photos.length > 0 ? (
                           <div className={b.photos} key="photos">
                             {company.photos.map((photo, i) => (
-                              <img
+                              <Image
                                 src={photo}
                                 key={photo}
                                 alt={`Foto ${i + 1} de ${company.name}`}
-                                loading="lazy"
+                                width={130}
+                                height={95}
+                                unoptimized
                               />
                             ))}
                           </div>

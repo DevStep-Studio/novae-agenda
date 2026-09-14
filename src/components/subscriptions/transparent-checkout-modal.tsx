@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   X,
   QrCode,
@@ -393,11 +394,14 @@ export function TransparentCheckoutModal({
                       }}
                     >
                       {pixData.qrCode ? (
-                        <img
+                        <Image
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
                             pixData.copiaECola
                           )}`}
                           alt="QR Code PIX"
+                          width={148}
+                          height={148}
+                          unoptimized
                           style={{ width: "100%", height: "100%", objectFit: "contain" }}
                         />
                       ) : (
