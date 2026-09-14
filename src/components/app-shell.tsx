@@ -5395,6 +5395,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       case "perfil":
         return (
           <ProfilePage
+            key={`${session?.userId ?? "u"}-${session?.company?.id ?? "c"}-${session?.company?.name ?? ""}-${session?.company?.businessType ?? ""}`}
             session={session}
             onSettings={() => navigate("configuracoes")}
             onSuperadmin={session?.isSuperadmin ? () => setSuperadminOpen(true) : undefined}
@@ -6012,6 +6013,8 @@ function ProfilePage({
 
   const [name, setName] = useState(session?.name ?? "");
   const [phone, setPhone] = useState(session?.phone ?? "");
+  const [companyName, setCompanyName] = useState(session?.company.name ?? "");
+  const [businessType, setBusinessType] = useState(session?.company.businessType ?? "");
   const [avatarUrl, setAvatarUrl] = useState(session?.company.logoUrl ?? "");
   const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
   const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#3b82f6");
@@ -6072,14 +6075,16 @@ function ProfilePage({
       await updateProfile({
         name: name.trim() || undefined,
         phone: phone.trim() || undefined,
+        companyName: companyName.trim() || undefined,
+        businessType: businessType.trim() || undefined,
         avatarUrl: avatarUrl.trim() || null,
         bannerUrl: bannerUrl.trim() || null,
         primaryColor: primaryColor.trim() || undefined,
         dashboardPreferences: dashboardPrefs,
       });
-      notify("Identidade visual e preferências da empresa salvas com sucesso!");
+      notify("Dados e personalizações salvos com sucesso!");
     } catch (e) {
-      notify(e instanceof ApiError ? e.message : "Erro ao salvar perfil e identidade.", "error");
+      notify(e instanceof ApiError ? e.message : "Erro ao salvar alterações.", "error");
     } finally {
       setSaving(false);
     }
@@ -6126,7 +6131,7 @@ function ProfilePage({
               </div>
               <div className="profile-hero-details">
                 <h2>{name || session?.name}</h2>
-                <p>{session?.company.name} · {roleLabel(session?.role)}</p>
+                <p>{companyName || session?.company.name} · {roleLabel(session?.role)}</p>
                 <div className="profile-hero-badge">
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: primaryColor }} />
                   <span>Cor ativa: {primaryColor}</span>
@@ -6402,18 +6407,20 @@ function ProfilePage({
               <Field label="Nome da empresa">
                 <input
                   className="input"
-                  value={session?.company.name ?? ""}
-                  disabled
-                  style={{ opacity: 0.7, cursor: "not-allowed" }}
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Nome do seu estabelecimento"
+                  disabled={session?.role !== "owner" && session?.role !== "admin"}
                 />
               </Field>
 
               <Field label="Segmento de atuação">
                 <input
                   className="input"
-                  value={session?.company.businessType ?? "Serviços & Atendimento"}
-                  disabled
-                  style={{ opacity: 0.7, cursor: "not-allowed" }}
+                  value={businessType}
+                  onChange={(e) => setBusinessType(e.target.value)}
+                  placeholder="Ex.: Manicure, Barbearia, Salão de Beleza, Estética..."
+                  disabled={session?.role !== "owner" && session?.role !== "admin"}
                 />
               </Field>
 

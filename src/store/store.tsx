@@ -74,9 +74,12 @@ type Store = DataState & {
   updateProfile: (input: {
     name?: string;
     phone?: string;
+    companyName?: string;
+    businessType?: string;
     avatarUrl?: string | null;
     bannerUrl?: string | null;
     primaryColor?: string;
+    secondaryColor?: string;
     dashboardPreferences?: import("@/shared/types").DashboardPreferences;
   }) => Promise<void>;
   updateDashboardPreferences: (prefs: import("@/shared/types").DashboardPreferences) => Promise<void>;
@@ -354,9 +357,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(async (input: {
     name?: string;
     phone?: string;
+    companyName?: string;
+    businessType?: string;
     avatarUrl?: string | null;
     bannerUrl?: string | null;
     primaryColor?: string;
+    secondaryColor?: string;
     dashboardPreferences?: import("@/shared/types").DashboardPreferences;
   }) => {
     await api("/api/profile", { method: "PATCH", body: JSON.stringify(input) });

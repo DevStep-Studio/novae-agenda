@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 
 const profilePatchSchema = z.object({
   name: z.string().min(2, "Nome muito curto.").max(120).optional(),
-  phone: z.string().max(30).optional(),
+  phone: z.string().max(30).optional().nullable(),
+  companyName: z.string().min(2, "Nome da empresa deve ter pelo menos 2 caracteres.").max(120).optional(),
+  businessType: z.string().max(100).optional().nullable(),
   avatarUrl: z.string().max(8_000_000).optional().nullable(),
   bannerUrl: z.string().max(8_000_000).optional().nullable(),
   primaryColor: z.string().max(30).optional(),
@@ -46,6 +48,7 @@ export async function GET() {
       .select({
         id: companies.id,
         name: companies.name,
+        businessType: companies.businessType,
         logoUrl: companies.logoUrl,
         primaryColor: companies.primaryColor,
         secondaryColor: companies.secondaryColor,
@@ -102,23 +105,30 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { name, phone, avatarUrl, bannerUrl, primaryColor, secondaryColor, dashboardPreferences } = parsed.data;
+  const { name, phone, companyName, businessType, avatarUrl, bannerUrl, primaryColor, secondaryColor, dashboardPreferences } = parsed.data;
 
   // 1. Update user row if name or phone given
   const userPatch: Record<string, unknown> = {};
   if (name !== undefined) userPatch.name = name.trim();
-  if (phone !== undefined) userPatch.phone = phone.trim() || null;
+  if (phone !== undefined) userPatch.phone = phone ? phone.trim() : null;
   if (Object.keys(userPatch).length > 0) {
+    userPatch.updatedAt = new Date();
     await db.update(users).set(userPatch).where(eq(users.id, auth.user.userId));
   }
 
-  // 2. Update company row and settings if avatarUrl, bannerUrl, primaryColor or secondaryColor given
+  // 2. Update company row and settings if companyName, businessType, avatarUrl, bannerUrl, primaryColor or secondaryColor given
   let savedAvatarUrl: string | null | undefined = undefined;
   let savedBannerUrl: string | null | undefined = undefined;
 
   if (auth.user.companyId) {
     const companyPatch: Record<string, unknown> = {};
 
+    if (companyName !== undefined && (auth.user.role === "owner" || auth.user.role === "admin")) {
+      companyPatch.name = companyName.trim();
+    }
+    if (businessType !== undefined && (auth.user.role === "owner" || auth.user.role === "admin")) {
+      companyPatch.businessType = businessType ? businessType.trim() : null;
+    }
     if (avatarUrl !== undefined) {
       savedAvatarUrl = avatarUrl ? await saveBrandingImage(avatarUrl) : null;
       companyPatch.logoUrl = savedAvatarUrl;
@@ -127,6 +137,7 @@ export async function PATCH(request: Request) {
     if (secondaryColor !== undefined) companyPatch.secondaryColor = secondaryColor;
 
     if (Object.keys(companyPatch).length > 0) {
+      companyPatch.updatedAt = new Date();
       await db
         .update(companies)
         .set(companyPatch)
@@ -155,6 +166,8 @@ export async function PATCH(request: Request) {
     data: {
       ok: true,
       name: name ?? auth.user.name,
+      companyName,
+      businessType,
       avatarUrl: savedAvatarUrl !== undefined ? savedAvatarUrl : avatarUrl,
       bannerUrl: savedBannerUrl !== undefined ? savedBannerUrl : bannerUrl,
       primaryColor,

@@ -55,6 +55,7 @@ export function BookingSettings() {
     settings,
     updateSettings,
     reloadEmployees,
+    reloadSession,
   } = useStore();
 
   const [data, setData] = useState<Data | null>(null);
@@ -174,6 +175,7 @@ export function BookingSettings() {
         }),
       });
       await load();
+      await reloadSession();
       notify("Página de agendamento atualizada com sucesso!");
     } catch (e) {
       setError((e as Error).message);
@@ -204,6 +206,7 @@ export function BookingSettings() {
       await updateSettings({ slotIntervalMinutes: interval });
       await load();
       await reloadEmployees();
+      await reloadSession();
       notify("Disponibilidade atualizada com sucesso!");
     } catch (e) {
       setError((e as Error).message);
@@ -237,6 +240,7 @@ export function BookingSettings() {
       });
       form.reset();
       await load();
+      await reloadSession();
       notify(kind === "product" ? "Produto cadastrado com sucesso." : "Cupom cadastrado com sucesso.");
     } catch (e) {
       setError((e as Error).message);
