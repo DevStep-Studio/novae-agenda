@@ -605,14 +605,14 @@ export function ClientPortal({
                       )}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <strong style={{ display: "block", fontSize: "14px", color: "#ffffff", letterSpacing: "-0.2px" }}>
+                      <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)", letterSpacing: "-0.2px" }}>
                         {comp.name}
                       </strong>
-                      <span style={{ fontSize: "12px", color: "#8db3a2" }}>
+                      <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
                         {comp.businessType ?? "Atendimento"}
                       </span>
                       {comp.address && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "11px", color: "#6e9382", marginTop: 3 }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "11px", color: "var(--text-muted)", marginTop: 3 }}>
                           <MapPin size={11} />
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {comp.address}
@@ -668,74 +668,44 @@ export function ClientPortal({
                 <h2 className={styles.flowHeaderTitle}>Meu Perfil e Segurança</h2>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+              <div className={styles.profileForm}>
+                <div className={styles.profileField}>
+                  <label className={styles.profileLabel}>
                     Nome completo
                   </label>
                   <input
                     type="text"
                     defaultValue={session?.name}
                     disabled
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      marginTop: 6,
-                      height: 40,
-                      padding: "0 12px",
-                      borderRadius: 8,
-                      border: "1px solid var(--border)",
-                      background: "var(--surface-secondary)",
-                      color: "var(--text-primary)",
-                    }}
+                    className={`${styles.profileInput} ${styles.profileInputDisabled}`}
                   />
                 </div>
 
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                <div className={styles.profileField}>
+                  <label className={styles.profileLabel}>
                     E-mail cadastrado
                   </label>
                   <input
                     type="email"
                     defaultValue={session?.email}
                     disabled
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      marginTop: 6,
-                      height: 40,
-                      padding: "0 12px",
-                      borderRadius: 8,
-                      border: "1px solid var(--border)",
-                      background: "var(--surface-secondary)",
-                      color: "var(--text-primary)",
-                    }}
+                    className={`${styles.profileInput} ${styles.profileInputDisabled}`}
                   />
                 </div>
 
-                <div>
-                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                <div className={styles.profileField}>
+                  <label className={styles.profileLabel}>
                     Telefone / WhatsApp
                   </label>
                   <input
                     type="tel"
                     defaultValue={session?.phone ?? ""}
                     placeholder="(11) 99999-9999"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      marginTop: 6,
-                      height: 40,
-                      padding: "0 12px",
-                      borderRadius: 8,
-                      border: "1px solid var(--border)",
-                      background: "var(--surface)",
-                      color: "var(--text-primary)",
-                    }}
+                    className={styles.profileInput}
                   />
                 </div>
 
-                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginTop: 10 }}>
+                <div className={styles.profileActions}>
                   <button
                     type="button"
                     className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
