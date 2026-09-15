@@ -396,21 +396,95 @@
 .previewPage .avatar { width: 44px; height: 44px; font-size: 16px; border-radius: 10px; }
 .previewPage .profile h2 { font-size: 15px; }
 .previewPage .groupTitle { font-size: 12.5px; padding: 8px 12px; margin-bottom: 8px; }
-.previewPage .service { padding: 11px 13px; border-radius: 12px; margin-bottom: 8px; }
+.previewPage .service {
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.previewPage .serviceMain {
+  width: 100%;
+  min-width: 0;
+}
+.previewPage .serviceBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
 .previewPage .serviceImage,
-.previewPage .serviceImagePlaceholder { width: 44px; height: 44px; font-size: 15px; border-radius: 8px; }
-.previewPage .serviceDetails h3 { font-size: 13.5px; }
-.previewPage .serviceDescription { font-size: 11.5px; line-height: 1.35; margin: 2px 0 4px; }
-.previewPage .serviceActions { gap: 8px; }
-.previewPage .serviceActions .button { padding: 5px 10px; font-size: 11.5px; height: 30px; }
+.previewPage .serviceImagePlaceholder {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.previewPage .serviceDetails {
+  flex: 1;
+  min-width: 0;
+}
+.previewPage .serviceDetails h3 {
+  font-size: 13.5px;
+  margin: 0 0 2px;
+  word-break: break-word;
+}
+.previewPage .serviceDescription {
+  font-size: 11.5px;
+  line-height: 1.35;
+  margin: 2px 0 4px;
+}
+.previewPage .serviceMeta {
+  font-size: 11.5px;
+  gap: 4px;
+}
+.previewPage .serviceActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--booking-border-soft, rgba(255, 255, 255, 0.06));
+}
+.previewPage .servicePrice {
+  text-align: left;
+  white-space: nowrap;
+}
+.previewPage .servicePrice strong {
+  font-size: 14px;
+}
+.previewPage .serviceButtons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.previewPage .serviceButtons .button {
+  padding: 5px 12px;
+  font-size: 12px;
+  height: 32px;
+  white-space: nowrap;
+}
 .previewPage .footer { border-top: 1px solid var(--booking-border-soft); padding: 12px; font-size: 10.5px; }
 
-/* Desktop 2-column layout in preview */
+/* Desktop layout in preview */
 .previewPage:not(.previewMobile) .layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.9fr);
-  gap: 14px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (min-width: 1380px) {
+  .previewPage:not(.previewMobile) .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(220px, 0.9fr);
+    gap: 16px;
+    align-items: start;
+  }
 }
 .previewPage:not(.previewMobile) .summary {
   position: static;
@@ -2983,6 +3057,9 @@
     width: 100%;
     padding-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .servicePrice {
+    text-align: left;
   }
   .actionBtnRow {
     grid-template-columns: 1fr;
