@@ -702,9 +702,7 @@ function DashboardCustomizerModal({
 function AppointmentCard({ appointment, onClick }: { appointment: AppointmentDTO; onClick: () => void }) {
   const { clients } = useStore();
   const photo = appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl;
-  const accentColor = appointment.serviceColor && appointment.serviceColor !== "#1f6f66"
-    ? appointment.serviceColor
-    : "var(--primary)";
+  const accentColor = "var(--primary)";
 
   return (
     <div className="appointment-card">
@@ -6890,10 +6888,7 @@ function DayCalendar({
                   const top = ((startMins - START_HOUR * 60) / 60) * hourHeight;
                   const height = Math.max((apt.durationMinutes / 60) * hourHeight - 6, 36);
                   const isCancelled = apt.status === "cancelled";
-                  const accentColor =
-                    apt.serviceColor && apt.serviceColor !== "#1f6f66"
-                      ? apt.serviceColor
-                      : emp.color || "var(--primary)";
+                  const accentColor = "var(--primary)";
 
                   const overlap = overlapMap.get(apt.id) || { col: 0, totalCols: 1 };
                   const widthPct = 100 / overlap.totalCols;
@@ -7107,10 +7102,7 @@ function WeekCalendar({
                   const height = Math.max((apt.durationMinutes / 60) * hourHeight - 4, 30);
                   const isCancelled = apt.status === "cancelled";
                   const emp = employees.find((e) => e.id === apt.employeeId);
-                  const accentColor =
-                    apt.serviceColor && apt.serviceColor !== "#1f6f66"
-                      ? apt.serviceColor
-                      : emp?.color || "var(--primary)";
+                  const accentColor = "var(--primary)";
 
                   const overlap = overlapMap.get(apt.id) || { col: 0, totalCols: 1 };
                   const widthPct = 100 / overlap.totalCols;
@@ -7216,7 +7208,7 @@ function MonthCalendar({
                       }}
                       title={`${normalizeTime(apt.startTime)}: ${apt.clientName}`}
                     >
-                      <i style={{ backgroundColor: apt.serviceColor || "var(--primary)" }} />
+                      <i style={{ backgroundColor: "var(--primary)" }} />
                       <b>{normalizeTime(apt.startTime)}</b>
                       <span>{apt.clientName.split(" ")[0]}</span>
                     </span>

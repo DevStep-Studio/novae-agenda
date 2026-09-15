@@ -1767,7 +1767,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 
 :root:not([data-theme="dark"]) .timeline-compact-row .timeline-time {
   background: rgba(0, 0, 0, 0.04);
-  color: #047857;
+  color: var(--appointment-color, var(--primary));
 }
 
 .timeline-compact-row .timeline-client {
@@ -1816,7 +1816,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 
 :root:not([data-theme="dark"]) .timeline-time {
   background: rgba(0, 0, 0, 0.04);
-  color: #047857;
+  color: var(--appointment-color, var(--primary));
 }
 
 .timeline-header-right {
@@ -2368,7 +2368,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 
 :root:not([data-theme="dark"]) .week-apt-compact-row .week-apt-time {
   background: rgba(0, 0, 0, 0.05);
-  color: #047857;
+  color: var(--appointment-color, var(--primary));
 }
 
 .week-apt-compact-row .week-apt-client {
@@ -2409,7 +2409,7 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 
 :root:not([data-theme="dark"]) .week-apt-full .week-apt-time {
   background: rgba(0, 0, 0, 0.05);
-  color: #047857;
+  color: var(--appointment-color, var(--primary));
 }
 
 .week-apt-full .week-apt-client {
@@ -8055,17 +8055,21 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 
 
-.onboarding-shell {
+/* All .auth-shell screens (onboarding, e-mail confirmation, password reset) share
+   the Reservei lime brand instead of the app's default blue --primary. */
+.auth-shell {
   --primary: #dcff4c;
   --primary-hover: #c8ed32;
   --primary-soft: rgba(220, 255, 76, .16);
   --primary-foreground: #0a0a0a;
 }
-:root:not([data-theme="dark"]) .onboarding-shell .step-icon,
-:root:not([data-theme="dark"]) .onboarding-shell .chip.active,
-:root:not([data-theme="dark"]) .onboarding-shell .day.active,
-:root:not([data-theme="dark"]) .onboarding-shell .onboarding-progress-step.done .onboarding-progress-dot,
-:root:not([data-theme="dark"]) .onboarding-shell .auth-link {
+:root:not([data-theme="dark"]) .auth-shell .step-icon,
+:root:not([data-theme="dark"]) .auth-shell .chip.active,
+:root:not([data-theme="dark"]) .auth-shell .day.active,
+:root:not([data-theme="dark"]) .auth-shell .onboarding-progress-step.done .onboarding-progress-dot,
+:root:not([data-theme="dark"]) .auth-shell .auth-recovery-badge,
+:root:not([data-theme="dark"]) .auth-shell .auth-success-banner,
+:root:not([data-theme="dark"]) .auth-shell .auth-link {
   color: #3f6212;
 }
 .onboarding-card { width: min(560px, 100%); padding: 36px 40px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-sm); max-height: calc(100vh - 150px); overflow-y: auto; }
