@@ -6175,6 +6175,7 @@ function ProfilePage({
 
   useEffect(() => {
     if (session?.avatarUrl || session?.company?.logoUrl) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvatarUrl(session.avatarUrl || session.company.logoUrl || "");
     }
   }, [session?.avatarUrl, session?.company?.logoUrl]);

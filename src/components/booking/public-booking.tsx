@@ -34,6 +34,7 @@ import type { AvailableSlot } from "@/lib/booking/engine";
 import type { Selection } from "@/lib/booking/validation";
 import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
+import { PinInput } from "./pin-input";
 import { ProfessionalIdentity, ProfessionalSelector } from "./professional-selector";
 import {
   b,
@@ -129,6 +130,43 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [confirmNewPin, setConfirmNewPin] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinError, setPinError] = useState("");
+  const [pinCreatedSuccess, setPinCreatedSuccess] = useState(false);
+
+  const handleSavePostBookingPin = async () => {
+    if (newPin.length !== 6 || confirmNewPin.length !== 6) {
+      setPinError("O PIN deve conter exatamente 6 números.");
+      return;
+    }
+    if (newPin !== confirmNewPin) {
+      setPinError("Os PINs não coincidem.");
+      return;
+    }
+    setPinBusy(true);
+    setPinError("");
+    try {
+      await api("/api/customer-access/pin/setup", {
+        method: "POST",
+        body: JSON.stringify({
+          phone: customer?.phone,
+          pin: newPin,
+          confirmPin: confirmNewPin,
+          bookingId: bookingId || undefined,
+        }),
+      });
+      setPinCreatedSuccess(true);
+      setShowPinModal(false);
+    } catch (err: any) {
+      setPinError(err instanceof Error ? err.message : "Erro ao salvar PIN.");
+    } finally {
+      setPinBusy(false);
+    }
+  };
 
   const [quote, setQuote] = useState<{
     subtotal: number;
@@ -756,6 +794,152 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 </span>
               </div>
             </div>
+
+            {/* Banner pós-reserva para criar PIN de acesso */}
+            {customer?.phone && (
+              <div
+                style={{
+                  margin: "18px 0 14px",
+                  padding: "16px",
+                  borderRadius: "10px",
+                  border: "1px solid #27272a",
+                  backgroundColor: "#09090b",
+                  color: "#fafafa",
+                  textAlign: "center",
+                }}
+              >
+                {pinCreatedSuccess ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      color: "#a3e635",
+                      fontWeight: 600,
+                      fontSize: "14px",
+                    }}
+                  >
+                    <CheckCircle2 size={18} />
+                    <span>Seu PIN de 6 dígitos foi ativado com sucesso!</span>
+                  </div>
+                ) : !showPinModal ? (
+                  <>
+                    <p style={{ margin: "0 0 10px", fontSize: "13.5px", color: "#d4d4d8" }}>
+                      Quer consultar ou remarcar seus horários mais facilmente?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowPinModal(true)}
+                      style={{
+                        padding: "9px 18px",
+                        borderRadius: "8px",
+                        backgroundColor: "#dcff4c",
+                        color: "#0a0a0a",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        border: "none",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <ShieldCheck size={16} />
+                      <span>CRIAR MEU PIN</span>
+                    </button>
+                  </>
+                ) : (
+                  <div style={{ maxWidth: "340px", margin: "0 auto", textAlign: "left" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <span style={{ fontSize: "14px", fontWeight: 600, color: "#fafafa" }}>
+                        Crie seu PIN de 6 dígitos
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPinModal(false);
+                          setPinError("");
+                        }}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#a1a1aa",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+
+                    <p style={{ fontSize: "12px", color: "#a1a1aa", margin: "0 0 12px" }}>
+                      Você usará este PIN com seu celular ({customer.phone}) para acessar suas reservas.
+                    </p>
+
+                    <div style={{ marginBottom: "10px" }}>
+                      <label style={{ display: "block", fontSize: "12px", marginBottom: "4px", color: "#d4d4d8" }}>
+                        Digite 6 números
+                      </label>
+                      <PinInput
+                        id="booking-new-pin"
+                        value={newPin}
+                        onChange={setNewPin}
+                        length={6}
+                        autoFocus
+                        theme="dark"
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "14px" }}>
+                      <label style={{ display: "block", fontSize: "12px", marginBottom: "4px", color: "#d4d4d8" }}>
+                        Confirme o PIN
+                      </label>
+                      <PinInput
+                        id="booking-confirm-pin"
+                        value={confirmNewPin}
+                        onChange={setConfirmNewPin}
+                        length={6}
+                        theme="dark"
+                      />
+                    </div>
+
+                    {pinError && (
+                      <p style={{ color: "#ef4444", fontSize: "12px", margin: "0 0 10px" }}>
+                        {pinError}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={pinBusy || newPin.length !== 6 || confirmNewPin.length !== 6}
+                      onClick={handleSavePostBookingPin}
+                      style={{
+                        width: "100%",
+                        padding: "9px",
+                        borderRadius: "8px",
+                        backgroundColor: "#dcff4c",
+                        color: "#0a0a0a",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        border: "none",
+                        cursor: pinBusy ? "default" : "pointer",
+                        opacity: newPin.length !== 6 || confirmNewPin.length !== 6 ? 0.6 : 1,
+                      }}
+                    >
+                      {pinBusy ? "Salvando..." : "Confirmar e Ativar PIN"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className={b.successActions}>
               <a

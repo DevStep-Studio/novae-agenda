@@ -690,3 +690,36 @@ export const customerMembershipPayments = mysqlTable("customer_membership_paymen
   companyIdx: index("cust_membership_payments_company_idx").on(table.companyId),
   periodIdx: index("cust_membership_payments_period_idx").on(table.membershipPeriodId),
 }));
+
+export const customerCredentials = mysqlTable("customer_credentials", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  phoneNormalized: varchar("phone_normalized", { length: 20 }).notNull(),
+  pinHash: varchar("pin_hash", { length: 255 }).notNull(),
+  pinCreatedAt: timestamp("pin_created_at", { mode: "date" }).defaultNow().notNull(),
+  pinUpdatedAt: timestamp("pin_updated_at", { mode: "date" }).defaultNow().notNull(),
+  failedAttempts: int("failed_attempts").default(0).notNull(),
+  lockedUntil: timestamp("locked_until", { mode: "date" }),
+  lastLoginAt: timestamp("last_login_at", { mode: "date" }),
+  ...timestamps,
+}, (table) => ({
+  userIdIdx: uniqueIndex("customer_credentials_user_id_idx").on(table.userId),
+  phoneNormalizedIdx: uniqueIndex("customer_credentials_phone_normalized_idx").on(table.phoneNormalized),
+}));
+
+export const customerAccessLogs = mysqlTable("customer_access_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "set null" }),
+  phoneNormalized: varchar("phone_normalized", { length: 20 }).notNull(),
+  action: varchar("action", { length: 50 }).notNull(),
+  ipAddress: varchar("ip_address", { length: 64 }),
+  userAgent: text("user_agent"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+}, (table) => ({
+  phoneIdx: index("customer_access_logs_phone_idx").on(table.phoneNormalized),
+  userIdIdx: index("customer_access_logs_user_id_idx").on(table.userId),
+  actionIdx: index("customer_access_logs_action_idx").on(table.action),
+  createdIdx: index("customer_access_logs_created_idx").on(table.createdAt),
+}));
+

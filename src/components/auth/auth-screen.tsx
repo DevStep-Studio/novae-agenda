@@ -19,12 +19,15 @@ import {
   Sun,
   Moon,
   User,
+  KeyRound,
+  ShieldCheck,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useOptionalStore } from "@/store/store";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { applyTheme, getStoredTheme, resolveTheme } from "@/lib/theme";
 import { PasswordStrengthMeter } from "./password-strength-meter";
+import { PinInput } from "@/components/booking/pin-input";
 
 export type AuthMode = "login" | "register" | "forgot-password" | "reservas";
 type RecoveryStep = "request_email" | "email_sent";
@@ -46,11 +49,10 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const initial = resolveTheme(getStoredTheme());
-      setTheme(initial);
-      applyTheme(initial);
+      applyTheme(theme);
     }
-  }, []);
+  }, [theme]);
+
 
   const handleSetTheme = (nextTheme: "light" | "dark") => {
     setTheme(nextTheme);
@@ -97,6 +99,21 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
+  // Progressive Reservas Flow (Celular + PIN 6 dígitos)
+  type ReservasFlowStep =
+    | "phone"
+    | "pin_login"
+    | "pin_setup"
+    | "not_found"
+    | "pin_reset_confirm";
+
+  const [reservasStep, setReservasStep] = useState<ReservasFlowStep>("phone");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [maskedPhone, setMaskedPhone] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
+  const [resetDestination, setResetDestination] = useState("");
+
   // Recovery states
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -119,6 +136,13 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     setMode(newMode);
     setError(null);
     setSuccessBanner(null);
+    if (newMode !== "reservas") {
+      setReservasStep("phone");
+      setPin("");
+      setConfirmPin("");
+      setResetOtp("");
+      setUseEmailForReservas(false);
+    }
     if (newMode === "forgot-password") {
       setRecoveryStep("request_email");
       setRecoveryEmail(email);
@@ -141,6 +165,219 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     setSuccessBanner(null);
     handleModeChange("forgot-password");
   };
+
+  // ─── Fluxo do Cliente: Checagem de Celular (Etapa 1) ───
+  const handlePhoneContinue = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const cleanDigits = phone.replace(/\D/g, "");
+    if (cleanDigits.length < 8) {
+      setError("Por favor, digite um número de celular válido com DDD.");
+      return;
+    }
+    setError(null);
+    setSuccessBanner(null);
+    setLoading(true);
+
+    try {
+      const response = await api<{
+        data: {
+          exists: boolean;
+          status: "HAS_PIN" | "NEEDS_PIN_SETUP" | "NOT_FOUND";
+          maskedPhone: string;
+          hasEmail: boolean;
+          emailHint?: string;
+        };
+      }>("/api/customer-access/check-phone", {
+        method: "POST",
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+
+      setMaskedPhone(response.data.maskedPhone);
+      setPin("");
+      setConfirmPin("");
+
+      if (response.data.status === "HAS_PIN") {
+        setReservasStep("pin_login");
+      } else if (response.data.status === "NEEDS_PIN_SETUP") {
+        setReservasStep("pin_setup");
+      } else {
+        setReservasStep("not_found");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não encontramos reservas vinculadas a este número.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Fluxo do Cliente: Login com PIN (Etapa 2A) ───
+  const handlePinLogin = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (pin.length !== 6) {
+      setError("Digite os 6 números do seu PIN.");
+      return;
+    }
+    setError(null);
+    setSuccessBanner(null);
+    setLoading(true);
+
+    try {
+      await api("/api/customer-access/pin/login", {
+        method: "POST",
+        body: JSON.stringify({ phone: phone.trim(), pin }),
+      });
+
+      if (store) await store.reloadSession();
+
+      if (onAuthenticated) {
+        onAuthenticated(false);
+      } else {
+        window.location.assign("/cliente");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "PIN incorreto. Verifique os números digitados.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Fluxo do Cliente: Primeiro Acesso / Criar PIN (Etapa 2B) ───
+  const handlePinSetup = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (pin.length !== 6) {
+      setError("O PIN deve conter exatamente 6 números.");
+      return;
+    }
+    if (confirmPin.length !== 6) {
+      setError("Confirme seu PIN digitando os 6 números.");
+      return;
+    }
+    if (pin !== confirmPin) {
+      setError("Os PINs não coincidem.");
+      return;
+    }
+    setError(null);
+    setSuccessBanner(null);
+    setLoading(true);
+
+    try {
+      await api("/api/customer-access/pin/setup", {
+        method: "POST",
+        body: JSON.stringify({
+          phone: phone.trim(),
+          pin,
+          confirmPin,
+        }),
+      });
+
+      if (store) await store.reloadSession();
+
+      if (onAuthenticated) {
+        onAuthenticated(false);
+      } else {
+        window.location.assign("/cliente");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível criar o PIN. Tente novamente.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Fluxo do Cliente: Solicitar Redefinição de PIN ───
+  const handleRequestPinReset = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const response = await api<{
+        data: {
+          success: boolean;
+          message: string;
+          channel: "email" | "whatsapp" | "console";
+          destination: string;
+        };
+      }>("/api/customer-access/pin/reset/request", {
+        method: "POST",
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+
+      setResetDestination(response.data.destination || maskedPhone);
+      setSuccessBanner(response.data.message);
+      setResetOtp("");
+      setPin("");
+      setConfirmPin("");
+      setReservasStep("pin_reset_confirm");
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível solicitar a recuperação do PIN.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Fluxo do Cliente: Confirmar Redefinição de PIN ───
+  const handleConfirmPinReset = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (resetOtp.trim().length < 6) {
+      setError("Informe o código de verificação recebido.");
+      return;
+    }
+    if (pin.length !== 6) {
+      setError("O novo PIN deve conter exatamente 6 números.");
+      return;
+    }
+    if (pin !== confirmPin) {
+      setError("Os PINs não coincidem.");
+      return;
+    }
+    setError(null);
+    setSuccessBanner(null);
+    setLoading(true);
+
+    try {
+      await api("/api/customer-access/pin/reset/confirm", {
+        method: "POST",
+        body: JSON.stringify({
+          phone: phone.trim(),
+          otp: resetOtp.trim(),
+          newPin: pin,
+          confirmNewPin: confirmPin,
+        }),
+      });
+
+      if (store) await store.reloadSession();
+
+      if (onAuthenticated) {
+        onAuthenticated(false);
+      } else {
+        window.location.assign("/cliente");
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Código inválido ou expirado. Tente novamente.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // Submit for Login, Register or Reservas
   const submitAuth = async (event: React.FormEvent) => {
@@ -245,19 +482,44 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     }
   };
 
-  // Quick 1-click Demo for Carlos Silva (Reservas / Cliente)
+  // Quick 1-click Demo for Carlos Silva (Reservas / Cliente com PIN 482913)
   const handleCustomerDemo = async () => {
     setError(null);
     setSuccessBanner(null);
     setLoading(true);
     try {
-      setPhone("(11) 99999-9999");
-      await api("/api/auth/login", {
+      const demoPhone = "(11) 99999-9999";
+      setPhone(demoPhone);
+
+      const checkRes = await api<{
+        data: {
+          exists: boolean;
+          status: "HAS_PIN" | "NEEDS_PIN_SETUP" | "NOT_FOUND";
+          maskedPhone: string;
+        };
+      }>("/api/customer-access/check-phone", {
         method: "POST",
-        body: JSON.stringify({
-          phone: "(11) 99999-9999",
-        }),
+        body: JSON.stringify({ phone: demoPhone }),
       });
+
+      if (checkRes.data.status === "NEEDS_PIN_SETUP") {
+        await api("/api/customer-access/pin/setup", {
+          method: "POST",
+          body: JSON.stringify({
+            phone: demoPhone,
+            pin: "482913",
+            confirmPin: "482913",
+          }),
+        });
+      } else {
+        await api("/api/customer-access/pin/login", {
+          method: "POST",
+          body: JSON.stringify({
+            phone: demoPhone,
+            pin: "482913",
+          }),
+        });
+      }
 
       if (store) await store.reloadSession();
 
@@ -268,12 +530,13 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       }
     } catch (err) {
       setError(
-        err instanceof ApiError ? err.message : "Erro ao entrar como demo."
+        err instanceof ApiError ? err.message : "Erro ao entrar como demo.",
       );
     } finally {
       setLoading(false);
     }
   };
+
 
   // Submit email for Forgot Password
   const submitRecoveryEmail = async (event: React.FormEvent) => {
@@ -864,66 +1127,21 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           )}
 
           {/* ======================================================= */}
-          {/* MODO 4: VER MINHAS RESERVAS (Portal do Cliente)          */}
+          {/* MODO 4: VER MINHAS RESERVAS (Portal do Cliente - PIN)    */}
           {/* ======================================================= */}
           {mode === "reservas" && (
             <>
-              <h1 className="auth-split-title">Minhas Reservas</h1>
-              <p className="auth-split-subtitle">
-                Informe o seu celular para consultar, remarcar ou acompanhar seus agendamentos.
-              </p>
+              {useEmailForReservas ? (
+                <>
+                  <h1 className="auth-split-title">Minhas Reservas</h1>
+                  <p className="auth-split-subtitle">
+                    Acesse suas reservas utilizando seu e-mail e senha cadastrados.
+                  </p>
 
-              <form onSubmit={submitAuth} className="auth-split-form">
-                {!useEmailForReservas ? (
-                  <>
+                  <form onSubmit={submitAuth} className="auth-split-form">
                     <div className="auth-split-field">
                       <label className="auth-split-label">
-                        Número de celular / WhatsApp{" "}
-                        <span className="auth-split-asterisk">*</span>
-                      </label>
-                      <div className="auth-split-input-wrap">
-                        <Phone className="auth-split-input-icon" size={17} />
-                        <input
-                          className="auth-split-input"
-                          type="tel"
-                          inputMode="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-                          placeholder="(11) 99999-9999"
-                          autoComplete="tel"
-                          required
-                          autoFocus
-                        />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          color: theme === "dark" ? "#a1a1aa" : "#64748b",
-                          marginTop: "4px",
-                          display: "block",
-                        }}
-                      >
-                        Digite o mesmo número de WhatsApp informado no agendamento.
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-4px", marginBottom: "4px" }}>
-                      <button
-                        type="button"
-                        className="auth-split-link-btn"
-                        onClick={() => setUseEmailForReservas(true)}
-                        style={{ color: greenText, fontSize: "12.5px" }}
-                      >
-                        Acessar com e-mail e senha
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="auth-split-field">
-                      <label className="auth-split-label">
-                        E-mail cadastrado{" "}
-                        <span className="auth-split-asterisk">*</span>
+                        E-mail cadastrado <span className="auth-split-asterisk">*</span>
                       </label>
                       <div className="auth-split-input-wrap">
                         <Mail className="auth-split-input-icon" size={17} />
@@ -958,9 +1176,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                           type="button"
                           className="auth-split-input-eye"
                           onClick={() => setShowPassword((v) => !v)}
-                          aria-label={
-                            showPassword ? "Ocultar senha" : "Exibir senha"
-                          }
+                          aria-label={showPassword ? "Ocultar senha" : "Exibir senha"}
                         >
                           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
@@ -971,7 +1187,11 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       <button
                         type="button"
                         className="auth-split-link-btn"
-                        onClick={() => setUseEmailForReservas(false)}
+                        onClick={() => {
+                          setUseEmailForReservas(false);
+                          setReservasStep("phone");
+                          setError(null);
+                        }}
                         style={{ color: greenText }}
                       >
                         ← Voltar para celular
@@ -985,36 +1205,422 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                         Esqueci minha senha
                       </button>
                     </div>
-                  </>
-                )}
 
-                <button
-                  type="submit"
-                  className="auth-split-primary-btn"
-                  disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
-                      <span>Acessando...</span>
-                    </>
-                  ) : (
-                    <span>Acessar minhas reservas</span>
-                  )}
-                </button>
+                    <button
+                      type="submit"
+                      className="auth-split-primary-btn"
+                      disabled={loading}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
+                          <span>Acessando...</span>
+                        </>
+                      ) : (
+                        <span>Acessar minhas reservas</span>
+                      )}
+                    </button>
+                  </form>
+                </>
+              ) : reservasStep === "phone" ? (
+                <>
+                  <h1 className="auth-split-title">Minhas Reservas</h1>
+                  <p className="auth-split-subtitle">
+                    Informe seu celular para consultar, remarcar ou acompanhar seus agendamentos.
+                  </p>
 
-                {/* Acesso rápido para testes em modo desenvolvimento */}
-                <button
-                  type="button"
-                  className="auth-split-demo-btn"
-                  onClick={handleCustomerDemo}
-                  disabled={loading}
-                >
-                  <Sparkles size={14} />
-                  <span>⚡ Demo: Entrar como Carlos Silva (1-clique)</span>
-                </button>
-              </form>
+                  <form onSubmit={handlePhoneContinue} className="auth-split-form">
+                    <div className="auth-split-field">
+                      <label className="auth-split-label">
+                        Número de celular / WhatsApp <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <div className="auth-split-input-wrap">
+                        <Phone className="auth-split-input-icon" size={17} />
+                        <input
+                          className="auth-split-input"
+                          type="tel"
+                          inputMode="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                          placeholder="(11) 99999-9999"
+                          autoComplete="tel"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: theme === "dark" ? "#a1a1aa" : "#64748b",
+                          marginTop: "4px",
+                          display: "block",
+                        }}
+                      >
+                        Digite o mesmo número informado no seu agendamento.
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-4px", marginBottom: "4px" }}>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => {
+                          setUseEmailForReservas(true);
+                          setError(null);
+                        }}
+                        style={{ color: greenText, fontSize: "12.5px" }}
+                      >
+                        Acessar com e-mail e senha
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="auth-split-primary-btn"
+                      disabled={loading || phone.replace(/\D/g, "").length < 8}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
+                          <span>Continuando...</span>
+                        </>
+                      ) : (
+                        <span>Continuar</span>
+                      )}
+                    </button>
+
+                    {/* Acesso rápido para testes em modo desenvolvimento */}
+                    <button
+                      type="button"
+                      className="auth-split-demo-btn"
+                      onClick={handleCustomerDemo}
+                      disabled={loading}
+                    >
+                      <Sparkles size={14} />
+                      <span>⚡ Demo: Entrar como Carlos Silva (PIN 482913)</span>
+                    </button>
+                  </form>
+                </>
+              ) : reservasStep === "pin_login" ? (
+                <>
+                  <h1 className="auth-split-title">Bem-vindo de volta</h1>
+                  <p className="auth-split-subtitle">
+                    Digite seu PIN de 6 dígitos para acessar suas reservas.
+                  </p>
+
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      backgroundColor: theme === "dark" ? "#18181b" : "#f4f4f5",
+                      fontSize: "13px",
+                      textAlign: "center",
+                      marginBottom: "20px",
+                      color: theme === "dark" ? "#a1a1aa" : "#71717a",
+                    }}
+                  >
+                    PIN para:{" "}
+                    <strong style={{ color: theme === "dark" ? "#fafafa" : "#09090b" }}>
+                      {maskedPhone || phone}
+                    </strong>
+                  </div>
+
+                  <form onSubmit={handlePinLogin} className="auth-split-form">
+                    <div className="auth-split-field" style={{ alignItems: "center" }}>
+                      <PinInput
+                        id="pin-login-input"
+                        value={pin}
+                        onChange={setPin}
+                        length={6}
+                        autoFocus
+                        error={Boolean(error)}
+                        theme={theme}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => {
+                          setReservasStep("phone");
+                          setPin("");
+                          setError(null);
+                        }}
+                        style={{ color: theme === "dark" ? "#a1a1aa" : "#64748b", fontSize: "12.5px" }}
+                      >
+                        ← Usar outro número
+                      </button>
+
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={handleRequestPinReset}
+                        disabled={loading}
+                        style={{ color: greenText, fontSize: "12.5px" }}
+                      >
+                        Esqueci meu PIN
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="auth-split-primary-btn"
+                      disabled={loading || pin.length !== 6}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none", marginTop: "12px" }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
+                          <span>Entrando...</span>
+                        </>
+                      ) : (
+                        <span>Entrar</span>
+                      )}
+                    </button>
+                  </form>
+                </>
+              ) : reservasStep === "pin_setup" ? (
+                <>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: greenText, fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
+                    <ShieldCheck size={16} /> Primeiro Acesso
+                  </div>
+                  <h1 className="auth-split-title">Proteja suas reservas</h1>
+                  <p className="auth-split-subtitle">
+                    Crie um PIN de 6 dígitos que você usará junto ao seu celular para acessar suas reservas.
+                  </p>
+
+                  <div
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      backgroundColor: theme === "dark" ? "#18181b" : "#f4f4f5",
+                      fontSize: "13px",
+                      textAlign: "center",
+                      marginBottom: "16px",
+                      color: theme === "dark" ? "#a1a1aa" : "#71717a",
+                    }}
+                  >
+                    Celular:{" "}
+                    <strong style={{ color: theme === "dark" ? "#fafafa" : "#09090b" }}>
+                      {maskedPhone || phone}
+                    </strong>
+                  </div>
+
+                  <form onSubmit={handlePinSetup} className="auth-split-form">
+                    <div className="auth-split-field">
+                      <label className="auth-split-label" style={{ textAlign: "center", width: "100%", marginBottom: "8px" }}>
+                        Crie seu PIN (6 dígitos) <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <PinInput
+                        id="setup-pin-val"
+                        value={pin}
+                        onChange={setPin}
+                        length={6}
+                        autoFocus
+                        theme={theme}
+                      />
+                    </div>
+
+                    <div className="auth-split-field" style={{ marginTop: "8px" }}>
+                      <label className="auth-split-label" style={{ textAlign: "center", width: "100%", marginBottom: "8px" }}>
+                        Confirme seu PIN <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <PinInput
+                        id="setup-pin-confirm"
+                        value={confirmPin}
+                        onChange={setConfirmPin}
+                        length={6}
+                        theme={theme}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "4px" }}>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => {
+                          setReservasStep("phone");
+                          setPin("");
+                          setConfirmPin("");
+                          setError(null);
+                        }}
+                        style={{ color: theme === "dark" ? "#a1a1aa" : "#64748b", fontSize: "12.5px" }}
+                      >
+                        ← Usar outro número
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="auth-split-primary-btn"
+                      disabled={loading || pin.length !== 6 || confirmPin.length !== 6}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none", marginTop: "12px" }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
+                          <span>Criando PIN...</span>
+                        </>
+                      ) : (
+                        <span>Criar PIN</span>
+                      )}
+                    </button>
+                  </form>
+                </>
+              ) : reservasStep === "not_found" ? (
+                <>
+                  <h1 className="auth-split-title">Minhas Reservas</h1>
+                  <p className="auth-split-subtitle">
+                    Não encontramos reservas vinculadas a este número.
+                  </p>
+
+                  <div
+                    style={{
+                      padding: "16px",
+                      borderRadius: "8px",
+                      border: `1px solid ${theme === "dark" ? "#27272a" : "#e2e8f0"}`,
+                      backgroundColor: theme === "dark" ? "#121215" : "#fafafa",
+                      marginBottom: "20px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: "14px", color: theme === "dark" ? "#d4d4d8" : "#3f3f46" }}>
+                      Número pesquisado: <strong>{maskedPhone || phone}</strong>
+                    </p>
+                    <p style={{ margin: "8px 0 0", fontSize: "12.5px", color: theme === "dark" ? "#a1a1aa" : "#71717a" }}>
+                      Se você ainda não agendou um horário, escolha um serviço para reservar agora mesmo.
+                    </p>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <a
+                      href="/explorar"
+                      className="auth-split-primary-btn"
+                      style={{
+                        backgroundColor: greenBtnBg,
+                        color: greenBtnText,
+                        boxShadow: "none",
+                        textDecoration: "none",
+                        textAlign: "center",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      Agendar um horário
+                    </a>
+
+                    <button
+                      type="button"
+                      className="auth-split-secondary-btn"
+                      onClick={() => {
+                        setReservasStep("phone");
+                        setError(null);
+                      }}
+                    >
+                      ← Verificar outro número
+                    </button>
+
+                    <button
+                      type="button"
+                      className="auth-split-link-btn"
+                      onClick={() => {
+                        setUseEmailForReservas(true);
+                        setError(null);
+                      }}
+                      style={{ color: greenText, textAlign: "center", marginTop: "8px", fontSize: "13px" }}
+                    >
+                      Acessar com e-mail e senha
+                    </button>
+                  </div>
+                </>
+              ) : reservasStep === "pin_reset_confirm" ? (
+                <>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: greenText, fontSize: "12px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
+                    <KeyRound size={16} /> Redefinir PIN
+                  </div>
+                  <h1 className="auth-split-title">Recuperação de PIN</h1>
+                  <p className="auth-split-subtitle">
+                    Informe o código de 6 números enviado para {resetDestination || maskedPhone} e defina o novo PIN.
+                  </p>
+
+                  <form onSubmit={handleConfirmPinReset} className="auth-split-form">
+                    <div className="auth-split-field">
+                      <label className="auth-split-label" style={{ textAlign: "center", width: "100%", marginBottom: "8px" }}>
+                        Código de verificação (6 dígitos) <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <PinInput
+                        id="reset-otp-input"
+                        value={resetOtp}
+                        onChange={setResetOtp}
+                        length={6}
+                        mask={false}
+                        autoFocus
+                        theme={theme}
+                      />
+                    </div>
+
+                    <div className="auth-split-field" style={{ marginTop: "10px" }}>
+                      <label className="auth-split-label" style={{ textAlign: "center", width: "100%", marginBottom: "8px" }}>
+                        Novo PIN (6 dígitos) <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <PinInput
+                        id="reset-new-pin-input"
+                        value={pin}
+                        onChange={setPin}
+                        length={6}
+                        theme={theme}
+                      />
+                    </div>
+
+                    <div className="auth-split-field" style={{ marginTop: "10px" }}>
+                      <label className="auth-split-label" style={{ textAlign: "center", width: "100%", marginBottom: "8px" }}>
+                        Confirme o novo PIN <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <PinInput
+                        id="reset-confirm-new-pin-input"
+                        value={confirmPin}
+                        onChange={setConfirmPin}
+                        length={6}
+                        theme={theme}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-start", marginTop: "4px" }}>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => {
+                          setReservasStep("pin_login");
+                          setError(null);
+                        }}
+                        style={{ color: theme === "dark" ? "#a1a1aa" : "#64748b", fontSize: "12.5px" }}
+                      >
+                        ← Voltar para login
+                      </button>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="auth-split-primary-btn"
+                      disabled={loading || resetOtp.length < 6 || pin.length !== 6 || confirmPin.length !== 6}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none", marginTop: "12px" }}
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
+                          <span>Redefinindo...</span>
+                        </>
+                      ) : (
+                        <span>Redefinir PIN e entrar</span>
+                      )}
+                    </button>
+                  </form>
+                </>
+              ) : null}
 
               <div className="auth-split-divider">
                 <div className="auth-split-divider-line" />

@@ -104,23 +104,32 @@ export async function createSession(userId: string): Promise<void> {
     .setExpirationTime(`${MAX_AGE_SECONDS}s`)
     .sign(secretKey);
 
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isSecureCookie(),
-    maxAge: MAX_AGE_SECONDS,
-    path: "/",
-  });
-  // A stale company context from a previous session/user must never leak into a fresh login.
-  cookieStore.set("active_company_id", "", { httpOnly: true, maxAge: 0, path: "/" });
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isSecureCookie(),
+      maxAge: MAX_AGE_SECONDS,
+      path: "/",
+    });
+    // A stale company context from a previous session/user must never leak into a fresh login.
+    cookieStore.set("active_company_id", "", { httpOnly: true, maxAge: 0, path: "/" });
+  } catch {
+    // Outside request store (e.g. tests or scripts)
+  }
 }
 
 export async function destroySession(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, "", { httpOnly: true, maxAge: 0, path: "/" });
-  cookieStore.set("active_company_id", "", { httpOnly: true, maxAge: 0, path: "/" });
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE, "", { httpOnly: true, maxAge: 0, path: "/" });
+    cookieStore.set("active_company_id", "", { httpOnly: true, maxAge: 0, path: "/" });
+  } catch {
+    // Outside request store
+  }
 }
+
 
 function formatTime(value: string): string {
   return value.length === 8 ? value.slice(0, 5) : value;
