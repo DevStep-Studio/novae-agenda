@@ -15,7 +15,6 @@ import {
   MailCheck,
   Phone,
   RotateCcw,
-  Sparkles,
   Sun,
   Moon,
   User,
@@ -482,60 +481,6 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     }
   };
 
-  // Quick 1-click Demo for Carlos Silva (Reservas / Cliente com PIN 482913)
-  const handleCustomerDemo = async () => {
-    setError(null);
-    setSuccessBanner(null);
-    setLoading(true);
-    try {
-      const demoPhone = "(11) 99999-9999";
-      setPhone(demoPhone);
-
-      const checkRes = await api<{
-        data: {
-          exists: boolean;
-          status: "HAS_PIN" | "NEEDS_PIN_SETUP" | "NOT_FOUND";
-          maskedPhone: string;
-        };
-      }>("/api/customer-access/check-phone", {
-        method: "POST",
-        body: JSON.stringify({ phone: demoPhone }),
-      });
-
-      if (checkRes.data.status === "NEEDS_PIN_SETUP") {
-        await api("/api/customer-access/pin/setup", {
-          method: "POST",
-          body: JSON.stringify({
-            phone: demoPhone,
-            pin: "482913",
-            confirmPin: "482913",
-          }),
-        });
-      } else {
-        await api("/api/customer-access/pin/login", {
-          method: "POST",
-          body: JSON.stringify({
-            phone: demoPhone,
-            pin: "482913",
-          }),
-        });
-      }
-
-      if (store) await store.reloadSession();
-
-      if (onAuthenticated) {
-        onAuthenticated(false);
-      } else {
-        window.location.assign("/cliente");
-      }
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Erro ao entrar como demo.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
 
   // Submit email for Forgot Password
@@ -1291,16 +1236,6 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       )}
                     </button>
 
-                    {/* Acesso rápido para testes em modo desenvolvimento */}
-                    <button
-                      type="button"
-                      className="auth-split-demo-btn"
-                      onClick={handleCustomerDemo}
-                      disabled={loading}
-                    >
-                      <Sparkles size={14} />
-                      <span>⚡ Demo: Entrar como Carlos Silva (PIN 482913)</span>
-                    </button>
                   </form>
                 </>
               ) : reservasStep === "pin_login" ? (

@@ -7752,40 +7752,6 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   margin-top: 2px;
 }
 
-.auth-split-demo-btn {
-  width: 100%;
-  padding: 10px 14px;
-  margin-top: 4px;
-  border: 1px dashed rgba(77, 124, 15, 0.45);
-  border-radius: 8px;
-  background: rgba(220, 255, 76, 0.08);
-  color: #3f6212;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-}
-
-.auth-split-demo-btn:hover:not(:disabled) {
-  background: rgba(220, 255, 76, 0.18);
-  border-color: #4d7c0f;
-  transform: translateY(-1px);
-}
-
-:root[data-theme="dark"] .auth-split-demo-btn {
-  border-color: rgba(220, 255, 76, 0.4);
-  background: rgba(220, 255, 76, 0.08);
-  color: #dcff4c;
-}
-
-:root[data-theme="dark"] .auth-split-demo-btn:hover:not(:disabled) {
-  background: rgba(220, 255, 76, 0.16);
-  border-color: #dcff4c;
-}
 
 .auth-split-card-sent {
   display: flex;
