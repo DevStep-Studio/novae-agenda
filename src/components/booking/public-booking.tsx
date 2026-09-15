@@ -26,6 +26,8 @@ import {
   Sparkles,
   ChevronUp,
   Phone,
+  KeyRound,
+  User,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import type { PublicCatalog } from "@/lib/booking/catalog";
@@ -138,6 +140,17 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [pinError, setPinError] = useState("");
   const [pinCreatedSuccess, setPinCreatedSuccess] = useState(false);
 
+  // Estados para identificação sem senha ou login por PIN
+  const [authMethod, setAuthMethod] = useState<"form" | "pin">("form");
+  const [loginPin, setLoginPin] = useState("");
+  const [loginPinBusy, setLoginPinBusy] = useState(false);
+  const [loginPinError, setLoginPinError] = useState("");
+  const [formName, setFormName] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formBusy, setFormBusy] = useState(false);
+  const [formError, setFormError] = useState("");
+
   const handleSavePostBookingPin = async () => {
     if (newPin.length !== 6 || confirmNewPin.length !== 6) {
       setPinError("O PIN deve conter exatamente 6 números.");
@@ -153,10 +166,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       await api("/api/customer-access/pin/setup", {
         method: "POST",
         body: JSON.stringify({
-          phone: customer?.phone,
           pin: newPin,
           confirmPin: confirmNewPin,
           bookingId: bookingId || undefined,
+          phone: customer?.phone || undefined,
         }),
       });
       setPinCreatedSuccess(true);
@@ -428,9 +441,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   async function confirm(e?: FormEvent) {
     e?.preventDefault();
     if (busy || !slot || quoteLoading || !quote) return;
-    if (!customer?.emailVerified || !customer.phone) {
+    if (!customer) {
       setError(
-        "Entre na sua conta e confirme seu e-mail para agendar.",
+        "Por favor, informe seu nome e WhatsApp ou digite seu PIN para continuar.",
       );
       return;
     }
@@ -826,7 +839,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 ) : !showPinModal ? (
                   <>
                     <p style={{ margin: "0 0 10px", fontSize: "13.5px", color: "#d4d4d8" }}>
-                      Quer consultar ou remarcar seus horários mais facilmente?
+                      Quer consultar ou remarcar seus horários com facilidade e sem senhas?
                     </p>
                     <button
                       type="button"
@@ -846,7 +859,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       }}
                     >
                       <ShieldCheck size={16} />
-                      <span>CRIAR MEU PIN</span>
+                      <span>CRIAR MEU PIN DE ACESSO</span>
                     </button>
                   </>
                 ) : (
@@ -880,9 +893,37 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       </button>
                     </div>
 
-                    <p style={{ fontSize: "12px", color: "#a1a1aa", margin: "0 0 12px" }}>
-                      Você usará este PIN com seu celular ({customer.phone}) para acessar suas reservas.
+                    <p style={{ fontSize: "12px", color: "#a1a1aa", margin: "0 0 10px" }}>
+                      Use este PIN para consultar, remarcar ou acompanhar suas reservas sem precisar de senhas.
                     </p>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await api<{ pin: string }>("/api/customer-access/pin/random");
+                            setNewPin(res.pin);
+                            setConfirmNewPin(res.pin);
+                          } catch {
+                            const rand = Math.floor(100000 + Math.random() * 900000).toString();
+                            setNewPin(rand);
+                            setConfirmNewPin(rand);
+                          }
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#dcff4c",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          padding: "2px 4px",
+                        }}
+                      >
+                        ✦ Gerar PIN automático
+                      </button>
+                    </div>
 
                     <div style={{ marginBottom: "10px" }}>
                       <label style={{ display: "block", fontSize: "12px", marginBottom: "4px", color: "#d4d4d8" }}>
@@ -1524,56 +1565,202 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               {/* STEP 2: IDENTIFICATION & CONFIRMATION */}
               {step === 2 && (
                 <>
-                  {customer?.emailVerified && customer.phone ? (
-                    <div className={b.note}><strong>{customer.name}</strong><p>Confira os dados e confirme seu horário.</p></div>
-                  ) : customer && customer.emailVerified && !customer.phone ? (
-                    <div className={b.authPhoneCard}>
-                      <div className={b.authVerifyHeader}>
-                        <div className={b.authVerifyIconBadge}>
-                          <Phone size={20} />
+                  {customer ? (
+                    <div className={b.note}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <strong>{customer.name}</strong>
+                          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "var(--booking-text-muted)" }}>
+                            {customer.phone ? customer.phone : "Contato registrado"} · Confira os dados e confirme seu horário.
+                          </p>
                         </div>
-                        <div className={b.authVerifyHeaderText}>
-                          <span className={b.authVerifyTag}>Contato</span>
-                          <h3 className={b.authVerifyTitle}>Telefone para contato</h3>
-                        </div>
+                        <button
+                          type="button"
+                          className={b.textButton}
+                          onClick={async () => {
+                            await api("/api/auth/logout", { method: "POST" });
+                            setCustomer(null);
+                          }}
+                          style={{ fontSize: "12px" }}
+                        >
+                          Trocar
+                        </button>
                       </div>
-                      <p className={b.muted} style={{ margin: 0, fontSize: "13px" }}>
-                        Informe seu número com DDD (WhatsApp) para receber lembretes e confirmações do seu agendamento.
-                      </p>
-                      <form
-                        className={b.authPhoneForm}
-                        onSubmit={async (e) => {
-                          e.preventDefault();
-                          const phone = new FormData(e.currentTarget).get(
-                            "phone",
-                          );
-                          try {
-                            setCustomer(
-                              await api<Customer>("/api/my/session", {
-                                method: "PATCH",
-                                body: JSON.stringify({ phone }),
-                              }),
-                            );
-                          } catch (e) {
-                            setError((e as Error).message);
-                          }
-                        }}
-                      >
-                        <label className={b.field}>
-                          <input
-                            name="phone"
-                            type="tel"
-                            required
-                            minLength={8}
-                            maxLength={25}
-                            placeholder="(11) 99999-9999"
-                          />
-                        </label>
-                        <button className={`${b.button} ${b.wide}`}>Salvar telefone e prosseguir</button>
-                      </form>
                     </div>
                   ) : (
-                    <CustomerAuth returnTo={`/agendar/${company.slug}`} onReady={onCustomer} />
+                    <div className={b.authPhoneCard} style={{ margin: "16px 0" }}>
+                      {authMethod === "pin" ? (
+                        <div>
+                          <div className={b.authVerifyHeader}>
+                            <div className={b.authVerifyIconBadge}>
+                              <KeyRound size={20} />
+                            </div>
+                            <div className={b.authVerifyHeaderText}>
+                              <span className={b.authVerifyTag}>Cliente cadastrado</span>
+                              <h3 className={b.authVerifyTitle}>Entrar com seu PIN</h3>
+                            </div>
+                          </div>
+                          <p className={b.muted} style={{ margin: "0 0 16px", fontSize: "13px" }}>
+                            Digite o PIN de 6 dígitos criado no seu agendamento anterior para carregar seus dados.
+                          </p>
+                          <div style={{ margin: "0 auto 16px", display: "flex", justifyContent: "center" }}>
+                            <PinInput
+                              id="booking-login-pin"
+                              value={loginPin}
+                              onChange={setLoginPin}
+                              length={6}
+                              autoFocus
+                              error={Boolean(loginPinError)}
+                              theme="light"
+                            />
+                          </div>
+                          {loginPinError && (
+                            <p style={{ color: "var(--booking-danger)", fontSize: "12.5px", margin: "0 0 12px", textAlign: "center" }}>
+                              {loginPinError}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            className={`${b.button} ${b.wide}`}
+                            disabled={loginPinBusy || loginPin.length !== 6}
+                            onClick={async () => {
+                              setLoginPinBusy(true);
+                              setLoginPinError("");
+                              try {
+                                const res = await api<{ data: { customer: Customer } }>("/api/customer-access/pin/login", {
+                                  method: "POST",
+                                  body: JSON.stringify({ pin: loginPin }),
+                                });
+                                setCustomer(res.data.customer);
+                              } catch (err: any) {
+                                setLoginPinError(err.message || "PIN incorreto ou não encontrado.");
+                              } finally {
+                                setLoginPinBusy(false);
+                              }
+                            }}
+                          >
+                            {loginPinBusy ? "Identificando..." : "Confirmar PIN e prosseguir"}
+                          </button>
+                          <div style={{ marginTop: "14px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              className={b.textButton}
+                              onClick={() => {
+                                setAuthMethod("form");
+                                setLoginPinError("");
+                              }}
+                              style={{ fontSize: "12.5px" }}
+                            >
+                              Primeira vez aqui? Preencher meus dados
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className={b.authVerifyHeader}>
+                            <div className={b.authVerifyIconBadge}>
+                              <User size={20} />
+                            </div>
+                            <div className={b.authVerifyHeaderText}>
+                              <span className={b.authVerifyTag}>Identificação</span>
+                              <h3 className={b.authVerifyTitle}>Seus dados para a reserva</h3>
+                            </div>
+                          </div>
+                          <p className={b.muted} style={{ margin: "0 0 16px", fontSize: "13px" }}>
+                            Sem senhas! Você receberá confirmações por WhatsApp e poderá criar um PIN simples de 6 dígitos.
+                          </p>
+                          <form
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              setFormBusy(true);
+                              setFormError("");
+                              try {
+                                const res = await api<{ data: { customer: Customer } }>("/api/customer-access/identify", {
+                                  method: "POST",
+                                  body: JSON.stringify({
+                                    name: formName,
+                                    phone: formPhone,
+                                    email: formEmail || undefined,
+                                  }),
+                                });
+                                setCustomer(res.data.customer);
+                              } catch (err: any) {
+                                setFormError(err.message || "Erro ao salvar dados.");
+                              } finally {
+                                setFormBusy(false);
+                              }
+                            }}
+                            style={{ display: "grid", gap: "12px" }}
+                          >
+                            <label className={b.field}>
+                              Seu nome completo *
+                              <input
+                                type="text"
+                                required
+                                minLength={2}
+                                value={formName}
+                                onChange={(e) => setFormName(e.target.value)}
+                                placeholder="Ex: Maria Silva"
+                                autoFocus
+                              />
+                            </label>
+                            <label className={b.field}>
+                              WhatsApp / Celular com DDD *
+                              <input
+                                type="tel"
+                                required
+                                minLength={8}
+                                value={formPhone}
+                                onChange={(e) => {
+                                  const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                                  let formatted = digits;
+                                  if (digits.length <= 2) formatted = digits.length ? `(${digits}` : "";
+                                  else if (digits.length <= 7) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                                  else formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+                                  setFormPhone(formatted);
+                                }}
+                                placeholder="(11) 99999-9999"
+                              />
+                            </label>
+                            <label className={b.field}>
+                              E-mail (opcional)
+                              <input
+                                type="email"
+                                value={formEmail}
+                                onChange={(e) => setFormEmail(e.target.value)}
+                                placeholder="Para receber comprovante"
+                              />
+                            </label>
+                            {formError && (
+                              <p style={{ color: "var(--booking-danger)", fontSize: "12.5px", margin: 0 }}>
+                                {formError}
+                              </p>
+                            )}
+                            <button
+                              type="submit"
+                              className={`${b.button} ${b.wide}`}
+                              disabled={formBusy || formName.trim().length < 2 || formPhone.replace(/\D/g, "").length < 8}
+                              style={{ marginTop: "6px" }}
+                            >
+                              {formBusy ? "Salvando..." : "Continuar com agendamento"}
+                            </button>
+                          </form>
+                          <div style={{ marginTop: "14px", textAlign: "center" }}>
+                            <button
+                              type="button"
+                              className={b.textButton}
+                              onClick={() => {
+                                setAuthMethod("pin");
+                                setFormError("");
+                              }}
+                              style={{ fontSize: "12.5px" }}
+                            >
+                              Já tem um PIN de reservas? Entrar com seu PIN
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Payment method — chosen here only to tell the establishment how

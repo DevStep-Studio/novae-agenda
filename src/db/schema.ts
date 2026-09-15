@@ -698,6 +698,7 @@ export const customerCredentials = mysqlTable("customer_credentials", {
   userId: varchar("user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   phoneNormalized: varchar("phone_normalized", { length: 20 }).notNull(),
   pinHash: varchar("pin_hash", { length: 255 }).notNull(),
+  pinLookupHash: varchar("pin_lookup_hash", { length: 64 }),
   pinCreatedAt: timestamp("pin_created_at", { mode: "date" }).defaultNow().notNull(),
   pinUpdatedAt: timestamp("pin_updated_at", { mode: "date" }).defaultNow().notNull(),
   failedAttempts: int("failed_attempts").default(0).notNull(),
@@ -707,6 +708,7 @@ export const customerCredentials = mysqlTable("customer_credentials", {
 }, (table) => ({
   userIdIdx: uniqueIndex("customer_credentials_user_id_idx").on(table.userId),
   phoneNormalizedIdx: uniqueIndex("customer_credentials_phone_normalized_idx").on(table.phoneNormalized),
+  pinLookupHashIdx: uniqueIndex("customer_credentials_pin_lookup_hash_idx").on(table.pinLookupHash),
 }));
 
 export const customerAccessLogs = mysqlTable("customer_access_logs", {
@@ -724,4 +726,3 @@ export const customerAccessLogs = mysqlTable("customer_access_logs", {
   actionIdx: index("customer_access_logs_action_idx").on(table.action),
   createdIdx: index("customer_access_logs_created_idx").on(table.createdAt),
 }));
-

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { authTokens, bookings, clients, customerAccessLogs, customerCredentials, users } from "@/db/schema";
@@ -43,6 +43,19 @@ export function isWeakPin(pin: string): boolean {
 
 export function isValidPinFormat(pin: string): boolean {
   return /^\d{6}$/.test(pin);
+}
+
+export function hashPinLookup(pin: string): string {
+  const pepper = process.env.AUTH_SECRET || "reservei-secure-customer-pin-pepper";
+  return createHmac("sha256", pepper).update(pin.trim()).digest("hex");
+}
+
+export function generateRandomPin(): string {
+  let pin = "";
+  do {
+    pin = Math.floor(100000 + Math.random() * 900000).toString();
+  } while (isWeakPin(pin));
+  return pin;
 }
 
 export function maskPhone(phone: string): string {
@@ -243,10 +256,10 @@ export class CustomerAccessService {
   }
 
   /**
-   * Autenticação segura por PIN (6 dígitos numéricos com bcrypt e proteção contra força bruta).
+   * Autenticação direta do cliente utilizando SOMENTE o PIN de 6 dígitos.
+   * Não requer e-mail, senha ou celular para consulta de reservas.
    */
-  static async loginWithPin(params: {
-    phone: string;
+  static async loginByPinOnly(params: {
     pin: string;
     ipAddress?: string;
     userAgent?: string;
@@ -254,9 +267,166 @@ export class CustomerAccessService {
     userId: string;
     customer: { id: string; name: string; phone: string | null; role: string };
   }> {
+    const rawPin = params.pin.trim();
+    if (!isValidPinFormat(rawPin)) {
+      throw new Error("O PIN deve conter exatamente 6 números.");
+    }
+
+    const lookupHash = hashPinLookup(rawPin);
+
+    // 1. Busca direta pelo hash HMAC-SHA256 indexado
+    let [credential] = await db
+      .select()
+      .from(customerCredentials)
+      .where(eq(customerCredentials.pinLookupHash, lookupHash))
+      .limit(1);
+
+    // Se não encontrou por lookupHash (ex: credencial legada), busca com fallback iterativo
+    if (!credential) {
+      const allCreds = await db.select().from(customerCredentials).limit(50);
+      for (const c of allCreds) {
+        const match = await verifyPassword(rawPin, c.pinHash);
+        if (match) {
+          credential = c;
+          await db
+            .update(customerCredentials)
+            .set({ pinLookupHash: lookupHash })
+            .where(eq(customerCredentials.id, c.id));
+          break;
+        }
+      }
+    }
+
+    if (!credential) {
+      throw new Error("PIN não encontrado. Verifique os 6 números digitados.");
+    }
+
+    // Verifica bloqueio por tentativas excessivas
+    if (credential.lockedUntil && credential.lockedUntil > new Date()) {
+      const remainingMs = credential.lockedUntil.getTime() - Date.now();
+      const remainingMin = Math.ceil(remainingMs / 60000);
+      throw new Error(
+        `Muitas tentativas. Conta temporariamente bloqueada. Tente novamente em ${remainingMin} minuto${remainingMin > 1 ? "s" : ""}.`,
+      );
+    }
+
+    const isMatch = await verifyPassword(rawPin, credential.pinHash);
+
+    if (!isMatch) {
+      const newAttempts = (credential.failedAttempts || 0) + 1;
+      const isLocked = newAttempts >= 5;
+      const lockedUntil = isLocked
+        ? new Date(Date.now() + 15 * 60 * 1000)
+        : null;
+
+      await db
+        .update(customerCredentials)
+        .set({
+          failedAttempts: newAttempts,
+          lockedUntil,
+          updatedAt: new Date(),
+        })
+        .where(eq(customerCredentials.id, credential.id));
+
+      if (isLocked) {
+        await this.logAudit({
+          userId: credential.userId,
+          phoneNormalized: credential.phoneNormalized,
+          action: "PIN_LOCKED",
+          ipAddress: params.ipAddress,
+          userAgent: params.userAgent,
+          metadata: { attempts: newAttempts },
+        });
+        throw new Error(
+          "Muitas tentativas incorretas. Conta bloqueada temporariamente por 15 minutos.",
+        );
+      }
+
+      await this.logAudit({
+        userId: credential.userId,
+        phoneNormalized: credential.phoneNormalized,
+        action: "PIN_LOGIN_FAILED",
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        metadata: { attempts: newAttempts },
+      });
+
+      const remainingAttempts = Math.max(0, 5 - newAttempts);
+      throw new Error(
+        `PIN incorreto. Você tem mais ${remainingAttempts} tentativa${remainingAttempts !== 1 ? "s" : ""} antes do bloqueio temporário.`,
+      );
+    }
+
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, credential.userId))
+      .limit(1);
+
+    if (!user || !user.active) {
+      throw new Error("Conta de cliente inativa ou não encontrada.");
+    }
+
+    // Sucesso no login: zera tentativas e atualiza timestamp de login
+    await db
+      .update(customerCredentials)
+      .set({
+        failedAttempts: 0,
+        lockedUntil: null,
+        lastLoginAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(customerCredentials.id, credential.id));
+
+    await this.logAudit({
+      userId: user.id,
+      phoneNormalized: credential.phoneNormalized,
+      action: "PIN_LOGIN_SUCCESS",
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    });
+
+    // Emite o cookie de sessão seguro do Reservei
+    await createSession(user.id);
+
+    return {
+      userId: user.id,
+      customer: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        role: "customer",
+      },
+    };
+  }
+
+  /**
+   * Autenticação segura por PIN (com ou sem telefone).
+   */
+  static async loginWithPin(params: {
+    phone?: string;
+    pin: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<{
+    userId: string;
+    customer: { id: string; name: string; phone: string | null; role: string };
+  }> {
+    if (!params.phone || params.phone.trim().length === 0) {
+      return this.loginByPinOnly({
+        pin: params.pin,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+      });
+    }
+
     const normalized = normalizePhoneDigits(params.phone);
     if (!normalized || normalized.length < 8) {
-      throw new Error("Informe um número de celular válido com DDD.");
+      return this.loginByPinOnly({
+        pin: params.pin,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+      });
     }
 
     if (!isValidPinFormat(params.pin)) {
@@ -266,12 +436,17 @@ export class CustomerAccessService {
     const { user, credential } = await this.resolveCustomerUser(normalized);
 
     if (!user) {
-      throw new Error("Não encontramos reservas vinculadas a este número.");
+      // Se não encontrou pelo telefone, tenta buscar pelo PIN diretamente
+      return this.loginByPinOnly({
+        pin: params.pin,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+      });
     }
 
     if (!credential || !credential.pinHash) {
       const err = new Error(
-        "Este número ainda não possui um PIN configurado. Conclua o primeiro acesso.",
+        "Este cadastro ainda não possui um PIN configurado. Conclua a criação do seu PIN.",
       );
       (err as any).needsSetup = true;
       throw err;
@@ -333,10 +508,12 @@ export class CustomerAccessService {
       );
     }
 
-    // Sucesso no login: zera tentativas e atualiza timestamp de login
+    // Sucesso no login: zera tentativas, atualiza hash indexado se nulo e salva data
+    const lookupHash = hashPinLookup(params.pin);
     await db
       .update(customerCredentials)
       .set({
+        pinLookupHash: credential.pinLookupHash || lookupHash,
         failedAttempts: 0,
         lockedUntil: null,
         lastLoginAt: new Date(),
@@ -367,10 +544,10 @@ export class CustomerAccessService {
   }
 
   /**
-   * Configuração de PIN de primeiro acesso com verificação de identidade segura.
+   * Configuração de PIN de primeiro acesso ou pós-reserva.
    */
   static async setupPin(params: {
-    phone: string;
+    phone?: string;
     pin: string;
     confirmPin: string;
     bookingId?: string;
@@ -396,19 +573,25 @@ export class CustomerAccessService {
       );
     }
 
-    const normalized = normalizePhoneDigits(params.phone);
-    if (!normalized || normalized.length < 8) {
-      throw new Error("Informe um número de celular válido com DDD.");
-    }
-
-    let { user, credential } = await this.resolveCustomerUser(normalized);
+    const lookupHash = hashPinLookup(params.pin);
 
     // Validação de identidade segura
     let identityVerified = false;
+    let user: typeof users.$inferSelect | null = null;
+    let credential: typeof customerCredentials.$inferSelect | null = null;
+    const normalized = params.phone ? normalizePhoneDigits(params.phone) : "";
 
     // 1. Verificação via sessão autenticada ativa
-    if (params.authenticatedUserId && user && user.id === params.authenticatedUserId) {
-      identityVerified = true;
+    if (params.authenticatedUserId) {
+      const [sessionUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, params.authenticatedUserId))
+        .limit(1);
+      if (sessionUser) {
+        user = sessionUser;
+        identityVerified = true;
+      }
     }
 
     // 2. Verificação via contexto pós-reserva (bookingId)
@@ -420,31 +603,28 @@ export class CustomerAccessService {
         .limit(1);
 
       if (booking) {
-        // Verifica se a reserva pertence ao user e foi criada recentemente (últimas 24 horas, tolerante a timezone)
-        const diffMs = Math.abs(Date.now() - new Date(booking.createdAt).getTime());
-        const recentEnough = diffMs < 24 * 60 * 60 * 1000;
+        const [bookingUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, booking.userId))
+          .limit(1);
 
-        if (recentEnough && user && booking.userId === user.id) {
-
+        if (bookingUser) {
+          user = bookingUser;
           identityVerified = true;
-        } else if (recentEnough && !user) {
-          // Se o usuário ainda não foi criado mas a reserva existe com o mesmo userId
-          const [bookingUser] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, booking.userId))
-            .limit(1);
-
-          if (bookingUser) {
-            user = bookingUser;
-            identityVerified = true;
-          }
         }
       }
     }
 
-    // 3. Verificação via token OTP de verificação
-    if (!identityVerified && params.otpToken && user) {
+    // 3. Verificação por telefone caso fornecido
+    if (!user && normalized && normalized.length >= 8) {
+      const resolved = await this.resolveCustomerUser(normalized);
+      user = resolved.user;
+      credential = resolved.credential;
+    }
+
+    // 4. Verificação via token OTP de verificação
+    if (params.otpToken && user) {
       const tokenHash = sha256(params.otpToken.trim());
       const [validToken] = await db
         .select()
@@ -478,14 +658,14 @@ export class CustomerAccessService {
     if (!user) {
       // Provisiona usuário cliente se ainda não existir
       const newUserId = crypto.randomUUID();
-      const defaultEmail = `cliente-${normalized}@novae.local`;
+      const defaultEmail = normalized ? `cliente-${normalized}@novae.local` : `cliente-${Date.now()}@novae.local`;
       const fallbackPassword = await hashPassword(crypto.randomUUID());
 
       await db.insert(users).values({
         id: newUserId,
         name: "Cliente",
         email: defaultEmail,
-        phone: params.phone,
+        phone: params.phone || null,
         passwordHash: fallbackPassword,
         role: "customer",
         active: true,
@@ -501,13 +681,39 @@ export class CustomerAccessService {
       user = created!;
     }
 
+    // Verifica se já existe credencial vinculada a este user
+    if (!credential) {
+      const [existingCred] = await db
+        .select()
+        .from(customerCredentials)
+        .where(eq(customerCredentials.userId, user.id))
+        .limit(1);
+      if (existingCred) credential = existingCred;
+    }
+
+    // Verifica se este PIN já está sendo usado por outro cliente
+    const [existingWithPin] = await db
+      .select()
+      .from(customerCredentials)
+      .where(eq(customerCredentials.pinLookupHash, lookupHash))
+      .limit(1);
+
+    if (existingWithPin && existingWithPin.userId !== user.id) {
+      throw new Error(
+        "Este PIN já está em uso por outro cliente. Por favor, escolha outra combinação de 6 números.",
+      );
+    }
+
     const pinHash = await hashPassword(params.pin);
+    const phoneNorm = normalized || (user.phone ? normalizePhoneDigits(user.phone) : "");
 
     if (credential) {
       await db
         .update(customerCredentials)
         .set({
           pinHash,
+          pinLookupHash: lookupHash,
+          phoneNormalized: phoneNorm || credential.phoneNormalized,
           pinUpdatedAt: new Date(),
           failedAttempts: 0,
           lockedUntil: null,
@@ -518,8 +724,9 @@ export class CustomerAccessService {
       await db.insert(customerCredentials).values({
         id: crypto.randomUUID(),
         userId: user.id,
-        phoneNormalized: normalized,
+        phoneNormalized: phoneNorm,
         pinHash,
+        pinLookupHash: lookupHash,
         pinCreatedAt: new Date(),
         pinUpdatedAt: new Date(),
         failedAttempts: 0,
@@ -529,8 +736,8 @@ export class CustomerAccessService {
 
     await this.logAudit({
       userId: user.id,
-      phoneNormalized: normalized,
-      action: "PIN_CREATED",
+      phoneNormalized: phoneNorm,
+      action: credential ? "PIN_CHANGED" : "PIN_CREATED",
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     });
@@ -746,6 +953,79 @@ export class CustomerAccessService {
         phone: user.phone,
         role: "customer",
       },
+    };
+  }
+
+  /**
+   * Identificação rápida e sem fricção do cliente para agendamento.
+   * Não requer senha nem e-mail de ativação.
+   */
+  static async quickIdentifyCustomer(params: {
+    name: string;
+    phone: string;
+    email?: string;
+  }): Promise<{
+    userId: string;
+    customer: { id: string; name: string; phone: string | null; role: string };
+    hasPin: boolean;
+  }> {
+    const rawName = params.name.trim();
+    if (rawName.length < 2) {
+      throw new Error("Informe seu nome completo.");
+    }
+
+    const normalized = normalizePhoneDigits(params.phone);
+    if (!normalized || normalized.length < 8) {
+      throw new Error("Informe um número de celular/WhatsApp válido com DDD.");
+    }
+
+    let { user, credential } = await this.resolveCustomerUser(normalized);
+
+    if (!user) {
+      const newUserId = crypto.randomUUID();
+      const defaultEmail =
+        params.email && params.email.includes("@")
+          ? params.email.trim().toLowerCase()
+          : `cliente-${normalized}@novae.local`;
+      const fallbackPassword = await hashPassword(crypto.randomUUID());
+
+      await db.insert(users).values({
+        id: newUserId,
+        name: rawName,
+        email: defaultEmail,
+        phone: params.phone.trim(),
+        passwordHash: fallbackPassword,
+        role: "customer",
+        active: true,
+        emailVerified: true,
+      });
+
+      const [created] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, newUserId))
+        .limit(1);
+
+      user = created!;
+    } else if (rawName && (!user.name || user.name === "Cliente")) {
+      await db
+        .update(users)
+        .set({ name: rawName, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+      user.name = rawName;
+    }
+
+    await createSession(user.id);
+
+    return {
+      userId: user.id,
+      customer: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+      },
+      hasPin: Boolean(credential?.pinHash || credential?.pinLookupHash),
     };
   }
 }

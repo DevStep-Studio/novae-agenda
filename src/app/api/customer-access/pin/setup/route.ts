@@ -8,9 +8,9 @@ import { clientIp } from "@/lib/request";
 export const dynamic = "force-dynamic";
 
 const pinSetupSchema = z.object({
-  phone: z.string().min(8, "Informe seu celular com DDD."),
   pin: z.string().length(6, "O PIN deve conter exatamente 6 números."),
   confirmPin: z.string().length(6, "Confirme o PIN com 6 números."),
+  phone: z.string().optional(),
   bookingId: z.string().uuid().optional(),
   otpToken: z.string().optional(),
 });

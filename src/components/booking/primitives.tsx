@@ -3,80 +3,103 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { UserRound, X } from "lucide-react";
+import { KeyRound, ShieldCheck, UserRound, X } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { api, ApiError } from "@/lib/api-client";
+import { PinInput } from "./pin-input";
 import styles from "./booking.module.css";
 export { styles as b };
 
-function formatPhoneInput(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
-
 function MyBookingsAccessModal({ onClose }: { onClose: () => void }) {
-  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 8) {
-      setError("Digite um número de celular válido com DDD.");
+    if (pin.length !== 6) {
+      setError("Digite os 6 números do seu PIN de acesso.");
       return;
     }
     setLoading(true);
     try {
-      await api("/api/auth/login", {
+      await api("/api/customer-access/pin/login", {
         method: "POST",
-        body: JSON.stringify({ phone: phone.trim() }),
+        body: JSON.stringify({ pin }),
       });
       window.location.assign("/meus-agendamentos");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Não foi possível acessar. Tente novamente.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "PIN incorreto ou não encontrado. Tente novamente.",
+      );
       setLoading(false);
     }
   };
 
   return (
     <div className={styles.myBookingsModalBackdrop} onClick={onClose}>
-      <div className={styles.myBookingsModal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Acessar meus agendamentos">
-        <button type="button" className={styles.myBookingsModalClose} onClick={onClose} aria-label="Fechar">
+      <div
+        className={styles.myBookingsModal}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Acessar meus agendamentos"
+      >
+        <button
+          type="button"
+          className={styles.myBookingsModalClose}
+          onClick={onClose}
+          aria-label="Fechar"
+        >
           <X size={18} />
         </button>
         <div className={styles.myBookingsModalIcon}>
-          <UserRound size={20} />
+          <KeyRound size={20} />
         </div>
         <h2 className={styles.myBookingsModalTitle}>Meus agendamentos</h2>
         <p className={styles.myBookingsModalSubtitle}>
-          Informe o número de celular usado no agendamento para consultar, remarcar ou cancelar.
+          Digite seu PIN de 6 dígitos para consultar, remarcar ou acompanhar seus agendamentos.
         </p>
         <form onSubmit={submit} className={styles.myBookingsModalForm}>
-          <label className={styles.myBookingsModalLabel} htmlFor="my-bookings-phone">
-            Número de celular / WhatsApp
+          <label className={styles.myBookingsModalLabel} htmlFor="my-bookings-pin">
+            PIN de acesso (6 dígitos)
           </label>
-          <input
-            id="my-bookings-phone"
-            className={styles.myBookingsModalInput}
-            type="tel"
-            inputMode="tel"
-            placeholder="(11) 99999-9999"
-            value={phone}
-            onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-            autoFocus
-            required
-          />
+          <div style={{ margin: "4px 0 10px" }}>
+            <PinInput
+              id="my-bookings-pin"
+              value={pin}
+              onChange={setPin}
+              length={6}
+              autoFocus
+              error={Boolean(error)}
+              theme="light"
+            />
+          </div>
           {error && <span className={styles.myBookingsModalError}>{error}</span>}
-          <button type="submit" className={styles.myBookingsModalSubmit} disabled={loading}>
-            {loading ? "Acessando..." : "Acessar meus agendamentos"}
+          <button
+            type="submit"
+            className={styles.myBookingsModalSubmit}
+            disabled={loading || pin.length !== 6}
+          >
+            {loading ? "Acessando..." : "Acessar agendamentos"}
           </button>
+          <p
+            style={{
+              margin: "12px 0 0",
+              fontSize: "12px",
+              color: "var(--booking-text-muted)",
+              textAlign: "center",
+              lineHeight: 1.4,
+            }}
+          >
+            O PIN de 6 dígitos é gerado e ativado no momento da reserva.
+          </p>
         </form>
       </div>
     </div>

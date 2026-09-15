@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { CustomerAccessService } from "@/lib/customer-access/service";
+import { CustomerAccessService, hashPinLookup } from "@/lib/customer-access/service";
 import { normalizePhoneDigits } from "@/lib/domain";
 import { AUTH_RULES, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
@@ -8,8 +8,8 @@ import { clientIp } from "@/lib/request";
 export const dynamic = "force-dynamic";
 
 const pinLoginSchema = z.object({
-  phone: z.string().min(8, "Informe seu celular com DDD."),
   pin: z.string().length(6, "O PIN deve conter exatamente 6 números."),
+  phone: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -27,17 +27,26 @@ export async function POST(request: Request) {
     }
 
     const { phone, pin } = parsed.data;
-    const digits = normalizePhoneDigits(phone);
 
-    // Rate limiting por IP e por telefone
+    // Rate limiting por IP e por PIN
     const ipLimit = await consumeRateLimit(`customer-pin-login:ip:${ip}`, AUTH_RULES.login);
     if (!ipLimit.ok) return tooManyRequests(ipLimit.retryAfterSeconds);
 
-    const phoneLimit = await consumeRateLimit(
-      `customer-pin-login:phone:${digits}`,
+    const lookupHash = hashPinLookup(pin);
+    const pinLimit = await consumeRateLimit(
+      `customer-pin-login:pin:${lookupHash}`,
       AUTH_RULES.login,
     );
-    if (!phoneLimit.ok) return tooManyRequests(phoneLimit.retryAfterSeconds);
+    if (!pinLimit.ok) return tooManyRequests(pinLimit.retryAfterSeconds);
+
+    if (phone && phone.trim().length >= 8) {
+      const digits = normalizePhoneDigits(phone);
+      const phoneLimit = await consumeRateLimit(
+        `customer-pin-login:phone:${digits}`,
+        AUTH_RULES.login,
+      );
+      if (!phoneLimit.ok) return tooManyRequests(phoneLimit.retryAfterSeconds);
+    }
 
     const result = await CustomerAccessService.loginWithPin({
       phone,
@@ -50,7 +59,7 @@ export async function POST(request: Request) {
       data: {
         userId: result.userId,
         customer: result.customer,
-        targetPortal: "/cliente",
+        targetPortal: "/meus-agendamentos",
       },
     });
   } catch (error: any) {

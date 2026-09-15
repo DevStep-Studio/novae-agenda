@@ -106,7 +106,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     | "not_found"
     | "pin_reset_confirm";
 
-  const [reservasStep, setReservasStep] = useState<ReservasFlowStep>("phone");
+  const [reservasStep, setReservasStep] = useState<ReservasFlowStep>("pin_login");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [maskedPhone, setMaskedPhone] = useState("");
@@ -136,7 +136,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     setError(null);
     setSuccessBanner(null);
     if (newMode !== "reservas") {
-      setReservasStep("phone");
+      setReservasStep("pin_login");
       setPin("");
       setConfirmPin("");
       setResetOtp("");
@@ -227,7 +227,10 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     try {
       await api("/api/customer-access/pin/login", {
         method: "POST",
-        body: JSON.stringify({ phone: phone.trim(), pin }),
+        body: JSON.stringify({
+          pin,
+          ...(phone && phone.trim().length >= 8 ? { phone: phone.trim() } : {}),
+        }),
       });
 
       if (store) await store.reloadSession();
@@ -235,7 +238,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       if (onAuthenticated) {
         onAuthenticated(false);
       } else {
-        window.location.assign("/cliente");
+        window.location.assign("/meus-agendamentos");
       }
     } catch (err) {
       setError(
@@ -1240,27 +1243,29 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                 </>
               ) : reservasStep === "pin_login" ? (
                 <>
-                  <h1 className="auth-split-title">Bem-vindo de volta</h1>
+                  <h1 className="auth-split-title">Minhas Reservas</h1>
                   <p className="auth-split-subtitle">
-                    Digite seu PIN de 6 dígitos para acessar suas reservas.
+                    Digite seu PIN de 6 dígitos para consultar, remarcar ou acompanhar seus agendamentos.
                   </p>
 
-                  <div
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      backgroundColor: theme === "dark" ? "#18181b" : "#f4f4f5",
-                      fontSize: "13px",
-                      textAlign: "center",
-                      marginBottom: "20px",
-                      color: theme === "dark" ? "#a1a1aa" : "#71717a",
-                    }}
-                  >
-                    PIN para:{" "}
-                    <strong style={{ color: theme === "dark" ? "#fafafa" : "#09090b" }}>
-                      {maskedPhone || phone}
-                    </strong>
-                  </div>
+                  {(maskedPhone || phone) && (
+                    <div
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        backgroundColor: theme === "dark" ? "#18181b" : "#f4f4f5",
+                        fontSize: "13px",
+                        textAlign: "center",
+                        marginBottom: "20px",
+                        color: theme === "dark" ? "#a1a1aa" : "#71717a",
+                      }}
+                    >
+                      PIN para:{" "}
+                      <strong style={{ color: theme === "dark" ? "#fafafa" : "#09090b" }}>
+                        {maskedPhone || phone}
+                      </strong>
+                    </div>
+                  )}
 
                   <form onSubmit={handlePinLogin} className="auth-split-form">
                     <div className="auth-split-field" style={{ alignItems: "center" }}>
@@ -1275,31 +1280,6 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       />
                     </div>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
-                      <button
-                        type="button"
-                        className="auth-split-link-btn"
-                        onClick={() => {
-                          setReservasStep("phone");
-                          setPin("");
-                          setError(null);
-                        }}
-                        style={{ color: theme === "dark" ? "#a1a1aa" : "#64748b", fontSize: "12.5px" }}
-                      >
-                        ← Usar outro número
-                      </button>
-
-                      <button
-                        type="button"
-                        className="auth-split-link-btn"
-                        onClick={handleRequestPinReset}
-                        disabled={loading}
-                        style={{ color: greenText, fontSize: "12.5px" }}
-                      >
-                        Esqueci meu PIN
-                      </button>
-                    </div>
-
                     <button
                       type="submit"
                       className="auth-split-primary-btn"
@@ -1309,12 +1289,47 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       {loading ? (
                         <>
                           <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
-                          <span>Entrando...</span>
+                          <span>Acessando...</span>
                         </>
                       ) : (
-                        <span>Entrar</span>
+                        <span>Acessar minhas reservas</span>
                       )}
                     </button>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px" }}>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => handleModeChange("login")}
+                        style={{ color: theme === "dark" ? "#a1a1aa" : "#64748b", fontSize: "12.5px" }}
+                      >
+                        ← Painel do estabelecimento
+                      </button>
+
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => {
+                          setReservasStep("phone");
+                          setError(null);
+                        }}
+                        style={{ color: greenText, fontSize: "12.5px" }}
+                      >
+                        Esqueci meu PIN
+                      </button>
+                    </div>
+
+                    <p
+                      style={{
+                        margin: "16px 0 0",
+                        fontSize: "12px",
+                        color: theme === "dark" ? "#a1a1aa" : "#71717a",
+                        textAlign: "center",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      O PIN de 6 dígitos é gerado ao confirmar uma reserva.
+                    </p>
                   </form>
                 </>
               ) : reservasStep === "pin_setup" ? (
