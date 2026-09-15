@@ -1627,11 +1627,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               setLoginPinBusy(true);
                               setLoginPinError("");
                               try {
-                                const res = await api<{ data: { customer: Customer } }>("/api/customer-access/pin/login", {
+                                const res = await api<{ customer: Customer }>("/api/customer-access/pin/login", {
                                   method: "POST",
                                   body: JSON.stringify({ pin: loginPin }),
                                 });
-                                setCustomer(res.data.customer);
+                                setCustomer(res.customer);
                               } catch (err: any) {
                                 setLoginPinError(err.message || "PIN incorreto ou não encontrado.");
                               } finally {
@@ -1675,7 +1675,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               setFormBusy(true);
                               setFormError("");
                               try {
-                                const res = await api<{ data: { customer: Customer } }>("/api/customer-access/identify", {
+                                const res = await api<{ customer: Customer }>("/api/customer-access/identify", {
                                   method: "POST",
                                   body: JSON.stringify({
                                     name: formName,
@@ -1683,7 +1683,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                     email: formEmail || undefined,
                                   }),
                                 });
-                                setCustomer(res.data.customer);
+                                setCustomer(res.customer);
                               } catch (err: any) {
                                 setFormError(err.message || "Erro ao salvar dados.");
                               } finally {
