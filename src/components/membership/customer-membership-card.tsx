@@ -142,10 +142,10 @@ export function CustomerMembershipCard({
     <div
       className="customer-membership-card"
       style={{
-        background: "linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(30,30,30,1) 100%)",
+        background: "var(--surface, #111114)",
         borderRadius: "var(--radius-md, 10px)",
         padding: "18px",
-        border: "1px solid rgba(99,102,241,0.3)",
+        border: "1px solid var(--border, #27272f)",
         marginTop: 16,
       }}
     >

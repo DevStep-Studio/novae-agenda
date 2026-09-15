@@ -957,8 +957,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   {customerMembership && customerMembership.status === "active" && (
                     <div
                       style={{
-                        background: "linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(139,92,246,0.1) 100%)",
-                        border: "1px solid rgba(99,102,241,0.35)",
+                        background: "var(--booking-surface, #111114)",
+                        border: "1px solid var(--booking-border, #27272f)",
                         borderRadius: 12,
                         padding: "16px 18px",
                         marginBottom: 24,

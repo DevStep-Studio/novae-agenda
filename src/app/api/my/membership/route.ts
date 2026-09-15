@@ -8,7 +8,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const auth = await requireAuth();
-  if (!auth) return unauthorized();
+  if (!auth) {
+    return Response.json(
+      { data: null },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
 
   const { searchParams } = new URL(request.url);
   const companyIdParam = searchParams.get("companyId");

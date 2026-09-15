@@ -366,8 +366,8 @@ export function ClientPortal({
             {customerMembership && customerMembership.status === "active" && (
               <section
                 style={{
-                  background: "linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(139,92,246,0.08) 100%)",
-                  border: "1px solid rgba(99,102,241,0.35)",
+                  background: "var(--portal-card, #16161b)",
+                  border: "1px solid var(--portal-border, #27272f)",
                   borderRadius: "14px",
                   padding: "18px 20px",
                   marginBottom: "20px",

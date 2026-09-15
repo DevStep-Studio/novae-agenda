@@ -220,7 +220,12 @@ export function MyBookings({
 
   const content = (
       <Content className={`${b.main} ${current ? b.success : ""} ${user && !current ? b.bookingsPage : ""}`}>
-        <ErrorMessage message={error} />
+        {error &&
+          !error.toLowerCase().includes("entre") &&
+          !error.toLowerCase().includes("login") &&
+          !error.toLowerCase().includes("sessão") && (
+            <ErrorMessage message={error} />
+          )}
         {message && (
           <div className={b.note} role="status">
             {message}
@@ -621,9 +626,23 @@ export function MyBookings({
           <>
             <header className={b.bookingsHeader}>
               <div>
-                <p className={b.eyebrow}>Olá, {user.name.split(" ")[0]}</p>
-                <h1 className={b.title}>Meus agendamentos</h1>
-                <p className={b.subtitle}>Gerencie seus próximos horários e consulte seu histórico.</p>
+                <span className={b.bookingsBadge}>
+                  <UserRound size={12} /> {user.name ? `Olá, ${user.name.split(" ")[0]}` : "Área do Cliente"}
+                </span>
+                <h1 className={b.title}>
+                  {tab === "Anteriores"
+                    ? "Histórico de agendamentos"
+                    : tab === "Cancelados"
+                      ? "Agendamentos cancelados"
+                      : "Meus agendamentos"}
+                </h1>
+                <p className={b.subtitle}>
+                  {tab === "Anteriores"
+                    ? "Consulte seus atendimentos realizados e serviços anteriores."
+                    : tab === "Cancelados"
+                      ? "Histórico de horários e reservas desmarcadas."
+                      : "Gerencie seus próximos horários confirmados e consulte seu histórico."}
+                </p>
               </div>
               {!embedded && (
                 <button
@@ -639,19 +658,34 @@ export function MyBookings({
               )}
             </header>
             <div className={b.bookingTabs} role="tablist" aria-label="Filtrar agendamentos">
-              {["Próximos", "Anteriores", "Cancelados"].map((t) => (
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t}
-                  className={`${b.bookingTab} ${tab === t ? b.bookingTabActive : ""}`}
-                  key={t}
-                  onClick={() => setTab(t)}
-                >
-                  {t}
-                  <span>{rows.filter((row) => t === "Cancelados" ? row.status === "cancelled" : t === "Anteriores" ? row.status !== "cancelled" && (new Date(row.endsAt) < new Date() || row.status === "completed" || row.status === "no_show") : row.status !== "cancelled" && row.status !== "completed" && row.status !== "no_show" && new Date(row.endsAt) >= new Date()).length}</span>
-                </button>
-              ))}
+              {(["Próximos", "Anteriores", "Cancelados"] as const).map((t) => {
+                const count = rows.filter((row) =>
+                  t === "Cancelados"
+                    ? row.status === "cancelled"
+                    : t === "Anteriores"
+                      ? row.status !== "cancelled" &&
+                        (new Date(row.endsAt) < new Date() ||
+                          row.status === "completed" ||
+                          row.status === "no_show")
+                      : row.status !== "cancelled" &&
+                        row.status !== "completed" &&
+                        row.status !== "no_show" &&
+                        new Date(row.endsAt) >= new Date(),
+                ).length;
+                return (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t}
+                    className={`${b.bookingTab} ${tab === t ? b.bookingTabActive : ""}`}
+                    key={t}
+                    onClick={() => setTab(t)}
+                  >
+                    <span>{t}</span>
+                    <span className={b.bookingTabBadge}>{count}</span>
+                  </button>
+                );
+              })}
             </div>
             {visible.length ? (
               <div className={b.bookingCards}>
@@ -713,17 +747,35 @@ export function MyBookings({
             ) : (
               <div className={b.bookingsEmpty}>
                 <div className={b.bookingsEmptyIcon}>
-                  {tab === "Próximos" ? <CalendarDays size={24} /> : <History size={24} />}
+                  {tab === "Próximos" ? (
+                    <CalendarDays size={24} />
+                  ) : tab === "Cancelados" ? (
+                    <RotateCcw size={24} />
+                  ) : (
+                    <History size={24} />
+                  )}
                 </div>
-                <h3>{tab === "Próximos" ? "Nenhum agendamento futuro" : "Nenhum agendamento por aqui"}</h3>
+                <h3>
+                  {tab === "Próximos"
+                    ? "Nenhum agendamento futuro"
+                    : tab === "Cancelados"
+                      ? "Nenhum agendamento cancelado"
+                      : "Nenhum agendamento por aqui"}
+                </h3>
                 <p>
-                  {tab === "Próximos" ? "Quando você reservar um horário, ele aparecerá aqui com todos os detalhes." : "Seu histórico de atendimentos realizados e cancelados aparecerá aqui."}
+                  {tab === "Próximos"
+                    ? "Quando você reservar um horário, ele aparecerá aqui com todos os detalhes e opções de remarcação."
+                    : tab === "Cancelados"
+                      ? "Você não possui agendamentos cancelados no seu registro."
+                      : "Seu histórico de atendimentos realizados e concluídos aparecerá aqui quando houver registros."}
                 </p>
-                {tab === "Próximos" && (
-                  <Link href={embedded ? "/cliente?tab=agendar" : "/"} className={b.emptyCtaButton}>
-                    <CalendarPlus size={15} /> Agendar horário
-                  </Link>
-                )}
+                <Link
+                  href={embedded ? "/cliente?tab=agendar" : "/"}
+                  className={b.emptyCtaButton}
+                >
+                  <CalendarPlus size={15} />
+                  <span>{tab === "Próximos" ? "Agendar horário" : "Explorar estabelecimentos"}</span>
+                </Link>
               </div>
             )}
           </>

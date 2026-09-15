@@ -13,9 +13,9 @@ type Context = { params: Promise<{ path?: string[] }> };
 export async function GET(_request: Request, { params }: Context) {
   try {
     const user = await getIdentity();
-    if (!user) throw new BookingError("Entre para ver seus agendamentos.", 401);
     const { path = [] } = await params;
     if (path[0]) {
+      if (!user) throw new BookingError("Entre para ver seus agendamentos.", 401);
       const id = z.uuid().parse(path[0]),
         detail = await bookingDetails(id, user.id);
       if (path[1] === "calendar")
@@ -29,6 +29,12 @@ export async function GET(_request: Request, { params }: Context) {
       if (path.length > 1)
         throw new BookingError("Página não encontrada.", 404);
       return Response.json({ data: detail });
+    }
+    if (!user) {
+      return Response.json(
+        { data: [] },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
     }
     return Response.json(
       {
