@@ -5425,6 +5425,25 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   const [clientDrawer, setClientDrawer] = useState<ClientDTO | null>(null);
   const [subStatus, setSubStatus] = useState<string>("active");
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [topbarAvatarError, setTopbarAvatarError] = useState(false);
+  const [sidebarAvatarError, setSidebarAvatarError] = useState(false);
+
+  const userAvatar = useMemo(() => {
+    if (session?.avatarUrl) return session.avatarUrl;
+    if (session?.company?.logoUrl) return session.company.logoUrl;
+    const matchedEmployee = employees.find(
+      (e) =>
+        (session?.employeeId && e.id === session.employeeId) ||
+        (session?.name && e.name.trim().toLowerCase() === session.name.trim().toLowerCase())
+    );
+    if (matchedEmployee?.photoUrl) return matchedEmployee.photoUrl;
+    return null;
+  }, [session?.avatarUrl, session?.company?.logoUrl, session?.employeeId, session?.name, employees]);
+
+  useEffect(() => {
+    setTopbarAvatarError(false);
+    setSidebarAvatarError(false);
+  }, [userAvatar]);
 
   useEffect(() => {
     fetch("/api/subscriptions")
@@ -5817,7 +5836,18 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 
         <div className="sidebar-bottom">
           <button className={`profile-nav ${view === "perfil" ? "active" : ""}`} onClick={() => navigate("perfil")}>
-            <span className="profile-avatar">{initials(session?.name ?? "U")}</span>
+            <span className="profile-avatar">
+              {userAvatar && !sidebarAvatarError ? (
+                <img
+                  src={userAvatar}
+                  alt={session?.name ?? "Perfil"}
+                  className="profile-avatar-img"
+                  onError={() => setSidebarAvatarError(true)}
+                />
+              ) : (
+                initials(session?.name ?? "U")
+              )}
+            </span>
             {!collapsed && <span><strong>{session?.name}</strong><small>{roleLabel(session?.role)}</small></span>}
             <MoreHorizontal size={17} />
           </button>
@@ -6030,7 +6060,18 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 
             <button className="topbar-profile-button" onClick={() => navigate("perfil")} aria-label="Perfil">
               <span className="topbar-avatar-wrap">
-                <span className="topbar-avatar">{initials(session?.name ?? "U")}</span>
+                <span className="topbar-avatar">
+                  {userAvatar && !topbarAvatarError ? (
+                    <img
+                      src={userAvatar}
+                      alt={session?.name ?? "Perfil"}
+                      className="topbar-avatar-img"
+                      onError={() => setTopbarAvatarError(true)}
+                    />
+                  ) : (
+                    initials(session?.name ?? "U")
+                  )}
+                </span>
                 <span className="topbar-online-dot" title="Online" />
               </span>
             </button>
@@ -6121,8 +6162,14 @@ function ProfilePage({
   const [phone, setPhone] = useState(session?.phone ?? "");
   const [companyName, setCompanyName] = useState(session?.company.name ?? "");
   const [businessType, setBusinessType] = useState(session?.company.businessType ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(session?.company.logoUrl ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(session?.avatarUrl || session?.company.logoUrl || "");
   const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
+
+  useEffect(() => {
+    if (session?.avatarUrl || session?.company?.logoUrl) {
+      setAvatarUrl(session.avatarUrl || session.company.logoUrl || "");
+    }
+  }, [session?.avatarUrl, session?.company?.logoUrl]);
   const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#3b82f6");
   const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
     showBanner: session?.company.dashboardPreferences?.showBanner ?? true,
