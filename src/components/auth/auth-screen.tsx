@@ -14,11 +14,14 @@ import {
   MailCheck,
   RotateCcw,
   Sparkles,
+  Sun,
+  Moon,
   User,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { useOptionalStore } from "@/store/store";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
+import { applyTheme, getStoredTheme, resolveTheme } from "@/lib/theme";
 
 export type AuthMode = "login" | "register" | "forgot-password" | "reservas";
 type RecoveryStep = "request_email" | "email_sent";
@@ -30,6 +33,26 @@ interface AuthScreenProps {
 
 export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
   const store = useOptionalStore();
+
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      return resolveTheme(getStoredTheme());
+    }
+    return "dark";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const initial = resolveTheme(getStoredTheme());
+      setTheme(initial);
+      applyTheme(initial);
+    }
+  }, []);
+
+  const handleSetTheme = (nextTheme: "light" | "dark") => {
+    setTheme(nextTheme);
+    applyTheme(nextTheme);
+  };
 
   const [mode, setMode] = useState<AuthMode>(() => {
     if (initialMode) return initialMode;
@@ -285,9 +308,33 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       {/* PAINEL DIREITO: FORMULÁRIOS DE AUTENTICAÇÃO               */}
       {/* ========================================================= */}
       <div className="auth-split-form-pane">
-        {/* Topbar com logo Reservei alinhado à esquerda */}
+        {/* Topbar com logo Reservei e seletor de tema Claro / Escuro */}
         <div className="auth-split-topbar">
           <ReserveiLogo size={34} priority />
+          <div
+            className="auth-split-theme-pill"
+            role="radiogroup"
+            aria-label="Seletor de tema claro ou escuro"
+          >
+            <button
+              type="button"
+              className={`auth-split-theme-btn ${theme === "light" ? "active" : ""}`}
+              onClick={() => handleSetTheme("light")}
+              aria-label="Ativar tema claro"
+            >
+              <Sun size={13} />
+              <span>Claro</span>
+            </button>
+            <button
+              type="button"
+              className={`auth-split-theme-btn ${theme === "dark" ? "active" : ""}`}
+              onClick={() => handleSetTheme("dark")}
+              aria-label="Ativar tema escuro"
+            >
+              <Moon size={13} />
+              <span>Escuro</span>
+            </button>
+          </div>
         </div>
 
         <div className="auth-split-form-container">
