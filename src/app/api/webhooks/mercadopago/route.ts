@@ -4,6 +4,7 @@ import { notifications, paymentWebhookEvents, subscriptionInvoices, subscription
 import { recordAudit } from "@/lib/audit";
 import { SaasCouponService } from "@/lib/saas/coupon-service";
 import { MercadoPagoStatusMapper, saasPaymentProvider } from "@/lib/saas/payment-provider";
+import { logger } from "@/lib/observability";
 import { and, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -176,7 +177,7 @@ export async function POST(request: Request) {
             }
           }
         } catch (err: any) {
-          console.error("[MercadoPago Webhook] Error fetching payment info:", err);
+          logger.webhookFailure("mercadopago", eventUniqueId, err, { paymentId, action });
           await db
             .update(paymentWebhookEvents)
             .set({
@@ -191,7 +192,7 @@ export async function POST(request: Request) {
 
     return Response.json({ received: true });
   } catch (error: any) {
-    console.error("[MercadoPago Webhook] Global handler error:", error);
+    logger.webhookFailure("mercadopago", "global_catch", error);
     return Response.json({ received: true, error: "Processed with warning" });
   }
 }

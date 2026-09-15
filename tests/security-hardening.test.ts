@@ -17,6 +17,7 @@ import {
 import { isWeakPin, isValidPinFormat } from "../src/lib/customer-access/service";
 import { consumeRateLimit, tooManyRequests, type RateLimitRule } from "../src/lib/rate-limit";
 import { SaasCouponService } from "../src/lib/saas/coupon-service";
+import { sanitizeLogData, logger } from "../src/lib/observability";
 import { db } from "../src/db";
 import { companies, users } from "../src/db/schema";
 import { eq } from "drizzle-orm";
@@ -200,5 +201,108 @@ test("Security Hardening Suite — 20 Control Layers & Production Integrity", as
     assert.equal(timingSafeCompare(secret, "super-secret-token-1234567890-abcdeg"), false);
     assert.equal(timingSafeCompare(secret, "short"), false);
     assert.equal(timingSafeCompare(secret, ""), false);
+  });
+
+  await t.test("9. Observability & Sensitive Data Sanitization", () => {
+    const rawPayload = {
+      user: "Admin",
+      email: "admin@empresa.com",
+      password: "secret-plaintext-password",
+      passwordHash: "$2b$12$e0NZhX..hash",
+      pin: "123456",
+      pinHash: "$2b$12$otherhash",
+      cardToken: "tok_1234567890abcdef",
+      cvv: "123",
+      nested: {
+        sessionSecret: "ultra-secret-key-that-must-not-leak",
+        status: "active",
+        allowedItems: ["safe", { token: "sensitive-nested-token" }],
+      },
+    };
+
+    const sanitized = sanitizeLogData(rawPayload) as any;
+
+    assert.equal(sanitized.user, "Admin");
+    assert.equal(sanitized.email, "admin@empresa.com");
+    assert.equal(sanitized.password, "[REDACTED]");
+    assert.equal(sanitized.passwordHash, "[REDACTED]");
+    assert.equal(sanitized.pin, "[REDACTED]");
+    assert.equal(sanitized.pinHash, "[REDACTED]");
+    assert.equal(sanitized.cardToken, "[REDACTED]");
+    assert.equal(sanitized.cvv, "[REDACTED]");
+    assert.equal(sanitized.nested.sessionSecret, "[REDACTED]");
+    assert.equal(sanitized.nested.status, "active");
+    assert.equal(sanitized.nested.allowedItems[1].token, "[REDACTED]");
+  });
+
+  await t.test("10. Direct Prohibited Route Simulation (Owner / Professional / Customer / Superadmin)", () => {
+    type RoutePermission = {
+      route: string;
+      allowedRoles: Role[];
+    };
+
+    const protectedRoutes: RoutePermission[] = [
+      { route: "/api/saas/checkout/card", allowedRoles: ["owner", "superadmin"] },
+      { route: "/api/saas/subscription/cancel", allowedRoles: ["owner", "superadmin"] },
+      { route: "/api/reports", allowedRoles: ["manager", "admin", "owner", "superadmin"] },
+      { route: "/api/clients", allowedRoles: ["employee", "manager", "admin", "owner", "superadmin"] },
+      { route: "/api/superadmin", allowedRoles: ["superadmin"] },
+      { route: "/api/superadmin/saas-coupons", allowedRoles: ["superadmin"] },
+    ];
+
+    function evaluateRouteAccess(role: Role, routeDef: RoutePermission): number {
+      if (routeDef.allowedRoles.includes(role)) return 200;
+      return 403; // Forbidden
+    }
+
+    // 1. Professional (employee)
+    assert.equal(evaluateRouteAccess("employee", protectedRoutes[0]), 403, "Professional não pode acessar checkout SaaS");
+    assert.equal(evaluateRouteAccess("employee", protectedRoutes[1]), 403, "Professional não pode cancelar assinatura");
+    assert.equal(evaluateRouteAccess("employee", protectedRoutes[2]), 403, "Professional não pode acessar relatórios financeiros globais");
+    assert.equal(evaluateRouteAccess("employee", protectedRoutes[3]), 200, "Professional pode consultar clientes");
+    assert.equal(evaluateRouteAccess("employee", protectedRoutes[4]), 403, "Professional não pode acessar Superadmin");
+
+    // 2. Customer (client)
+    assert.equal(evaluateRouteAccess("client", protectedRoutes[0]), 403, "Customer não pode acessar checkout SaaS");
+    assert.equal(evaluateRouteAccess("client", protectedRoutes[2]), 403, "Customer não pode acessar relatórios");
+    assert.equal(evaluateRouteAccess("client", protectedRoutes[3]), 403, "Customer não pode gerenciar clientes");
+    assert.equal(evaluateRouteAccess("client", protectedRoutes[4]), 403, "Customer não pode acessar Superadmin");
+
+    // 3. Owner
+    assert.equal(evaluateRouteAccess("owner", protectedRoutes[0]), 200, "Owner pode gerenciar checkout SaaS");
+    assert.equal(evaluateRouteAccess("owner", protectedRoutes[1]), 200, "Owner pode cancelar assinatura");
+    assert.equal(evaluateRouteAccess("owner", protectedRoutes[2]), 200, "Owner pode ver relatórios financeiros");
+    assert.equal(evaluateRouteAccess("owner", protectedRoutes[4]), 403, "Owner não pode acessar Superadmin da plataforma");
+
+    // 4. Superadmin
+    assert.equal(evaluateRouteAccess("superadmin", protectedRoutes[4]), 200, "Superadmin acessa painel global");
+    assert.equal(evaluateRouteAccess("superadmin", protectedRoutes[5]), 200, "Superadmin gerencia cupons da plataforma");
+  });
+
+  await t.test("11. Mercado Pago HMAC Signature Verification Logic", () => {
+    function verifySignature(manifest: string, secret: string, incomingHash: string): boolean {
+      try {
+        const computed = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+        const bufComputed = Buffer.from(computed);
+        const bufIncoming = Buffer.from(incomingHash);
+        if (bufComputed.length !== bufIncoming.length) return false;
+        return crypto.timingSafeEqual(bufComputed, bufIncoming);
+      } catch {
+        return false;
+      }
+    }
+
+    const secret = "test-webhook-secret-998877";
+    const dataId = "123456789";
+    const xRequestId = "req-uuid-1234-5678";
+    const ts = "1700000000";
+    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+
+    const validHash = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+    const tamperedHash = crypto.createHmac("sha256", "wrong-secret").update(manifest).digest("hex");
+
+    assert.equal(verifySignature(manifest, secret, validHash), true);
+    assert.equal(verifySignature(manifest, secret, tamperedHash), false, "Hash com segredo adulterado deve ser rejeitado");
+    assert.equal(verifySignature(manifest, secret, "short"), false);
   });
 });

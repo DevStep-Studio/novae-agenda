@@ -8,6 +8,7 @@
  * No SDK dependency: Resend is called with fetch so the architecture stays swappable.
  */
 import { assertServerOnly } from "./server-guard";
+import { logger } from "./observability";
 
 assertServerOnly("O serviço de e-mail (Resend/SMTP)");
 
@@ -48,12 +49,12 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
       });
       if (!res.ok) {
         const detail = await res.text().catch(() => "");
-        console.error(`[mailer] resend responded ${res.status}: ${detail}`);
+        logger.emailFailure(message.to, message.subject, new Error(`resend responded ${res.status}: ${detail}`));
         return { ok: false, transport: "resend", error: `http_${res.status}` };
       }
       return { ok: true, transport: "resend" };
     } catch (error) {
-      console.error("[mailer] resend request failed", error);
+      logger.emailFailure(message.to, message.subject, error);
       return { ok: false, transport: "resend", error: "network" };
     }
   }
