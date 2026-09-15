@@ -110,7 +110,12 @@ export async function PATCH(request: Request) {
   const { name, phone, companyName, businessType, avatarUrl, bannerUrl, primaryColor, secondaryColor, dashboardPreferences } = parsed.data;
 
   const [currentUser] = await db
-    .select({ avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl })
+    .select({
+      avatarUrl: users.avatarUrl,
+      bannerUrl: users.bannerUrl,
+      phone: users.phone,
+      email: users.email,
+    })
     .from(users)
     .where(eq(users.id, auth.user.userId))
     .limit(1);
@@ -137,7 +142,7 @@ export async function PATCH(request: Request) {
     await db.update(users).set(userPatch).where(eq(users.id, auth.user.userId));
   }
 
-  // Also update client records linked to this user
+  // Also update client records linked to this user (so owner screen displays updated photo, name and phone)
   if (name !== undefined || phone !== undefined || savedAvatarUrl !== undefined) {
     const clientPatch: Record<string, unknown> = {};
     if (name !== undefined) clientPatch.name = name.trim();
@@ -145,7 +150,39 @@ export async function PATCH(request: Request) {
     if (savedAvatarUrl !== undefined) clientPatch.photoUrl = savedAvatarUrl;
     clientPatch.updatedAt = new Date();
 
+    // 1. Update directly by userId
     await db.update(clients).set(clientPatch).where(eq(clients.userId, auth.user.userId));
+
+    // 2. Also match CRM client records by phone or email to update their photo, name and phone
+    const cleanDigits = (phone || currentUser?.phone || auth.user.phone || "").replace(/\D/g, "");
+    const userEmail = (auth.user.email || "").toLowerCase();
+
+    const existingClients = await db
+      .select({
+        id: clients.id,
+        companyId: clients.companyId,
+        phone: clients.phone,
+        email: clients.email,
+        userId: clients.userId,
+      })
+      .from(clients);
+
+    for (const c of existingClients) {
+      if (c.userId === auth.user.userId) continue;
+
+      const cDigits = (c.phone || "").replace(/\D/g, "");
+      const matchesPhone = cleanDigits && cDigits && (cDigits === cleanDigits || (cleanDigits.length >= 8 && cDigits.endsWith(cleanDigits.slice(-8))));
+      const matchesEmail = userEmail && c.email && c.email.toLowerCase() === userEmail;
+
+      if (matchesPhone || matchesEmail) {
+        const recordPatch: Record<string, unknown> = { ...clientPatch };
+        const companyHasUser = existingClients.some((other) => other.companyId === c.companyId && other.userId === auth.user.userId);
+        if (!companyHasUser && !c.userId) {
+          recordPatch.userId = auth.user.userId;
+        }
+        await db.update(clients).set(recordPatch).where(eq(clients.id, c.id));
+      }
+    }
   }
 
   // 2. Resolve or provision companyId if owner/admin

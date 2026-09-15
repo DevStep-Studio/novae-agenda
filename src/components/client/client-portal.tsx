@@ -36,6 +36,7 @@ import {
 import { AVATAR_PRESETS, BANNER_PRESETS } from "@/lib/theme-utils";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api, ApiError } from "@/lib/api-client";
+import { useOptionalStore } from "@/store/store";
 import { MyBookings } from "@/components/booking/my-bookings";
 import type { BookingDetails } from "@/lib/booking/service";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
@@ -98,6 +99,7 @@ export function ClientPortal({
   onLogout?: () => void;
 }) {
   const router = useRouter();
+  const store = useOptionalStore();
   const [activeTab, setActiveTab] = useState<ClientTab>("home");
   const [session, setSession] = useState<SessionInfo | null>(initialSession ?? null);
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
@@ -306,14 +308,22 @@ export function ClientPortal({
         }),
       });
 
+      const finalAvatar = res?.avatarUrl !== undefined ? res.avatarUrl : profileAvatarUrl;
+      const finalBanner = res?.bannerUrl !== undefined ? res.bannerUrl : profileBannerUrl;
+      if (finalAvatar !== undefined) setProfileAvatarUrl(finalAvatar);
+      if (finalBanner !== undefined) setProfileBannerUrl(finalBanner);
+
       if (session) {
         setSession({
           ...session,
           name: profileName.trim(),
           phone: profilePhone.trim() || null,
-          avatarUrl: res?.avatarUrl !== undefined ? res.avatarUrl : profileAvatarUrl,
-          bannerUrl: res?.bannerUrl !== undefined ? res.bannerUrl : profileBannerUrl,
+          avatarUrl: finalAvatar,
+          bannerUrl: finalBanner,
         });
+      }
+      if (store?.reloadSession) {
+        void store.reloadSession();
       }
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 4000);
@@ -398,11 +408,11 @@ export function ClientPortal({
               title={session?.name ?? "Meu Perfil"}
               style={{ overflow: "hidden", padding: 0 }}
             >
-              {session?.avatarUrl ? (
+              {(profileAvatarUrl || session?.avatarUrl) ? (
                 <img
-                  src={session.avatarUrl}
-                  alt=""
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  src={profileAvatarUrl || session?.avatarUrl || ""}
+                  alt={session?.name ?? "Avatar"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
               ) : session?.name ? (
                 session.name[0].toUpperCase()

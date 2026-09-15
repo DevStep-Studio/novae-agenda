@@ -42,6 +42,16 @@
   --brand-soft: rgba(220, 255, 76, 0.1);
   --accent-contrast: #09090b;
 
+  /* Aliases for Client Portal Profile & Settings */
+  --portal-surface: #111114;
+  --portal-card: #16161b;
+  --portal-border: #27272f;
+  --portal-border-strong: #383844;
+  --portal-text: #ffffff;
+  --portal-dim: #a1a1aa;
+  --portal-muted: #71717a;
+  --portal-accent: #dcff4c;
+
   min-height: 100vh;
   background: var(--bg);
   color: var(--text-primary);
@@ -563,72 +573,85 @@
 .profileField {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .profileLabel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--portal-text);
+  color: #ffffff;
 }
 
 .profileLabelHint {
   font-size: 11px;
-  font-weight: 400;
-  color: var(--portal-dim);
+  font-weight: 500;
+  color: #a1a1aa;
+  background: #1f1f26;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #2e2e38;
 }
 
 .profileInputWrapper {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .profileInputIcon {
   position: absolute;
   left: 14px;
-  color: var(--portal-muted);
+  color: #a1a1aa;
   pointer-events: none;
+  z-index: 2;
 }
 
 .profileInputWithIcon {
-  padding-left: 38px !important;
+  padding-left: 42px !important;
 }
 
 .profileInput {
   display: block;
   width: 100%;
-  height: 42px;
-  padding: 0 14px;
+  height: 46px;
+  padding: 0 16px;
   border-radius: 10px;
-  border: 1px solid var(--portal-border);
-  background: var(--portal-card);
-  color: var(--portal-text);
+  border: 1px solid #27272f !important;
+  background: #16161b !important;
+  color: #ffffff !important;
   font-size: 14px;
+  font-weight: 500;
   outline: none !important;
   box-shadow: none !important;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
+.profileInput:hover:not(:disabled) {
+  border-color: #383844 !important;
+  background: #1a1a20 !important;
+}
+
 .profileInput:focus {
-  border-color: var(--portal-border-strong) !important;
-  background: #191920 !important;
+  border-color: #dcff4c !important;
+  background: #1c1c24 !important;
 }
 
 .profileInputDisabled {
-  opacity: 0.65;
+  opacity: 0.75;
   cursor: not-allowed;
-  background: #131317;
-  border-color: var(--portal-border);
+  background: #111114 !important;
+  border-color: #22222a !important;
+  color: #a1a1aa !important;
 }
 
 .profileInputHelp {
   font-size: 12px;
-  color: var(--portal-dim);
-  margin: 4px 0 0;
+  color: #71717a;
+  margin: 2px 0 0;
   line-height: 1.4;
 }
 
