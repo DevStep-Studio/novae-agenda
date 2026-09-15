@@ -400,6 +400,7 @@
 .headerLink {
   font-size: 13px;
   font-weight: 600;
+  font-family: inherit;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -412,6 +413,7 @@
   color: var(--booking-text-secondary);
   transition: all 0.2s ease;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .headerLink:hover {
@@ -419,6 +421,88 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.headerLink:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* "Meus agendamentos" quick-access modal, opened from the public booking header. */
+.myBookingsModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(8, 8, 8, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.myBookingsModal {
+  position: relative;
+  width: min(400px, 100%);
+  padding: 32px 28px;
+  border-radius: var(--booking-radius-lg);
+  border: 1px solid var(--booking-border);
+  background: var(--booking-surface);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+.myBookingsModalClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--booking-text-muted);
+  cursor: pointer;
+}
+.myBookingsModalClose:hover { background: var(--booking-surface-secondary); color: var(--booking-text-primary); }
+.myBookingsModalIcon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+.myBookingsModalTitle { margin: 0 0 6px; color: var(--booking-text-primary); font-size: 19px; font-weight: 700; }
+.myBookingsModalSubtitle { margin: 0 0 20px; color: var(--booking-text-secondary); font-size: 13px; line-height: 1.5; }
+.myBookingsModalForm { display: grid; gap: 8px; }
+.myBookingsModalLabel { color: var(--booking-text-secondary); font-size: 11.5px; font-weight: 600; }
+.myBookingsModalInput {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid var(--booking-border);
+  background: var(--booking-surface-secondary);
+  color: var(--booking-text-primary);
+  font-size: 14px;
+}
+.myBookingsModalInput:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+.myBookingsModalError { color: var(--booking-danger); font-size: 12px; }
+.myBookingsModalSubmit {
+  margin-top: 6px;
+  height: 46px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.myBookingsModalSubmit:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+.myBookingsModalSubmit:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .headerLinkText {
   display: inline-block;

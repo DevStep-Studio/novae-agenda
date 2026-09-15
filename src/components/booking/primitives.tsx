@@ -3,13 +3,85 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { UserRound } from "lucide-react";
+import { UserRound, X } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
+import { api, ApiError } from "@/lib/api-client";
 import styles from "./booking.module.css";
 export { styles as b };
+
+function formatPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function MyBookingsAccessModal({ onClose }: { onClose: () => void }) {
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 8) {
+      setError("Digite um número de celular válido com DDD.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await api("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ phone: phone.trim() }),
+      });
+      window.location.assign("/meus-agendamentos");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Não foi possível acessar. Tente novamente.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.myBookingsModalBackdrop} onClick={onClose}>
+      <div className={styles.myBookingsModal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Acessar meus agendamentos">
+        <button type="button" className={styles.myBookingsModalClose} onClick={onClose} aria-label="Fechar">
+          <X size={18} />
+        </button>
+        <div className={styles.myBookingsModalIcon}>
+          <UserRound size={20} />
+        </div>
+        <h2 className={styles.myBookingsModalTitle}>Meus agendamentos</h2>
+        <p className={styles.myBookingsModalSubtitle}>
+          Informe o número de celular usado no agendamento para consultar, remarcar ou cancelar.
+        </p>
+        <form onSubmit={submit} className={styles.myBookingsModalForm}>
+          <label className={styles.myBookingsModalLabel} htmlFor="my-bookings-phone">
+            Número de celular / WhatsApp
+          </label>
+          <input
+            id="my-bookings-phone"
+            className={styles.myBookingsModalInput}
+            type="tel"
+            inputMode="tel"
+            placeholder="(11) 99999-9999"
+            value={phone}
+            onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+            autoFocus
+            required
+          />
+          {error && <span className={styles.myBookingsModalError}>{error}</span>}
+          <button type="submit" className={styles.myBookingsModalSubmit} disabled={loading}>
+            {loading ? "Acessando..." : "Acessar meus agendamentos"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 const darkSchemeQuery = "(prefers-color-scheme: dark)";
 
@@ -77,6 +149,7 @@ export function PublicFrame({
     () => true,
   );
   const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
+  const [myBookingsModalOpen, setMyBookingsModalOpen] = useState(false);
 
   const palette = createBrandPalette(color, resolvedTheme);
   const fontPack = resolveFontPack(fontFamily);
@@ -150,17 +223,20 @@ export function PublicFrame({
               </>
             )}
           </div>
-          <a
-            href={preview ? undefined : "/meus-agendamentos"}
-            aria-disabled={Boolean(preview) || undefined}
+          <button
+            type="button"
+            disabled={Boolean(preview)}
+            onClick={() => setMyBookingsModalOpen(true)}
             className={styles.headerLink}
             title="Acessar meus agendamentos"
           >
             <UserRound size={16} />
             <span className={styles.headerLinkText}>Meus agendamentos</span>
-          </a>
+          </button>
         </div>
       </header>
+
+      {myBookingsModalOpen && <MyBookingsAccessModal onClose={() => setMyBookingsModalOpen(false)} />}
 
       {children}
 

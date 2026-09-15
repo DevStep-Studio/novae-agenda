@@ -112,11 +112,14 @@ export async function createSession(userId: string): Promise<void> {
     maxAge: MAX_AGE_SECONDS,
     path: "/",
   });
+  // A stale company context from a previous session/user must never leak into a fresh login.
+  cookieStore.set("active_company_id", "", { httpOnly: true, maxAge: 0, path: "/" });
 }
 
 export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, "", { httpOnly: true, maxAge: 0, path: "/" });
+  cookieStore.set("active_company_id", "", { httpOnly: true, maxAge: 0, path: "/" });
 }
 
 function formatTime(value: string): string {

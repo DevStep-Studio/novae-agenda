@@ -5651,7 +5651,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   }
 
   return (
-    <div className="app-shell" onClick={() => { setSearchOpen(false); setNotificationsOpen(false); setWorkspaceOpen(false); }}>
+    <div className={`app-shell ${mobileMenu ? "menu-open" : ""}`} onClick={() => { setSearchOpen(false); setNotificationsOpen(false); setWorkspaceOpen(false); }}>
       {mobileMenu && <div className="sidebar-backdrop" onClick={() => setMobileMenu(false)} />}
       <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""} ${mobileMenu ? "mobile-open" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="sidebar-top">
