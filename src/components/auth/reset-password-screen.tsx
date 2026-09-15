@@ -5,6 +5,7 @@ import { ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 
 import { ReserveiLogo } from "@/components/brand/novae-logo";
+import { PasswordStrengthMeter } from "./password-strength-meter";
 
 export function ResetPasswordScreen({ token, onDone }: { token: string; onDone: () => void }) {
   const [newPassword, setNewPassword] = useState("");
@@ -99,6 +100,7 @@ export function ResetPasswordScreen({ token, onDone }: { token: string; onDone: 
                     </button>
                   </div>
                 </label>
+                {newPassword ? <PasswordStrengthMeter password={newPassword} /> : null}
 
                 <label className="field">
                   <span className="field-label">Confirmar nova senha</span>

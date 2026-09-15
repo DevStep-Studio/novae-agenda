@@ -22,6 +22,7 @@ import { api, ApiError } from "@/lib/api-client";
 import { useOptionalStore } from "@/store/store";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { applyTheme, getStoredTheme, resolveTheme } from "@/lib/theme";
+import { PasswordStrengthMeter } from "./password-strength-meter";
 
 export type AuthMode = "login" | "register" | "forgot-password" | "reservas";
 type RecoveryStep = "request_email" | "email_sent";
@@ -540,9 +541,13 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  <span className="auth-split-field-hint">
-                    Pelo menos 8 caracteres
-                  </span>
+                  {password ? (
+                    <PasswordStrengthMeter password={password} />
+                  ) : (
+                    <span className="auth-split-field-hint">
+                      Pelo menos 8 caracteres
+                    </span>
+                  )}
                 </div>
 
                 <div className="auth-split-field">
@@ -576,6 +581,21 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       )}
                     </button>
                   </div>
+                  {confirmPassword.length > 0 && (
+                    <span
+                      style={{
+                        fontSize: "11.5px",
+                        marginTop: "2px",
+                        fontWeight: 600,
+                        color:
+                          password === confirmPassword ? "#10b981" : "#ef4444",
+                      }}
+                    >
+                      {password === confirmPassword
+                        ? "✓ As senhas coincidem"
+                        : "✕ As senhas não coincidem"}
+                    </span>
+                  )}
                 </div>
 
                 <button
