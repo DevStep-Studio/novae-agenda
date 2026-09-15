@@ -5876,6 +5876,13 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
               <ChevronRight size={13} className="breadcrumb-arrow" />
               <strong className="breadcrumb-page">{pageTitles[view].title}</strong>
             </div>
+
+            <div className="mobile-topbar-brand">
+              <span className="mobile-topbar-title">{pageTitles[view]?.title ?? "Reservei"}</span>
+              {session?.company?.name && (
+                <span className="mobile-topbar-company">{session.company.name}</span>
+              )}
+            </div>
           </div>
           
           <div className="topbar-actions">
@@ -5956,6 +5963,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             </div>
 
             <IconButton
+              className="theme-button"
               label={resolveTheme(theme) === "light" ? "Mudar para tema escuro" : "Mudar para tema claro"}
               onClick={() => {
                 const currentResolved = resolveTheme(theme);
