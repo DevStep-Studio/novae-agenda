@@ -1049,18 +1049,66 @@
 .bookingCardCompact .bookingCardBody { padding-block: var(--booking-space-4); }
 .bookingCardCompact .bookingUtilityActions { display: none; }
 .bookingsEmpty {
-  display: grid;
-  place-items: center;
-  padding: var(--booking-space-10) var(--booking-space-5);
-  border: 1px dashed var(--booking-border-strong);
-  border-radius: var(--booking-radius-lg);
-  background: var(--booking-surface-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 54px 24px;
+  border: 1px solid var(--booking-border);
+  border-radius: 16px;
+  background: var(--booking-surface);
   color: var(--booking-text-muted);
   text-align: center;
+  gap: 12px;
 }
-.bookingsEmpty svg { color: var(--accent); }
-.bookingsEmpty h3 { margin: 12px 0 4px; color: var(--booking-text-primary); }
-.bookingsEmpty p { margin: 0 0 18px; }
+.bookingsEmptyIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--booking-surface-secondary);
+  border: 1px solid var(--booking-border-strong);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.bookingsEmpty h3 {
+  margin: 0;
+  color: var(--booking-text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.bookingsEmpty p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--booking-text-secondary);
+  max-width: 380px;
+  line-height: 1.5;
+}
+.emptyCtaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #09090b;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  margin-top: 8px;
+  transition: all 0.15s ease;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.emptyCtaButton:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
 
 @media (max-width: 640px) {
   .bookingsHeader { gap: 12px; }
@@ -1891,13 +1939,13 @@
 }
 
 .empty {
-  border: 1px dashed var(--booking-border-soft);
-  padding: 32px 20px;
+  border: 1px solid var(--booking-border);
+  padding: 36px 20px;
   text-align: center;
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--booking-text-muted);
   margin: 16px 0;
-  background: color-mix(in srgb, var(--accent) 2%, transparent);
+  background: var(--booking-surface);
 }
 
 .empty h3 {

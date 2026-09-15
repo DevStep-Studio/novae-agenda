@@ -72,9 +72,21 @@ export function MyBookings({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRows(await api<Detail[]>("/api/my/bookings"));
+      const data = await api<Detail[]>("/api/my/bookings");
+      setRows(Array.isArray(data) ? data : []);
+      setError("");
     } catch (e) {
-      setError((e as Error).message);
+      setRows([]);
+      const msg = (e as Error).message ?? "";
+      if (
+        !msg.toLowerCase().includes("entre") &&
+        !msg.toLowerCase().includes("login") &&
+        !msg.toLowerCase().includes("unauthorized")
+      ) {
+        setError(msg);
+      } else {
+        setError("");
+      }
     } finally {
       setLoading(false);
     }
@@ -700,12 +712,18 @@ export function MyBookings({
               </div>
             ) : (
               <div className={b.bookingsEmpty}>
-                {tab === "Próximos" ? <CalendarDays size={28} /> : <History size={28} />}
-                <h3>{tab === "Próximos" ? "Nenhum agendamento futuro." : "Nenhum agendamento por aqui."}</h3>
+                <div className={b.bookingsEmptyIcon}>
+                  {tab === "Próximos" ? <CalendarDays size={24} /> : <History size={24} />}
+                </div>
+                <h3>{tab === "Próximos" ? "Nenhum agendamento futuro" : "Nenhum agendamento por aqui"}</h3>
                 <p>
-                  {tab === "Próximos" ? "Quando você reservar um horário, ele aparecerá aqui." : "Seu histórico aparecerá aqui quando houver registros."}
+                  {tab === "Próximos" ? "Quando você reservar um horário, ele aparecerá aqui com todos os detalhes." : "Seu histórico de atendimentos realizados e cancelados aparecerá aqui."}
                 </p>
-                {tab === "Próximos" && <Link href="/" className={b.button}>Agendar horário</Link>}
+                {tab === "Próximos" && (
+                  <Link href={embedded ? "/cliente?tab=agendar" : "/"} className={b.emptyCtaButton}>
+                    <CalendarPlus size={15} /> Agendar horário
+                  </Link>
+                )}
               </div>
             )}
           </>
