@@ -1,7 +1,10 @@
 import { db } from "@/db";
 import { subscriptions, subscriptionInvoices } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { assertServerOnly } from "./server-guard";
 import { PLANS, type PlanKey } from "./subscriptions";
+
+assertServerOnly("O módulo do Mercado Pago");
 
 const MP_API = "https://api.mercadopago.com";
 
@@ -35,6 +38,9 @@ export async function createSubscriptionCheckout(input: CheckoutSessionInput): P
 
   // If no Mercado Pago token is set (e.g. dev or testing), provide simulated checkout URL
   if (!token) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado em ambiente de produção.");
+    }
     const simulatedUrl = `${input.backUrl}?simulated_payment=success&plan=${input.planKey}&company_id=${encodeURIComponent(input.companyId)}`;
     return {
       initPoint: simulatedUrl,
@@ -93,7 +99,10 @@ export async function createSubscriptionCheckout(input: CheckoutSessionInput): P
     };
   } catch (error) {
     console.error("[MercadoPago] Checkout error:", error);
-    // Fallback to simulated checkout in case of network unavailability
+    if (process.env.NODE_ENV === "production") {
+      throw error instanceof Error ? error : new Error("Falha ao comunicar com gateway de pagamento.");
+    }
+    // Fallback to simulated checkout only in dev/test environments
     const simulatedUrl = `${input.backUrl}?simulated_payment=success&plan=${input.planKey}&company_id=${encodeURIComponent(input.companyId)}`;
     return {
       initPoint: simulatedUrl,

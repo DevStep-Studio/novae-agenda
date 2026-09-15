@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { db } from "@/db";
 import { notifications, paymentWebhookEvents, subscriptionInvoices, subscriptions, users } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
@@ -6,6 +7,39 @@ import { MercadoPagoStatusMapper, saasPaymentProvider } from "@/lib/saas/payment
 import { and, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
+
+function verifyMercadoPagoSignature(
+  request: Request,
+  dataId: string,
+  secret: string,
+): boolean {
+  try {
+    const xSignature = request.headers.get("x-signature");
+    const xRequestId = request.headers.get("x-request-id");
+    if (!xSignature || !xRequestId) return false;
+
+    const parts = xSignature.split(",").map((p) => p.trim());
+    let ts = "";
+    let hash = "";
+    for (const part of parts) {
+      const [key, val] = part.split("=");
+      if (key === "ts") ts = val;
+      if (key === "v1") hash = val;
+    }
+
+    if (!ts || !hash) return false;
+
+    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+    const computed = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+    const bufComputed = Buffer.from(computed);
+    const bufReceived = Buffer.from(hash);
+    if (bufComputed.length !== bufReceived.length) return false;
+    return crypto.timingSafeEqual(bufComputed, bufReceived);
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +52,16 @@ export async function POST(request: Request) {
 
     if (!paymentId) {
       return Response.json({ received: true, note: "No payment id" });
+    }
+
+    // 0. Valida assinatura criptográfica x-signature se o segredo do webhook estiver configurado
+    const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+    if (webhookSecret && webhookSecret.trim().length > 0) {
+      const isSignatureValid = verifyMercadoPagoSignature(request, paymentId, webhookSecret);
+      if (!isSignatureValid) {
+        console.warn("[MercadoPago Webhook] Invalid webhook signature rejected");
+        return Response.json({ error: "Assinatura inválida." }, { status: 401 });
+      }
     }
 
     const eventUniqueId = `${paymentId}_${action}`;
