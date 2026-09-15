@@ -1020,7 +1020,7 @@
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr);
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--booking-border);
   border-radius: var(--booking-radius-lg);
   background: var(--booking-surface);
@@ -1034,13 +1034,51 @@
   justify-content: center;
   align-self: stretch;
   padding: var(--booking-space-4) var(--booking-space-2);
-  border-right: 1px solid var(--booking-border);
+  border-right: 1.5px dashed var(--booking-border-strong);
+  border-radius: var(--booking-radius-lg) 0 0 var(--booking-radius-lg);
   background: var(--booking-surface-secondary);
   color: var(--card-brand);
   text-transform: uppercase;
 }
 .bookingDateBlock > span { font-size: 25px; font-weight: 800; line-height: 1; }
 .bookingDateBlock > strong { margin-top: 5px; font-size: 11px; letter-spacing: .08em; }
+
+/* Ticket styling: perforated stub between the date block and the details,
+   plus a small status badge — "Novo" for upcoming, "Usado"/"Cancelado" for the rest. */
+.ticketCard { position: relative; }
+.ticketCard::before,
+.ticketCard::after {
+  content: "";
+  position: absolute;
+  left: 78px;
+  width: 18px;
+  height: 18px;
+  background: var(--booking-background);
+  border: 1px solid var(--booking-border);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.ticketCard::before { top: -10px; }
+.ticketCard::after { bottom: -10px; }
+.ticketBadge {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card-brand) 16%, transparent);
+  color: var(--card-brand);
+  font-size: 8.5px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.ticketUsed { --card-brand: var(--booking-text-muted); }
+.ticketUsed .bookingDateBlock { filter: grayscale(.5); }
+.ticketCancelled { --card-brand: var(--booking-danger); }
 .bookingCardBody { min-width: 0; padding: var(--booking-space-5); }
 .bookingKicker {
   display: flex;
@@ -1174,6 +1212,8 @@
   .bookingsHeader .title { font-size: 28px; }
   .featuredBookingCard,
   .bookingCardCompact { grid-template-columns: 58px minmax(0, 1fr); }
+  .ticketCard::before,
+  .ticketCard::after { left: 58px; }
   .bookingDateBlock > span { font-size: 21px; }
   .bookingCardBody { padding: 16px 14px; }
   .bookingCardTitleRow { display: grid; gap: 10px; }

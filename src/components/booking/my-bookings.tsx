@@ -19,6 +19,7 @@ import {
   Share2,
   Sparkles,
   UserRound,
+  X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
@@ -691,16 +692,25 @@ export function MyBookings({
               <div className={b.bookingCards}>
                 {visible.map((r, index) => {
                   const featured = tab === "Próximos" && index === 0;
+                  const isUsed = tab === "Anteriores";
+                  const isCancelled = tab === "Cancelados";
                   const firstItem = r.items[0];
-                  const bookingDate = firstItem?.date ?? r.startsAt.slice(0, 10);
+                  const bookingDate = firstItem?.date ?? r.startsAt.slice(0,10);
                   const dateParts = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).formatToParts(new Date(`${bookingDate}T12:00:00Z`));
                   const day = dateParts.find((part) => part.type === "day")?.value;
                   const month = dateParts.find((part) => part.type === "month")?.value.replace(".", "");
                   return (
-                    <article className={featured ? b.featuredBookingCard : b.bookingCardCompact} key={r.id} style={{ "--card-brand": r.company.color } as React.CSSProperties}>
+                    <article
+                      className={`${featured ? b.featuredBookingCard : b.bookingCardCompact} ${b.ticketCard} ${isUsed ? b.ticketUsed : ""} ${isCancelled ? b.ticketCancelled : ""}`}
+                      key={r.id}
+                      style={{ "--card-brand": isUsed || isCancelled ? undefined : r.company.color } as React.CSSProperties}
+                    >
                       <div className={b.bookingDateBlock}>
                         <span>{day}</span>
                         <strong>{month}</strong>
+                        <em className={b.ticketBadge}>
+                          {isUsed ? <><Check size={11} /> Usado</> : isCancelled ? <><X size={11} /> Cancelado</> : "Novo"}
+                        </em>
                       </div>
                       <div className={b.bookingCardBody}>
                         {featured && <p className={b.bookingKicker}><CalendarDays size={14} /> Próximo agendamento</p>}

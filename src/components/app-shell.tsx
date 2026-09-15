@@ -5356,6 +5356,11 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     localStorage.setItem("agenda-view", view);
   }, [view]);
 
+  useEffect(() => {
+    document.body.style.overflow = mobileMenu ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenu]);
+
   // Global search hook
   useEffect(() => {
     if (!globalSearch.trim() || globalSearch.trim().length < 2) {
@@ -5647,6 +5652,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 
   return (
     <div className="app-shell" onClick={() => { setSearchOpen(false); setNotificationsOpen(false); setWorkspaceOpen(false); }}>
+      {mobileMenu && <div className="sidebar-backdrop" onClick={() => setMobileMenu(false)} />}
       <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""} ${mobileMenu ? "mobile-open" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="sidebar-top">
           <Logo collapsed={collapsed} onClick={collapsed ? () => setCollapsed(false) : undefined} />
