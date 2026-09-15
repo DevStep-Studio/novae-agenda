@@ -19,7 +19,6 @@ import {
   Share2,
   Sparkles,
   UserRound,
-  X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
@@ -708,9 +707,6 @@ export function MyBookings({
                       <div className={b.bookingDateBlock}>
                         <span>{day}</span>
                         <strong>{month}</strong>
-                        <em className={b.ticketBadge}>
-                          {isUsed ? <><Check size={11} /> Usado</> : isCancelled ? <><X size={11} /> Cancelado</> : "Novo"}
-                        </em>
                       </div>
                       <div className={b.bookingCardBody}>
                         {featured && <p className={b.bookingKicker}><CalendarDays size={14} /> Próximo agendamento</p>}

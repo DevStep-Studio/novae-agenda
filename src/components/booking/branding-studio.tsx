@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element, react-hooks/set-state-in-effect -- Loads the saved branding into the editor on mount. */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Palette,
   Upload,
@@ -21,6 +21,11 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
+  ArrowRight,
+  ArrowLeft,
+  Clock3,
+  MapPin,
+  Calendar,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
@@ -68,10 +73,11 @@ type BrandingData = {
   bookingSectionsConfig: SectionConfig[];
   businessType?: string | null;
   publicDescription?: string | null;
+  address?: string | null;
 };
 
 export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
-  const { notify } = useStore();
+  const { notify, services: storeServices } = useStore();
   const [initialData, setInitialData] = useState<BrandingData | null>(null);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -88,7 +94,10 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
   // Studio Preview States
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
   const [previewTheme, setPreviewTheme] = useState<"dark" | "light">("dark");
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("1");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [previewStep, setPreviewStep] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -142,6 +151,122 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
 
   // Derived Palette
   const palette = createBrandPalette(primaryColor, previewTheme);
+
+  // Derived Preview Services (use business's actual services if available, else clean category-aware defaults)
+  const previewServices = useMemo(() => {
+    const activeFromStore = (storeServices || []).filter((s) => s.active !== false);
+    if (activeFromStore.length > 0) {
+      return activeFromStore.map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: s.categoryName || "Serviços",
+        description: s.description || "",
+        price: Number(s.price || 0),
+        durationMinutes: Number(s.durationMinutes || 30),
+        imageUrl: s.imageUrl || null,
+      }));
+    }
+
+    const isBeautyOrAesthetics =
+      (initialData?.businessType || "").toLowerCase().includes("estétic") ||
+      (initialData?.businessType || "").toLowerCase().includes("beleza") ||
+      (name || "").toLowerCase().includes("designer");
+
+    if (isBeautyOrAesthetics) {
+      return [
+        {
+          id: "preview-1",
+          name: "Limpeza de Pele Profunda",
+          category: "Facial",
+          description: "Higienização completa, extração e hidratação com ativos premium.",
+          price: 120,
+          durationMinutes: 60,
+          imageUrl: null,
+        },
+        {
+          id: "preview-2",
+          name: "Design de Sobrancelhas",
+          category: "Design",
+          description: "Mapeamento facial e alinhamento personalizado com visagismo.",
+          price: 55,
+          durationMinutes: 30,
+          imageUrl: null,
+        },
+        {
+          id: "preview-3",
+          name: "Revitalização & Glow Facial",
+          category: "Facial",
+          description: "Protocolo de nutrição e luminosidade imediata para a pele.",
+          price: 90,
+          durationMinutes: 45,
+          imageUrl: null,
+        },
+      ];
+    }
+
+    return [
+      {
+        id: "preview-1",
+        name: "Atendimento Personalizado",
+        category: "Serviços",
+        description: "Consulta e atendimento completo com foco nas suas necessidades.",
+        price: 80,
+        durationMinutes: 45,
+        imageUrl: null,
+      },
+      {
+        id: "preview-2",
+        name: "Sessão Rápida / Retoque",
+        category: "Serviços",
+        description: "Procedimento ágil e pontual com máxima precisão.",
+        price: 45,
+        durationMinutes: 25,
+        imageUrl: null,
+      },
+    ];
+  }, [storeServices, initialData?.businessType, name]);
+
+  // Pre-select first service if none selected
+  useEffect(() => {
+    if (previewServices.length > 0 && selectedServiceIds.length === 0) {
+      setSelectedServiceIds([previewServices[0].id]);
+    }
+  }, [previewServices, selectedServiceIds.length]);
+
+  const allCategories = useMemo(() => {
+    const distinct = Array.from(
+      new Set(previewServices.map((s) => s.category).filter(Boolean)),
+    );
+    return distinct.length > 1 ? ["Todos", ...distinct] : [];
+  }, [previewServices]);
+
+  const filteredServices = useMemo(() => {
+    return previewServices.filter((s) => {
+      const matchesSearch =
+        !searchQuery.trim() ||
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "Todos" || s.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [previewServices, searchQuery, selectedCategory]);
+
+  const selectedServices = useMemo(() => {
+    return previewServices.filter((s) => selectedServiceIds.includes(s.id));
+  }, [previewServices, selectedServiceIds]);
+
+  const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
+  const totalMinutes = selectedServices.reduce(
+    (sum, s) => sum + s.durationMinutes,
+    0,
+  );
+
+  const activeCategoriesForRender = useMemo(() => {
+    if (selectedCategory !== "Todos") return [selectedCategory];
+    const set = new Set(filteredServices.map((s) => s.category || "Serviços"));
+    return Array.from(set);
+  }, [filteredServices, selectedCategory]);
 
   // Handle client-side image compression
   const handleImageUpload = async (
@@ -751,6 +876,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
             <PreviewToolbar
               theme={previewTheme}
               viewport={viewport}
+              slug={slug}
               onTheme={setPreviewTheme}
               onViewport={setViewport}
             />
@@ -774,7 +900,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
               <span className={styles.windowUrl}>
                 reservei.com.br/agendar/{slug || "studio-prime"}
               </span>
-              <span style={{ fontSize: 10, color: "#8eb3a2" }}>
+              <span style={{ fontSize: 10, color: "#8eb3a2", fontWeight: 700 }}>
                 {previewTheme.toUpperCase()}
               </span>
             </div>
@@ -793,87 +919,462 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                 logoUrl,
                 avatarUrl,
                 slug,
+                address: initialData?.address || undefined,
               }}
             >
               <main className={b.main}>
+                {/* Clickable Step Progress Navigation */}
                 <ol className={b.progress} aria-label="Prévia do progresso">
-                  {["Serviços", "Data e horário", "Confirmação"].map((label, index) => (
-                    <li key={label} className={index === 0 ? b.current : ""}>
-                      <b>{index + 1}</b>{label}
+                  {[
+                    { label: "Serviços", step: 0 },
+                    { label: "Data e horário", step: 1 },
+                    { label: "Confirmação", step: 2 },
+                  ].map(({ label, step }) => (
+                    <li
+                      key={label}
+                      className={previewStep === step ? b.current : ""}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setPreviewStep(step)}
+                      title={`Ver passo: ${label}`}
+                    >
+                      <b>{previewStep > step ? <Check size={11} /> : step + 1}</b>
+                      {label}
                     </li>
                   ))}
                 </ol>
-                <div className={b.content}>
-                  <p className={b.eyebrow}>Escolha seu serviço</p>
-                  <h1 className={b.title}>Escolha seu serviço</h1>
-                  <p className={b.subtitle}>{resolveCopy(copyOverrides, "heroSubtitle")}</p>
-                  <div className={b.profile}>
-                    {logoUrl ? <img className={b.avatar} src={logoUrl} alt="" /> : <span className={b.avatar}>{(name || "S").slice(0, 1)}</span>}
-                    <div>
-                      <h2>{name || "Studio Prime"}</h2>
-                      <div className={b.muted}>{initialData?.businessType || "Serviços"}</div>
-                    </div>
-                  </div>
-                  {isSectionVisible(sectionsConfig, "search") && (
-                    <div className={b.search}>
-                      <Search size={18} />
-                      <input readOnly placeholder={resolveCopy(copyOverrides, "searchPlaceholder")} value="" />
-                    </div>
-                  )}
-                  <section className={b.serviceGroup}>
-                    <h2 className={b.groupTitle}>Serviços <span>2</span></h2>
-                    {[
-                      { id: "1", name: "Corte & Acabamento", description: "Corte tradicional com lavagem", price: 45 },
-                      { id: "2", name: "Barba & Toalha Quente", description: "Design e alinhamento", price: 35 },
-                    ].map((service) => {
-                      const selected = selectedServiceId === service.id;
-                      return (
-                        <article className={b.service} key={service.id}>
-                          <div className={b.serviceMain}>
-                            <div className={b.serviceBody}>
-                              <span className={b.serviceImagePlaceholder}>{service.name.slice(0, 1)}</span>
-                              <div className={b.serviceDetails}>
-                                <h3>{service.name}</h3>
-                                <p className={b.serviceDescription}>{service.description}</p>
-                                <div className={b.serviceMeta}>30 min</div>
+
+                <div className={b.layout}>
+                  {/* Left Column: Flow Content */}
+                  <div className={b.content}>
+                    {previewStep > 0 && (
+                      <button
+                        type="button"
+                        className={`${b.textButton} ${b.back}`}
+                        onClick={() => setPreviewStep((s) => s - 1)}
+                        style={{ marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}
+                      >
+                        <ArrowLeft size={14} /> Voltar
+                      </button>
+                    )}
+
+                    {/* STEP 0: SERVIÇOS */}
+                    {previewStep === 0 && (
+                      <>
+                        <p className={b.eyebrow}>ESCOLHA SEU SERVIÇO</p>
+                        <h1 className={b.title}>Escolha seu serviço</h1>
+                        <p className={b.subtitle}>
+                          {resolveCopy(copyOverrides, "heroSubtitle")}
+                        </p>
+
+                        {/* Establishment Profile Card */}
+                        <div className={b.profile}>
+                          {avatarUrl || logoUrl ? (
+                            <img
+                              className={b.avatar}
+                              src={avatarUrl || logoUrl || ""}
+                              alt=""
+                            />
+                          ) : (
+                            <span className={b.avatar}>
+                              {(name || "S").slice(0, 1).toUpperCase()}
+                            </span>
+                          )}
+                          <div>
+                            <h2>{name || "Studio Prime"}</h2>
+                            <div className={b.muted}>
+                              {initialData?.businessType || "Serviços"}
+                            </div>
+                            {initialData?.address && (
+                              <div
+                                className={`${b.muted} ${b.inline}`}
+                                style={{ marginTop: 2, fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}
+                              >
+                                <MapPin size={11} />
+                                <span>{initialData.address}</span>
                               </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Search Bar */}
+                        {isSectionVisible(sectionsConfig, "search") && (
+                          <div className={b.search}>
+                            <Search size={16} />
+                            <input
+                              aria-label="Buscar serviço"
+                              placeholder={resolveCopy(copyOverrides, "searchPlaceholder")}
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                          </div>
+                        )}
+
+                        {/* Category Filter Pills */}
+                        {allCategories.length > 2 && (
+                          <div className={b.categoryFilter} role="tablist" aria-label="Categorias">
+                            {allCategories.map((cat) => (
+                              <button
+                                key={cat}
+                                type="button"
+                                className={`${b.categoryPill} ${
+                                  selectedCategory === cat ? b.categoryPillActive : ""
+                                }`}
+                                onClick={() => setSelectedCategory(cat)}
+                              >
+                                <span>{cat}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Service Groups */}
+                        {activeCategoriesForRender.map((category) => {
+                          const groupServices = filteredServices.filter(
+                            (s) => (s.category || "Serviços") === category,
+                          );
+                          if (groupServices.length === 0) return null;
+
+                          return (
+                            <section className={b.serviceGroup} key={category}>
+                              <h2 className={b.groupTitle}>
+                                {category} <span>{groupServices.length}</span>
+                              </h2>
+
+                              {groupServices.map((service) => {
+                                const selected = selectedServiceIds.includes(service.id);
+
+                                return (
+                                  <article className={b.service} key={service.id}>
+                                    <div className={b.serviceMain}>
+                                      <div className={b.serviceBody}>
+                                        {service.imageUrl ? (
+                                          <img
+                                            className={b.serviceImage}
+                                            src={service.imageUrl}
+                                            alt={service.name}
+                                          />
+                                        ) : (
+                                          <span className={b.serviceImagePlaceholder}>
+                                            {service.name.slice(0, 1).toUpperCase()}
+                                          </span>
+                                        )}
+                                        <div className={b.serviceDetails}>
+                                          <h3>{service.name}</h3>
+                                          {service.description && (
+                                            <p className={b.serviceDescription}>
+                                              {service.description}
+                                            </p>
+                                          )}
+                                          <div className={b.serviceMeta}>
+                                            <Clock3 size={12} />
+                                            <span>{service.durationMinutes} min</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className={b.serviceActions}>
+                                      <div className={b.servicePrice}>
+                                        <Price amount={service.price} />
+                                      </div>
+                                      <div className={b.serviceButtons}>
+                                        <button
+                                          type="button"
+                                          className={`${b.button} ${b.small} ${
+                                            selected ? "" : b.outline
+                                          }`}
+                                          aria-pressed={selected}
+                                          onClick={() => {
+                                            setSelectedServiceIds((prev) =>
+                                              prev.includes(service.id)
+                                                ? prev.filter((id) => id !== service.id)
+                                                : [...prev, service.id],
+                                            );
+                                          }}
+                                        >
+                                          {selected ? (
+                                            <>
+                                              <Check size={12} /> Selecionado
+                                            </>
+                                          ) : (
+                                            "Selecionar"
+                                          )}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </article>
+                                );
+                              })}
+                            </section>
+                          );
+                        })}
+
+                        {/* Optional Photos section */}
+                        {sectionsConfig
+                          .filter((s) => s.id === "photos" && s.visible)
+                          .map(() => (
+                            <div className={b.photos} key="photos-preview">
+                              <span className={b.serviceImagePlaceholder}>1</span>
+                              <span className={b.serviceImagePlaceholder}>2</span>
+                              <span className={b.serviceImagePlaceholder}>3</span>
+                            </div>
+                          ))}
+
+                        {/* Optional Hours section */}
+                        {sectionsConfig
+                          .filter((s) => s.id === "hours" && s.visible)
+                          .map(() => (
+                            <div
+                              className={b.muted}
+                              style={{ marginTop: 14, fontSize: 11.5 }}
+                              key="hours-preview"
+                            >
+                              Funcionamento: Seg a Sáb · 09:00–19:00
+                            </div>
+                          ))}
+                      </>
+                    )}
+
+                    {/* STEP 1: DATA E HORÁRIO */}
+                    {previewStep === 1 && (
+                      <div>
+                        <p className={b.eyebrow}>ESCOLHA QUANDO VOCÊ QUER IR</p>
+                        <h1 className={b.title}>Escolha a data e o horário</h1>
+                        <p className={b.subtitle}>
+                          Selecione o melhor dia e horário para seu atendimento.
+                        </p>
+
+                        <div className={b.calendar} style={{ padding: 14, borderRadius: 12, marginBottom: 14 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                            <span style={{ fontWeight: 700, fontSize: 13 }}>Próximos dias disponíveis</span>
+                            <span style={{ fontSize: 11, color: "var(--accent)" }}>Mês atual</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+                            {["Hoje", "Amanhã", "Quarta", "Quinta", "Sexta"].map((d, i) => (
+                              <button
+                                key={d}
+                                type="button"
+                                className={`${b.day} ${i === 0 ? b.daySelected : ""}`}
+                                style={{
+                                  padding: "8px 10px",
+                                  borderRadius: 8,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  background: i === 0 ? "var(--accent)" : undefined,
+                                  color: i === 0 ? "var(--accent-contrast)" : undefined,
+                                }}
+                              >
+                                {d}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: 14 }}>
+                          <span style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+                            Horários disponíveis
+                          </span>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {["09:00", "10:30", "14:00", "15:30", "17:00"].map((slot, i) => (
+                              <button
+                                key={slot}
+                                type="button"
+                                className={b.slotChip}
+                                style={{
+                                  padding: "6px 12px",
+                                  borderRadius: 8,
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  background: i === 1 ? "var(--accent)" : undefined,
+                                  color: i === 1 ? "var(--accent-contrast)" : undefined,
+                                }}
+                                onClick={() => setPreviewStep(2)}
+                              >
+                                {slot}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STEP 2: CONFIRMAÇÃO */}
+                    {previewStep === 2 && (
+                      <div>
+                        <p className={b.eyebrow}>Finalize seu agendamento</p>
+                        <h1 className={b.title}>Revise seu agendamento</h1>
+                        <p className={b.subtitle}>
+                          Confira os detalhes para garantir a reserva.
+                        </p>
+
+                        <div className={b.card} style={{ padding: 14, borderRadius: 12, marginBottom: 14 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                            <span className={b.muted}>Data e horário</span>
+                            <strong style={{ color: "var(--accent)" }}>Amanhã às 10:30</strong>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                            <span className={b.muted}>Estabelecimento</span>
+                            <strong>{name || "Studio Prime"}</strong>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span className={b.muted}>Serviços</span>
+                            <span>{selectedServices.map((s) => s.name).join(", ") || "1 serviço"}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: 14 }}>
+                          <span style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 6 }}>
+                            Forma de pagamento no local
+                          </span>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            {["PIX", "Cartão", "Dinheiro"].map((method, idx) => (
+                              <div
+                                key={method}
+                                style={{
+                                  padding: "6px 12px",
+                                  borderRadius: 8,
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  border: idx === 0 ? "1px solid var(--accent)" : "1px solid var(--line)",
+                                  background: idx === 0 ? "var(--accent)" : "var(--paper)",
+                                  color: idx === 0 ? "var(--accent-contrast)" : "var(--booking-text)",
+                                }}
+                              >
+                                {method}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Desktop Sticky Summary Card */}
+                  <aside className={b.summary} aria-label="Resumo do agendamento">
+                    <h2>Seu agendamento</h2>
+
+                    {selectedServices.length === 0 ? (
+                      <div className={b.summaryEmpty}>
+                        <Sparkles size={18} style={{ color: "var(--accent)" }} />
+                        <span>Nenhum serviço selecionado</span>
+                        <small style={{ color: "var(--booking-text-muted)" }}>
+                          Escolha um serviço ao lado para continuar.
+                        </small>
+                      </div>
+                    ) : (
+                      <>
+                        {selectedServices.map((service) => (
+                          <div className={b.summaryItem} key={service.id}>
+                            <div className={b.summaryItemRow}>
+                              <div className={b.summaryItemLeft}>
+                                <div className={b.summaryItemInfo}>
+                                  <h3>{service.name}</h3>
+                                  <div className={b.summaryItemMeta}>
+                                    <span>{service.durationMinutes} min</span>
+                                    <Price amount={service.price} className={b.summaryItemPrice} />
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className={b.remove}
+                                aria-label={`Remover ${service.name}`}
+                                onClick={() =>
+                                  setSelectedServiceIds((prev) =>
+                                    prev.filter((id) => id !== service.id),
+                                  )
+                                }
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
                           </div>
-                          <div className={b.serviceActions}>
-                            <div className={b.servicePrice}><Price amount={service.price} /></div>
-                            <button
-                              type="button"
-                              className={`${b.button} ${b.small} ${selected ? "" : b.outline}`}
-                              aria-pressed={selected}
-                              onClick={() => setSelectedServiceId(service.id)}
+                        ))}
+
+                        <div className={b.total}>
+                          <div>
+                            Total
+                            <span
+                              className={b.muted}
+                              style={{ display: "block", fontWeight: 400, fontSize: 11 }}
                             >
-                              {selected ? <><Check size={12} /> Selecionado</> : "Selecionar"}
-                            </button>
+                              {totalMinutes} min ({selectedServices.length}{" "}
+                              {selectedServices.length === 1 ? "serviço" : "serviços"})
+                            </span>
                           </div>
-                        </article>
-                      );
-                    })}
-                  </section>
-                  {sectionsConfig
-                    .filter((s) => s.id !== "search" && s.visible)
-                    .map((s) =>
-                      s.id === "photos" ? (
-                        <div className={b.photos} key="photos-preview">
-                          <span className={b.serviceImagePlaceholder}>1</span>
-                          <span className={b.serviceImagePlaceholder}>2</span>
-                          <span className={b.serviceImagePlaceholder}>3</span>
+                          <strong>
+                            <Price amount={totalPrice} />
+                          </strong>
                         </div>
-                      ) : (
-                        <div className={b.muted} style={{ marginTop: 16 }} key="hours-preview">
-                          Funcionamento: Seg a Sáb · 09:00–19:00
+
+                        <div className={b.summaryFooter}>
+                          <button
+                            type="button"
+                            className={`${b.button} ${b.wide}`}
+                            onClick={() =>
+                              setPreviewStep((prev) => (prev < 2 ? prev + 1 : 0))
+                            }
+                          >
+                            <span>
+                              {previewStep === 0
+                                ? resolveCopy(copyOverrides, "ctaContinue")
+                                : previewStep === 1
+                                  ? "Revisar agendamento"
+                                  : resolveCopy(copyOverrides, "ctaConfirm")}
+                            </span>
+                            <ArrowRight size={14} />
+                          </button>
                         </div>
-                      ),
+                      </>
                     )}
-                  <button type="button" className={`${b.button} ${b.wide}`}>
-                    {resolveCopy(copyOverrides, "ctaContinue")}
-                  </button>
+                  </aside>
                 </div>
+
+                {/* Mobile Sticky Bottom Bar */}
+                {selectedServices.length > 0 && (
+                  <div className={b.mobileBottomBar}>
+                    <div className={b.mobileBottomBarInner}>
+                      <div className={b.mobileSummaryInfo}>
+                        <div className={b.mobileSummaryTitle}>
+                          <span>
+                            {selectedServices[0].name}
+                            {selectedServices.length > 1
+                              ? ` +${selectedServices.length - 1}`
+                              : ` • ${totalMinutes} min`}
+                          </span>
+                        </div>
+                        <div className={b.mobileSummaryPrice}>
+                          <Price amount={totalPrice} />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={`${b.button} ${b.mobileCtaBtn}`}
+                        onClick={() =>
+                          setPreviewStep((prev) => (prev < 2 ? prev + 1 : 0))
+                        }
+                      >
+                        <span>
+                          {previewStep === 2
+                            ? resolveCopy(copyOverrides, "ctaConfirm")
+                            : resolveCopy(copyOverrides, "ctaContinue")}
+                        </span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </main>
+
+              <footer className={b.footer}>
+                <div className={b.footerInner}>
+                  <span>{resolveCopy(copyOverrides, "footerLine1")}</span>
+                  <span className={b.footerDot}>·</span>
+                  <span>{resolveCopy(copyOverrides, "footerLine2")}</span>
+                </div>
+              </footer>
             </PublicFrame>
           </div>
         </div>

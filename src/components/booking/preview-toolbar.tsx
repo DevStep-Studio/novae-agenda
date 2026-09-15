@@ -1,21 +1,35 @@
 "use client";
 
-import { Monitor, Moon, Smartphone, Sun } from "lucide-react";
+import { ExternalLink, Monitor, Moon, Smartphone, Sun } from "lucide-react";
 import styles from "./branding-studio.module.css";
 
 export function PreviewToolbar({
   theme,
   viewport,
+  slug,
   onTheme,
   onViewport,
 }: {
   theme: "dark" | "light";
   viewport: "desktop" | "mobile";
+  slug?: string;
   onTheme: (theme: "dark" | "light") => void;
   onViewport: (viewport: "desktop" | "mobile") => void;
 }) {
   return (
     <div className={styles.previewToolbar} aria-label="Controles da prévia">
+      {slug && (
+        <a
+          href={`/agendar/${slug}`}
+          target="_blank"
+          rel="noreferrer"
+          className={styles.themeToggleBtn}
+          title="Abrir página pública em nova aba"
+        >
+          <ExternalLink size={13} />
+          <span>Ver link</span>
+        </a>
+      )}
       <button
         type="button"
         className={styles.themeToggleBtn}

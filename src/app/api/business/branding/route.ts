@@ -59,6 +59,7 @@ export async function GET() {
       ),
       businessType: company.businessType,
       publicDescription: company.publicDescription,
+      address: company.address || null,
     },
   });
 }
