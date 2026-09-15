@@ -86,40 +86,27 @@ export function CustomerMembershipCard({
 
   if (!membership || membership.status !== "active") {
     return (
-      <div
-        className="customer-membership-empty-card"
-        style={{
-          background: "var(--bg-secondary, #222)",
-          borderRadius: "var(--radius-md, 8px)",
-          padding: "16px",
-          border: "1px dashed var(--border-color, #333)",
-          marginTop: 16,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-secondary)" }}>
-            <Sparkles size={15} color="var(--brand, #6366f1)" />
-            <strong style={{ fontSize: "0.9rem", color: "var(--text-primary)" }}>
+      <div className="customer-membership-empty-card">
+        <div className="membership-empty-info">
+          <div className="membership-empty-header">
+            <span className="membership-empty-icon-wrap">
+              <Sparkles size={14} />
+            </span>
+            <strong className="membership-empty-title">
               Cliente Avulso (Sem Plano)
             </strong>
           </div>
-          <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+          <p className="membership-empty-subtitle">
             Fidelize este cliente com uma mensalidade recorrente e horários garantidos.
           </p>
         </div>
 
         <button
           type="button"
-          className="btn-primary"
+          className="membership-bind-btn"
           onClick={() => setAssignOpen(true)}
-          style={{ fontSize: "0.85rem", padding: "8px 14px", display: "inline-flex", alignItems: "center", gap: 6 }}
         >
-          <Plus size={15} />
+          <Plus size={14} />
           <span>Vincular Plano Mensal</span>
         </button>
 
@@ -139,83 +126,45 @@ export function CustomerMembershipCard({
   }
 
   return (
-    <div
-      className="customer-membership-card"
-      style={{
-        background: "var(--surface, #111114)",
-        borderRadius: "var(--radius-md, 10px)",
-        padding: "18px",
-        border: "1px solid var(--border, #27272f)",
-        marginTop: 16,
-      }}
-    >
+    <div className="customer-membership-card">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-        <div>
-          <span
-            style={{
-              background: "rgba(99,102,241,0.18)",
-              color: "var(--brand, #6366f1)",
-              border: "1px solid rgba(99,102,241,0.4)",
-              padding: "2px 8px",
-              borderRadius: 12,
-              fontSize: "0.7rem",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
+      <div className="membership-card-head">
+        <div className="membership-plan-info">
+          <span className="membership-status-badge">
             Plano Ativo
           </span>
-          <h4 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "4px 0 2px" }}>
+          <h4 className="membership-plan-title">
             {membership.membershipPlanName}
           </h4>
-          <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+          <span className="membership-plan-pricing">
             {formatCurrency(membership.monthlyPriceSnapshot)}/mês •{" "}
             {membership.frequencyType === "WEEKLY_CALENDAR_BASED" ? "Semanal" : "Franquia Fixa"}
           </span>
         </div>
 
-        <div style={{ textAlign: "right" }}>
-          <span
-            style={{
-              fontSize: "0.75rem",
-              padding: "3px 8px",
-              borderRadius: 4,
-              fontWeight: 600,
-              background: isPaid ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)",
-              color: isPaid ? "#10b981" : "#f59e0b",
-            }}
-          >
+        <div className="membership-head-status">
+          <span className={`membership-pay-pill ${isPaid ? "paid" : "pending"}`}>
             {isPaid ? "✓ Mensalidade Paga" : "⚠️ Mensalidade Pendente"}
           </span>
         </div>
       </div>
 
       {/* Quota Progress */}
-      <div
-        style={{
-          background: "var(--bg-secondary, #222)",
-          padding: "12px",
-          borderRadius: "var(--radius-md, 8px)",
-          marginBottom: 14,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: 6 }}>
+      <div className="membership-quota-card">
+        <div className="membership-quota-header">
           <span>
             Franquia do período: <strong>{sessionsBooked} de {sessionAllowance} agendadas</strong>
           </span>
-          <span style={{ color: sessionsRemaining > 0 ? "var(--brand, #6366f1)" : "#10b981", fontWeight: 700 }}>
+          <span className={sessionsRemaining > 0 ? "quota-remaining" : "quota-full"}>
             {sessionsRemaining > 0 ? `${sessionsRemaining} restante(s)` : "Todas agendadas"}
           </span>
         </div>
 
-        <div style={{ height: 6, borderRadius: 3, background: "var(--border-color, #333)", overflow: "hidden" }}>
+        <div className="membership-progress-track">
           <div
+            className="membership-progress-bar"
             style={{
-              height: "100%",
               width: `${Math.min(100, (sessionsBooked / sessionAllowance) * 100)}%`,
-              background: "var(--brand, #6366f1)",
             }}
           />
         </div>
@@ -223,28 +172,17 @@ export function CustomerMembershipCard({
 
       {/* Booked Sessions List */}
       {period?.bookings && period.bookings.length > 0 && (
-        <div style={{ marginBottom: 14 }}>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", display: "block", marginBottom: 6, textTransform: "uppercase" }}>
+        <div className="membership-booked-wrap">
+          <span className="membership-booked-title">
             Agendamentos deste Mês ({period.bookings.length})
           </span>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="membership-booked-list">
             {period.bookings.slice(0, 4).map((b) => (
-              <div
-                key={b.appointmentId}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  fontSize: "0.85rem",
-                  padding: "6px 8px",
-                  background: "var(--bg-secondary, #222)",
-                  borderRadius: 6,
-                }}
-              >
+              <div key={b.appointmentId} className="membership-booked-item">
                 <span>
                   <strong>{b.date.slice(8, 10)}/{b.date.slice(5, 7)}</strong> às {b.startTime} • {b.serviceName}
                 </span>
-                <small style={{ color: "#10b981", fontWeight: 600 }}>Incluído</small>
+                <small className="membership-included-tag">Incluído</small>
               </div>
             ))}
           </div>
@@ -252,42 +190,32 @@ export function CustomerMembershipCard({
       )}
 
       {/* Action Buttons */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+      <div className="membership-card-actions">
         <button
           type="button"
-          className="btn-primary"
+          className="membership-btn-primary"
           onClick={() => setSchedulerOpen(true)}
-          style={{ flex: "1 1 140px", fontSize: "0.8rem", padding: "8px 12px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
         >
-          <CalendarPlus size={15} />
+          <CalendarPlus size={14} />
           <span>Agendar Mês</span>
         </button>
 
         {!isPaid && (
           <button
             type="button"
-            className="btn-secondary"
+            className="membership-btn-payment"
             onClick={() => setPayModalOpen(true)}
-            style={{ flex: "1 1 140px", fontSize: "0.8rem", padding: "8px 12px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
           >
-            <DollarSign size={15} color="#10b981" />
+            <DollarSign size={14} />
             <span>Registrar Pagamento</span>
           </button>
         )}
 
         <button
           type="button"
+          className="membership-btn-cancel"
           onClick={handleCancelMembership}
           disabled={cancelling}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--border-color, #333)",
-            color: "var(--text-secondary)",
-            borderRadius: 6,
-            padding: "8px 12px",
-            fontSize: "0.8rem",
-            cursor: "pointer",
-          }}
           title="Cancelar plano mensal"
         >
           {cancelling ? "Cancelando..." : "Cancelar"}

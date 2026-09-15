@@ -104,6 +104,21 @@ function dateLabel(date: string): string {
 function shortDate(date: string): string {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(`${date}T12:00:00`));
 }
+function formatNextVisit(val?: string | null): string {
+  if (!val) return "";
+  try {
+    const trimmed = val.trim();
+    const [datePart, timePart] = trimmed.split(" ");
+    if (datePart && datePart.includes("-")) {
+      const [year, month, day] = datePart.split("-");
+      const dateStr = `${day}/${month}/${year}`;
+      return timePart ? `${dateStr} às ${timePart}` : dateStr;
+    }
+    return val;
+  } catch {
+    return val;
+  }
+}
 
 /* ---------- Small UI primitives ---------- */
 function Avatar({
@@ -1024,9 +1039,9 @@ function ClientsPage({
               </thead>
               <tbody>
                 {sorted.map((client) => {
-                  const isVip = client.visits >= 3 || (client.spent && client.spent >= 250);
-                  const isFrequent = !isVip && client.visits >= 2;
-                  const isNew = !isVip && !isFrequent;
+                  const isVip = Boolean(client.visits >= 3 || ((client.spent ?? 0) >= 250));
+                  const isFrequent = Boolean(!isVip && client.visits >= 2);
+                  const isNew = Boolean(!isVip && !isFrequent);
                   const avgClientTicket = client.visits > 0 ? Math.round((client.spent || 0) / client.visits) : 0;
                   const hasUpcoming = clientIdsWithAppointment.has(client.id) || Boolean(client.nextVisit);
 
@@ -1289,9 +1304,9 @@ function ClientDrawer({
     ? cancelledList
     : history;
 
-  const isVip = currentClient.visits >= 3 || (currentClient.spent && currentClient.spent >= 250);
-  const isFrequent = !isVip && currentClient.visits >= 2;
-  const isNew = !isVip && !isFrequent;
+  const isVip = Boolean(currentClient.visits >= 3 || ((currentClient.spent ?? 0) >= 250));
+  const isFrequent = Boolean(!isVip && currentClient.visits >= 2);
+  const isNew = Boolean(!isVip && !isFrequent);
 
   return (
     <div
@@ -1323,7 +1338,7 @@ function ClientDrawer({
             <Avatar
               name={currentClient.name}
               photoUrl={currentClient.photoUrl}
-              size="lg"
+              size="xl"
             />
           </div>
           <h2>{currentClient.name}</h2>
@@ -1383,7 +1398,9 @@ function ClientDrawer({
           <div className="profile-contact-card">
             {phone && (
               <div className="contact-row">
-                <Phone size={14} className="contact-icon" />
+                <div className="contact-icon-wrap">
+                  <Phone size={14} className="contact-icon" />
+                </div>
                 <span className="contact-text">{phone}</span>
                 <div className="contact-actions-inline">
                   <button
@@ -1399,7 +1416,9 @@ function ClientDrawer({
             )}
             {currentClient.email && (
               <div className="contact-row">
-                <Mail size={14} className="contact-icon" />
+                <div className="contact-icon-wrap">
+                  <Mail size={14} className="contact-icon" />
+                </div>
                 <span className="contact-text">{currentClient.email}</span>
                 <div className="contact-actions-inline">
                   <a
@@ -1428,7 +1447,9 @@ function ClientDrawer({
           <div className="stat-box">
             <div className="stat-box-head">
               <span className="stat-label">Total gasto</span>
-              <CircleDollarSign size={14} className="stat-box-icon" />
+              <div className="stat-box-icon-wrap">
+                <CircleDollarSign size={14} className="stat-box-icon" />
+              </div>
             </div>
             <strong className="stat-value highlight">
               {formatCurrency(detail?.spent ?? currentClient.spent)}
@@ -1437,7 +1458,9 @@ function ClientDrawer({
           <div className="stat-box">
             <div className="stat-box-head">
               <span className="stat-label">Atendimentos</span>
-              <CalendarCheck size={14} className="stat-box-icon" />
+              <div className="stat-box-icon-wrap">
+                <CalendarCheck size={14} className="stat-box-icon" />
+              </div>
             </div>
             <strong className="stat-value">
               {detail?.visits ?? currentClient.visits}
@@ -1446,7 +1469,9 @@ function ClientDrawer({
           <div className="stat-box">
             <div className="stat-box-head">
               <span className="stat-label">Ticket médio</span>
-              <TrendingUp size={14} className="stat-box-icon" />
+              <div className="stat-box-icon-wrap">
+                <TrendingUp size={14} className="stat-box-icon" />
+              </div>
             </div>
             <strong className="stat-value highlight">
               {formatCurrency(detail?.averageTicket ?? 0)}
@@ -1455,7 +1480,9 @@ function ClientDrawer({
           <div className="stat-box">
             <div className="stat-box-head">
               <span className="stat-label">Última visita</span>
-              <Clock size={14} className="stat-box-icon" />
+              <div className="stat-box-icon-wrap">
+                <Clock size={14} className="stat-box-icon" />
+              </div>
             </div>
             <strong className="stat-value">
               {detail?.lastVisit ? shortDate(detail.lastVisit) : "—"}
@@ -1467,10 +1494,13 @@ function ClientDrawer({
         {detail?.nextVisit && (
           <div className="profile-next-banner">
             <div className="profile-next-copy">
-              <CalendarDays size={15} />
-              <span>
-                Próximo agendamento: <strong>{detail.nextVisit}</strong>
-              </span>
+              <div className="profile-next-icon-badge">
+                <CalendarDays size={16} />
+              </div>
+              <div className="profile-next-text-group">
+                <span className="profile-next-label">Próximo agendamento</span>
+                <strong className="profile-next-date">{formatNextVisit(detail.nextVisit)}</strong>
+              </div>
             </div>
             {upcomingList[0] && (
               <button
