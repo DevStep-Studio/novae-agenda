@@ -37,7 +37,7 @@ export async function GET() {
       .from(saasCoupons)
       .orderBy(desc(saasCoupons.createdAt));
 
-    if (list.length === 0) {
+    if (list.length === 0 && process.env.NODE_ENV !== "production") {
       await seedSaasCoupons(db);
       list = await db
         .select()

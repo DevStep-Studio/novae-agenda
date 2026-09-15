@@ -9,6 +9,13 @@ import { NotificationService } from "@/lib/notifications/service";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Endpoint de simulação desativado em ambiente de produção." },
+      { status: 403 }
+    );
+  }
+
   try {
     const auth = await requireAuth();
     if (!auth) return unauthorized();
