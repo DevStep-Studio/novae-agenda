@@ -7310,6 +7310,64 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-radius: 10px;
 }
 
+/* ===== Client Profile Modal ===== */
+.client-profile-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px 24px;
+}
+
+.client-profile-modal-body > .profile-hero {
+  padding: 24px 0 4px;
+}
+
+.client-profile-modal-body > :is(
+  .customer-membership-empty-card,
+  .customer-membership-card,
+  .profile-contact-card,
+  .profile-stats-grid,
+  .profile-next-banner,
+  .profile-section
+) {
+  margin: 0;
+}
+
+@media (max-width: 680px) {
+  .client-profile-modal-body {
+    gap: 12px;
+    padding: 0 16px 20px;
+  }
+
+  .client-profile-modal-body > .profile-hero {
+    padding-top: 20px;
+  }
+
+  .client-profile-modal-body .profile-actions {
+    flex-wrap: wrap;
+  }
+
+  .client-profile-modal-body .profile-btn-edit {
+    flex: 1 1 100%;
+  }
+
+  .client-profile-modal-body .customer-membership-empty-card {
+    align-items: stretch;
+  }
+
+  .client-profile-modal-body .membership-bind-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .client-profile-modal-body .profile-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== Client Reservations Modal (Registro Completo) ===== */
 .client-reservations-modal-body {
   display: flex;
@@ -11345,5 +11403,4 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   max-width: 360px;
   line-height: 1.45;
 }
-
 

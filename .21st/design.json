@@ -152,6 +152,11 @@
       "scope": "operations-availability",
       "decision": "Apresentar horários livres em linhas compactas por dia, com seletor de serviço no cabeçalho e chips de hora com ação visual mínima, usando apenas tokens existentes.",
       "source": "Pedido do usuário e referência visual do card de horários livres."
+    },
+    {
+      "scope": "client-management",
+      "decision": "Exibir a ficha completa do cliente em modal central larga, consistente com as demais modais operacionais, com espaçamento uniforme entre plano, contato, métricas e histórico; não usar painel lateral.",
+      "source": "Pedido explícito do usuário e referência visual enviada."
     }
   ],
   "evidence": [

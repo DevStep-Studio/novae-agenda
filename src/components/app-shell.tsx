@@ -237,7 +237,7 @@ function Modal({
 }) {
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <section className={`modal ${wide ? "modal-wide" : ""} ${headerVariant === "primary" ? "modal-has-primary-header" : ""}`} role="dialog" aria-modal="true">
+      <section className={`modal ${wide ? "modal-wide" : ""} ${headerVariant === "primary" ? "modal-has-primary-header" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className={`modal-header ${headerVariant === "primary" ? "modal-header-primary" : ""}`}>
           <div>
             {eyebrow && (
@@ -1191,7 +1191,7 @@ function ClientsPage({
   );
 }
 
-function ClientDrawer({
+function ClientProfileModal({
   clientId,
   onClose,
   onNewAppointment,
@@ -1311,29 +1311,9 @@ function ClientDrawer({
   const isNew = Boolean(!isVip && !isFrequent);
 
   return (
-    <div
-      className="drawer-backdrop"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <aside className="profile-drawer">
-        {/* Drawer Header */}
-        <div className="drawer-header">
-          <div className="drawer-title-group">
-            <span className="drawer-eyebrow">Ficha do Cliente</span>
-            <h3 className="drawer-title">{currentClient.name}</h3>
-          </div>
-          <button
-            type="button"
-            className="drawer-close-btn"
-            aria-label="Fechar perfil"
-            onClick={onClose}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
+    <>
+      <Modal title={currentClient.name} eyebrow="Ficha do Cliente" icon={User} onClose={onClose} wide>
+        <div className="client-profile-modal-body">
         {/* Profile Hero */}
         <div className="profile-hero">
           <div className="profile-avatar-wrap">
@@ -1711,7 +1691,8 @@ function ClientDrawer({
             </button>
           </div>
         </section>
-      </aside>
+        </div>
+      </Modal>
 
       {editingClient && (
         <EditClientModal
@@ -1756,7 +1737,7 @@ function ClientDrawer({
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -5448,7 +5429,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   const [blockOpen, setBlockOpen] = useState(false);
   const [superadminOpen, setSuperadminOpen] = useState(false);
   const [detailAppointment, setDetailAppointment] = useState<AppointmentDTO | null>(null);
-  const [clientDrawer, setClientDrawer] = useState<ClientDTO | null>(null);
+  const [clientModal, setClientModal] = useState<ClientDTO | null>(null);
   const [subStatus, setSubStatus] = useState<string>("active");
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [topbarAvatarError, setTopbarAvatarError] = useState(false);
@@ -5564,7 +5545,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       case "clientes":
         return (
           <ClientsPage
-            onSelect={setClientDrawer}
+            onSelect={setClientModal}
             onNew={() => setNewClientOpen(true)}
             onNewAppointment={(client) => {
               setNewAppointmentPrefill({ clientId: client.id });
@@ -5952,7 +5933,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
                     <div className="search-section">
                       <div className="search-section-title">Clientes</div>
                       {searchResults.clients.map((c) => (
-                        <button key={c.id} className="search-item" onClick={() => { setClientDrawer(c as ClientDTO); setSearchOpen(false); }}>
+                        <button key={c.id} className="search-item" onClick={() => { setClientModal(c as ClientDTO); setSearchOpen(false); }}>
                           <div className="search-item-main"><strong>{c.name}</strong><span>{c.phone}</span></div>
                           <span className="search-item-badge">Cliente</span>
                         </button>
@@ -6153,12 +6134,12 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       {newLocationOpen && <NewLocationModal onClose={() => setNewLocationOpen(false)} />}
       {blockOpen && <BlockModal onClose={() => setBlockOpen(false)} defaultDate={selectedDate} />}
       {superadminOpen && <SuperadminModal onClose={() => setSuperadminOpen(false)} />}
-      {clientDrawer && (
-        <ClientDrawer
-          clientId={clientDrawer.id}
-          onClose={() => setClientDrawer(null)}
+      {clientModal && (
+        <ClientProfileModal
+          clientId={clientModal.id}
+          onClose={() => setClientModal(null)}
           onNewAppointment={(client) => {
-            setClientDrawer(null);
+            setClientModal(null);
             setNewAppointmentPrefill({ clientId: client.id, date: todayKey() });
             setNewAppointmentOpen(true);
           }}
