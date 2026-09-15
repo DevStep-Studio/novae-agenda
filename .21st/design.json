@@ -157,6 +157,11 @@
       "scope": "client-management",
       "decision": "Exibir a ficha completa do cliente em modal central larga, consistente com as demais modais operacionais, com espaçamento uniforme entre plano, contato, métricas e histórico; não usar painel lateral.",
       "source": "Pedido explícito do usuário e referência visual enviada."
+    },
+    {
+      "scope": "owner-trial-status",
+      "decision": "Exibir na home do proprietário um card laranja sólido de alto contraste, com ícone e CTA pretos, validade sem cobrança automática, contador vindo do servidor e timeline responsiva dos sete dias; ocultar após a ativação.",
+      "source": "Especificação e referência visual do trial de 7 dias enviadas pelo usuário."
     }
   ],
   "evidence": [

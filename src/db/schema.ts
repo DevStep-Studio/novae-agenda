@@ -476,6 +476,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   gatewayCustomerId: varchar("gateway_customer_id", { length: 100 }),
   gatewaySubscriptionId: varchar("gateway_subscription_id", { length: 100 }),
   gatewayPaymentId: varchar("gateway_payment_id", { length: 100 }),
+  trialStartedAt: timestamp("trial_started_at", { mode: "date" }),
   trialEndsAt: timestamp("trial_ends_at", { mode: "date" }).notNull(),
   currentPeriodStart: timestamp("current_period_start", { mode: "date" }),
   currentPeriodEnd: timestamp("current_period_end", { mode: "date" }),
@@ -489,6 +490,7 @@ export const subscriptions = mysqlTable("subscriptions", {
   companyIdx: uniqueIndex("subscriptions_company_idx").on(table.companyId),
   statusIdx: index("subscriptions_status_idx").on(table.status),
   planIdx: index("subscriptions_plan_idx").on(table.plan),
+  trialEndsIdx: index("subscriptions_trial_ends_idx").on(table.trialEndsAt),
 }));
 
 export const subscriptionInvoices = mysqlTable("subscription_invoices", {

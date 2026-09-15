@@ -29,6 +29,7 @@ import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { ReportsView } from "@/components/reports/reports-view";
 import { SubscriptionView } from "@/components/subscriptions/subscription-view";
 import { SubscriptionPaywallModal } from "@/components/subscriptions/subscription-paywall-modal";
+import { TrialStatusCard } from "@/components/subscriptions/trial-status-card";
 import { CashClosingModal } from "@/components/financial/cash-closing-modal";
 import { OnboardingChecklistCard } from "@/components/onboarding/onboarding-checklist";
 import { prepareImageUpload } from "@/lib/image-upload-client";
@@ -333,6 +334,8 @@ function DashboardPage({
           </Button>
         </div>
       </div>
+
+      {(session?.primaryRole ?? session?.role) === "owner" && <TrialStatusCard />}
 
       {prefs.showBanner && (
         <div className="dashboard-banner-card">
@@ -5430,7 +5433,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   const [superadminOpen, setSuperadminOpen] = useState(false);
   const [detailAppointment, setDetailAppointment] = useState<AppointmentDTO | null>(null);
   const [clientModal, setClientModal] = useState<ClientDTO | null>(null);
-  const [subStatus, setSubStatus] = useState<string>("active");
+  const [subEffectiveActive, setSubEffectiveActive] = useState(true);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [topbarAvatarError, setTopbarAvatarError] = useState(false);
   const [sidebarAvatarError, setSidebarAvatarError] = useState(false);
@@ -5453,14 +5456,11 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   }, [userAvatar]);
 
   useEffect(() => {
-    fetch("/api/subscriptions")
-      .then((r) => (r.ok ? r.json() : null))
+    api<{ subscription: { status: string; isEffectiveActive: boolean } }>("/api/subscriptions")
       .then((data) => {
-        if (data?.subscription?.status) {
-          setSubStatus(data.subscription.status);
-          if (data.subscription.status === "expired" || data.subscription.status === "cancelled") {
-            setPaywallOpen(true);
-          }
+        if (data.subscription?.status) {
+          setSubEffectiveActive(data.subscription.isEffectiveActive);
+          if (!data.subscription.isEffectiveActive) setPaywallOpen(true);
         }
       })
       .catch(() => {});
@@ -6157,12 +6157,13 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
         />
       )}
 
-      {paywallOpen && (subStatus === "expired" || subStatus === "cancelled") && (
+      {paywallOpen && !subEffectiveActive && (
         <SubscriptionPaywallModal
           onSelectPlan={() => {
             setPaywallOpen(false);
             navigate("assinatura");
           }}
+          onLogout={() => void logout()}
         />
       )}
 

@@ -21,7 +21,8 @@ export type SubscriptionStatus =
   | "cancelled"
   | "expired"
   | "suspended"
-  | "pending";
+  | "pending"
+  | "payment_failed";
 
 export type PlanDetails = {
   key: string;
@@ -197,6 +198,7 @@ export type SubscriptionDTO = {
   companyId: string;
   plan: string;
   status: SubscriptionStatus;
+  trialStartedAt: string;
   trialEndsAt: string;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -210,7 +212,8 @@ export type SubscriptionDTO = {
  */
 export async function getCompanySubscription(
   companyId: string,
-  executor: import("@/lib/availability").DbExecutor = db
+  executor: import("@/lib/availability").DbExecutor = db,
+  serverNow = new Date(),
 ): Promise<SubscriptionDTO> {
   const [existing] = await executor
     .select()
@@ -218,7 +221,7 @@ export async function getCompanySubscription(
     .where(eq(subscriptions.companyId, companyId))
     .limit(1);
 
-  const now = new Date();
+  const now = serverNow;
 
   if (!existing) {
     const id = crypto.randomUUID();
@@ -228,6 +231,7 @@ export async function getCompanySubscription(
       companyId,
       plan: "trial",
       status: "trialing",
+      trialStartedAt: now,
       trialEndsAt,
     });
 
@@ -238,6 +242,7 @@ export async function getCompanySubscription(
       companyId,
       plan: "trial",
       status: "trialing",
+      trialStartedAt: now.toISOString(),
       trialEndsAt: trialEndsAt.toISOString(),
       currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
@@ -248,24 +253,33 @@ export async function getCompanySubscription(
 
   // Calculate effective status
   let effectiveStatus: SubscriptionStatus = existing.status as SubscriptionStatus;
-  let isEffectiveActive = true;
+  let isEffectiveActive = false;
+  const trialStartedAt = existing.trialStartedAt
+    ?? new Date(existing.trialEndsAt.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   if (existing.status === "trialing") {
-    if (existing.trialEndsAt < now) {
+    if (existing.trialEndsAt.getTime() <= now.getTime()) {
       effectiveStatus = "expired";
-      isEffectiveActive = false;
+      await executor
+        .update(subscriptions)
+        .set({ status: "expired", updatedAt: now })
+        .where(eq(subscriptions.id, existing.id));
+    } else {
+      isEffectiveActive = true;
     }
   } else if (existing.status === "active") {
-    if (existing.currentPeriodEnd && existing.currentPeriodEnd < now) {
+    if (existing.currentPeriodEnd && existing.currentPeriodEnd.getTime() <= now.getTime()) {
       effectiveStatus = "past_due";
-      isEffectiveActive = false;
+    } else {
+      isEffectiveActive = true;
     }
-  } else if (["cancelled", "expired", "suspended"].includes(existing.status)) {
-    isEffectiveActive = false;
+  } else if (["pending", "payment_failed"].includes(existing.status) && existing.trialEndsAt.getTime() > now.getTime()) {
+    // A cobrança pode estar pendente sem encerrar antecipadamente um trial ainda válido.
+    isEffectiveActive = true;
   }
 
   const targetDate =
-    existing.status === "trialing"
+    effectiveStatus === "trialing" || (isEffectiveActive && existing.status !== "active")
       ? existing.trialEndsAt
       : (existing.currentPeriodEnd ?? existing.trialEndsAt);
   const diffDays = Math.max(0, Math.ceil((new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
@@ -275,12 +289,21 @@ export async function getCompanySubscription(
     companyId: existing.companyId,
     plan: existing.plan ?? "profissional",
     status: effectiveStatus,
+    trialStartedAt: trialStartedAt.toISOString(),
     trialEndsAt: existing.trialEndsAt.toISOString(),
     currentPeriodEnd: existing.currentPeriodEnd ? existing.currentPeriodEnd.toISOString() : null,
     cancelAtPeriodEnd: existing.cancelAtPeriodEnd,
     daysRemaining: diffDays,
     isEffectiveActive,
   };
+}
+
+export async function provisionCompanyTrial(
+  companyId: string,
+  executor: import("@/lib/availability").DbExecutor = db,
+  serverNow = new Date(),
+): Promise<SubscriptionDTO> {
+  return getCompanySubscription(companyId, executor, serverNow);
 }
 
 /**

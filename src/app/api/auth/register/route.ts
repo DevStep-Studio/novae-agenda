@@ -10,6 +10,7 @@ import { appUrl, sendMail, verificationEmail } from "@/lib/mailer";
 import { AUTH_RULES, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 import { issueToken } from "@/lib/tokens";
+import { provisionCompanyTrial } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
         onboarded: false,
       });
       await tx.insert(locations).values({id: crypto.randomUUID(), companyId, name: "Unidade Principal", openTime: "08:00", closeTime: "19:00", active: true});
+      await provisionCompanyTrial(companyId, tx);
     }
     const isDevOrDemo = process.env.NODE_ENV !== "production" || process.env.DEMO_MODE === "true";
     const autoVerify = isDevOrDemo && parsed.data.accountType === "customer";

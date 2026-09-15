@@ -5,6 +5,7 @@ import { clients, companies, users } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { getRawCompanySetting, setRawCompanySetting } from "@/lib/settings";
 import { saveBrandingImage, saveClientImage } from "@/lib/storage";
+import { provisionCompanyTrial } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
 
@@ -210,6 +211,7 @@ export async function PATCH(request: Request) {
         onboarded: true,
       });
       await db.update(users).set({ companyId: newCompanyId, updatedAt: new Date() }).where(eq(users.id, auth.user.userId));
+      await provisionCompanyTrial(newCompanyId);
       targetCompanyId = newCompanyId;
     }
   }
