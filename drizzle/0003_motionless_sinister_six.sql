@@ -1,0 +1,2 @@
+ALTER TABLE `customer_credentials` ADD `pin_lookup_hash` varchar(64);--> statement-breakpoint
+ALTER TABLE `customer_credentials` ADD CONSTRAINT `customer_credentials_pin_lookup_hash_idx` UNIQUE(`pin_lookup_hash`);

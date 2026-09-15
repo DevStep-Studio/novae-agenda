@@ -1,7 +1,9 @@
 import { getIdentity } from "@/lib/auth";
+import { CustomerAccessService } from "@/lib/customer-access/service";
 export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getIdentity();
+  const hasPin = user ? await CustomerAccessService.userHasPin(user.id) : false;
   return Response.json({
     data: user
       ? {
@@ -10,6 +12,7 @@ export async function GET() {
           email: user.email,
           phone: user.phone,
           emailVerified: user.emailVerified,
+          hasPin,
         }
       : null,
   });
@@ -37,6 +40,7 @@ export async function PATCH(request: Request) {
       .update(users)
       .set({ phone, updatedAt: new Date() })
       .where(eq(users.id, user.id));
+    const hasPin = await CustomerAccessService.userHasPin(user.id);
     return Response.json({
       data: {
         id: user.id,
@@ -44,6 +48,7 @@ export async function PATCH(request: Request) {
         email: user.email,
         phone,
         emailVerified: user.emailVerified,
+        hasPin,
       },
     });
   } catch (error) {

@@ -161,6 +161,19 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
       );
     assert.ok(audit);
 
+    // O mesmo PIN nunca pode ser atribuído a outro cliente.
+    const otherPhone = "(21) 96666-5544";
+    await db.update(users).set({ phone: otherPhone }).where(eq(users.id, f.customers[1].id));
+    await assert.rejects(
+      CustomerAccessService.setupPin({
+        phone: otherPhone,
+        pin: testPin,
+        confirmPin: testPin,
+        authenticatedUserId: f.customers[1].id,
+      }),
+      /PIN já está em uso por outro cliente/,
+    );
+
     // Agora o status do telefone deve ser HAS_PIN
     const hasPinStatus = await CustomerAccessService.checkPhone(testPhone);
     assert.equal(hasPinStatus.exists, true);
@@ -458,4 +471,3 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
     );
   });
 });
-

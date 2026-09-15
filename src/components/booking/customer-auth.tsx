@@ -15,9 +15,10 @@ import {
 export type Customer = {
   id: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string | null;
-  emailVerified: boolean;
+  emailVerified?: boolean;
+  hasPin?: boolean;
 };
 
 export function CustomerAuth({

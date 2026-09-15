@@ -58,6 +58,14 @@ export function generateRandomPin(): string {
   return pin;
 }
 
+type CustomerAccessIdentity = {
+  id: string;
+  name: string;
+  phone: string | null;
+  role: string;
+  hasPin: boolean;
+};
+
 export function maskPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 4) return "(**) *****-****";
@@ -77,6 +85,56 @@ function sha256(text: string): string {
 }
 
 export class CustomerAccessService {
+  private static async findCredentialByPin(pin: string) {
+    const lookupHash = hashPinLookup(pin);
+    const [indexedCredential] = await db
+      .select()
+      .from(customerCredentials)
+      .where(eq(customerCredentials.pinLookupHash, lookupHash))
+      .limit(1);
+
+    if (indexedCredential) return indexedCredential;
+
+    // Credenciais criadas antes da coluna de busca precisam ser comparadas pelo
+    // bcrypt. Esse caminho desaparece naturalmente conforme os clientes entram.
+    const legacyCredentials = await db
+      .select()
+      .from(customerCredentials)
+      .where(isNull(customerCredentials.pinLookupHash));
+
+    for (const credential of legacyCredentials) {
+      if (await verifyPassword(pin, credential.pinHash)) return credential;
+    }
+
+    return null;
+  }
+
+  private static async assertPinAvailable(pin: string, userId?: string) {
+    const existing = await this.findCredentialByPin(pin);
+    if (existing && existing.userId !== userId) {
+      throw new Error(
+        "Este PIN já está em uso por outro cliente. Por favor, escolha outra combinação de 6 números.",
+      );
+    }
+  }
+
+  static async userHasPin(userId: string): Promise<boolean> {
+    const [credential] = await db
+      .select({ id: customerCredentials.id })
+      .from(customerCredentials)
+      .where(eq(customerCredentials.userId, userId))
+      .limit(1);
+    return Boolean(credential);
+  }
+
+  static async generateAvailablePin(): Promise<string> {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      const pin = generateRandomPin();
+      if (!(await this.findCredentialByPin(pin))) return pin;
+    }
+    throw new Error("Não foi possível gerar um PIN disponível. Tente novamente.");
+  }
+
   /**
    * Grava auditoria de ações de acesso do cliente sem nunca salvar PIN em texto puro.
    */
@@ -265,7 +323,7 @@ export class CustomerAccessService {
     userAgent?: string;
   }): Promise<{
     userId: string;
-    customer: { id: string; name: string; phone: string | null; role: string };
+    customer: CustomerAccessIdentity;
   }> {
     const rawPin = params.pin.trim();
     if (!isValidPinFormat(rawPin)) {
@@ -273,29 +331,7 @@ export class CustomerAccessService {
     }
 
     const lookupHash = hashPinLookup(rawPin);
-
-    // 1. Busca direta pelo hash HMAC-SHA256 indexado
-    let [credential] = await db
-      .select()
-      .from(customerCredentials)
-      .where(eq(customerCredentials.pinLookupHash, lookupHash))
-      .limit(1);
-
-    // Se não encontrou por lookupHash (ex: credencial legada), busca com fallback iterativo
-    if (!credential) {
-      const allCreds = await db.select().from(customerCredentials).limit(50);
-      for (const c of allCreds) {
-        const match = await verifyPassword(rawPin, c.pinHash);
-        if (match) {
-          credential = c;
-          await db
-            .update(customerCredentials)
-            .set({ pinLookupHash: lookupHash })
-            .where(eq(customerCredentials.id, c.id));
-          break;
-        }
-      }
-    }
+    const credential = await this.findCredentialByPin(rawPin);
 
     if (!credential) {
       throw new Error("PIN não encontrado. Verifique os 6 números digitados.");
@@ -371,6 +407,7 @@ export class CustomerAccessService {
     await db
       .update(customerCredentials)
       .set({
+        pinLookupHash: credential.pinLookupHash || lookupHash,
         failedAttempts: 0,
         lockedUntil: null,
         lastLoginAt: new Date(),
@@ -396,6 +433,7 @@ export class CustomerAccessService {
         name: user.name,
         phone: user.phone,
         role: "customer",
+        hasPin: true,
       },
     };
   }
@@ -410,7 +448,7 @@ export class CustomerAccessService {
     userAgent?: string;
   }): Promise<{
     userId: string;
-    customer: { id: string; name: string; phone: string | null; role: string };
+    customer: CustomerAccessIdentity;
   }> {
     if (!params.phone || params.phone.trim().length === 0) {
       return this.loginByPinOnly({
@@ -539,6 +577,7 @@ export class CustomerAccessService {
         name: user.name,
         phone: user.phone,
         role: "customer",
+        hasPin: true,
       },
     };
   }
@@ -557,7 +596,7 @@ export class CustomerAccessService {
     userAgent?: string;
   }): Promise<{
     userId: string;
-    customer: { id: string; name: string; phone: string | null; role: string };
+    customer: CustomerAccessIdentity;
   }> {
     if (!isValidPinFormat(params.pin)) {
       throw new Error("O PIN deve conter exatamente 6 dígitos numéricos.");
@@ -691,18 +730,7 @@ export class CustomerAccessService {
       if (existingCred) credential = existingCred;
     }
 
-    // Verifica se este PIN já está sendo usado por outro cliente
-    const [existingWithPin] = await db
-      .select()
-      .from(customerCredentials)
-      .where(eq(customerCredentials.pinLookupHash, lookupHash))
-      .limit(1);
-
-    if (existingWithPin && existingWithPin.userId !== user.id) {
-      throw new Error(
-        "Este PIN já está em uso por outro cliente. Por favor, escolha outra combinação de 6 números.",
-      );
-    }
+    await this.assertPinAvailable(params.pin, user.id);
 
     const pinHash = await hashPassword(params.pin);
     const phoneNorm = normalized || (user.phone ? normalizePhoneDigits(user.phone) : "");
@@ -752,6 +780,7 @@ export class CustomerAccessService {
         name: user.name,
         phone: user.phone,
         role: "customer",
+        hasPin: true,
       },
     };
   }
@@ -854,7 +883,7 @@ export class CustomerAccessService {
     userAgent?: string;
   }): Promise<{
     userId: string;
-    customer: { id: string; name: string; phone: string | null; role: string };
+    customer: CustomerAccessIdentity;
   }> {
     if (!isValidPinFormat(params.newPin)) {
       throw new Error("O novo PIN deve conter exatamente 6 dígitos numéricos.");
@@ -902,19 +931,24 @@ export class CustomerAccessService {
       throw new Error("Código de verificação inválido ou expirado.");
     }
 
-    // Marca token como consumido
+    await this.assertPinAvailable(params.newPin, user.id);
+
+    // Marca token como consumido somente depois de validar o novo PIN, para que
+    // uma combinação duplicada não inutilize o código de recuperação.
     await db
       .update(authTokens)
       .set({ consumedAt: new Date() })
       .where(eq(authTokens.id, validToken.id));
 
     const pinHash = await hashPassword(params.newPin);
+    const pinLookupHash = hashPinLookup(params.newPin);
 
     if (credential) {
       await db
         .update(customerCredentials)
         .set({
           pinHash,
+          pinLookupHash,
           pinUpdatedAt: new Date(),
           failedAttempts: 0,
           lockedUntil: null,
@@ -927,6 +961,7 @@ export class CustomerAccessService {
         userId: user.id,
         phoneNormalized: normalized,
         pinHash,
+        pinLookupHash,
         pinCreatedAt: new Date(),
         pinUpdatedAt: new Date(),
         failedAttempts: 0,
@@ -952,6 +987,7 @@ export class CustomerAccessService {
         name: user.name,
         phone: user.phone,
         role: "customer",
+        hasPin: true,
       },
     };
   }
@@ -965,8 +1001,8 @@ export class CustomerAccessService {
     phone: string;
     email?: string;
   }): Promise<{
-    userId: string;
-    customer: { id: string; name: string; phone: string | null; role: string };
+    userId: string | null;
+    customer: CustomerAccessIdentity | null;
     hasPin: boolean;
   }> {
     const rawName = params.name.trim();
@@ -980,6 +1016,12 @@ export class CustomerAccessService {
     }
 
     let { user, credential } = await this.resolveCustomerUser(normalized);
+
+    // Um telefone que já possui PIN nunca pode ganhar uma sessão apenas por
+    // informar nome e celular. O cliente precisa autenticar com o PIN existente.
+    if (user && credential?.pinHash) {
+      return { userId: null, customer: null, hasPin: true };
+    }
 
     if (!user) {
       const newUserId = crypto.randomUUID();
@@ -1024,8 +1066,9 @@ export class CustomerAccessService {
         name: user.name,
         phone: user.phone,
         role: user.role,
+        hasPin: false,
       },
-      hasPin: Boolean(credential?.pinHash || credential?.pinLookupHash),
+      hasPin: false,
     };
   }
 }

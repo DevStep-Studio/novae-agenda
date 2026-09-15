@@ -8,6 +8,16 @@ test.afterAll(async()=>{await cleanupFixture(f);await pool.end();});
 test("fast booking, rescheduling and responsive customer portal use real slots", async ({ page }) => {
   const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
   await page.request.post("/api/auth/login", { data: { email: f.customers[0].email, password: f.password } });
+  const bookingPhone = `(11) 9${Date.now().toString().slice(-8)}`;
+  const phoneResponse = await page.request.patch("/api/my/session", { data: { phone: bookingPhone } });
+  expect(phoneResponse.ok()).toBe(true);
+  const generatedPinResponse = await page.request.get("/api/customer-access/pin/random");
+  const generatedPin = (await generatedPinResponse.json()).data.pin as string;
+  const setupPinResponse = await page.request.post("/api/customer-access/pin/setup", {
+    data: { pin: generatedPin, confirmPin: generatedPin, phone: bookingPhone },
+  });
+  const setupPinBody = await setupPinResponse.json();
+  expect(setupPinResponse.ok(), setupPinBody.error).toBe(true);
   await page.goto(`/agendar/${f.company.publicSlug}`);
   await expect(page.getByRole("heading", { name: "Escolha seu serviço", exact: true })).toBeVisible();
   const widths = [320, 360, 375, 390, 412, 430, 768, 820, 1024, 1280, 1440, 1920];
@@ -26,12 +36,16 @@ test("fast booking, rescheduling and responsive customer portal use real slots",
   await page.getByRole("button", { name: /^\d{2}:\d{2}$/, exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Revise seu agendamento" })).toBeVisible();
   await expect(page.getByLabel("Seu nome", { exact: true })).toHaveCount(0);
+  const confirmButton = page.getByRole("button", { name: "Confirmar agendamento", exact: true }).first();
+  await expect(confirmButton).toBeDisabled();
+  await page.locator('button[role="radio"]').filter({ hasText: "PIX" }).click();
+  await expect(confirmButton).toBeEnabled();
   await page.getByLabel("Alguma observação para o estabelecimento?").fill("Reserva rápida QA");
   await page.reload();
   await expect(page.getByLabel("Alguma observação para o estabelecimento?")).toHaveValue("Reserva rápida QA");
   await checkWidths();
   const createdResponse = page.waitForResponse(r => r.url().endsWith("/api/bookings") && r.request().method() === "POST");
-  await page.getByRole("button", { name: "Confirmar agendamento", exact: true }).first().click();
+  await confirmButton.click();
   const response = await createdResponse; expect(response.status()).toBe(201);
   const id = (await response.json()).data.id;
   await expect(page.getByRole("heading", { name: "Agendamento confirmado!" })).toBeVisible();

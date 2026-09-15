@@ -61,10 +61,11 @@ describe("Public booking production invariants",()=>{
     const logs=await db.select().from(notificationLogs).where(eq(notificationLogs.bookingId,first.id));assert.equal(new Set(logs.map(l=>`${l.event}:${l.revision}`)).size,logs.length);
     await changeBooking(first.id,f.customers[0].id,"cancel");await changeBooking(second.id,f.customers[1].id,"cancel");
   });
-  it("rejects tenant injection, inactive services and unverified accounts",async()=>{
+  it("rejects tenant injection and inactive services without requiring e-mail verification",async()=>{
     await assert.rejects(()=>createBooking(f.customers[0],{...request(),locationId:randomUUID()}),/Unidade/);
     await assert.rejects(()=>createBooking(f.customers[0],{...request(),items:[{serviceId:f.services[0].id,employeeId:randomUUID()}]}),/profissional/);
-    await assert.rejects(()=>createBooking({...f.customers[0],emailVerified:false},request()),/e-mail/);
+    const pinCustomerBooking=await createBooking({...f.customers[0],emailVerified:false},request());
+    await changeBooking(pinCustomerBooking.id,f.customers[0].id,"cancel");
     await db.update(services).set({active:false}).where(eq(services.id,f.services[0].id));await assert.rejects(()=>createBooking(f.customers[0],request()),/disponível/);await db.update(services).set({active:true}).where(eq(services.id,f.services[0].id));
   });
   it("keeps price and duration snapshots when the catalog changes before rescheduling",async()=>{

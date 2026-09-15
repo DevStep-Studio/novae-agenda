@@ -191,7 +191,10 @@ export async function cleanupFixture(f: Fixture) {
   await db.delete(t.services).where(eq(t.services.companyId, f.company.id));
   await db.delete(t.serviceCategories).where(eq(t.serviceCategories.companyId, f.company.id));
   await db.delete(t.clients).where(eq(t.clients.companyId, f.company.id));
-  await db.delete(t.users).where(inArray(t.users.id, [f.owner.id, ...f.customers.map((c) => c.id)]));
+  const fixtureUserIds = [f.owner.id, ...f.customers.map((c) => c.id)];
+  await db.delete(t.customerAccessLogs).where(inArray(t.customerAccessLogs.userId, fixtureUserIds));
+  await db.delete(t.customerCredentials).where(inArray(t.customerCredentials.userId, fixtureUserIds));
+  await db.delete(t.users).where(inArray(t.users.id, fixtureUserIds));
   await db.delete(t.companySettings).where(eq(t.companySettings.companyId, f.company.id));
   await db.delete(t.locations).where(eq(t.locations.companyId, f.company.id));
   await db.delete(t.companies).where(eq(t.companies.id, f.company.id));

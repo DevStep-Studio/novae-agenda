@@ -122,7 +122,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [waitlistEmployee, setWaitlistEmployee] = useState("");
   const [waitlistStatus, setWaitlistStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cash" | "card">("pix");
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "cash" | "card" | null>(null);
   const [extras, setExtras] = useState<Record<string, number>>({});
   const [coupon, setCoupon] = useState("");
   const [error, setError] = useState("");
@@ -133,11 +133,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [copiedShare, setCopiedShare] = useState(false);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
-  const [showPinModal, setShowPinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
   const [confirmNewPin, setConfirmNewPin] = useState("");
   const [pinBusy, setPinBusy] = useState(false);
   const [pinError, setPinError] = useState("");
+  const [showPinModal, setShowPinModal] = useState(false);
   const [pinCreatedSuccess, setPinCreatedSuccess] = useState(false);
 
   // Estados para identificação sem senha ou login por PIN
@@ -151,7 +151,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const handleSavePostBookingPin = async () => {
+  const handleCreatePin = async () => {
     if (newPin.length !== 6 || confirmNewPin.length !== 6) {
       setPinError("O PIN deve conter exatamente 6 números.");
       return;
@@ -163,23 +163,25 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     setPinBusy(true);
     setPinError("");
     try {
-      await api("/api/customer-access/pin/setup", {
+      const result = await api<{ customer: Customer }>("/api/customer-access/pin/setup", {
         method: "POST",
         body: JSON.stringify({
           pin: newPin,
           confirmPin: confirmNewPin,
-          bookingId: bookingId || undefined,
           phone: customer?.phone || undefined,
         }),
       });
+      setCustomer(result.customer);
       setPinCreatedSuccess(true);
-      setShowPinModal(false);
+      setNewPin("");
+      setConfirmNewPin("");
     } catch (err: any) {
       setPinError(err instanceof Error ? err.message : "Erro ao salvar PIN.");
     } finally {
       setPinBusy(false);
     }
   };
+  const handleSavePostBookingPin = handleCreatePin;
 
   const [quote, setQuote] = useState<{
     subtotal: number;
@@ -274,7 +276,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           setNotes(draft.notes || "");
           setExtras(draft.extras || {});
           setCoupon(draft.coupon || "");
-          if (draft.paymentMethod) setPaymentMethod(draft.paymentMethod);
+          if (["pix", "cash", "card"].includes(draft.paymentMethod)) {
+            setPaymentMethod(draft.paymentMethod);
+          }
           if (draft.requestId) setRequestId(draft.requestId);
         }
       }
@@ -445,6 +449,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       setError(
         "Por favor, informe seu nome e WhatsApp ou digite seu PIN para continuar.",
       );
+      return;
+    }
+    if (!customer.hasPin) {
+      setError("Crie seu PIN de 6 dígitos antes de confirmar o horário.");
       return;
     }
     if (!paymentMethod) {
@@ -667,8 +675,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 !slot ||
                 quoteLoading ||
                 !quote ||
-                !customer?.emailVerified ||
-                !customer.phone ||
+                !customer?.hasPin ||
                 !paymentMethod))
           }
           onClick={() => {
@@ -809,7 +816,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             </div>
 
             {/* Banner pós-reserva para criar PIN de acesso */}
-            {customer?.phone && (
+            {customer?.phone && !customer.hasPin && (
               <div
                 style={{
                   margin: "18px 0 14px",
@@ -1627,11 +1634,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               setLoginPinBusy(true);
                               setLoginPinError("");
                               try {
-                                const res = await api<{ data: { customer: Customer } }>("/api/customer-access/pin/login", {
+                                const res = await api<{ customer: Customer }>("/api/customer-access/pin/login", {
                                   method: "POST",
                                   body: JSON.stringify({ pin: loginPin }),
                                 });
-                                setCustomer(res.data.customer);
+                                setCustomer(res.customer);
                               } catch (err: any) {
                                 setLoginPinError(err.message || "PIN incorreto ou não encontrado.");
                               } finally {
@@ -1675,7 +1682,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               setFormBusy(true);
                               setFormError("");
                               try {
-                                const res = await api<{ data: { customer: Customer } }>("/api/customer-access/identify", {
+                                const res = await api<{ customer: Customer | null; hasPin: boolean }>("/api/customer-access/identify", {
                                   method: "POST",
                                   body: JSON.stringify({
                                     name: formName,
@@ -1683,7 +1690,12 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                     email: formEmail || undefined,
                                   }),
                                 });
-                                setCustomer(res.data.customer);
+                                if (res.hasPin) {
+                                  setAuthMethod("pin");
+                                  setLoginPinError("Este celular já possui PIN. Digite-o para continuar.");
+                                } else if (res.customer) {
+                                  setCustomer(res.customer);
+                                }
                               } catch (err: any) {
                                 setFormError(err.message || "Erro ao salvar dados.");
                               } finally {
@@ -1762,6 +1774,83 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       )}
                     </div>
                   )}
+
+                  {customer && !customer.hasPin && (
+                    <div className={b.authPhoneCard} style={{ margin: "16px 0" }}>
+                      <div className={b.authVerifyHeader}>
+                        <div className={b.authVerifyIconBadge}>
+                          <KeyRound size={20} />
+                        </div>
+                        <div className={b.authVerifyHeaderText}>
+                          <span className={b.authVerifyTag}>Proteja suas reservas</span>
+                          <h3 className={b.authVerifyTitle}>Crie seu PIN de 6 dígitos</h3>
+                        </div>
+                      </div>
+                      <p className={b.muted} style={{ margin: "0 0 16px", fontSize: "13px" }}>
+                        Este PIN será usado para entrar, consultar e remarcar seus horários. Cada cliente deve ter um PIN diferente.
+                      </p>
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                        <button
+                          type="button"
+                          className={b.textButton}
+                          disabled={pinBusy}
+                          onClick={async () => {
+                            setPinError("");
+                            try {
+                              const result = await api<{ pin: string }>("/api/customer-access/pin/random");
+                              setNewPin(result.pin);
+                              setConfirmNewPin(result.pin);
+                            } catch (err) {
+                              setPinError(err instanceof Error ? err.message : "Não foi possível gerar um PIN agora.");
+                            }
+                          }}
+                        >
+                          <Sparkles size={13} /> Gerar PIN disponível
+                        </button>
+                      </div>
+                      <div style={{ display: "grid", gap: 14 }}>
+                        <label className={b.field}>
+                          Digite seu PIN
+                          <PinInput
+                            id="booking-required-new-pin"
+                            value={newPin}
+                            onChange={setNewPin}
+                            length={6}
+                            autoFocus
+                            error={Boolean(pinError)}
+                            theme="light"
+                          />
+                        </label>
+                        <label className={b.field}>
+                          Confirme seu PIN
+                          <PinInput
+                            id="booking-required-confirm-pin"
+                            value={confirmNewPin}
+                            onChange={setConfirmNewPin}
+                            length={6}
+                            error={Boolean(pinError)}
+                            theme="light"
+                          />
+                        </label>
+                        {pinError && (
+                          <p style={{ color: "var(--booking-danger)", fontSize: "12.5px", margin: 0 }}>
+                            {pinError}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          className={`${b.button} ${b.wide}`}
+                          disabled={pinBusy || newPin.length !== 6 || confirmNewPin.length !== 6}
+                          onClick={() => void handleCreatePin()}
+                        >
+                          {pinBusy ? "Criando PIN..." : "Criar PIN e continuar"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {customer?.hasPin && (
+                    <>
 
                   {/* Payment method — chosen here only to tell the establishment how
                       the customer intends to pay; nothing is charged online. */}
@@ -1864,6 +1953,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           : `Cancelamento gratuito até ${company.cancellationHours} horas antes do atendimento.`)}
                     </p>
                   </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -1910,8 +2001,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       !slot ||
                       quoteLoading ||
                       !quote ||
-                      !customer?.emailVerified ||
-                      !customer.phone ||
+                      !customer?.hasPin ||
                       !paymentMethod))
                 }
                 onClick={() => {

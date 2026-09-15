@@ -177,11 +177,6 @@ export async function createBooking(
   user: typeof users.$inferSelect,
   input: z.infer<typeof createBookingSchema>,
 ) {
-  if (!user.emailVerified)
-    throw new BookingError(
-      "Confirme seu e-mail antes de concluir o agendamento.",
-      403,
-    );
   if (!user.phone)
     throw new BookingError("Informe seu telefone antes de confirmar.");
   const phone = user.phone;
