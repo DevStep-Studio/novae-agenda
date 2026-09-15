@@ -93,7 +93,7 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <div className="auth-shell onboarding-shell">
+    <div className="auth-shell">
       <div className="auth-brand"><ReserveiLogo size={32} priority /></div>
 
       <div className="onboarding-card">

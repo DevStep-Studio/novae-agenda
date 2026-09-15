@@ -5010,6 +5010,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   const [newTime, setNewTime] = useState(normalizeTime(appointment.startTime));
   const [newEmployee, setNewEmployee] = useState(appointment.employeeId);
   const [rescheduleSlots, setRescheduleSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [activeTab, setActiveTab] = useState<"finish" | "reschedule">("finish");
 
   const finalCharge = Math.max(0, amount - discount);
 
@@ -5065,86 +5066,82 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
       wide
     >
       <div className="appointment-detail-sheet">
-        {/* Header do Cliente - Limpo e Integrado */}
-        <div className="detail-client-banner">
-          <Avatar
-            name={appointment.clientName}
-            photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl}
-            color={avatarColor(appointment.clientName)}
-            size="lg"
-          />
-          <div className="detail-client-meta">
-            <div className="detail-client-title-row">
-              <h3 className="detail-client-name">{appointment.clientName}</h3>
-              <StatusBadge status={appointment.status} />
+        {/* Card Principal: Cliente e Detalhes do Atendimento Integrados */}
+        <div className="detail-main-card">
+          <div className="detail-client-header">
+            <div className="detail-client-info-wrap">
+              <Avatar
+                name={appointment.clientName}
+                photoUrl={appointment.clientPhotoUrl || clients.find((c) => c.id === appointment.clientId)?.photoUrl}
+                color={avatarColor(appointment.clientName)}
+                size="md"
+              />
+              <div className="detail-client-text">
+                <h3 className="detail-client-name">{appointment.clientName}</h3>
+                {appointment.clientPhone ? (
+                  <a
+                    href={shareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="detail-client-phone-link"
+                    title="Conversar no WhatsApp"
+                  >
+                    <Phone size={12} />
+                    <span>{appointment.clientPhone}</span>
+                    <WhatsAppIcon size={12} className="detail-phone-wa-icon" />
+                  </a>
+                ) : (
+                  <span className="detail-client-phone-link muted">Sem telefone cadastrado</span>
+                )}
+              </div>
             </div>
-            <div className="detail-client-sub">
-              {appointment.clientPhone ? (
-                <span className="detail-client-contact">
-                  <Phone size={13} />
-                  <span>{appointment.clientPhone}</span>
-                </span>
-              ) : (
-                <span className="detail-client-contact muted">Sem telefone cadastrado</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Card Principal de Informações - Minimalista, Arejado e sem Caixas Grudadas */}
-        <div className="detail-summary-card">
-          <div className="detail-row detail-row-primary">
-            <div className="detail-col">
-              <span className="detail-label"><Scissors size={14} /> Serviço</span>
-              <strong className="detail-value detail-value-highlight">{appointment.serviceName}</strong>
-            </div>
-            <div className="detail-col">
-              <span className="detail-label"><UserRound size={14} /> Profissional</span>
-              <strong className="detail-value">{appointment.employeeName}</strong>
-            </div>
+            <StatusBadge status={appointment.status} />
           </div>
 
           <div className="detail-sheet-divider" />
 
-          <div className="detail-row detail-row-secondary">
-            <div className="detail-col">
-              <span className="detail-label"><Clock3 size={14} /> Horário & Duração</span>
-              <strong className="detail-value">
+          <div className="detail-specs-grid">
+            <div className="detail-spec-item">
+              <span className="detail-spec-label"><Scissors size={13} /> Serviço</span>
+              <strong className="detail-spec-value">{appointment.serviceName}</strong>
+            </div>
+            <div className="detail-spec-item">
+              <span className="detail-spec-label"><UserRound size={13} /> Profissional</span>
+              <strong className="detail-spec-value">{appointment.employeeName}</strong>
+            </div>
+            <div className="detail-spec-item">
+              <span className="detail-spec-label"><Clock3 size={13} /> Horário</span>
+              <strong className="detail-spec-value">
                 {normalizeTime(appointment.startTime)} – {normalizeTime(appointment.endTime)}
-                <span className="detail-pill-duration">{appointment.durationMinutes} min</span>
+                <span className="detail-duration-tag">{appointment.durationMinutes} min</span>
               </strong>
             </div>
-            <div className="detail-col">
-              <span className="detail-label"><MapPin size={14} /> Unidade</span>
-              <strong className="detail-value">{appointment.locationName ?? "Unidade Principal"}</strong>
+            <div className="detail-spec-item">
+              <span className="detail-spec-label"><MapPin size={13} /> Unidade</span>
+              <strong className="detail-spec-value">{appointment.locationName ?? "Unidade Principal"}</strong>
             </div>
-            <div className="detail-col">
-              <span className="detail-label"><CircleDollarSign size={14} /> Valor Total</span>
-              <strong className="detail-value detail-value-price">
+            <div className="detail-spec-item">
+              <span className="detail-spec-label"><CircleDollarSign size={13} /> Valor total</span>
+              <strong className="detail-spec-value detail-value-price">
                 {appointment.isMembershipBooking || (appointment.total === 0 && appointment.notes?.includes("plano"))
-                  ? "INCLUÍDO NO PLANO"
+                  ? "Incluído no plano"
                   : formatCurrency(appointment.total)}
               </strong>
             </div>
-          </div>
-
-          <div className="detail-sheet-divider" />
-
-          <div className="detail-row detail-row-payment">
-            <div className="detail-col detail-col-full">
-              <span className="detail-label"><CreditCard size={14} /> Status do Pagamento</span>
-              <div className="detail-payment-badge-wrap">
+            <div className="detail-spec-item">
+              <span className="detail-spec-label"><CreditCard size={13} /> Pagamento</span>
+              <div className="detail-payment-chip-wrap">
                 {appointment.isMembershipBooking || (appointment.total === 0 && appointment.notes?.includes("plano")) ? (
-                  <span className="payment-chip payment-chip-paid" style={{ background: "rgba(99,102,241,0.18)", color: "var(--brand, #6366f1)" }}>
-                    <Sparkles size={14} /> Coberto pelo Plano Mensal (Mensalista)
+                  <span className="payment-chip payment-chip-paid">
+                    <Sparkles size={12} /> Coberto pelo Plano
                   </span>
                 ) : appointment.paid ? (
                   <span className="payment-chip payment-chip-paid">
-                    <CheckCircle2 size={14} /> Recebido ({appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "Presencial"})
+                    <CheckCircle2 size={12} /> Recebido ({appointment.paymentMethod ? PAYMENT_LABELS[appointment.paymentMethod] : "Presencial"})
                   </span>
                 ) : (
                   <span className="payment-chip payment-chip-pending">
-                    <CircleAlert size={14} /> Pagamento pendente no estabelecimento
+                    <CircleAlert size={12} /> Pendente no estabelecimento
                   </span>
                 )}
               </div>
@@ -5155,72 +5152,169 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             <>
               <div className="detail-sheet-divider" />
               <div className="detail-notes-block">
-                <span className="detail-label"><FileText size={14} /> Observações</span>
+                <span className="detail-spec-label"><FileText size={13} /> Observações</span>
                 <p className="detail-notes-text">{appointment.notes}</p>
               </div>
             </>
           )}
         </div>
 
-        {/* Ações de Gestão de Atendimento */}
+        {/* Ações Rápidas de Atendimento */}
         {canManageAppointment && (
-          <div className="detail-actions-bar">
-            <span className="detail-actions-label">Ações rápidas:</span>
+          <div className="detail-actions-panel">
+            <span className="detail-actions-label">Ações rápidas</span>
             <div className="detail-status-actions">
-              {appointment.status === "scheduled" && <Button variant="secondary" onClick={confirm}><Check size={14} /> Confirmar</Button>}
-              {(appointment.status === "scheduled" || appointment.status === "confirmed") && <Button variant="secondary" onClick={arrived}><UserRound size={14} /> Cliente chegou</Button>}
-              {appointment.status !== "in_progress" && <Button variant="secondary" onClick={start}><Zap size={14} /> Iniciar</Button>}
-              <Button variant="danger" onClick={cancel}><X size={14} /> Cancelar</Button>
-              {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && <Button variant="ghost" onClick={noShow}><CircleAlert size={14} /> Não compareceu</Button>}
+              {appointment.status === "scheduled" && (
+                <Button variant="secondary" onClick={confirm}>
+                  <Check size={14} /> Confirmar
+                </Button>
+              )}
+              {(appointment.status === "scheduled" || appointment.status === "confirmed") && (
+                <Button variant="secondary" onClick={arrived}>
+                  <UserRound size={14} /> Cliente chegou
+                </Button>
+              )}
+              {appointment.status !== "in_progress" && (
+                <Button variant="secondary" onClick={start}>
+                  <Zap size={14} /> Iniciar atendimento
+                </Button>
+              )}
+              {(appointment.status === "scheduled" || appointment.status === "confirmed" || appointment.status === "waiting") && (
+                <Button variant="ghost" onClick={noShow}>
+                  <CircleAlert size={14} /> Não compareceu
+                </Button>
+              )}
+              <button type="button" className="btn-action-danger" onClick={cancel}>
+                <X size={14} /> Cancelar agendamento
+              </button>
             </div>
           </div>
         )}
 
+        {/* Painel Operacional com Abas: Finalizar ou Reagendar */}
         {canManageAppointment && (
-          <>
-            <div className="detail-section">
-              <div className="detail-section-head">
-                <h3>Finalizar atendimento e registrar pagamento</h3>
-                <Button onClick={doFinish} disabled={finishing}>
-                  {finishing ? "Processando..." : <><CheckCheck size={15} /> Finalizar e registrar {formatCurrency(finalCharge)}</>}
-                </Button>
-              </div>
-              <div className="finish-fields">
-                <Field label="Valor original"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} /></div></Field>
-                <Field label="Desconto opcional"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" value={discount} onChange={(e) => setDiscount(Number(e.target.value))} /></div></Field>
-                <Field label="Total final cobrado"><input className="input" value={formatCurrency(finalCharge)} readOnly style={{ fontWeight: 700 }} /></Field>
-                <Field label="Forma de pagamento"><SelectField value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>{(["pix", "cash", "debit", "credit", "other"] as PaymentMethod[]).map((m) => <option key={m} value={m}>{PAYMENT_LABELS[m]}</option>)}</SelectField></Field>
-              </div>
+          <div className="detail-ops-panel">
+            <div className="detail-ops-tabs">
+              <button
+                type="button"
+                className={`detail-ops-tab ${activeTab === "finish" ? "active" : ""}`}
+                onClick={() => setActiveTab("finish")}
+              >
+                <CheckCheck size={14} />
+                <span>Finalizar atendimento</span>
+              </button>
+              <button
+                type="button"
+                className={`detail-ops-tab ${activeTab === "reschedule" ? "active" : ""}`}
+                onClick={() => setActiveTab("reschedule")}
+              >
+                <CalendarDays size={14} />
+                <span>Reagendar</span>
+              </button>
             </div>
 
-            <div className="detail-section">
-              <div className="detail-section-head">
-                <h3>Reagendar atendimento</h3>
-                <Button variant="secondary" onClick={doReschedule} disabled={rescheduling}>
-                  {rescheduling ? "Reagendando..." : <><CalendarDays size={15} /> Reagendar</>}
-                </Button>
-              </div>
-              <div className="finish-fields">
-                <Field label="Nova data"><input className="input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} /></Field>
-                <Field label="Profissional"><SelectField value={newEmployee} onChange={(e) => setNewEmployee(e.target.value)}>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</SelectField></Field>
-                <Field label="Novo horário" className="field-full">
-                  <input className="input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
-                  {rescheduleSlots.length > 0 && (
-                    <div className="slot-chips-wrap">
-                      <span className="slot-chips-label">Horários livres sugeridos:</span>
-                      <div className="slot-chips-grid">
-                        {rescheduleSlots.slice(0, 10).map((s) => (
-                          <button type="button" key={s.startTime} className={`slot-chip ${newTime === s.startTime ? "active" : ""}`} onClick={() => setNewTime(s.startTime)}>
-                            {s.startTime}
-                          </button>
-                        ))}
+            <div className="detail-ops-content">
+              {activeTab === "finish" ? (
+                <div className="detail-finish-form">
+                  <div className="finish-fields-grid">
+                    <Field label="Valor base">
+                      <div className="input-with-prefix">
+                        <span>R$</span>
+                        <input
+                          className="input"
+                          type="number"
+                          min="0"
+                          value={amount}
+                          onChange={(e) => setAmount(Number(e.target.value))}
+                        />
                       </div>
-                    </div>
-                  )}
-                </Field>
-              </div>
+                    </Field>
+                    <Field label="Desconto opcional">
+                      <div className="input-with-prefix">
+                        <span>R$</span>
+                        <input
+                          className="input"
+                          type="number"
+                          min="0"
+                          value={discount}
+                          onChange={(e) => setDiscount(Number(e.target.value))}
+                        />
+                      </div>
+                    </Field>
+                    <Field label="Total a pagar">
+                      <input className="input" value={formatCurrency(finalCharge)} readOnly style={{ fontWeight: 700 }} />
+                    </Field>
+                    <Field label="Forma de pagamento">
+                      <SelectField value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+                        {(["pix", "cash", "debit", "credit", "other"] as PaymentMethod[]).map((m) => (
+                          <option key={m} value={m}>{PAYMENT_LABELS[m]}</option>
+                        ))}
+                      </SelectField>
+                    </Field>
+                  </div>
+                  <div className="detail-finish-action-bar">
+                    <Button onClick={doFinish} disabled={finishing} className="detail-submit-primary">
+                      {finishing ? (
+                        "Processando..."
+                      ) : (
+                        <>
+                          <CheckCheck size={15} />
+                          <span>Finalizar e registrar {formatCurrency(finalCharge)}</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="detail-reschedule-form">
+                  <div className="reschedule-fields-grid">
+                    <Field label="Nova data">
+                      <input className="input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} />
+                    </Field>
+                    <Field label="Profissional">
+                      <SelectField value={newEmployee} onChange={(e) => setNewEmployee(e.target.value)}>
+                        {employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>{employee.name}</option>
+                        ))}
+                      </SelectField>
+                    </Field>
+                    <Field label="Novo horário" className="field-full">
+                      <input className="input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+                      {rescheduleSlots.length > 0 && (
+                        <div className="slot-chips-wrap">
+                          <span className="slot-chips-label">Horários livres sugeridos:</span>
+                          <div className="slot-chips-grid">
+                            {rescheduleSlots.slice(0, 10).map((s) => (
+                              <button
+                                type="button"
+                                key={s.startTime}
+                                className={`slot-chip ${newTime === s.startTime ? "active" : ""}`}
+                                onClick={() => setNewTime(s.startTime)}
+                              >
+                                {s.startTime}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </Field>
+                  </div>
+                  <div className="detail-finish-action-bar">
+                    <Button variant="secondary" onClick={doReschedule} disabled={rescheduling} className="detail-submit-primary">
+                      {rescheduling ? (
+                        "Reagendando..."
+                      ) : (
+                        <>
+                          <CalendarDays size={15} />
+                          <span>Confirmar reagendamento</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          </>
+          </div>
         )}
       </div>
 
