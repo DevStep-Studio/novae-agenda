@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  Loader2,
   Lock,
   Mail,
   MailCheck,
@@ -54,6 +55,9 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     setTheme(nextTheme);
     applyTheme(nextTheme);
   };
+
+  const greenBtnBg = theme === "dark" ? "#10b981" : "#16a34a";
+  const greenText = theme === "dark" ? "#34d399" : "#16a34a";
 
   const [mode, setMode] = useState<AuthMode>(() => {
     if (initialMode) return initialMode;
@@ -418,6 +422,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
+                      style={{ accentColor: greenBtnBg }}
                     />
                     <span>Lembrar de mim</span>
                   </label>
@@ -425,6 +430,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                     type="button"
                     className="auth-split-link-btn"
                     onClick={handleOpenForgotPassword}
+                    style={{ color: greenText }}
                   >
                     Esqueci minha senha
                   </button>
@@ -434,8 +440,16 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
+                  style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
                 >
-                  {loading ? "Entrando..." : "Entrar"}
+                  {loading ? (
+                    <>
+                      <Loader2 size={18} className="auth-split-spinner" />
+                      <span>Entrando...</span>
+                    </>
+                  ) : (
+                    <span>Entrar</span>
+                  )}
                 </button>
               </form>
 
@@ -459,6 +473,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                 <button
                   type="button"
                   onClick={() => handleModeChange("register")}
+                  style={{ color: greenText }}
                 >
                   Criar conta grátis
                 </button>
@@ -602,8 +617,16 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
+                  style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
                 >
-                  {loading ? "Criando conta..." : "Criar conta grátis"}
+                  {loading ? (
+                    <>
+                      <Loader2 size={18} className="auth-split-spinner" />
+                      <span>Criando conta...</span>
+                    </>
+                  ) : (
+                    <span>Criar conta grátis</span>
+                  )}
                 </button>
               </form>
 
@@ -627,6 +650,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                 <button
                   type="button"
                   onClick={() => handleModeChange("login")}
+                  style={{ color: greenText }}
                 >
                   Entrar
                 </button>
@@ -672,8 +696,16 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="submit"
                       className="auth-split-primary-btn"
                       disabled={loading}
+                      style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
                     >
-                      {loading ? "Enviando..." : "Enviar instruções"}
+                      {loading ? (
+                        <>
+                          <Loader2 size={18} className="auth-split-spinner" />
+                          <span>Enviando...</span>
+                        </>
+                      ) : (
+                        <span>Enviar instruções</span>
+                      )}
                     </button>
                   </form>
 
@@ -699,6 +731,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                     <button
                       type="button"
                       onClick={() => handleModeChange("login")}
+                      style={{ color: greenText }}
                     >
                       Voltar ao login
                     </button>
@@ -737,6 +770,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                     type="button"
                     className="auth-split-primary-btn"
                     onClick={() => handleModeChange("login")}
+                    style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
                   >
                     Voltar ao login
                   </button>
@@ -857,6 +891,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
+                      style={{ accentColor: greenBtnBg }}
                     />
                     <span>Lembrar de mim</span>
                   </label>
@@ -864,6 +899,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                     type="button"
                     className="auth-split-link-btn"
                     onClick={handleOpenForgotPassword}
+                    style={{ color: greenText }}
                   >
                     Esqueci minha senha
                   </button>
@@ -873,8 +909,16 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
+                  style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
                 >
-                  {loading ? "Acessando..." : "Acessar minhas reservas"}
+                  {loading ? (
+                    <>
+                      <Loader2 size={18} className="auth-split-spinner" />
+                      <span>Acessando...</span>
+                    </>
+                  ) : (
+                    <span>Acessar minhas reservas</span>
+                  )}
                 </button>
 
                 {/* Acesso rápido para testes em modo desenvolvimento */}
@@ -911,6 +955,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                 <button
                   type="button"
                   onClick={() => handleModeChange("register")}
+                  style={{ color: greenText }}
                 >
                   Criar conta de profissional
                 </button>

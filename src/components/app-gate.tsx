@@ -10,6 +10,7 @@ import { AppShell } from "@/components/app-shell";
 import { ClientPortal } from "@/components/client/client-portal";
 import { EmployeeDashboard } from "@/components/employee/employee-dashboard";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
+import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 function readTokenParams(): { verify: string | null; reset: string | null } {
@@ -62,8 +63,9 @@ export function AppGate({ initialView }: { initialView?: string } = {}) {
   if (loading) {
     return (
       <div className="boot-screen">
+        <ReserveiLogo size={36} priority />
         <span className="boot-spinner" />
-        <p>Carregando sua agenda...</p>
+        <p style={{ margin: 0, fontSize: "13px", fontWeight: 500 }}>Carregando sua agenda...</p>
       </div>
     );
   }
