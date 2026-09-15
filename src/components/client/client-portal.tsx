@@ -565,7 +565,10 @@ export function ClientPortal({
         {/* TAB 2: AGENDAR (FLOW EM ETAPAS) */}
         {activeTab === "agendar" && (
           <div className={styles.flowContainer}>
-            <h2>Escolha o estabelecimento</h2>
+            <div className={styles.flowHeader}>
+              <h2 className={styles.flowHeaderTitle}>Escolha o estabelecimento</h2>
+              <span className={styles.flowProgress}>{companies.length} disponíveis</span>
+            </div>
             <div className={styles.companyGrid}>
                 {companies.map((comp) => (
                   <button
