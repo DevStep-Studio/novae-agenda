@@ -162,6 +162,11 @@
       "scope": "owner-trial-status",
       "decision": "Exibir na home do proprietário um card laranja sólido de alto contraste, com ícone e CTA pretos, validade sem cobrança automática, contador vindo do servidor e timeline responsiva dos sete dias; ocultar após a ativação.",
       "source": "Especificação e referência visual do trial de 7 dias enviadas pelo usuário."
+    },
+    {
+      "scope": "booking-desktop-preview",
+      "decision": "Dar prioridade de largura ao canvas da prévia desktop e decidir o layout interno pela largura real do frame; datas e horários usam grades próprias e legíveis, sem reutilizar a grade mensal de sete colunas.",
+      "source": "Captura da prévia desktop enviada pelo usuário e diagnóstico do container estreito."
     }
   ],
   "evidence": [

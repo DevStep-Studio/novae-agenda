@@ -96,8 +96,8 @@
 /* Studio Split Layout */
 .studioLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 1fr);
-  gap: 32px;
+  grid-template-columns: minmax(320px, .72fr) minmax(640px, 1.28fr);
+  gap: 28px;
   align-items: start;
 }
 
@@ -625,7 +625,7 @@
   border-radius: 99px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1180px) {
   .studioLayout {
     grid-template-columns: 1fr;
   }

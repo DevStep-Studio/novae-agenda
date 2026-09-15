@@ -412,4 +412,50 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
     const dataWithoutPin = await resWithoutPin.json();
     assert.equal(dataWithoutPin.code, "PIN_REQUIRED");
   });
+
+  it("11. PIN-only Access: Customer can authenticate with 6-digit PIN only (no phone required)", async () => {
+    const pinOnlyUserPhone = "(21) 97777-6666";
+    const normPinOnlyPhone = normalizePhoneDigits(pinOnlyUserPhone);
+    const pinCode = "371948";
+
+    // Cria um booking rápido para vincular
+    const booking = await createBooking(f.customers[0], {
+      slug: f.company.publicSlug!,
+      locationId: f.location.id,
+      items: [{ serviceId: f.services[0].id, employeeId: f.team[0].id }],
+      date: shiftDate(new Date().toISOString().slice(0, 10), 1),
+      startTime: "16:00",
+      idempotencyKey: randomUUID(),
+      products: [],
+      intendedPaymentMethod: "pix",
+    });
+
+    // Configura o PIN usando bookingId sem precisar de telefone
+    const setupResult = await CustomerAccessService.setupPin({
+      pin: pinCode,
+      confirmPin: pinCode,
+      bookingId: booking.id,
+    });
+    assert.equal(setupResult.userId, f.customers[0].id);
+
+    // Login 100% por PIN (sem fornecer telefone)
+    const pinOnlySession = await CustomerAccessService.loginByPinOnly({
+      pin: pinCode,
+    });
+    assert.equal(pinOnlySession.userId, f.customers[0].id);
+    assert.equal(pinOnlySession.customer.id, f.customers[0].id);
+
+    // Login via loginWithPin omitindo o telefone
+    const delegatedSession = await CustomerAccessService.loginWithPin({
+      pin: pinCode,
+    });
+    assert.equal(delegatedSession.userId, f.customers[0].id);
+
+    // PIN inexistente/incorreto deve ser rejeitado
+    await assert.rejects(
+      CustomerAccessService.loginByPinOnly({ pin: "999888" }),
+      /PIN não encontrado/,
+    );
+  });
 });
+

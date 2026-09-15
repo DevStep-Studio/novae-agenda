@@ -1144,26 +1144,18 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                           Selecione o melhor dia e horário para seu atendimento.
                         </p>
 
-                        <div className={b.calendar} style={{ padding: 14, borderRadius: 12, marginBottom: 14 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                            <span style={{ fontWeight: 700, fontSize: 13 }}>Próximos dias disponíveis</span>
-                            <span style={{ fontSize: 11, color: "var(--accent)" }}>Mês atual</span>
+                        <div className={b.previewDatePanel}>
+                          <div className={b.previewDateHeader}>
+                            <strong>Próximos dias disponíveis</strong>
+                            <span>Mês atual</span>
                           </div>
-                          <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4 }}>
+                          <div className={b.previewDateDays}>
                             {["Hoje", "Amanhã", "Quarta", "Quinta", "Sexta"].map((d, i) => (
                               <button
                                 key={d}
                                 type="button"
-                                className={`${b.day} ${i === 0 ? b.daySelected : ""}`}
-                                style={{
-                                  padding: "8px 10px",
-                                  borderRadius: 8,
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  background: i === 0 ? "var(--accent)" : undefined,
-                                  color: i === 0 ? "var(--accent-contrast)" : undefined,
-                                }}
+                                className={`${b.previewDateDay} ${i === 0 ? b.previewDateDayActive : ""}`}
+                                aria-pressed={i === 0}
                               >
                                 {d}
                               </button>
@@ -1171,25 +1163,17 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                           </div>
                         </div>
 
-                        <div style={{ marginBottom: 14 }}>
-                          <span style={{ display: "block", fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+                        <div className={b.previewSlotsPanel}>
+                          <span className={b.previewSlotsTitle}>
                             Horários disponíveis
                           </span>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          <div className={b.previewSlotsGrid}>
                             {["09:00", "10:30", "14:00", "15:30", "17:00"].map((slot, i) => (
                               <button
                                 key={slot}
                                 type="button"
-                                className={b.slotChip}
-                                style={{
-                                  padding: "6px 12px",
-                                  borderRadius: 8,
-                                  fontSize: 11.5,
-                                  fontWeight: 600,
-                                  cursor: "pointer",
-                                  background: i === 1 ? "var(--accent)" : undefined,
-                                  color: i === 1 ? "var(--accent-contrast)" : undefined,
-                                }}
+                                className={`${b.previewSlotButton} ${i === 1 ? b.previewSlotButtonActive : ""}`}
+                                aria-pressed={i === 1}
                                 onClick={() => setPreviewStep(2)}
                               >
                                 {slot}
