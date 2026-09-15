@@ -52,21 +52,22 @@ test("Security Hardening Suite — 20 Control Layers & Production Integrity", as
     const originalNodeEnv = process.env.NODE_ENV;
     const originalSecureCookies = process.env.SECURE_COOKIES;
 
+    const env = process.env as Record<string, string | undefined>;
     try {
       // Production without explicit override must be secure
-      process.env.NODE_ENV = "production";
-      delete process.env.SECURE_COOKIES;
+      env.NODE_ENV = "production";
+      delete env.SECURE_COOKIES;
       assert.equal(isSecureCookie(), true, "Em produção, cookies devem ter Secure=true por padrão");
 
       // SECURE_COOKIES='false' can override (e.g. for local HTTP docker tests)
-      process.env.SECURE_COOKIES = "false";
+      env.SECURE_COOKIES = "false";
       assert.equal(isSecureCookie(), false);
 
       // SECURE_COOKIES='true' explicitly forces secure
-      process.env.SECURE_COOKIES = "true";
+      env.SECURE_COOKIES = "true";
       assert.equal(isSecureCookie(), true);
     } finally {
-      process.env.NODE_ENV = originalNodeEnv;
+      env.NODE_ENV = originalNodeEnv;
       if (originalSecureCookies !== undefined) {
         process.env.SECURE_COOKIES = originalSecureCookies;
       } else {
