@@ -22,6 +22,8 @@ import {
   Briefcase,
   Download,
   Star,
+  ChevronRight,
+  Search,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api, ApiError } from "@/lib/api-client";
@@ -49,29 +51,27 @@ type PublicCompany = {
   publicSlug: string;
   address: string | null;
   phone: string | null;
-  primaryColor: string;
+  primaryColor?: string | null;
 };
 
 type BookingItem = {
   id: string;
-  serviceId: string;
+  name: string;
   serviceName: string;
-  employeeId: string;
-  employeeName: string;
   price: number;
   durationMinutes: number;
   date: string;
   startTime: string;
   endTime: string;
+  employeeName: string;
 };
 
 type CustomerBooking = {
   id: string;
   companyId: string;
-  companyName?: string;
+  companyName: string;
   companySlug?: string;
   companyAddress?: string | null;
-  locationId: string;
   locationName: string;
   startsAt: string;
   endsAt: string;
@@ -93,6 +93,7 @@ export function ClientPortal({
   const [session, setSession] = useState<SessionInfo | null>(initialSession ?? null);
   const [bookings, setBookings] = useState<CustomerBooking[]>([]);
   const [companies, setCompanies] = useState<PublicCompany[]>([]);
+  const [companySearch, setCompanySearch] = useState("");
   const [customerMembership, setCustomerMembership] = useState<CustomerMembershipDTO | null>(null);
   const [monthSchedulerOpen, setMonthSchedulerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -112,31 +113,38 @@ export function ClientPortal({
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sessData, bookingsData, companiesData, memData] = await Promise.all([
-        api<SessionInfo>("/api/auth/session").catch(() => null),
-        api<BookingDetails[]>("/api/my/bookings")
-          .then(rows => (rows || []).map(row => ({
-            ...row,
-            startsAt: String(row.startsAt),
-            endsAt: String(row.endsAt),
-            total: Number(row.total),
-            companyName: row.company.name,
-            companySlug: row.company.slug ?? undefined,
-            companyAddress: row.company.address,
-            locationName: "",
-            items: (row.items || []).map(i => ({ ...i, serviceName: i.name, price: Number(i.price) })),
-          })))
-          .catch(() => []),
-        api<PublicCompany[]>("/api/companies/public").catch(() => []),
-        api<CustomerMembershipDTO>("/api/my/membership").catch(() => null),
-      ]);
-
+      const sessData = await api<SessionInfo>("/api/auth/session").catch(() => null);
       if (sessData) setSession(sessData);
-      setBookings(bookingsData);
-      setCompanies(companiesData);
-      setCustomerMembership(memData);
-    } catch {
-      setError("Não foi possível carregar seus agendamentos. Tente novamente.");
+
+      const companiesData = await api<PublicCompany[]>("/api/companies/public").catch(() => []);
+      if (Array.isArray(companiesData)) setCompanies(companiesData);
+
+      const memData = await api<CustomerMembershipDTO>("/api/my/membership").catch(() => null);
+      if (memData) setCustomerMembership(memData);
+
+      const rawBookings = await api<BookingDetails[]>("/api/my/bookings").catch(() => []);
+      if (Array.isArray(rawBookings)) {
+        const parsedBookings: CustomerBooking[] = rawBookings
+          .filter(Boolean)
+          .map((row) => ({
+            ...row,
+            startsAt: String(row.startsAt ?? ""),
+            endsAt: String(row.endsAt ?? ""),
+            total: Number(row.total ?? 0),
+            companyName: row.company?.name ?? "Empresa",
+            companySlug: row.company?.slug ?? undefined,
+            companyAddress: row.company?.address ?? null,
+            locationName: "",
+            items: (row.items || []).map((i) => ({
+              ...i,
+              serviceName: i.name ?? "Serviço",
+              price: Number(i.price ?? 0),
+            })),
+          }));
+        setBookings(parsedBookings);
+      }
+    } catch (err) {
+      console.warn("ClientPortal: carregamento resiliente", err);
     } finally {
       setLoading(false);
     }
@@ -149,6 +157,16 @@ export function ClientPortal({
   const now = new Date();
   const upcomingBookings = bookings.filter(b => !["cancelled", "completed", "no_show"].includes(b.status) && new Date(b.endsAt) >= now).sort((a,b) => a.startsAt.localeCompare(b.startsAt));
   const nextBooking = upcomingBookings[0] ?? null;
+
+  const filteredCompanies = companies.filter((c) => {
+    if (!companySearch.trim()) return true;
+    const q = companySearch.toLowerCase();
+    return (
+      c.name?.toLowerCase().includes(q) ||
+      c.businessType?.toLowerCase().includes(q) ||
+      c.address?.toLowerCase().includes(q)
+    );
+  });
   const startReschedule = (booking: CustomerBooking) => {
     router.push(`/meus-agendamentos?booking=${booking.id}&action=reschedule`);
   };
@@ -579,11 +597,45 @@ export function ClientPortal({
         {activeTab === "agendar" && (
           <div className={styles.flowContainer}>
             <div className={styles.flowHeader}>
-              <h2 className={styles.flowHeaderTitle}>Escolha o estabelecimento</h2>
-              <span className={styles.flowProgress}>{companies.length} disponíveis</span>
+              <div className={styles.flowHeaderInfo}>
+                <h2 className={styles.flowHeaderTitle}>Escolha o estabelecimento</h2>
+                <p className={styles.flowHeaderSubtitle}>
+                  Selecione onde deseja ser atendido para consultar serviços e horários disponíveis
+                </p>
+              </div>
+              <span className={styles.flowProgress}>
+                <Sparkles size={13} /> {filteredCompanies.length} disponíveis
+              </span>
             </div>
+
+            <div className={styles.searchBarWrapper}>
+              <Search size={15} />
+              <input
+                type="text"
+                placeholder="Buscar por nome, especialidade ou endereço..."
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+                className={styles.searchBarInput}
+              />
+              {companySearch && (
+                <button
+                  type="button"
+                  onClick={() => setCompanySearch("")}
+                  style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "grid", placeItems: "center" }}
+                  aria-label="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             <div className={styles.companyGrid}>
-                {companies.map((comp) => (
+              {filteredCompanies.length === 0 ? (
+                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "44px 20px", color: "var(--text-muted)", fontSize: "14px" }}>
+                  Nenhum estabelecimento encontrado com &quot;{companySearch}&quot;.
+                </div>
+              ) : (
+                filteredCompanies.map((comp) => (
                   <button
                     type="button"
                     key={comp.id}
@@ -604,26 +656,29 @@ export function ClientPortal({
                         comp.name.slice(0, 2).toUpperCase()
                       )}
                     </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <strong style={{ display: "block", fontSize: "14px", color: "var(--text-primary)", letterSpacing: "-0.2px" }}>
+                    <div className={styles.companyCardContent}>
+                      <strong className={styles.companyCardName}>
                         {comp.name}
                       </strong>
-                      <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                      <span className={styles.companyCardTag}>
                         {comp.businessType ?? "Atendimento"}
                       </span>
                       {comp.address && (
-                        <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "11px", color: "var(--text-muted)", marginTop: 3 }}>
-                          <MapPin size={11} />
+                        <span className={styles.companyCardAddress}>
+                          <MapPin size={11} style={{ flexShrink: 0 }} />
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {comp.address}
                           </span>
                         </span>
                       )}
                     </div>
+                    <div className={styles.companyCardArrow}>
+                      <ChevronRight size={16} />
+                    </div>
                   </button>
-                ))}
+                ))
+              )}
             </div>
-
           </div>
         )}
         {(activeTab === "horarios" || activeTab === "historico") && (
