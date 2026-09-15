@@ -409,9 +409,12 @@ export function ClientPortal({
               style={{ overflow: "hidden", padding: 0 }}
             >
               {(profileAvatarUrl || session?.avatarUrl) ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={profileAvatarUrl || session?.avatarUrl || ""}
                   alt={session?.name ?? "Avatar"}
+                  loading="lazy"
+                  decoding="async"
                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                 />
               ) : session?.name ? (
@@ -850,7 +853,8 @@ export function ClientPortal({
                 {/* Banner Header */}
                 <div className={styles.profileBannerWrap}>
                   {profileBannerUrl ? (
-                    <img src={profileBannerUrl} alt="Capa de perfil" className={styles.profileBannerImg} />
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={profileBannerUrl} alt="Capa de perfil" loading="lazy" decoding="async" className={styles.profileBannerImg} />
                   ) : (
                     <div className={styles.profileBannerFallback}>
                       <ImageIcon size={28} />
@@ -885,7 +889,8 @@ export function ClientPortal({
                 <div className={styles.profileHeaderMeta}>
                   <div className={styles.profileAvatarContainer}>
                     {profileAvatarUrl ? (
-                      <img src={profileAvatarUrl} alt="Foto de perfil" className={styles.profileAvatarImg} />
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={profileAvatarUrl} alt="Foto de perfil" loading="lazy" decoding="async" className={styles.profileAvatarImg} />
                     ) : (
                       <div className={styles.profileAvatarFallback}>
                         {profileName ? profileName[0].toUpperCase() : "C"}
@@ -1003,7 +1008,8 @@ export function ClientPortal({
                           onClick={() => setProfileAvatarUrl(preset.url)}
                           title={preset.name}
                         >
-                          <img src={preset.url} alt={preset.name} />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={preset.url} alt={preset.name} loading="lazy" decoding="async" />
                         </button>
                       ))}
                     </div>
@@ -1021,7 +1027,8 @@ export function ClientPortal({
                           onClick={() => setProfileBannerUrl(preset.url)}
                           title={preset.name}
                         >
-                          <img src={preset.url} alt={preset.name} />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={preset.url} alt={preset.name} loading="lazy" decoding="async" />
                         </button>
                       ))}
                     </div>

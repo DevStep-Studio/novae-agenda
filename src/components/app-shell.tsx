@@ -5838,10 +5838,13 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           <button className={`profile-nav ${view === "perfil" ? "active" : ""}`} onClick={() => navigate("perfil")}>
             <span className="profile-avatar">
               {userAvatar && !sidebarAvatarError ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={userAvatar}
                   alt={session?.name ?? "Perfil"}
                   className="profile-avatar-img"
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setSidebarAvatarError(true)}
                 />
               ) : (
@@ -6070,10 +6073,13 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
               <span className="topbar-avatar-wrap">
                 <span className="topbar-avatar">
                   {userAvatar && !topbarAvatarError ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={userAvatar}
                       alt={session?.name ?? "Perfil"}
                       className="topbar-avatar-img"
+                      loading="lazy"
+                      decoding="async"
                       onError={() => setTopbarAvatarError(true)}
                     />
                   ) : (
