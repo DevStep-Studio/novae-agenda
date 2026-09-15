@@ -385,11 +385,179 @@
   box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25) !important;
 }
 
-/* Profile Form & Inputs */
-.profileForm {
+/* Profile Page Modern Minimalist (Solid, Zero Gradient) */
+.profileCard {
+  background: var(--portal-surface);
+  border: 1px solid var(--portal-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.profileBannerWrap {
+  width: 100%;
+  height: 150px;
+  background: var(--portal-card);
+  border-bottom: 1px solid var(--portal-border);
+  position: relative;
+  overflow: hidden;
+}
+
+.profileBannerImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileBannerFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--portal-dim);
+  background: #131317;
+}
+
+.profileBannerActions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.bannerActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(17, 17, 20, 0.9);
+  border: 1px solid var(--portal-border-strong);
+  color: var(--portal-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none !important;
+}
+
+.bannerActionBtn:hover {
+  background: #1f1f26;
+  border-color: var(--portal-text);
+}
+
+.bannerActionBtnDanger {
+  color: #f87171;
+}
+.bannerActionBtnDanger:hover {
+  border-color: #f87171;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.profileHeaderMeta {
+  padding: 0 24px 18px 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: -42px;
+  position: relative;
+  z-index: 3;
+}
+
+.profileAvatarContainer {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 20px;
+  border: 3px solid var(--portal-surface);
+  background: var(--portal-card);
+  overflow: hidden;
+  box-shadow: none !important;
+}
+
+.profileAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileAvatarFallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--portal-accent);
+  background: #18181f;
+}
+
+.avatarUploadOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 9, 11, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  color: #ffffff;
+}
+
+.profileAvatarContainer:hover .avatarUploadOverlay {
+  opacity: 1;
+}
+
+.profileAvatarBtns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profileBody {
+  padding: 20px 24px 28px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 24px;
+}
+
+.profileSectionHeader {
+  border-bottom: 1px solid var(--portal-border);
+  padding-bottom: 14px;
+}
+
+.profileTitle {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--portal-text);
+  margin: 0 0 4px;
+}
+
+.profileSubtitle {
+  font-size: 13px;
+  color: var(--portal-muted);
+  margin: 0;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profileFieldFull {
+  grid-column: 1 / -1;
 }
 
 .profileField {
@@ -399,10 +567,35 @@
 }
 
 .profileLabel {
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: 0.02em;
+  color: var(--portal-text);
+}
+
+.profileLabelHint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--portal-dim);
+}
+
+.profileInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.profileInputIcon {
+  position: absolute;
+  left: 14px;
+  color: var(--portal-muted);
+  pointer-events: none;
+}
+
+.profileInputWithIcon {
+  padding-left: 38px !important;
 }
 
 .profileInput {
@@ -411,9 +604,9 @@
   height: 42px;
   padding: 0 14px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface-secondary);
-  color: var(--text-primary);
+  border: 1px solid var(--portal-border);
+  background: var(--portal-card);
+  color: var(--portal-text);
   font-size: 14px;
   outline: none !important;
   box-shadow: none !important;
@@ -421,26 +614,184 @@
 }
 
 .profileInput:focus {
-  border-color: var(--border-strong) !important;
-  background: var(--surface) !important;
+  border-color: var(--portal-border-strong) !important;
+  background: #191920 !important;
+}
+
+.profileInputDisabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #131317;
+  border-color: var(--portal-border);
+}
+
+.profileInputHelp {
+  font-size: 12px;
+  color: var(--portal-dim);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.presetGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.presetTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--portal-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.avatarPresetsList {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.avatarPresetItem {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 2px solid var(--portal-border);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--portal-card);
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.avatarPresetItem:hover {
+  border-color: var(--portal-border-strong);
+  transform: translateY(-1px);
+}
+
+.avatarPresetItemActive {
+  border-color: var(--portal-accent) !important;
+  box-shadow: none !important;
+}
+
+.avatarPresetItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bannerPresetsList {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .bannerPresetsList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.bannerPresetItem {
+  height: 52px;
+  border-radius: 10px;
+  border: 2px solid var(--portal-border);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--portal-card);
+  padding: 0;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.bannerPresetItem:hover {
+  border-color: var(--portal-border-strong);
+  transform: translateY(-1px);
+}
+
+.bannerPresetItemActive {
+  border-color: var(--portal-accent) !important;
+  box-shadow: none !important;
+}
+
+.bannerPresetItem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileFooterActions {
+  border-top: 1px solid var(--portal-border);
+  padding-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.saveProfileBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 10px;
+  background: var(--portal-accent);
+  color: #09090b;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1px solid var(--portal-accent);
+  cursor: pointer;
+  transition: all 0.15s ease;
   outline: none !important;
   box-shadow: none !important;
 }
 
-.profileInputDisabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  background: var(--surface-tertiary);
-  border-color: var(--border);
+.saveProfileBtn:hover {
+  background: #c8ed32;
+  border-color: #c8ed32;
+  transform: translateY(-1px);
 }
 
-.profileActions {
-  border-top: 1px solid var(--border);
-  padding-top: 18px;
-  margin-top: 8px;
-  display: flex;
+.saveProfileBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.logoutBtn {
+  display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: transparent;
+  color: #f87171;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none !important;
+}
+
+.logoutBtn:hover {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: #f87171;
+}
+
+.profileSuccessBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: #34d399;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* Empty State Card */

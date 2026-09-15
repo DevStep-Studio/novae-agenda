@@ -1,10 +1,10 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { companies, users } from "@/db/schema";
+import { clients, companies, users } from "@/db/schema";
 import { requireAuth, unauthorized } from "@/lib/auth";
 import { getRawCompanySetting, setRawCompanySetting } from "@/lib/settings";
-import { saveBrandingImage } from "@/lib/storage";
+import { saveBrandingImage, saveClientImage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,8 @@ export async function GET() {
       phone: users.phone,
       role: users.role,
       companyId: users.companyId,
+      avatarUrl: users.avatarUrl,
+      bannerUrl: users.bannerUrl,
     })
     .from(users)
     .where(eq(users.id, auth.user.userId))
@@ -74,8 +76,8 @@ export async function GET() {
     data: {
       user: userRow,
       company: companyRow,
-      avatarUrl: companyRow?.logoUrl ?? null,
-      bannerUrl,
+      avatarUrl: userRow.avatarUrl ?? companyRow?.logoUrl ?? null,
+      bannerUrl: userRow.bannerUrl ?? bannerUrl ?? null,
       primaryColor: companyRow?.primaryColor ?? "#3b82f6",
       secondaryColor: companyRow?.secondaryColor ?? "#18181b",
       dashboardPreferences: dashboardPreferences ?? {
@@ -107,13 +109,43 @@ export async function PATCH(request: Request) {
 
   const { name, phone, companyName, businessType, avatarUrl, bannerUrl, primaryColor, secondaryColor, dashboardPreferences } = parsed.data;
 
-  // 1. Update user row if name or phone given
+  const [currentUser] = await db
+    .select({ avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl })
+    .from(users)
+    .where(eq(users.id, auth.user.userId))
+    .limit(1);
+
+  let savedAvatarUrl: string | null | undefined = undefined;
+  let savedBannerUrl: string | null | undefined = undefined;
+
+  if (avatarUrl !== undefined) {
+    savedAvatarUrl = avatarUrl ? await saveClientImage(avatarUrl, currentUser?.avatarUrl) : null;
+  }
+  if (bannerUrl !== undefined) {
+    savedBannerUrl = bannerUrl ? await saveBrandingImage(bannerUrl, currentUser?.bannerUrl) : null;
+  }
+
+  // 1. Update user row if name, phone, avatarUrl or bannerUrl given
   const userPatch: Record<string, unknown> = {};
   if (name !== undefined) userPatch.name = name.trim();
   if (phone !== undefined) userPatch.phone = phone ? phone.trim() : null;
+  if (savedAvatarUrl !== undefined) userPatch.avatarUrl = savedAvatarUrl;
+  if (savedBannerUrl !== undefined) userPatch.bannerUrl = savedBannerUrl;
+
   if (Object.keys(userPatch).length > 0) {
     userPatch.updatedAt = new Date();
     await db.update(users).set(userPatch).where(eq(users.id, auth.user.userId));
+  }
+
+  // Also update client records linked to this user
+  if (name !== undefined || phone !== undefined || savedAvatarUrl !== undefined) {
+    const clientPatch: Record<string, unknown> = {};
+    if (name !== undefined) clientPatch.name = name.trim();
+    if (phone !== undefined) clientPatch.phone = phone ? phone.trim() : "";
+    if (savedAvatarUrl !== undefined) clientPatch.photoUrl = savedAvatarUrl;
+    clientPatch.updatedAt = new Date();
+
+    await db.update(clients).set(clientPatch).where(eq(clients.userId, auth.user.userId));
   }
 
   // 2. Resolve or provision companyId if owner/admin
@@ -146,9 +178,6 @@ export async function PATCH(request: Request) {
   }
 
   // 3. Update company row and settings if targetCompanyId exists
-  let savedAvatarUrl: string | null | undefined = undefined;
-  let savedBannerUrl: string | null | undefined = undefined;
-
   if (targetCompanyId) {
     const [currentCompany] = await db
       .select({ logoUrl: companies.logoUrl })
@@ -167,7 +196,6 @@ export async function PATCH(request: Request) {
       companyPatch.businessType = businessType ? businessType.trim() : null;
     }
     if (avatarUrl !== undefined) {
-      savedAvatarUrl = avatarUrl ? await saveBrandingImage(avatarUrl, currentCompany?.logoUrl) : null;
       companyPatch.logoUrl = savedAvatarUrl;
     }
     if (primaryColor !== undefined) companyPatch.primaryColor = primaryColor;
@@ -182,10 +210,9 @@ export async function PATCH(request: Request) {
     }
 
     // Update raw settings (banner, cover, avatar and dashboard preferences)
-    if (bannerUrl !== undefined) {
-      savedBannerUrl = bannerUrl ? await saveBrandingImage(bannerUrl, currentBanner) : "";
-      await setRawCompanySetting(targetCompanyId, "banner_url", savedBannerUrl);
-      await setRawCompanySetting(targetCompanyId, "cover_url", savedBannerUrl);
+    if (savedBannerUrl !== undefined) {
+      await setRawCompanySetting(targetCompanyId, "banner_url", savedBannerUrl ?? "");
+      await setRawCompanySetting(targetCompanyId, "cover_url", savedBannerUrl ?? "");
     }
     if (savedAvatarUrl !== undefined) {
       await setRawCompanySetting(targetCompanyId, "avatar_url", savedAvatarUrl ?? "");

@@ -44,7 +44,12 @@ export async function GET() {
   }
 
   const [row] = await db
-    .select({ createdAt: users.createdAt, phone: users.phone })
+    .select({
+      createdAt: users.createdAt,
+      phone: users.phone,
+      avatarUrl: users.avatarUrl,
+      bannerUrl: users.bannerUrl,
+    })
     .from(users)
     .where(eq(users.id, user.userId))
     .limit(1);
@@ -131,6 +136,8 @@ export async function GET() {
     name: user.name,
     email: user.email,
     phone: row?.phone ?? user.phone ?? null,
+    avatarUrl: row?.avatarUrl ?? company?.logoUrl ?? null,
+    bannerUrl: row?.bannerUrl ?? bannerUrl ?? null,
     emailVerified: user.emailVerified,
     isSuperadmin: user.isSuperadmin,
     createdAt: (row?.createdAt ?? new Date()).toISOString(),

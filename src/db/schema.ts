@@ -71,6 +71,8 @@ export const users = mysqlTable("users", {
   active: boolean("active").default(true).notNull(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   emailVerifiedAt: timestamp("email_verified_at", { mode: "date" }),
+  avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
   ...timestamps,
 }, (table) => ({
   emailCompanyIdx: uniqueIndex("users_company_email_idx").on(table.companyId, table.email),

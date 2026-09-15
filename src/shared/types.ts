@@ -72,6 +72,7 @@ export type SessionInfo = {
   email: string;
   phone?: string | null;
   avatarUrl?: string | null;
+  bannerUrl?: string | null;
   emailVerified: boolean;
   isSuperadmin: boolean;
   createdAt: string;

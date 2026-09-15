@@ -24,7 +24,16 @@ import {
   Star,
   ChevronRight,
   Search,
+  Camera,
+  Check,
+  Phone,
+  Upload,
+  Trash2,
+  Lock,
+  ImageIcon,
+  Save,
 } from "lucide-react";
+import { AVATAR_PRESETS, BANNER_PRESETS } from "@/lib/theme-utils";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api, ApiError } from "@/lib/api-client";
 import { MyBookings } from "@/components/booking/my-bookings";
@@ -108,6 +117,23 @@ export function ClientPortal({
   const [reviewComment, setReviewComment] = useState<string>("");
   const [reviewSubmitting, setReviewSubmitting] = useState<boolean>(false);
   const [reviewedBookings, setReviewedBookings] = useState<Set<string>>(new Set());
+
+  // Profile editing state
+  const [profileName, setProfileName] = useState(session?.name ?? "");
+  const [profilePhone, setProfilePhone] = useState(session?.phone ?? "");
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(session?.avatarUrl ?? null);
+  const [profileBannerUrl, setProfileBannerUrl] = useState<string | null>(session?.bannerUrl ?? null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+
+  useEffect(() => {
+    if (session) {
+      setProfileName(session.name ?? "");
+      setProfilePhone(session.phone ?? "");
+      setProfileAvatarUrl(session.avatarUrl ?? null);
+      setProfileBannerUrl(session.bannerUrl ?? null);
+    }
+  }, [session]);
 
   // Load session & customer data
   const loadData = useCallback(async () => {
@@ -218,6 +244,86 @@ export function ClientPortal({
   const handleSelectCompany = (company: PublicCompany) => {
     router.push(`/agendar/${company.publicSlug}`);
   };
+
+  const formatPhoneInput = (val: string): string => {
+    const digits = val.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("A foto de perfil deve ter no máximo 5MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setProfileAvatarUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      setError("A capa deve ter no máximo 8MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setProfileBannerUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSavingProfile(true);
+    setError(null);
+    setProfileSuccess(false);
+    try {
+      const res = await api<{
+        ok: boolean;
+        name: string;
+        avatarUrl?: string | null;
+        bannerUrl?: string | null;
+      }>("/api/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: profileName.trim(),
+          phone: profilePhone.trim() || null,
+          avatarUrl: profileAvatarUrl,
+          bannerUrl: profileBannerUrl,
+        }),
+      });
+
+      if (session) {
+        setSession({
+          ...session,
+          name: profileName.trim(),
+          phone: profilePhone.trim() || null,
+          avatarUrl: res?.avatarUrl !== undefined ? res.avatarUrl : profileAvatarUrl,
+          bannerUrl: res?.bannerUrl !== undefined ? res.bannerUrl : profileBannerUrl,
+        });
+      }
+      setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 4000);
+    } catch (err) {
+      setError((err as Error).message || "Erro ao salvar alterações no perfil.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   const clientName = session?.name ? session.name.split(" ")[0] : "Cliente";
 
   return (
@@ -290,8 +396,19 @@ export function ClientPortal({
               className={styles.avatarBtn}
               onClick={() => setActiveTab("perfil")}
               title={session?.name ?? "Meu Perfil"}
+              style={{ overflow: "hidden", padding: 0 }}
             >
-              {session?.name ? session.name[0].toUpperCase() : "C"}
+              {session?.avatarUrl ? (
+                <img
+                  src={session.avatarUrl}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : session?.name ? (
+                session.name[0].toUpperCase()
+              ) : (
+                "C"
+              )}
             </button>
           </div>
         </div>
@@ -719,63 +836,228 @@ export function ClientPortal({
         {activeTab === "perfil" && (
           session ? (
             <div className={styles.flowContainer}>
-              <div className={styles.flowHeader}>
-                <h2 className={styles.flowHeaderTitle}>Meu Perfil e Segurança</h2>
-              </div>
-
-              <div className={styles.profileForm}>
-                <div className={styles.profileField}>
-                  <label className={styles.profileLabel}>
-                    Nome completo
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={session?.name}
-                    disabled
-                    className={`${styles.profileInput} ${styles.profileInputDisabled}`}
-                  />
+              <div className={styles.profileCard}>
+                {/* Banner Header */}
+                <div className={styles.profileBannerWrap}>
+                  {profileBannerUrl ? (
+                    <img src={profileBannerUrl} alt="Capa de perfil" className={styles.profileBannerImg} />
+                  ) : (
+                    <div className={styles.profileBannerFallback}>
+                      <ImageIcon size={28} />
+                    </div>
+                  )}
+                  <div className={styles.profileBannerActions}>
+                    <label className={styles.bannerActionBtn} title="Fazer upload de imagem de capa">
+                      <Upload size={13} />
+                      <span>Alterar capa</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerFileUpload}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                    {profileBannerUrl && (
+                      <button
+                        type="button"
+                        className={`${styles.bannerActionBtn} ${styles.bannerActionBtnDanger}`}
+                        onClick={() => setProfileBannerUrl(null)}
+                        title="Remover capa"
+                      >
+                        <Trash2 size={13} />
+                        <span>Remover</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className={styles.profileField}>
-                  <label className={styles.profileLabel}>
-                    E-mail cadastrado
-                  </label>
-                  <input
-                    type="email"
-                    defaultValue={session?.email}
-                    disabled
-                    className={`${styles.profileInput} ${styles.profileInputDisabled}`}
-                  />
+                {/* Avatar & Header Meta */}
+                <div className={styles.profileHeaderMeta}>
+                  <div className={styles.profileAvatarContainer}>
+                    {profileAvatarUrl ? (
+                      <img src={profileAvatarUrl} alt="Foto de perfil" className={styles.profileAvatarImg} />
+                    ) : (
+                      <div className={styles.profileAvatarFallback}>
+                        {profileName ? profileName[0].toUpperCase() : "C"}
+                      </div>
+                    )}
+                    <label className={styles.avatarUploadOverlay} title="Alterar foto de perfil">
+                      <Camera size={18} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarFileUpload}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.profileAvatarBtns}>
+                    <label className={styles.bannerActionBtn} style={{ background: "var(--portal-card)" }}>
+                      <Camera size={13} />
+                      <span>Foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarFileUpload}
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                    {profileAvatarUrl && (
+                      <button
+                        type="button"
+                        className={`${styles.bannerActionBtn} ${styles.bannerActionBtnDanger}`}
+                        onClick={() => setProfileAvatarUrl(null)}
+                        title="Remover foto"
+                        style={{ background: "var(--portal-card)" }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className={styles.profileField}>
-                  <label className={styles.profileLabel}>
-                    Telefone / WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    defaultValue={session?.phone ?? ""}
-                    placeholder="(11) 99999-9999"
-                    className={styles.profileInput}
-                  />
-                </div>
+                {/* Profile Body & Form */}
+                <form className={styles.profileBody} onSubmit={handleSaveProfile}>
+                  <div className={styles.profileSectionHeader}>
+                    <h2 className={styles.profileTitle}>Meu Perfil</h2>
+                    <p className={styles.profileSubtitle}>
+                      Atualize seu nome, número de telefone celular cadastrado e personalize seu avatar e capa.
+                    </p>
+                  </div>
 
-                <div className={styles.profileActions}>
-                  <button
-                    type="button"
-                    className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                    onClick={async () => {
-                      await api("/api/auth/logout", { method: "POST" }).catch(() => {});
-                      if (onLogout) {
-                        onLogout();
-                      } else {
-                        window.location.href = "/login";
-                      }
-                    }}
-                  >
-                    <LogOut size={14} /> Sair da conta
-                  </button>
-                </div>
+                  <div className={styles.profileGrid}>
+                    <div className={styles.profileField}>
+                      <label className={styles.profileLabel}>
+                        <span>Nome completo</span>
+                      </label>
+                      <div className={styles.profileInputWrapper}>
+                        <UserRound size={15} className={styles.profileInputIcon} />
+                        <input
+                          type="text"
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          placeholder="Seu nome completo"
+                          className={`${styles.profileInput} ${styles.profileInputWithIcon}`}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className={styles.profileField}>
+                      <label className={styles.profileLabel}>
+                        <span>Telefone / WhatsApp</span>
+                        <span className={styles.profileLabelHint}>Confirmado</span>
+                      </label>
+                      <div className={styles.profileInputWrapper}>
+                        <Phone size={15} className={styles.profileInputIcon} />
+                        <input
+                          type="tel"
+                          value={profilePhone}
+                          onChange={(e) => setProfilePhone(formatPhoneInput(e.target.value))}
+                          placeholder="(11) 99999-9999"
+                          className={`${styles.profileInput} ${styles.profileInputWithIcon}`}
+                        />
+                      </div>
+                      <p className={styles.profileInputHelp}>
+                        Usado para envio de lembretes e confirmações dos seus horários.
+                      </p>
+                    </div>
+
+                    <div className={`${styles.profileField} ${styles.profileFieldFull}`}>
+                      <label className={styles.profileLabel}>
+                        <span>E-mail da conta</span>
+                        <span className={styles.profileLabelHint}>Identificador seguro</span>
+                      </label>
+                      <div className={styles.profileInputWrapper}>
+                        <Lock size={15} className={styles.profileInputIcon} />
+                        <input
+                          type="email"
+                          value={session?.email ?? ""}
+                          disabled
+                          className={`${styles.profileInput} ${styles.profileInputWithIcon} ${styles.profileInputDisabled}`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Presets de Foto de Perfil */}
+                  <div className={styles.presetGroup}>
+                    <span className={styles.presetTitle}>Ou escolha um avatar rápido:</span>
+                    <div className={styles.avatarPresetsList}>
+                      {AVATAR_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className={`${styles.avatarPresetItem} ${profileAvatarUrl === preset.url ? styles.avatarPresetItemActive : ""}`}
+                          onClick={() => setProfileAvatarUrl(preset.url)}
+                          title={preset.name}
+                        >
+                          <img src={preset.url} alt={preset.name} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Presets de Capa / Banner */}
+                  <div className={styles.presetGroup}>
+                    <span className={styles.presetTitle}>Opções de capa sólida / minimalista:</span>
+                    <div className={styles.bannerPresetsList}>
+                      {BANNER_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          className={`${styles.bannerPresetItem} ${profileBannerUrl === preset.url ? styles.bannerPresetItemActive : ""}`}
+                          onClick={() => setProfileBannerUrl(preset.url)}
+                          title={preset.name}
+                        >
+                          <img src={preset.url} alt={preset.name} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Feedback / Save Actions */}
+                  <div className={styles.profileFooterActions}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <button
+                        type="submit"
+                        disabled={savingProfile}
+                        className={styles.saveProfileBtn}
+                      >
+                        {savingProfile ? (
+                          <>Salvando...</>
+                        ) : (
+                          <>
+                            <Check size={15} />
+                            <span>Salvar alterações</span>
+                          </>
+                        )}
+                      </button>
+
+                      {profileSuccess && (
+                        <span className={styles.profileSuccessBadge}>
+                          <CheckCircle2 size={14} /> Perfil atualizado!
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      className={styles.logoutBtn}
+                      onClick={async () => {
+                        await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+                        if (onLogout) {
+                          onLogout();
+                        } else {
+                          window.location.href = "/login";
+                        }
+                      }}
+                    >
+                      <LogOut size={14} /> Sair da conta
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           ) : (
@@ -783,9 +1065,9 @@ export function ClientPortal({
               <div className={styles.emptyIconWrapper}>
                 <User size={24} />
               </div>
-              <h3 className={styles.emptyTitle}>Acesse seu perfil</h3>
+              <h3 className={styles.emptyTitle}>Entre para gerenciar seu perfil</h3>
               <p className={styles.emptySubtitle}>
-                Faça login para consultar suas informações cadastrais e segurança da conta.
+                Acesse sua conta para atualizar telefone, fotos e preferências.
               </p>
               <button
                 type="button"
@@ -793,7 +1075,7 @@ export function ClientPortal({
                 onClick={() => router.push("/login?callback=/cliente")}
               >
                 <LogIn size={16} />
-                <span>Fazer login</span>
+                <span>Entrar na minha conta</span>
               </button>
             </div>
           )
