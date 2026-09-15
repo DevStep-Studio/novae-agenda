@@ -1,6 +1,9 @@
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import * as schema from "./schema";
+import { assertServerOnly } from "@/lib/server-guard";
+
+assertServerOnly("O banco de dados (Drizzle/MySQL)");
 
 const databaseUrl = process.env.DATABASE_URL;
 

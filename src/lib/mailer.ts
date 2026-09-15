@@ -7,6 +7,9 @@
  *
  * No SDK dependency: Resend is called with fetch so the architecture stays swappable.
  */
+import { assertServerOnly } from "./server-guard";
+
+assertServerOnly("O serviço de e-mail (Resend/SMTP)");
 
 export type MailMessage = {
   idempotencyKey?: string;

@@ -12,8 +12,11 @@ import {
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { and, desc, eq } from "drizzle-orm";
+import { assertServerOnly } from "@/lib/server-guard";
 import { SaasCouponService } from "./coupon-service";
 import { DEFAULT_SAAS_PLANS } from "./plans-seed";
+
+assertServerOnly("O provedor de pagamentos SaaS (Mercado Pago)");
 
 export type InternalPaymentStatus =
   | "PENDING"
