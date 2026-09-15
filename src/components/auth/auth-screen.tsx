@@ -442,7 +442,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
+                  style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
                 >
                   {loading ? (
                     <>
@@ -619,7 +619,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
+                  style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
                 >
                   {loading ? (
                     <>
@@ -698,7 +698,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="submit"
                       className="auth-split-primary-btn"
                       disabled={loading}
-                      style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
                     >
                       {loading ? (
                         <>
@@ -772,7 +772,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                     type="button"
                     className="auth-split-primary-btn"
                     onClick={() => handleModeChange("login")}
-                    style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
+                    style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
                   >
                     Voltar ao login
                   </button>
@@ -911,7 +911,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
+                  style={{ backgroundColor: greenBtnBg, color: greenBtnText, boxShadow: "none" }}
                 >
                   {loading ? (
                     <>
