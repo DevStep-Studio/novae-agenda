@@ -7,7 +7,7 @@ import {
   ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
-  ImagePlus, Menu, Moon, MoreHorizontal, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
+  ImagePlus, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon,
 } from "lucide-react";
@@ -5850,26 +5850,47 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
         </nav>
 
         <div className="sidebar-bottom">
-          <button className={`profile-nav ${view === "perfil" ? "active" : ""}`} onClick={() => navigate("perfil")}>
-            <span className="profile-avatar">
-              {userAvatar && !sidebarAvatarError ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={userAvatar}
-                  alt={session?.name ?? "Perfil"}
-                  className="profile-avatar-img"
-                  loading="lazy"
-                  decoding="async"
-                  onError={() => setSidebarAvatarError(true)}
-                />
-              ) : (
-                initials(session?.name ?? "U")
+          <div className="sidebar-user-card">
+            <button
+              type="button"
+              className={`profile-nav ${view === "perfil" ? "active" : ""}`}
+              onClick={() => navigate("perfil")}
+              title={`${session?.name ?? "Perfil"} (${roleLabel(session?.role)}) — Ver perfil`}
+              aria-label="Perfil do usuário"
+            >
+              <span className="profile-avatar">
+                {userAvatar && !sidebarAvatarError ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={userAvatar}
+                    alt={session?.name ?? "Perfil"}
+                    className="profile-avatar-img"
+                    loading="lazy"
+                    decoding="async"
+                    onError={() => setSidebarAvatarError(true)}
+                  />
+                ) : (
+                  initials(session?.name ?? "U")
+                )}
+              </span>
+              {!collapsed && (
+                <span className="profile-meta">
+                  <strong className="profile-name">{session?.name}</strong>
+                  <small className="profile-role">{roleLabel(session?.role)}</small>
+                </span>
               )}
-            </span>
-            {!collapsed && <span><strong>{session?.name}</strong><small>{roleLabel(session?.role)}</small></span>}
-            <MoreHorizontal size={17} />
-          </button>
-          <button className="logout-button" onClick={logout}><LogOut size={17} /><span>{!collapsed ? "Sair da conta" : "Sair"}</span></button>
+            </button>
+
+            <button
+              type="button"
+              className="logout-button"
+              onClick={logout}
+              title="Sair da conta"
+              aria-label="Sair da conta"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </aside>
 
