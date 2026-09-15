@@ -17,6 +17,7 @@ import {
   UserRound,
   X,
   LogOut,
+  LogIn,
   CalendarCheck2,
   Briefcase,
   Download,
@@ -113,7 +114,19 @@ export function ClientPortal({
     try {
       const [sessData, bookingsData, companiesData, memData] = await Promise.all([
         api<SessionInfo>("/api/auth/session").catch(() => null),
-        api<BookingDetails[]>("/api/my/bookings").then(rows => rows.map(row => ({ ...row, startsAt: String(row.startsAt), endsAt: String(row.endsAt), total: Number(row.total), companyName: row.company.name, companySlug: row.company.slug ?? undefined, companyAddress: row.company.address, locationName: "", items: row.items.map(i => ({ ...i, serviceName: i.name, price: Number(i.price) })) }))),
+        api<BookingDetails[]>("/api/my/bookings")
+          .then(rows => (rows || []).map(row => ({
+            ...row,
+            startsAt: String(row.startsAt),
+            endsAt: String(row.endsAt),
+            total: Number(row.total),
+            companyName: row.company.name,
+            companySlug: row.company.slug ?? undefined,
+            companyAddress: row.company.address,
+            locationName: "",
+            items: (row.items || []).map(i => ({ ...i, serviceName: i.name, price: Number(i.price) })),
+          })))
+          .catch(() => []),
         api<PublicCompany[]>("/api/companies/public").catch(() => []),
         api<CustomerMembershipDTO>("/api/my/membership").catch(() => null),
       ]);
@@ -614,107 +627,151 @@ export function ClientPortal({
           </div>
         )}
         {(activeTab === "horarios" || activeTab === "historico") && (
-          <MyBookings
-            embedded
-            initialTab={activeTab === "historico" ? "Anteriores" : "Próximos"}
-            initialUser={session ? {
-              id: session.userId,
-              name: session.name,
-              email: session.email,
-              phone: session.phone ?? null,
-              emailVerified: session.emailVerified,
-            } : null}
-          />
+          session ? (
+            <MyBookings
+              embedded
+              initialTab={activeTab === "historico" ? "Anteriores" : "Próximos"}
+              initialUser={{
+                id: session.userId,
+                name: session.name,
+                email: session.email,
+                phone: session.phone ?? null,
+                emailVerified: session.emailVerified,
+              }}
+            />
+          ) : (
+            <div className={styles.emptyCard}>
+              <div className={styles.emptyIconWrapper}>
+                <CalendarDays size={24} />
+              </div>
+              <h3 className={styles.emptyTitle}>Entre na sua conta para ver seus agendamentos</h3>
+              <p className={styles.emptySubtitle}>
+                Acesse sua conta para consultar histórico, acompanhar seus próximos atendimentos ou fazer remarcações.
+              </p>
+              <button
+                type="button"
+                className={styles.ctaButton}
+                onClick={() => router.push("/login?callback=/cliente")}
+              >
+                <LogIn size={16} />
+                <span>Entrar na minha conta</span>
+              </button>
+            </div>
+          )
         )}
 
         {/* TAB 5: PERFIL */}
         {activeTab === "perfil" && (
-          <div className={styles.flowContainer}>
-            <div className={styles.flowHeader}>
-              <h2 className={styles.flowHeaderTitle}>Meu Perfil e Segurança</h2>
+          session ? (
+            <div className={styles.flowContainer}>
+              <div className={styles.flowHeader}>
+                <h2 className={styles.flowHeaderTitle}>Meu Perfil e Segurança</h2>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Nome completo
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue={session?.name}
+                    disabled
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      marginTop: 6,
+                      height: 40,
+                      padding: "0 12px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-secondary)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    E-mail cadastrado
+                  </label>
+                  <input
+                    type="email"
+                    defaultValue={session?.email}
+                    disabled
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      marginTop: 6,
+                      height: 40,
+                      padding: "0 12px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-secondary)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                    Telefone / WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    defaultValue={session?.phone ?? ""}
+                    placeholder="(11) 99999-9999"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      marginTop: 6,
+                      height: 40,
+                      padding: "0 12px",
+                      borderRadius: 8,
+                      border: "1px solid var(--border)",
+                      background: "var(--surface)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                    onClick={async () => {
+                      await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+                      if (onLogout) {
+                        onLogout();
+                      } else {
+                        window.location.href = "/login";
+                      }
+                    }}
+                  >
+                    <LogOut size={14} /> Sair da conta
+                  </button>
+                </div>
+              </div>
             </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                  Nome completo
-                </label>
-                <input
-                  type="text"
-                  defaultValue={session?.name}
-                  disabled
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 6,
-                    height: 40,
-                    padding: "0 12px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border)",
-                    background: "var(--surface-secondary)",
-                    color: "var(--text-primary)",
-                  }}
-                />
+          ) : (
+            <div className={styles.emptyCard}>
+              <div className={styles.emptyIconWrapper}>
+                <User size={24} />
               </div>
-
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                  E-mail cadastrado
-                </label>
-                <input
-                  type="email"
-                  defaultValue={session?.email}
-                  disabled
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 6,
-                    height: 40,
-                    padding: "0 12px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border)",
-                    background: "var(--surface-secondary)",
-                    color: "var(--text-primary)",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>
-                  Telefone / WhatsApp
-                </label>
-                <input
-                  type="tel"
-                  defaultValue={session?.phone ?? ""}
-                  placeholder="(11) 99999-9999"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 6,
-                    height: 40,
-                    padding: "0 12px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border)",
-                    background: "var(--surface)",
-                    color: "var(--text-primary)",
-                  }}
-                />
-              </div>
-
-              <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16, marginTop: 10 }}>
-                <button
-                  type="button"
-                  className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                  onClick={async () => {
-                    await api("/api/auth/logout", { method: "POST" });
-                    router.push("/");
-                  }}
-                >
-                  <LogOut size={14} /> Sair da conta
-                </button>
-              </div>
+              <h3 className={styles.emptyTitle}>Acesse seu perfil</h3>
+              <p className={styles.emptySubtitle}>
+                Faça login para consultar suas informações cadastrais e segurança da conta.
+              </p>
+              <button
+                type="button"
+                className={styles.ctaButton}
+                onClick={() => router.push("/login?callback=/cliente")}
+              >
+                <LogIn size={16} />
+                <span>Fazer login</span>
+              </button>
             </div>
-          </div>
+          )
         )}
 
         {/* Modal de Cancelamento */}

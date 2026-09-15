@@ -16,9 +16,9 @@ export type BrandPalette = {
 };
 
 export const BRAND_PRESETS = [
-  { name: "Azul Royal (Padrão)", hex: "#3b82f6" },
+  { name: "Lima Reservei (Padrão)", hex: "#dcff4c" },
   { name: "Esmeralda", hex: "#10b981" },
-  { name: "Lima Reservei", hex: "#dcff4c" },
+  { name: "Azul Royal", hex: "#3b82f6" },
   { name: "Roxo", hex: "#7c3aed" },
   { name: "Rosa", hex: "#ec4899" },
   { name: "Laranja", hex: "#f97316" },
@@ -26,7 +26,7 @@ export const BRAND_PRESETS = [
   { name: "Grafite", hex: "#334155" },
 ];
 
-export const DEFAULT_BRAND_COLOR = "#3b82f6";
+export const DEFAULT_BRAND_COLOR = "#dcff4c";
 
 function parseHex(hex: string): [number, number, number] {
   let clean = hex.replace(/^#/, "").trim();
@@ -37,10 +37,10 @@ function parseHex(hex: string): [number, number, number] {
       .join("");
   }
   if (clean.length !== 6) {
-    return [59, 130, 246]; // Fallback to #3b82f6
+    return [220, 255, 76]; // Fallback to #dcff4c
   }
   const num = parseInt(clean, 16);
-  if (isNaN(num)) return [59, 130, 246];
+  if (isNaN(num)) return [220, 255, 76];
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 

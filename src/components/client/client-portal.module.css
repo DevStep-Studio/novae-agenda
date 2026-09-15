@@ -133,15 +133,15 @@
 }
 
 .navItemActive {
-  background: #dcff4c !important;
-  color: #102118 !important;
+  background: rgba(220, 255, 76, 0.12) !important;
+  color: #dcff4c !important;
   font-weight: 700 !important;
-  border-color: #dcff4c !important;
+  border-color: rgba(220, 255, 76, 0.35) !important;
   box-shadow: none !important;
 }
 
 .navItemActive svg {
-  color: #102118 !important;
+  color: #dcff4c !important;
 }
 
 .headerActions {
