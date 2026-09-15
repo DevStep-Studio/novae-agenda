@@ -12,6 +12,7 @@ import { EmployeeDashboard } from "@/components/employee/employee-dashboard";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
+import type { ManagementView } from "@/lib/management-routes";
 
 function readTokenParams(): { verify: string | null; reset: string | null } {
   if (typeof window === "undefined") return { verify: null, reset: null };
@@ -23,7 +24,7 @@ function clearQuery() {
   if (typeof window !== "undefined") window.history.replaceState({}, "", window.location.pathname);
 }
 
-export function AppGate({ initialView }: { initialView?: string } = {}) {
+export function AppGate({ initialView }: { initialView?: ManagementView } = {}) {
   const { session, loading, reloadSession, logout } = useStore();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [params, setParams] = useState(readTokenParams);
@@ -110,5 +111,5 @@ export function AppGate({ initialView }: { initialView?: string } = {}) {
     );
   }
 
-  return <AppShell initialView={initialView as any} />;
+  return <AppShell initialView={initialView} />;
 }

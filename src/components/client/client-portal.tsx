@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
@@ -389,16 +390,16 @@ export function ClientPortal({
           <div className={styles.headerActions}>
             {/* Switch portal if user is also owner/employee */}
             {(session?.role === "owner" || session?.role === "admin" || session?.isSuperadmin) && (
-              <a href="/gestao" className={styles.contextSwitchBtn} title="Ir para Painel da Empresa">
+              <Link href="/gestao" className={styles.contextSwitchBtn} title="Ir para Painel da Empresa">
                 <Briefcase size={14} />
                 <span>Gestão da Empresa</span>
-              </a>
+              </Link>
             )}
             {session?.role === "employee" && (
-              <a href="/profissional" className={styles.contextSwitchBtn} title="Ir para Painel do Profissional">
+              <Link href="/profissional" className={styles.contextSwitchBtn} title="Ir para Painel do Profissional">
                 <CalendarCheck2 size={14} />
                 <span>Minha Agenda</span>
-              </a>
+              </Link>
             )}
 
             <button

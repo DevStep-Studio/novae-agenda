@@ -343,9 +343,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await reloadSettings();
   }, [reloadSettings]);
 
-  const reloadSession = useCallback(async () => {
+  const loadSession = useCallback(async () => {
     try {
-      const data = await api<SessionInfo>("/api/auth/session");
+      const data = await api<SessionInfo | null>("/api/auth/session");
       setSession(data);
       if (data) {
         if (data.company?.primaryColor) {
@@ -355,16 +355,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setLocations(data.locations);
           setActiveLocationId((cur) => cur ?? data.locations[0].id);
         }
-        if (data.primaryRole !== "client") {
-          await refreshAll();
-        }
       }
       return data;
     } catch {
       setSession(null);
       return null;
     }
-  }, [refreshAll]);
+  }, []);
+
+  const reloadSession = useCallback(async () => {
+    const data = await loadSession();
+
+    // Session validity and dashboard data are independent concerns. A transient
+    // failure in one protected data endpoint must never sign a valid user out.
+    if (data && data.primaryRole !== "client") {
+      await refreshAll().catch(() => {});
+    }
+
+    return data;
+  }, [loadSession, refreshAll]);
 
   const updateProfile = useCallback(async (input: {
     name?: string;
@@ -432,13 +441,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (booted.current) return;
     booted.current = true;
     (async () => {
+      let data: SessionInfo | null = null;
       try {
-        await reloadSession();
+        data = await loadSession();
       } finally {
         setBooting(false);
       }
+
+      // Populate the authenticated experience after the route guard has been
+      // resolved, without keeping the user on the auth/loading boundary.
+      if (data && data.primaryRole !== "client") {
+        void refreshAll().catch(() => {});
+      }
     })();
-  }, [reloadSession]);
+  }, [loadSession, refreshAll]);
 
   useEffect(() => {
     if (!session || session.primaryRole === "client") return;

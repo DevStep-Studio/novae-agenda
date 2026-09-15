@@ -36,8 +36,10 @@ import { NotificationsView } from "@/components/notifications/notifications-view
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { MembershipPlansView } from "@/components/membership/membership-plans-view";
 import { CustomerMembershipCard } from "@/components/membership/customer-membership-card";
+import { useRouter } from "next/navigation";
+import { managementPath, type ManagementView } from "@/lib/management-routes";
 
-type ViewKey = "link-agendamento" | "dashboard" | "agenda" | "clientes" | "servicos" | "equipe" | "financeiro" | "relatorios" | "assinatura" | "configuracoes" | "notificacoes" | "perfil";
+type ViewKey = ManagementView;
 type CalendarMode = "day" | "week" | "month";
 
 const navItems: Array<{ id: ViewKey; label: string; icon: LucideIcon }> = [
@@ -5413,6 +5415,7 @@ function SuperadminModal({ onClose }: { onClose: () => void }) {
 
 /* ---------- Main shell ---------- */
 export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
+  const router = useRouter();
   const {
     session, appointments, employees, locations, activeLocationId, setActiveLocationId,
     blocks, deleteBlock,
@@ -5420,14 +5423,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     reloadAppointments,
   } = useStore();
 
-  const [view, setView] = useState<ViewKey>(() => {
-    if (initialView) return initialView;
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("agenda-view");
-      return (saved as ViewKey) || "dashboard";
-    }
-    return "dashboard";
-  });
+  const [view, setView] = useState<ViewKey>(initialView ?? "dashboard");
   const [theme, setTheme] = useState<Theme>(() => getStoredTheme());
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -5498,6 +5494,10 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   }, [view]);
 
   useEffect(() => {
+    if (initialView) setView(initialView);
+  }, [initialView]);
+
+  useEffect(() => {
     document.body.style.overflow = mobileMenu ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenu]);
@@ -5523,7 +5523,11 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     return () => { active = false; clearTimeout(timer); };
   }, [globalSearch]);
 
-  const navigate = (v: ViewKey) => { setView(v); setMobileMenu(false); };
+  const navigate = (v: ViewKey) => {
+    setView(v);
+    setMobileMenu(false);
+    if (v !== view) router.push(managementPath(v), { scroll: false });
+  };
 
   const activeLoc = locations.find((l) => l.id === activeLocationId) ?? locations[0];
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   ShieldAlert,
   Building2,
@@ -132,10 +133,10 @@ export function AdminDashboard() {
         </nav>
 
         <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <a href="/gestao" className={styles.portalSwitchBtn}>
+          <Link href="/gestao" className={styles.portalSwitchBtn}>
             <ExternalLink size={13} />
             Painel da Empresa
-          </a>
+          </Link>
           <button
             type="button"
             onClick={logout}
