@@ -13,6 +13,7 @@ import {
   Lock,
   Mail,
   MailCheck,
+  Phone,
   RotateCcw,
   Sparkles,
   Sun,
@@ -83,9 +84,18 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [useEmailForReservas, setUseEmailForReservas] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [remember, setRemember] = useState(true);
+
+  const formatPhoneInput = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 2) return digits.length ? `(${digits}` : "";
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
 
   // Recovery states
   const [recoveryEmail, setRecoveryEmail] = useState("");
@@ -140,6 +150,31 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     setLoading(true);
 
     try {
+      if (mode === "reservas" && !useEmailForReservas) {
+        const cleanDigits = phone.replace(/\D/g, "");
+        if (cleanDigits.length < 8) {
+          setError("Por favor, digite um número de celular válido com DDD.");
+          setLoading(false);
+          return;
+        }
+
+        const response = await api<{
+          data: { userId: string; targetPortal?: string; role?: string };
+        }>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ phone: phone.trim() }),
+        });
+
+        const updatedSession = store ? await store.reloadSession() : null;
+
+        if (onAuthenticated) {
+          onAuthenticated(false);
+        } else {
+          window.location.assign("/cliente");
+        }
+        return;
+      }
+
       if (mode === "login" || mode === "reservas") {
         const response = await api<{
           data: { userId: string; targetPortal?: string; role?: string };
@@ -154,7 +189,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           if (onAuthenticated) {
             onAuthenticated(false);
           } else {
-            window.location.assign("/minhas-reservas");
+            window.location.assign("/cliente");
           }
           return;
         }
@@ -216,11 +251,11 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     setSuccessBanner(null);
     setLoading(true);
     try {
+      setPhone("(11) 99999-9999");
       await api("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
-          email: "cliente@email.com",
-          password: "senha123",
+          phone: "(11) 99999-9999",
         }),
       });
 
@@ -229,7 +264,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       if (onAuthenticated) {
         onAuthenticated(false);
       } else {
-        window.location.assign("/minhas-reservas");
+        window.location.assign("/cliente");
       }
     } catch (err) {
       setError(
@@ -835,77 +870,123 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
             <>
               <h1 className="auth-split-title">Minhas Reservas</h1>
               <p className="auth-split-subtitle">
-                Acesse sua conta para consultar, remarcar ou cancelar seus
-                agendamentos.
+                Informe o seu celular para consultar, remarcar ou acompanhar seus agendamentos.
               </p>
 
               <form onSubmit={submitAuth} className="auth-split-form">
-                <div className="auth-split-field">
-                  <label className="auth-split-label">
-                    E-mail cadastrado{" "}
-                    <span className="auth-split-asterisk">*</span>
-                  </label>
-                  <div className="auth-split-input-wrap">
-                    <Mail className="auth-split-input-icon" size={17} />
-                    <input
-                      className="auth-split-input"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      autoComplete="email"
-                      required
-                    />
-                  </div>
-                </div>
+                {!useEmailForReservas ? (
+                  <>
+                    <div className="auth-split-field">
+                      <label className="auth-split-label">
+                        Número de celular / WhatsApp{" "}
+                        <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <div className="auth-split-input-wrap">
+                        <Phone className="auth-split-input-icon" size={17} />
+                        <input
+                          className="auth-split-input"
+                          type="tel"
+                          inputMode="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                          placeholder="(11) 99999-9999"
+                          autoComplete="tel"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: theme === "dark" ? "#a1a1aa" : "#64748b",
+                          marginTop: "4px",
+                          display: "block",
+                        }}
+                      >
+                        Digite o mesmo número de WhatsApp informado no agendamento.
+                      </span>
+                    </div>
 
-                <div className="auth-split-field">
-                  <label className="auth-split-label">
-                    Senha <span className="auth-split-asterisk">*</span>
-                  </label>
-                  <div className="auth-split-input-wrap">
-                    <Lock className="auth-split-input-icon" size={17} />
-                    <input
-                      className="auth-split-input"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="auth-split-input-eye"
-                      onClick={() => setShowPassword((v) => !v)}
-                      aria-label={
-                        showPassword ? "Ocultar senha" : "Exibir senha"
-                      }
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-4px", marginBottom: "4px" }}>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => setUseEmailForReservas(true)}
+                        style={{ color: greenText, fontSize: "12.5px" }}
+                      >
+                        Acessar com e-mail e senha
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="auth-split-field">
+                      <label className="auth-split-label">
+                        E-mail cadastrado{" "}
+                        <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <div className="auth-split-input-wrap">
+                        <Mail className="auth-split-input-icon" size={17} />
+                        <input
+                          className="auth-split-input"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="seu@email.com"
+                          autoComplete="email"
+                          required
+                        />
+                      </div>
+                    </div>
 
-                <div className="auth-split-row">
-                  <label className="auth-split-remember">
-                    <input
-                      type="checkbox"
-                      checked={remember}
-                      onChange={(e) => setRemember(e.target.checked)}
-                      style={{ accentColor: theme === "dark" ? "#dcff4c" : "#4d7c0f" }}
-                    />
-                    <span>Lembrar de mim</span>
-                  </label>
-                  <button
-                    type="button"
-                    className="auth-split-link-btn"
-                    onClick={handleOpenForgotPassword}
-                    style={{ color: greenText }}
-                  >
-                    Esqueci minha senha
-                  </button>
-                </div>
+                    <div className="auth-split-field">
+                      <label className="auth-split-label">
+                        Senha <span className="auth-split-asterisk">*</span>
+                      </label>
+                      <div className="auth-split-input-wrap">
+                        <Lock className="auth-split-input-icon" size={17} />
+                        <input
+                          className="auth-split-input"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="auth-split-input-eye"
+                          onClick={() => setShowPassword((v) => !v)}
+                          aria-label={
+                            showPassword ? "Ocultar senha" : "Exibir senha"
+                          }
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="auth-split-row">
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={() => setUseEmailForReservas(false)}
+                        style={{ color: greenText }}
+                      >
+                        ← Voltar para celular
+                      </button>
+                      <button
+                        type="button"
+                        className="auth-split-link-btn"
+                        onClick={handleOpenForgotPassword}
+                        style={{ color: greenText }}
+                      >
+                        Esqueci minha senha
+                      </button>
+                    </div>
+                  </>
+                )}
 
                 <button
                   type="submit"
