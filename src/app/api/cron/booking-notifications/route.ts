@@ -1,6 +1,18 @@
+import crypto from "node:crypto";
 import { processBookingNotifications } from "@/lib/booking/notifications";
 
 export const dynamic = "force-dynamic";
+
+function timingSafeCompare(a: string, b: string): boolean {
+  try {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Triggers the booking reminder/confirmation worker (24h + 2h before the
@@ -41,7 +53,7 @@ async function handle(request: Request) {
   const queryParam = new URL(request.url).searchParams.get("secret");
   const provided = bearer ?? queryParam;
 
-  if (provided !== secret) {
+  if (!provided || !timingSafeCompare(provided, secret)) {
     return Response.json({ error: "Não autorizado." }, { status: 401 });
   }
 

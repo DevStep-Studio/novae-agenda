@@ -4,7 +4,8 @@
  * end-to-end suites don't have to scrape server logs or a real inbox.
  */
 export function isDevLike(): boolean {
-  return process.env.NODE_ENV !== "production" && process.env.EMAIL_TRANSPORT !== "resend";
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.EMAIL_TRANSPORT !== "resend";
 }
 
 /** Returns `{ devToken }` in dev-like environments, `{}` otherwise. Spread into a JSON payload. */

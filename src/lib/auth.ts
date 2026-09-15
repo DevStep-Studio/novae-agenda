@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, companyMemberships, employees, users } from "@/db/schema";
+import { assertServerOnly } from "./server-guard";
+
+assertServerOnly("O módulo de autenticação e sessões");
 
 export type Role = "superadmin" | "owner" | "admin" | "manager" | "employee" | "client";
 
@@ -90,9 +93,9 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function isSecureCookie(): boolean {
-  if (process.env.NODE_ENV !== "production") return false;
   if (process.env.SECURE_COOKIES === "true") return true;
   if (process.env.SECURE_COOKIES === "false") return false;
+  if (process.env.NODE_ENV === "production") return true;
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL;
   return Boolean(appUrl && appUrl.startsWith("https://"));
 }
@@ -319,6 +322,36 @@ export async function requireSuperadmin(): Promise<{ auth: AuthContext; response
   const auth = await requireAuth();
   if (!auth) return { auth: null, response: unauthorized() };
   if (!auth.user.isSuperadmin) return { auth: null, response: forbidden("Acesso restrito ao Superadmin da plataforma.") };
+  return { auth, response: null };
+}
+
+/** Semantic alias for requireRole("owner") */
+export async function requireOwner(): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  return requireRole("owner");
+}
+
+/** Semantic alias for requireEmployee() */
+export const requireProfessional = requireEmployee;
+
+/** Semantic alias for requireClient() */
+export const requireCustomer = requireClient;
+
+/** Semantic alias for requireSuperadmin() */
+export const requireSuperAdmin = requireSuperadmin;
+
+/**
+ * Validates that the active session has access to the specified target company.
+ * Superadmins are allowed cross-company access; regular users are strictly confined to their companyId.
+ */
+export async function requireBusinessAccess(
+  targetCompanyId: string,
+): Promise<{ auth: AuthContext; response: null } | { auth: null; response: Response }> {
+  const auth = await requireAuth();
+  if (!auth) return { auth: null, response: unauthorized() };
+  if (auth.user.isSuperadmin) return { auth, response: null };
+  if (auth.user.companyId !== targetCompanyId) {
+    return { auth: null, response: forbidden("Acesso não autorizado a esta empresa.") };
+  }
   return { auth, response: null };
 }
 
