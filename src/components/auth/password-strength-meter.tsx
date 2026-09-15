@@ -62,11 +62,11 @@ export function analyzePassword(password: string = ""): PasswordAnalysis {
       break;
     case 4:
       label = "Forte";
-      color = "#10b981";
+      color = "#84cc16";
       break;
     case 5:
       label = "Excelente";
-      color = "#22c55e";
+      color = "#dcff4c";
       break;
     default:
       label = "Muito fraca";

@@ -7067,12 +7067,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .boot-spinner {
   width: 34px;
   height: 34px;
-  border: 3px solid rgba(16, 185, 129, 0.18);
-  border-top-color: #10b981 !important;
-  border-right-color: #10b981 !important;
+  border: 3px solid rgba(220, 255, 76, 0.2);
+  border-top-color: #dcff4c !important;
+  border-right-color: #dcff4c !important;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 20px rgba(220, 255, 76, 0.4);
 }
 .auth-split-spinner {
   animation: spin 0.7s linear infinite;
@@ -7182,7 +7182,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 :root[data-theme="dark"] .auth-split-theme-btn.active {
   background: #252a37;
-  color: #34d399;
+  color: #dcff4c;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -7243,12 +7243,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .auth-split-asterisk {
-  color: #16a34a;
+  color: #4d7c0f;
   font-weight: 700;
 }
 
 :root[data-theme="dark"] .auth-split-asterisk {
-  color: #34d399;
+  color: #dcff4c;
 }
 
 .auth-split-input-wrap {
@@ -7284,13 +7284,13 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .auth-split-input:focus {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+  border-color: #4d7c0f;
+  box-shadow: 0 0 0 3px rgba(77, 124, 15, 0.16);
 }
 
 :root[data-theme="dark"] .auth-split-input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+  border-color: #dcff4c;
+  box-shadow: 0 0 0 3px rgba(220, 255, 76, 0.25);
 }
 
 .auth-split-input-eye {
@@ -7337,7 +7337,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .auth-split-remember input {
-  accent-color: #16a34a;
+  accent-color: #4d7c0f;
   width: 16px;
   height: 16px;
   border-radius: 4px;
@@ -7345,13 +7345,13 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 :root[data-theme="dark"] .auth-split-remember input {
-  accent-color: #10b981;
+  accent-color: #dcff4c;
 }
 
 .auth-split-link-btn {
   background: transparent;
   border: none;
-  color: #16a34a;
+  color: #4d7c0f;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -7360,51 +7360,53 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .auth-split-link-btn:hover {
-  color: #15803d;
+  color: #365314;
   text-decoration: underline;
 }
 
 :root[data-theme="dark"] .auth-split-link-btn {
-  color: #34d399;
+  color: #dcff4c;
 }
 
 :root[data-theme="dark"] .auth-split-link-btn:hover {
-  color: #6ee7b7;
+  color: #f0ff9e;
 }
 
 .auth-split-primary-btn {
   width: 100%;
   height: 48px;
-  background: #16a34a;
-  color: #ffffff;
+  background: #dcff4c !important;
+  color: #0a0a0a !important;
   border: none;
   border-radius: 10px;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 700 !important;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   transition: all 0.15s ease;
-  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+  box-shadow: 0 2px 10px rgba(220, 255, 76, 0.35);
 }
 
 .auth-split-primary-btn:hover:not(:disabled) {
-  background: #15803d;
+  background: #c8ed32 !important;
+  color: #0a0a0a !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.35);
+  box-shadow: 0 4px 18px rgba(220, 255, 76, 0.5);
 }
 
 :root[data-theme="dark"] .auth-split-primary-btn {
-  background: #10b981;
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  background: #dcff4c !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 2px 14px rgba(220, 255, 76, 0.4);
 }
 
 :root[data-theme="dark"] .auth-split-primary-btn:hover:not(:disabled) {
-  background: #059669;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45);
+  background: #c8ed32 !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 4px 20px rgba(220, 255, 76, 0.6);
 }
 
 .auth-split-primary-btn:disabled {
@@ -7484,7 +7486,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 .auth-split-switch-row a {
   background: none;
   border: none;
-  color: #16a34a;
+  color: #3f6212;
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -7493,7 +7495,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 :root[data-theme="dark"] .auth-split-switch-row button,
 :root[data-theme="dark"] .auth-split-switch-row a {
-  color: #34d399;
+  color: #dcff4c;
 }
 
 .auth-split-switch-row button:hover,
@@ -7547,19 +7549,19 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: rgba(220, 255, 76, 0.08);
+  border: 1px solid rgba(220, 255, 76, 0.25);
   border-radius: 8px;
-  color: #10b981;
+  color: #3f6212;
   font-size: 12.5px;
   line-height: 1.4;
   margin-bottom: 16px;
 }
 
 :root[data-theme="dark"] .auth-split-success {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: #6ee7b7;
+  background: rgba(220, 255, 76, 0.15);
+  border-color: rgba(220, 255, 76, 0.35);
+  color: #dcff4c;
 }
 
 .auth-split-field-hint {
@@ -7572,10 +7574,10 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   width: 100%;
   padding: 10px 14px;
   margin-top: 4px;
-  border: 1px dashed rgba(22, 163, 74, 0.45);
+  border: 1px dashed rgba(77, 124, 15, 0.45);
   border-radius: 8px;
-  background: rgba(22, 163, 74, 0.05);
-  color: #15803d;
+  background: rgba(220, 255, 76, 0.08);
+  color: #3f6212;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -7587,20 +7589,20 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .auth-split-demo-btn:hover:not(:disabled) {
-  background: rgba(22, 163, 74, 0.12);
-  border-color: #16a34a;
+  background: rgba(220, 255, 76, 0.18);
+  border-color: #4d7c0f;
   transform: translateY(-1px);
 }
 
 :root[data-theme="dark"] .auth-split-demo-btn {
-  border-color: rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.08);
-  color: #34d399;
+  border-color: rgba(220, 255, 76, 0.4);
+  background: rgba(220, 255, 76, 0.08);
+  color: #dcff4c;
 }
 
 :root[data-theme="dark"] .auth-split-demo-btn:hover:not(:disabled) {
-  background: rgba(16, 185, 129, 0.16);
-  border-color: #10b981;
+  background: rgba(220, 255, 76, 0.16);
+  border-color: #dcff4c;
 }
 
 .auth-split-card-sent {
@@ -7712,12 +7714,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  color: #10b981;
+  color: #3f6212;
   font-weight: 600;
 }
 
 :root[data-theme="dark"] .password-strength-success {
-  color: #34d399;
+  color: #dcff4c;
 }
 
 @media (max-width: 899px) {

@@ -56,8 +56,10 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
     applyTheme(nextTheme);
   };
 
-  const greenBtnBg = theme === "dark" ? "#10b981" : "#16a34a";
-  const greenText = theme === "dark" ? "#34d399" : "#16a34a";
+  const greenBtnBg = "#dcff4c";
+  const greenBtnHover = "#c8ed32";
+  const greenBtnText = "#0a0a0a";
+  const greenText = theme === "dark" ? "#dcff4c" : "#3f6212";
 
   const [mode, setMode] = useState<AuthMode>(() => {
     if (initialMode) return initialMode;
@@ -422,7 +424,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
-                      style={{ accentColor: greenBtnBg }}
+                      style={{ accentColor: theme === "dark" ? "#dcff4c" : "#4d7c0f" }}
                     />
                     <span>Lembrar de mim</span>
                   </label>
@@ -440,11 +442,11 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
+                  style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="auth-split-spinner" />
+                      <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
                       <span>Entrando...</span>
                     </>
                   ) : (
@@ -617,11 +619,11 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
+                  style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="auth-split-spinner" />
+                      <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
                       <span>Criando conta...</span>
                     </>
                   ) : (
@@ -696,11 +698,11 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="submit"
                       className="auth-split-primary-btn"
                       disabled={loading}
-                      style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
+                      style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
                     >
                       {loading ? (
                         <>
-                          <Loader2 size={18} className="auth-split-spinner" />
+                          <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
                           <span>Enviando...</span>
                         </>
                       ) : (
@@ -770,7 +772,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                     type="button"
                     className="auth-split-primary-btn"
                     onClick={() => handleModeChange("login")}
-                    style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
+                    style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
                   >
                     Voltar ao login
                   </button>
@@ -891,7 +893,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       type="checkbox"
                       checked={remember}
                       onChange={(e) => setRemember(e.target.checked)}
-                      style={{ accentColor: greenBtnBg }}
+                      style={{ accentColor: theme === "dark" ? "#dcff4c" : "#4d7c0f" }}
                     />
                     <span>Lembrar de mim</span>
                   </label>
@@ -909,11 +911,11 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   type="submit"
                   className="auth-split-primary-btn"
                   disabled={loading}
-                  style={{ backgroundColor: greenBtnBg, color: "#ffffff" }}
+                  style={{ backgroundColor: greenBtnBg, color: greenBtnText }}
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="auth-split-spinner" />
+                      <Loader2 size={18} className="auth-split-spinner" style={{ color: greenBtnText }} />
                       <span>Acessando...</span>
                     </>
                   ) : (
