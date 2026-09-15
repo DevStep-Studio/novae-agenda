@@ -5386,6 +5386,12 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 
   const activeLoc = locations.find((l) => l.id === activeLocationId) ?? locations[0];
 
+  const pendingAppointmentsCount = useMemo(() => {
+    return appointments.filter(
+      (a) => !["completed", "cancelled", "no_show"].includes(a.status)
+    ).length;
+  }, [appointments]);
+
   const render = () => {
     switch (view) {
       case "dashboard":
@@ -5707,7 +5713,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}>
               <Icon size={18} />
               <span>{label}</span>
-              {id === "agenda" && !collapsed && <em>{appointments.filter((a) => a.date === todayKey() && !["cancelled", "no_show"].includes(a.status)).length}</em>}
+              {id === "agenda" && !collapsed && <em>{pendingAppointmentsCount > 99 ? "99+" : pendingAppointmentsCount}</em>}
             </button>
           ))}
           {session?.isSuperadmin && !collapsed && (
