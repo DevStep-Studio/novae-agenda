@@ -38,6 +38,7 @@ import type { Selection } from "@/lib/booking/validation";
 import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
 import { PinInput } from "./pin-input";
+import { LocationMapCard } from "./location-map-card";
 import { ProfessionalIdentity, ProfessionalSelector } from "./professional-selector";
 import {
   b,
@@ -978,6 +979,15 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               </div>
             </div>
 
+            {/* Ticket de reserva: Mapa da Localização com GPS */}
+            {company.address && (
+              <LocationMapCard
+                address={company.address}
+                companyName={company.name}
+                companyLogo={company.logoUrl}
+              />
+            )}
+
             {/* Banner pós-reserva para criar PIN de acesso */}
             {customer?.phone && !customer.hasPin && (
               <div
@@ -1656,6 +1666,15 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         </div>
                       );
                     })}
+
+                  {/* Localização e Mapa do Estabelecimento */}
+                  {company.address && (
+                    <LocationMapCard
+                      address={company.address}
+                      companyName={company.name}
+                      companyLogo={company.logoUrl}
+                    />
+                  )}
                 </>
               )}
 

@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- Synchronizes server availability, URL state and persisted booking drafts. */
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, useRef, type FormEvent } from "react";
 import Image from "next/image";
 import QRCode from "qrcode";
 import {
@@ -22,9 +22,11 @@ import {
   Tag,
   Download,
   Zap,
+  Upload,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
+import { prepareImageUpload } from "@/lib/image-upload-client";
 import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
 import { BrandingStudio } from "./branding-studio";
@@ -90,6 +92,14 @@ export function BookingSettings() {
   const [showInstagram, setShowInstagram] = useState(true);
   const [allowProducts, setAllowProducts] = useState(false);
 
+  // Logo & Photos upload states
+  const [logoUrl, setLogoUrl] = useState("");
+  const [photosText, setPhotosText] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const photosInputRef = useRef<HTMLInputElement>(null);
+
   async function load() {
     const result = await api<Data>("/api/booking-settings");
     setData(result);
@@ -110,6 +120,8 @@ export function BookingSettings() {
     setShowPhone(result.company.publicPhone);
     setShowInstagram(result.company.publicInstagram);
     setAllowProducts(result.company.allowProducts);
+    setLogoUrl(result.company.logoUrl ?? "");
+    setPhotosText((result.company.publicPhotos ?? []).join("\n"));
 
     if (result.company.publicSlug) {
       setUrl(`${window.location.origin}/agendar/${result.company.publicSlug}`);
@@ -172,8 +184,8 @@ export function BookingSettings() {
           phone: f.get("phone"),
           whatsapp: f.get("whatsapp"),
           instagram: f.get("instagram"),
-          logoUrl: f.get("logoUrl"),
-          photos: String(f.get("photos") || "")
+          logoUrl: logoUrl.trim() || null,
+          photos: photosText
             .split("\n")
             .map((s) => s.trim())
             .filter(Boolean),
@@ -563,13 +575,102 @@ export function BookingSettings() {
             </div>
 
             <div className={styles.field}>
-              <label className={styles.fieldLabel}>Logo ou Foto de Perfil (URL)</label>
-              <input
-                className={styles.input}
-                name="logoUrl"
-                defaultValue={c.logoUrl ?? ""}
-                placeholder="https://..."
-              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 6 }}>
+                <label className={styles.fieldLabel} style={{ margin: 0 }}>Logo ou Foto de Perfil</label>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    style={{ display: "none" }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        setUploadingLogo(true);
+                        const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
+                        setLogoUrl(dataUrl);
+                        notify("Logo carregada do dispositivo!");
+                      } catch (err) {
+                        notify((err as Error).message || "Erro ao carregar imagem", "error");
+                      } finally {
+                        setUploadingLogo(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "5px 10px",
+                      borderRadius: 6,
+                      border: "1px solid var(--border)",
+                      background: "var(--surface-secondary)",
+                      color: "var(--text-primary)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: uploadingLogo ? "not-allowed" : "pointer",
+                      opacity: uploadingLogo ? 0.7 : 1,
+                    }}
+                  >
+                    <Upload size={13} />
+                    <span>{uploadingLogo ? "Carregando..." : "Subir foto (celular / PC)"}</span>
+                  </button>
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl("")}
+                      style={{
+                        padding: "5px 8px",
+                        borderRadius: 6,
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
+                        background: "rgba(239, 68, 68, 0.1)",
+                        color: "#ef4444",
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                      title="Remover logo"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                {logoUrl ? (
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      overflow: "hidden",
+                      border: "1px solid var(--border)",
+                      flexShrink: 0,
+                      background: "#111",
+                    }}
+                  >
+                    <img
+                      src={logoUrl}
+                      alt="Logo preview"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                ) : null}
+                <input
+                  className={styles.input}
+                  name="logoUrl"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://... ou suba do dispositivo acima"
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
           </div>
 
@@ -764,14 +865,129 @@ export function BookingSettings() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.fieldLabel}>Fotos da galeria do espaço (uma URL por linha)</label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 6 }}>
+              <label className={styles.fieldLabel} style={{ margin: 0 }}>
+                Fotos da galeria do espaço (uma URL por linha ou do aparelho)
+              </label>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <input
+                  ref={photosInputRef}
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files || files.length === 0) return;
+                    try {
+                      setUploadingPhotos(true);
+                      const uploadedUrls: string[] = [];
+                      for (let i = 0; i < files.length; i++) {
+                        const dataUrl = await prepareImageUpload(files[i], { maxDimension: 1200, square: false });
+                        uploadedUrls.push(dataUrl);
+                      }
+                      setPhotosText((prev) => {
+                        const trimmed = prev.trim();
+                        return trimmed ? `${trimmed}\n${uploadedUrls.join("\n")}` : uploadedUrls.join("\n");
+                      });
+                      notify(`${files.length} foto(s) carregada(s) do dispositivo!`);
+                    } catch (err) {
+                      notify((err as Error).message || "Erro ao carregar fotos", "error");
+                    } finally {
+                      setUploadingPhotos(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => photosInputRef.current?.click()}
+                  disabled={uploadingPhotos}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "5px 10px",
+                    borderRadius: 6,
+                    border: "1px solid var(--border)",
+                    background: "var(--surface-secondary)",
+                    color: "var(--text-primary)",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: uploadingPhotos ? "not-allowed" : "pointer",
+                    opacity: uploadingPhotos ? 0.7 : 1,
+                  }}
+                >
+                  <Upload size={13} />
+                  <span>{uploadingPhotos ? "Carregando..." : "Subir fotos (celular / PC)"}</span>
+                </button>
+              </div>
+            </div>
+
             <textarea
               className={styles.textarea}
               name="photos"
-              defaultValue={c.publicPhotos.join("\n")}
-              placeholder="https://exemplo.com/foto1.jpg&#10;https://exemplo.com/foto2.jpg"
+              value={photosText}
+              onChange={(e) => setPhotosText(e.target.value)}
+              placeholder="https://exemplo.com/foto1.jpg&#10;https://exemplo.com/foto2.jpg ou suba do dispositivo"
               rows={3}
             />
+
+            {photosText.trim() && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                {photosText
+                  .split("\n")
+                  .map((p) => p.trim())
+                  .filter(Boolean)
+                  .map((photo, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        position: "relative",
+                        width: 60,
+                        height: 60,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        border: "1px solid var(--border)",
+                        background: "#111",
+                      }}
+                    >
+                      <img
+                        src={photo}
+                        alt={`Foto ${idx + 1}`}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const list = photosText.split("\n").map((s) => s.trim()).filter(Boolean);
+                          list.splice(idx, 1);
+                          setPhotosText(list.join("\n"));
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: 2,
+                          right: 2,
+                          width: 18,
+                          height: 18,
+                          borderRadius: "50%",
+                          background: "rgba(0,0,0,0.7)",
+                          color: "#ef4444",
+                          border: "none",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          padding: 0,
+                        }}
+                        title="Remover foto"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
           <div className={styles.grid2}>

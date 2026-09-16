@@ -2841,6 +2841,40 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
   const [brandingBanner, setBrandingBanner] = useState(company?.bannerUrl ?? "");
   const [brandingPrimaryColor, setBrandingPrimaryColor] = useState(company?.primaryColor ?? "#3b82f6");
   const [savingBranding, setSavingBranding] = useState(false);
+  const [uploadingBrandingBanner, setUploadingBrandingBanner] = useState(false);
+  const [uploadingBrandingLogo, setUploadingBrandingLogo] = useState(false);
+  const brandingBannerInput = useRef<HTMLInputElement>(null);
+  const brandingLogoInput = useRef<HTMLInputElement>(null);
+
+  const handleBrandingBannerFile = async (file?: File) => {
+    if (!file) return;
+    setUploadingBrandingBanner(true);
+    try {
+      const dataUrl = await prepareImageUpload(file, { maxDimension: 1600, square: false });
+      setBrandingBanner(dataUrl);
+      notify("Banner carregado! Clique em 'Salvar identidade' para aplicar.");
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Erro ao carregar banner.", "error");
+    } finally {
+      setUploadingBrandingBanner(false);
+      if (brandingBannerInput.current) brandingBannerInput.current.value = "";
+    }
+  };
+
+  const handleBrandingLogoFile = async (file?: File) => {
+    if (!file) return;
+    setUploadingBrandingLogo(true);
+    try {
+      const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
+      setBrandingLogo(dataUrl);
+      notify("Logo carregado! Clique em 'Salvar identidade' para aplicar.");
+    } catch (err) {
+      notify(err instanceof Error ? err.message : "Erro ao carregar logotipo.", "error");
+    } finally {
+      setUploadingBrandingLogo(false);
+      if (brandingLogoInput.current) brandingLogoInput.current.value = "";
+    }
+  };
 
   // Operational settings fields
   const [openTime, setOpenTime] = useState(settings?.openTime ?? "08:00");
@@ -3105,19 +3139,43 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                   </Field>
 
                   <Field label="Banner de capa" hint="Imagem no topo do dashboard e na capa do perfil.">
-                    <div style={{ display: "flex", gap: "8px" }}>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                      <input
+                        ref={brandingBannerInput}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        style={{ display: "none" }}
+                        onChange={(e) => void handleBrandingBannerFile(e.target.files?.[0])}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={uploadingBrandingBanner}
+                        onClick={() => brandingBannerInput.current?.click()}
+                        style={{ flexShrink: 0 }}
+                      >
+                        <Upload size={14} /> {uploadingBrandingBanner ? "Carregando…" : "Subir foto (celular / PC)"}
+                      </Button>
                       <input
                         className="input"
+                        style={{ flex: 1, minWidth: "200px" }}
                         value={brandingBanner}
                         onChange={(e) => setBrandingBanner(e.target.value)}
                         placeholder="https://exemplo.com/banner.jpg"
                       />
                       {brandingBanner && (
-                        <Button variant="secondary" onClick={() => setBrandingBanner("")}>
+                        <Button variant="ghost" onClick={() => setBrandingBanner("")}>
                           Limpar
                         </Button>
                       )}
                     </div>
+                    {brandingBanner && (
+                      <div style={{ marginTop: "10px", position: "relative", width: "100%", height: "80px", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", backgroundImage: `url('${brandingBanner}')`, backgroundSize: "cover", backgroundPosition: "center" }}>
+                        <div style={{ position: "absolute", bottom: "6px", right: "8px", background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: "11px", padding: "2px 8px", borderRadius: "6px", backdropFilter: "blur(4px)" }}>
+                          Prévia do banner
+                        </div>
+                      </div>
+                    )}
                     <div className="banner-presets-row" style={{ marginTop: "8px" }}>
                       {BANNER_PRESETS.map((preset) => (
                         <div
@@ -3133,15 +3191,32 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                   </Field>
 
                   <Field label="Logotipo / Foto de perfil" hint="Exibido na barra superior e agendamentos.">
-                    <div style={{ display: "flex", gap: "8px" }}>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                      <input
+                        ref={brandingLogoInput}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        style={{ display: "none" }}
+                        onChange={(e) => void handleBrandingLogoFile(e.target.files?.[0])}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={uploadingBrandingLogo}
+                        onClick={() => brandingLogoInput.current?.click()}
+                        style={{ flexShrink: 0 }}
+                      >
+                        <Upload size={14} /> {uploadingBrandingLogo ? "Carregando…" : "Subir foto (celular / PC)"}
+                      </Button>
                       <input
                         className="input"
+                        style={{ flex: 1, minWidth: "200px" }}
                         value={brandingLogo}
                         onChange={(e) => setBrandingLogo(e.target.value)}
                         placeholder="https://exemplo.com/logo.jpg"
                       />
                       {brandingLogo && (
-                        <Button variant="secondary" onClick={() => setBrandingLogo("")}>
+                        <Button variant="ghost" onClick={() => setBrandingLogo("")}>
                           Limpar
                         </Button>
                       )}
@@ -4447,6 +4522,22 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const photoInput = useRef<HTMLInputElement>(null);
+  const bannerInput = useRef<HTMLInputElement>(null);
+  const [preparingBanner, setPreparingBanner] = useState(false);
+
+  const handleBannerFile = async (file?: File) => {
+    if (!file) return;
+    setPreparingBanner(true);
+    try {
+      setBannerUrl(await prepareImageUpload(file, { maxDimension: 1200, square: false }));
+      notify("Banner do profissional carregado com sucesso!");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Não foi possível carregar o banner.", "error");
+    } finally {
+      setPreparingBanner(false);
+      if (bannerInput.current) bannerInput.current.value = "";
+    }
+  };
 
   const handlePhoto = async (file?: File) => {
     if (!file) return;
@@ -4596,7 +4687,7 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
             </>
           )}
           <Field label="Banner de capa do card" icon={ImagePlus} className="field-full" hint="Escolha uma imagem de capa para o card deste profissional.">
-            <div className="banner-presets-row" style={{ marginBottom: "8px" }}>
+            <div className="banner-presets-row" style={{ marginBottom: "10px" }}>
               {BANNER_PRESETS.map((preset) => (
                 <div
                   key={preset.id}
@@ -4608,19 +4699,43 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                ref={bannerInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style={{ display: "none" }}
+                onChange={(event) => void handleBannerFile(event.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={preparingBanner}
+                onClick={() => bannerInput.current?.click()}
+                style={{ flexShrink: 0 }}
+              >
+                <Upload size={14} /> {preparingBanner ? "Carregando…" : "Subir foto (celular / PC)"}
+              </Button>
               <input
                 className="input"
+                style={{ flex: 1, minWidth: "200px" }}
                 value={bannerUrl}
                 onChange={(e) => setBannerUrl(e.target.value)}
                 placeholder="Ou cole a URL de uma imagem personalizada (HTTPS)"
               />
               {bannerUrl && (
-                <Button type="button" variant="secondary" onClick={() => setBannerUrl("")}>
-                  Limpar
+                <Button type="button" variant="ghost" onClick={() => setBannerUrl("")}>
+                  <Trash2 size={14} /> Limpar
                 </Button>
               )}
             </div>
+            {bannerUrl && (
+              <div style={{ marginTop: "10px", position: "relative", width: "100%", height: "80px", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", backgroundImage: `url('${bannerUrl}')`, backgroundSize: "cover", backgroundPosition: "center" }}>
+                <div style={{ position: "absolute", bottom: "6px", right: "8px", background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: "11px", padding: "2px 8px", borderRadius: "6px", backdropFilter: "blur(4px)" }}>
+                  Prévia do banner
+                </div>
+              </div>
+            )}
           </Field>
         </div>
 
@@ -4658,6 +4773,22 @@ function EditEmployeeModal({
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
+  const bannerInput = useRef<HTMLInputElement>(null);
+  const [preparingBanner, setPreparingBanner] = useState(false);
+
+  const handleBannerFile = async (file?: File) => {
+    if (!file) return;
+    setPreparingBanner(true);
+    try {
+      setBannerUrl(await prepareImageUpload(file, { maxDimension: 1200, square: false }));
+      notify("Banner do profissional carregado com sucesso!");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Não foi possível carregar o banner.", "error");
+    } finally {
+      setPreparingBanner(false);
+      if (bannerInput.current) bannerInput.current.value = "";
+    }
+  };
 
   const handlePhoto = async (file?: File) => {
     if (!file) return;
@@ -4831,7 +4962,7 @@ function EditEmployeeModal({
             </div>
           </Field>
           <Field label="Banner de capa do card" icon={ImagePlus} className="field-full" hint="Escolha uma imagem de capa para o card deste profissional.">
-            <div className="banner-presets-row" style={{ marginBottom: "8px" }}>
+            <div className="banner-presets-row" style={{ marginBottom: "10px" }}>
               {BANNER_PRESETS.map((preset) => (
                 <div
                   key={preset.id}
@@ -4843,19 +4974,43 @@ function EditEmployeeModal({
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                ref={bannerInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style={{ display: "none" }}
+                onChange={(event) => void handleBannerFile(event.target.files?.[0])}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={preparingBanner}
+                onClick={() => bannerInput.current?.click()}
+                style={{ flexShrink: 0 }}
+              >
+                <Upload size={14} /> {preparingBanner ? "Carregando…" : "Subir foto (celular / PC)"}
+              </Button>
               <input
                 className="input"
+                style={{ flex: 1, minWidth: "200px" }}
                 value={bannerUrl}
                 onChange={(e) => setBannerUrl(e.target.value)}
                 placeholder="Ou cole a URL de uma imagem personalizada (HTTPS)"
               />
               {bannerUrl && (
-                <Button type="button" variant="secondary" onClick={() => setBannerUrl("")}>
-                  Limpar
+                <Button type="button" variant="ghost" onClick={() => setBannerUrl("")}>
+                  <Trash2 size={14} /> Limpar
                 </Button>
               )}
             </div>
+            {bannerUrl && (
+              <div style={{ marginTop: "10px", position: "relative", width: "100%", height: "80px", borderRadius: "10px", overflow: "hidden", border: "1px solid var(--border)", backgroundImage: `url('${bannerUrl}')`, backgroundSize: "cover", backgroundPosition: "center" }}>
+                <div style={{ position: "absolute", bottom: "6px", right: "8px", background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: "11px", padding: "2px 8px", borderRadius: "6px", backdropFilter: "blur(4px)" }}>
+                  Prévia do banner
+                </div>
+              </div>
+            )}
           </Field>
         </div>
 

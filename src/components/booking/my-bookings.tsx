@@ -33,6 +33,7 @@ import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { PinInput } from "./pin-input";
+import { LocationMapCard } from "./location-map-card";
 import { ClientNoticeModal } from "./client-notice-modal";
 import {
   b,
@@ -669,6 +670,14 @@ export function MyBookings({
                       <strong>{current.company.address}</strong>
                     </div>
                   </div>
+                )}
+                {current.company.address && (
+                  <LocationMapCard
+                    address={current.company.address}
+                    companyName={current.company.name}
+                    companyLogo={current.company.logoUrl}
+                    compact
+                  />
                 )}
               </div>
 
