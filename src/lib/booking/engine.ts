@@ -249,6 +249,7 @@ export async function loadAvailability(
     : [[], [], [], [], []];
   const ordered = selection.map((item) => {
     const service = defs.find((s) => s.id === item.serviceId)!;
+    const hasServiceLinks = links.some((l) => l.serviceId === service.id);
     const candidates = team.filter(
       (e) =>
         (!item.employeeId || e.id === item.employeeId) &&
@@ -258,13 +259,21 @@ export async function loadAvailability(
             (l) =>
               l.employeeId === e.id && l.locationId === effectiveLocationId,
           )) &&
-        links.some((l) => l.employeeId === e.id && l.serviceId === service.id),
+        (!hasServiceLinks ||
+          links.some((l) => l.employeeId === e.id && l.serviceId === service.id)),
     );
-    if (!candidates.length)
+    if (!candidates.length) {
+      if (item.employeeId) {
+        throw new BookingError(
+          "Nenhum profissional disponível para este serviço.",
+          422,
+        );
+      }
       throw new BookingError(
         `Nenhum profissional disponível para ${service.name} nesta unidade.`,
         422,
       );
+    }
     return { service, candidates };
   });
   const today = localDate(new Date(), company.timezone),
@@ -351,7 +360,7 @@ export async function loadAvailability(
         if (!emp || end >= 1440) break;
         const link = links.find(
           (l) => l.employeeId === emp.id && l.serviceId === service.id,
-        )!;
+        );
         items.push({
           serviceId: service.id,
           employeeId: emp.id,
@@ -362,8 +371,8 @@ export async function loadAvailability(
           durationMinutes: service.durationMinutes,
           bufferMinutes: buffer,
           price: service.price,
-          commissionType: link.commissionType,
-          commissionValue: link.commissionValue,
+          commissionType: link?.commissionType ?? emp.commissionType,
+          commissionValue: link?.commissionValue ?? emp.commissionValue,
         });
         cursor = end + buffer;
       }

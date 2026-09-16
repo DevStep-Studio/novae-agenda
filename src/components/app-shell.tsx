@@ -3593,11 +3593,15 @@ function NewAppointmentModal({
   const duration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
   const total = selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-  const eligibleEmployees = useMemo(() => employees.filter((employee) => {
-    if (!employee.active || (employee.locationIds?.length && !employee.locationIds.includes(locationId))) return false;
-    if (serviceIds.length === 0) return true;
-    return serviceIds.every((sid) => employee.serviceIds.includes(sid));
-  }), [employees, locationId, serviceIds]);
+  const eligibleEmployees = useMemo(() => {
+    const matched = employees.filter((employee) => {
+      if (!employee.active || (employee.locationIds?.length && !employee.locationIds.includes(locationId))) return false;
+      if (serviceIds.length === 0) return true;
+      return !employee.serviceIds?.length || serviceIds.every((sid) => employee.serviceIds.includes(sid));
+    });
+    if (matched.length > 0) return matched;
+    return employees.filter((e) => e.active && (!e.locationIds?.length || e.locationIds.includes(locationId)));
+  }, [employees, locationId, serviceIds]);
 
   useEffect(() => {
     if (employeeId && eligibleEmployees.some(e => e.id === employeeId)) return;

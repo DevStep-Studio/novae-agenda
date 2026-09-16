@@ -193,23 +193,29 @@ export async function publicCatalog(slug: string) {
       price: Number(s.price),
       bookings: pop.get(s.id) ?? 0,
     })),
-    professionals: team.map((e) => ({
-      ...e,
-      serviceIds: links
+    professionals: team.map((e) => {
+      const explicitServiceIds = links
         .filter((l) => l.employeeId === e.id)
-        .map((l) => l.serviceId),
-      locationIds: (() => {
-        const ids = [
-          ...new Set([
-            ...locationLinks
-              .filter((l) => l.employeeId === e.id)
-              .map((l) => l.locationId),
-            ...(e.locationId ? [e.locationId] : []),
-          ]),
-        ];
-        return ids.length > 0 ? ids : units.map((u) => u.id);
-      })(),
-    })),
+        .map((l) => l.serviceId);
+      return {
+        ...e,
+        serviceIds:
+          explicitServiceIds.length > 0
+            ? explicitServiceIds
+            : serviceRows.map((s) => s.id),
+        locationIds: (() => {
+          const ids = [
+            ...new Set([
+              ...locationLinks
+                .filter((l) => l.employeeId === e.id)
+                .map((l) => l.locationId),
+              ...(e.locationId ? [e.locationId] : []),
+            ]),
+          ];
+          return ids.length > 0 ? ids : units.map((u) => u.id);
+        })(),
+      };
+    }),
     locations: units,
     products: productRows.map((p) => ({ ...p, price: Number(p.price) })),
     settings: {

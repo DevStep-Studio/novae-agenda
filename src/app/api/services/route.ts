@@ -122,8 +122,14 @@ export async function POST(request: Request) {
           cancellationPolicy: parsed.data.cancellationPolicy || null,
         });
 
-      if (employeeIds.length) {
-        await tx.insert(employeeServices).values(team.map(e => ({
+      const allCompanyEmployees = await tx
+        .select()
+        .from(employees)
+        .where(and(eq(employees.companyId, auth.user.companyId), eq(employees.active, true)));
+      const targetTeam = employeeIds.length > 0 ? team : allCompanyEmployees;
+
+      if (targetTeam.length > 0) {
+        await tx.insert(employeeServices).values(targetTeam.map(e => ({
           employeeId: e.id,
           serviceId: serviceId,
           commissionType: e.commissionType,

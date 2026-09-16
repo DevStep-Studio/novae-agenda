@@ -525,11 +525,16 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           {selected.map((service) => {
             const item = items.find((i) => i.serviceId === service.id)!;
             const planned = slot?.items.find((i) => i.serviceId === service.id);
-            const eligibleProfs = professionals.filter(
+            const matchedProfs = professionals.filter(
               (p) =>
-                p.serviceIds.includes(service.id) &&
+                (p.serviceIds.length === 0 || p.serviceIds.includes(service.id)) &&
                 (p.locationIds.length === 0 || p.locationIds.includes(locationId)),
             );
+            const eligibleProfs = matchedProfs.length > 0
+              ? matchedProfs
+              : (professionals.filter((p) => p.locationIds.length === 0 || p.locationIds.includes(locationId)).length > 0
+                  ? professionals.filter((p) => p.locationIds.length === 0 || p.locationIds.includes(locationId))
+                  : professionals);
 
             return (
               <div key={service.id} className={b.summaryItem}>
@@ -1272,12 +1277,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             const chosen = items.some(
                               (i) => i.serviceId === service.id,
                             );
-                            const eligible = professionals.some(
-                              (p) =>
-                                p.serviceIds.includes(service.id) &&
-                                (p.locationIds.length === 0 ||
-                                  p.locationIds.includes(locationId)),
-                            );
+                            const eligible = true;
 
                             const svcBookings = Number((service as any).bookings || 0);
                             const isMostBooked =
@@ -1327,18 +1327,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                           <span>· Online</span>
                                         )}
                                       </div>
-                                      {!eligible && (
-                                        <p
-                                          className={b.muted}
-                                          style={{
-                                            color: "#f87171",
-                                            fontSize: 11.5,
-                                            marginTop: 4,
-                                          }}
-                                        >
-                                          Indisponível nesta unidade
-                                        </p>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1363,7 +1351,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                       <button
                                         type="button"
                                         className={`${b.button} ${b.small}`}
-                                        disabled={!eligible}
                                         onClick={() => {
                                           changeItems([{ serviceId: service.id, employeeId: null }]);
                                           event("service_selected");
@@ -1382,10 +1369,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                       className={`${b.button} ${b.small} ${chosen ? "" : b.outline}`}
                                       aria-pressed={chosen}
                                       aria-label={`${chosen ? "Remover" : "Selecionar"} ${service.name}`}
-                                      disabled={
-                                        !eligible ||
-                                        (!chosen && items.length >= 8)
-                                      }
+                                      disabled={!chosen && items.length >= 8}
                                       onClick={() => {
                                         changeItems(
                                           chosen
