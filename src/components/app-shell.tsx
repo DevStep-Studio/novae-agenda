@@ -6602,9 +6602,62 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
         {render()}
       </main>
 
-      <nav className="mobile-bottom-nav">{navItems.slice(0, 5).map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => navigate(id)}><Icon size={19} /><span>{label}</span></button>)}<button className="mobile-add-button" onClick={() => setNewAppointmentOpen(true)}><Plus size={21} /></button></nav>
+      <nav className="mobile-bottom-nav">
+        <button
+          type="button"
+          className={`mobile-nav-item ${view === "dashboard" ? "active" : ""}`}
+          onClick={() => navigate("dashboard")}
+        >
+          <Home size={18} />
+          <span>Início</span>
+        </button>
 
-      <button className="floating-add" onClick={() => setNewAppointmentOpen(true)} aria-label="Novo agendamento"><Plus size={23} /></button>
+        <button
+          type="button"
+          className={`mobile-nav-item ${view === "agenda" ? "active" : ""}`}
+          onClick={() => navigate("agenda")}
+        >
+          <CalendarDays size={18} />
+          <span>Agenda</span>
+          {pendingAppointmentsCount > 0 && (
+            <em className="mobile-nav-badge">
+              {pendingAppointmentsCount > 99 ? "99+" : pendingAppointmentsCount}
+            </em>
+          )}
+        </button>
+
+        <button
+          type="button"
+          className="mobile-nav-add-btn"
+          onClick={() => {
+            setNewAppointmentPrefill(null);
+            setNewAppointmentOpen(true);
+          }}
+          title="Novo Agendamento"
+          aria-label="Novo agendamento"
+        >
+          <Plus size={22} />
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-nav-item ${view === "clientes" ? "active" : ""}`}
+          onClick={() => navigate("clientes")}
+        >
+          <Users size={18} />
+          <span>Clientes</span>
+        </button>
+
+        <button
+          type="button"
+          className="mobile-nav-item"
+          onClick={() => setMobileMenu(true)}
+          aria-label="Abrir menu"
+        >
+          <Menu size={18} />
+          <span>Menu</span>
+        </button>
+      </nav>
 
       {newAppointmentOpen && (
         <NewAppointmentModal
