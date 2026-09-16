@@ -558,13 +558,22 @@
 }
 
 /* Weekly Schedule Table */
+.tableResponsiveWrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+}
+
 .scheduleTable {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
-  background: var(--surface-secondary);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
+  background: transparent;
+  border: none;
 }
 
 .scheduleTable th {

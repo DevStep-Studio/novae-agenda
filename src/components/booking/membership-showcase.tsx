@@ -12,6 +12,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Clock3,
+  Star,
+  AlertTriangle,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { money } from "./primitives";
@@ -58,8 +60,9 @@ export function MembershipPlanCard({
               <Sparkles size={12} />
               {frequencyLabel}
             </span>
-            <span className={styles.benefitBadge}>
-              ★ Horários Fixos
+            <span className={styles.benefitBadge} style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+              <Star size={11} />
+              <span>Horários Fixos</span>
             </span>
           </div>
 
@@ -201,8 +204,9 @@ export function ActiveMembershipBanner({
               Incluso:
             </span>
             {membership.includedServices.map((s) => (
-              <span key={s.id} className={styles.serviceChip} style={{ fontSize: "0.74rem", padding: "2px 8px" }}>
-                ✓ {s.name}
+              <span key={s.id} className={styles.serviceChip} style={{ fontSize: "0.74rem", padding: "2px 8px", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                <Check size={11} />
+                <span>{s.name}</span>
               </span>
             ))}
           </div>
@@ -369,7 +373,10 @@ export function MembershipAccessModal({
 
         {error && (
           <div className={styles.errorBanner}>
-            <span>⚠️ {error}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <AlertTriangle size={13} />
+              <span>{error}</span>
+            </span>
           </div>
         )}
 

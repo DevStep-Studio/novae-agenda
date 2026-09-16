@@ -6,6 +6,7 @@ import {
   Users,
   ArrowRight,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -216,9 +217,10 @@ export function SubscriptionView() {
           <span>{actionMessage.text}</span>
           <button
             onClick={() => setActionMessage(null)}
-            style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", fontWeight: 700 }}
+            style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer", display: "flex", alignItems: "center" }}
+            aria-label="Fechar"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       )}
@@ -323,7 +325,10 @@ export function SubscriptionView() {
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-secondary)" }}>
-              <span>✓ O proprietário está incluído e não consome vagas de funcionários.</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Check size={12} />
+                <span>O proprietário está incluído e não consome vagas de funcionários.</span>
+              </span>
               {usage.isLimitReached && (
                 <span style={{ color: "var(--warning)", fontWeight: 600 }}>
                   Limite atingido. Faça upgrade para adicionar mais profissionais.

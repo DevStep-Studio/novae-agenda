@@ -454,7 +454,8 @@ export function MonthSchedulerModal({
                               borderRadius: 4,
                             }}
                           >
-                            ✓ Já agendado
+                            <Check size={11} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 3 }} />
+                            Já agendado
                           </span>
                         )}
                       </div>
@@ -494,8 +495,9 @@ export function MonthSchedulerModal({
                     </div>
 
                     {conflict && (
-                      <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "#ef4444" }}>
-                        ⚠️ {conflict.reason} Escolha outro horário abaixo.
+                      <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "#ef4444", display: "flex", alignItems: "center", gap: 4 }}>
+                        <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                        <span>{conflict.reason} Escolha outro horário abaixo.</span>
                       </p>
                     )}
 

@@ -21,6 +21,7 @@ import {
   ShoppingBag,
   Tag,
   Download,
+  Zap,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
@@ -897,12 +898,14 @@ export function BookingSettings() {
                   }}
                   title="Define Quinta-feira com saída às 12:00"
                 >
-                  ⚡ Quinta só até 12:00
+                  <Zap size={13} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
+                  Quinta só até 12:00
                 </button>
               </div>
             </div>
 
-            <table className={styles.scheduleTable}>
+            <div className={styles.tableResponsiveWrap}>
+              <table className={styles.scheduleTable}>
               <thead>
                 <tr>
                   <th style={{ width: 40 }}>Ativo</th>
@@ -1042,6 +1045,7 @@ export function BookingSettings() {
                 ))}
               </tbody>
             </table>
+            </div>
 
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
               <button

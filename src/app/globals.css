@@ -8379,6 +8379,45 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
     left: 14px !important;
   }
+
+  /* Employee Schedule Modal Responsive */
+  .employee-schedule-card {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 12px 12px !important;
+  }
+  .employee-schedule-times-wrap {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    margin-top: 4px !important;
+  }
+  .employee-schedule-times-wrap > div {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-left: 0 !important;
+  }
+  .employee-schedule-times-wrap input[type="time"] {
+    flex: 1 !important;
+    width: auto !important;
+    max-width: 120px !important;
+  }
+
+  /* Universal Container & Card Bounds Protection */
+  .card, .panel, .content-card, .data-table-wrap, .reservations-table-wrap, .client-panel, .team-panel, .service-card, .team-card, .client-card, .setting-card {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+  }
+  .data-table-wrap, .reservations-table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
 }
 
 /* ===== Authentication & Onboarding ===== */

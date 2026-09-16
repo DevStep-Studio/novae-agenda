@@ -405,7 +405,7 @@ export function MembershipPlanEditor({
                   className={`membership-emp-chip ${isSelected ? "selected" : ""}`}
                 >
                   <span>{emp.name}</span>
-                  <span className="chip-indicator">{isSelected ? "✓" : "+"}</span>
+                  <span className="chip-indicator">{isSelected ? <Check size={11} /> : <Plus size={11} />}</span>
                 </button>
               );
             })}

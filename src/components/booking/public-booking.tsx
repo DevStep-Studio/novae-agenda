@@ -1091,7 +1091,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           padding: "2px 4px",
                         }}
                       >
-                        ✦ Gerar PIN automático
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+                          <Sparkles size={12} />
+                          <span>Gerar PIN automático</span>
+                        </span>
                       </button>
                     </div>
 
@@ -1830,8 +1833,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               </p>
                             )}
                             {changePinSuccess && (
-                              <p style={{ color: "#10b981", fontSize: "12px", margin: 0, fontWeight: 500 }}>
-                                ✓ {changePinSuccess}
+                              <p style={{ color: "#10b981", fontSize: "12px", margin: 0, fontWeight: 500, display: "flex", alignItems: "center", gap: 4 }}>
+                                <Check size={13} />
+                                <span>{changePinSuccess}</span>
                               </p>
                             )}
                             <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
@@ -2116,8 +2120,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             marginBottom: 12,
                           }}
                         >
-                          <p style={{ color: "#10b981", fontSize: "13px", margin: 0, fontWeight: 500 }}>
-                            ✓ PIN cadastrado com sucesso! Agora escolha a forma de pagamento para confirmar seu horário.
+                          <p style={{ color: "#10b981", fontSize: "13px", margin: 0, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
+                            <Check size={14} style={{ flexShrink: 0 }} />
+                            <span>PIN cadastrado com sucesso! Agora escolha a forma de pagamento para confirmar seu horário.</span>
                           </p>
                         </div>
                       )}

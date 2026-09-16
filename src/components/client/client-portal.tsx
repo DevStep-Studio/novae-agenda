@@ -521,9 +521,13 @@ export function ClientPortal({
                       padding: "2px 8px",
                       borderRadius: "12px",
                       textTransform: "uppercase",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
-                    ★ Seu Plano Mensal Ativo
+                    <Star size={11} />
+                    <span>Seu Plano Mensal Ativo</span>
                   </span>
                   <h3 style={{ margin: "6px 0 2px", fontSize: "17px", fontWeight: 700 }}>
                     {customerMembership.membershipPlanName}

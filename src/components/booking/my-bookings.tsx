@@ -365,8 +365,9 @@ export function MyBookings({
                 )}
 
                 {pinChangeSuccess && (
-                  <p style={{ color: "#10b981", fontSize: "12.5px", margin: 0, textAlign: "center", fontWeight: 500 }}>
-                    ✓ {pinChangeSuccess}
+                  <p style={{ color: "#10b981", fontSize: "12.5px", margin: 0, textAlign: "center", fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                    <Check size={13} />
+                    <span>{pinChangeSuccess}</span>
                   </p>
                 )}
 

@@ -7,6 +7,8 @@ import {
   DollarSign,
   CalendarPlus,
   X,
+  Check,
+  AlertTriangle,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/client-utils";
@@ -143,8 +145,18 @@ export function CustomerMembershipCard({
         </div>
 
         <div className="membership-head-status">
-          <span className={`membership-pay-pill ${isPaid ? "paid" : "pending"}`}>
-            {isPaid ? "✓ Mensalidade Paga" : "⚠️ Mensalidade Pendente"}
+          <span className={`membership-pay-pill ${isPaid ? "paid" : "pending"}`} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            {isPaid ? (
+              <>
+                <Check size={13} />
+                <span>Mensalidade Paga</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle size={13} />
+                <span>Mensalidade Pendente</span>
+              </>
+            )}
           </span>
         </div>
       </div>

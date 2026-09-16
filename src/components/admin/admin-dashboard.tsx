@@ -219,6 +219,7 @@ export function AdminDashboard() {
                 />
               </div>
 
+              <div style={{ overflowX: "auto", width: "100%", maxWidth: "100%" }}>
               <table className={styles.dataTable}>
                 <thead>
                   <tr>
@@ -262,6 +263,7 @@ export function AdminDashboard() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -309,6 +311,7 @@ export function AdminDashboard() {
           {activeTab === "logs" && (
             <div>
               <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Trilha de Auditoria Recente</h2>
+              <div style={{ overflowX: "auto", width: "100%", maxWidth: "100%" }}>
               <table className={styles.dataTable}>
                 <thead>
                   <tr>
@@ -336,6 +339,7 @@ export function AdminDashboard() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 

@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     if (type === "new_booking") {
-      const title = "📅 Novo agendamento online";
+      const title = "Novo agendamento online";
       const messageBody = "Um cliente acabou de agendar um horário pelo seu link público!";
       const notifId = await NotificationService.createNotification({
         companyId,
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     }
 
     if (type === "payment") {
-      const title = "💰 Pagamento confirmado";
+      const title = "Pagamento confirmado";
       const messageBody = "Recebimento de R$ 120,00 via PIX confirmado com sucesso.";
       const notifId = await NotificationService.createNotification({
         companyId,
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
       companyId,
       userId: auth.user.userId,
       type: "system.alert",
-      title: "🔔 Alerta do Sistema",
+      title: "Alerta do Sistema",
       body: "Simulação de notificação do sistema executada com sucesso.",
       entityType: "system",
     });

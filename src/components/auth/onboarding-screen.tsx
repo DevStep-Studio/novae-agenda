@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
-import { ArrowRight, ArrowLeft, Building2, Clock3, Scissors, UserRound, Check, LogOut, SkipForward } from "lucide-react";
+import { ArrowRight, ArrowLeft, Building2, Clock3, Scissors, UserRound, Check, LogOut, SkipForward, MessageSquare, Lightbulb } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
@@ -319,7 +319,9 @@ export function OnboardingScreen({
                   <div className="inline-fields">
                     {isQuote ? (
                       <div style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", background: "var(--surface-secondary)", border: "1px dashed var(--border-strong)", fontSize: "12.5px", color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span>💬 Preço sob consulta (Orçamento direto)</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <MessageSquare size={13} /> Preço sob consulta (Orçamento direto)
+                        </span>
                       </div>
                     ) : (
                       <div className="input-with-prefix" style={{ flex: 1 }}>
@@ -383,8 +385,9 @@ export function OnboardingScreen({
                   autoFocus
                 />
               </label>
-              <div style={{ marginTop: "10px", fontSize: "12.5px", color: "var(--text-secondary)" }}>
-                💡 Você pode pular esta etapa e gerenciar sua equipe completa no menu &ldquo;Equipe&rdquo; a qualquer momento.
+              <div style={{ marginTop: "10px", fontSize: "12.5px", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Lightbulb size={13} style={{ flexShrink: 0, color: "var(--primary)" }} />
+                <span>Você pode pular esta etapa e gerenciar sua equipe completa no menu &ldquo;Equipe&rdquo; a qualquer momento.</span>
               </div>
             </section>
           )}

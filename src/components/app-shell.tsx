@@ -9,7 +9,7 @@ import {
   Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
   ImagePlus, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
-  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon,
+  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon, Lightbulb,
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
@@ -979,8 +979,9 @@ function ClientsPage({
                 {days} dias
               </button>
             ))}
-            <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: "auto" }}>
-              💡 Envie mensagem no WhatsApp para reconquistar esses clientes!
+            <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Lightbulb size={13} />
+              <span>Envie mensagem no WhatsApp para reconquistar esses clientes!</span>
             </span>
           </div>
         )}
@@ -1670,8 +1671,9 @@ function ClientProfileModal({
         <section className="profile-section" style={{ marginBottom: "32px" }}>
           <div className="section-header-row">
             <span className="section-title">Notas internas da empresa</span>
-            <span className="private-badge">
-              🔒 Nunca visível ao cliente
+            <span className="private-badge" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <Lock size={12} />
+              <span>Nunca visível ao cliente</span>
             </span>
           </div>
 
@@ -5049,7 +5051,8 @@ function EmployeeScheduleModal({
                 onClick={() => applyPreset("quinta-reduzida")}
                 title="Define Quinta-feira com saída às 12:00"
               >
-                ⚡ Quinta só até 12:00
+                <Zap size={13} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
+                Quinta só até 12:00
               </button>
             </div>
           </div>
@@ -5073,6 +5076,7 @@ function EmployeeScheduleModal({
                 return (
                   <div
                     key={day}
+                    className="employee-schedule-card"
                     style={{
                       display: "grid",
                       gridTemplateColumns: "170px 1fr",
@@ -5106,7 +5110,7 @@ function EmployeeScheduleModal({
 
                     {/* Time fields */}
                     {s.active ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                      <div className="employee-schedule-times-wrap" style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Entrada:</span>
                           <input
@@ -5163,8 +5167,9 @@ function EmployeeScheduleModal({
             </div>
           )}
 
-          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.4 }}>
-            💡 <strong>Exemplo:</strong> Se na Quinta-feira você deseja trabalhar somente até 12:00, basta deixar a Quinta ativa com entrada às <code>08:00</code> e saída às <code>12:00</code>. O sistema não liberará horários após as 12:00 nesse dia.
+          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.4, display: "flex", alignItems: "flex-start", gap: 6 }}>
+            <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 2, color: "var(--primary)" }} />
+            <span><strong>Exemplo:</strong> Se na Quinta-feira você deseja trabalhar somente até 12:00, basta deixar a Quinta ativa com entrada às <code>08:00</code> e saída às <code>12:00</code>. O sistema não liberará horários após as 12:00 nesse dia.</span>
           </p>
         </div>
 
