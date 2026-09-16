@@ -46,6 +46,7 @@ type Store = DataState & {
   reloadLocations: () => Promise<void>;
   reloadClients: () => Promise<void>;
   reloadServices: () => Promise<void>;
+  reloadCategories: () => Promise<void>;
   reloadEmployees: () => Promise<void>;
   reloadAppointments: () => Promise<void>;
   reloadBlocks: () => Promise<void>;
@@ -144,9 +145,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setClients(data);
   }, []);
 
+  const reloadCategories = useCallback(async () => {
+    try {
+      const res = await api<{ data: ServiceCategoryDTO[] }>("/api/categories");
+      setCategories(res.data);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const reloadServices = useCallback(async () => {
     const data = await api<ServiceDTO[]>("/api/services");
     setServices(data);
+    try {
+      const res = await api<{ data: ServiceCategoryDTO[] }>("/api/categories");
+      setCategories(res.data);
+    } catch {
+      // ignore
+    }
   }, []);
 
   const reloadEmployees = useCallback(async () => {
@@ -200,6 +216,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       reloadLocations(),
       reloadClients(),
       reloadServices(),
+      reloadCategories(),
       reloadEmployees(),
       reloadAppointments(),
       reloadBlocks(),
@@ -211,6 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     reloadLocations,
     reloadClients,
     reloadServices,
+    reloadCategories,
     reloadEmployees,
     reloadAppointments,
     reloadBlocks,
@@ -485,6 +503,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     reloadLocations,
     reloadClients,
     reloadServices,
+    reloadCategories,
     reloadEmployees,
     reloadAppointments,
     reloadBlocks,
@@ -517,7 +536,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     logout,
   }), [
     session, booting, locations, activeLocationId, clients, services, categories, employees, appointments, blocks, notifications, unreadCount, settings, stats, toasts,
-    setActiveLocationId, reloadSession, reloadLocations, reloadClients, reloadServices, reloadEmployees, reloadAppointments, reloadBlocks, reloadNotifications, reloadSettings, reloadStats, refreshAll,
+    setActiveLocationId, reloadSession, reloadLocations, reloadClients, reloadServices, reloadCategories, reloadEmployees, reloadAppointments, reloadBlocks, reloadNotifications, reloadSettings, reloadStats, refreshAll,
     createLocation, updateLocation, createClient, updateClient, createService, toggleService, createEmployee, updateEmployee, deleteEmployee, createAppointment,
     updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, updateProfile, updateDashboardPreferences, notify, dismissToast, logout,
   ]);

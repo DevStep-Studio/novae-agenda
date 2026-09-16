@@ -10,6 +10,7 @@ import {
   Sparkles,
   Users,
   FolderPlus,
+  Pencil,
   ChevronDown,
   Check,
   Image as ImageIcon,
@@ -79,7 +80,7 @@ export function ServiceEditor({
   service?: ServiceDTO;
   onDone: () => void;
 }) {
-  const { employees, categories, reloadServices, reloadEmployees, notify } =
+  const { employees, categories, reloadServices, reloadCategories, reloadEmployees, notify } =
     useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -89,6 +90,8 @@ export function ServiceEditor({
   >([]);
   const [newCategory, setNewCategory] = useState("");
   const [showNewCategory, setShowNewCategory] = useState(false);
+  const [showEditCategory, setShowEditCategory] = useState(false);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
   const [isQuote, setIsQuote] = useState<boolean>(
     service?.paymentType === "QUOTE" || (service ? Number(service.price) === 0 : false),
   );
@@ -153,7 +156,68 @@ export function ServiceEditor({
       setCategory(c.id);
       setNewCategory("");
       setShowNewCategory(false);
+      if (reloadCategories) await reloadCategories();
+      await reloadServices();
       notify(`Categoria "${c.name}" criada com sucesso.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const allCategories = [
+    ...categories,
+    ...extraCategories.filter(
+      (c) => !categories.some((x) => x.id === c.id),
+    ),
+  ];
+  const currentCategory = allCategories.find((c) => c.id === category);
+
+  async function handleUpdateCategory() {
+    if (!category || editingCategoryName.trim().length < 2 || busy) return;
+    setBusy(true);
+    try {
+      const trimmed = editingCategoryName.trim();
+      await api<{ data: { id: string; name: string } }>(`/api/categories/${category}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: trimmed }),
+      });
+      setExtraCategories((prev) =>
+        prev.map((c) => (c.id === category ? { ...c, name: trimmed } : c)),
+      );
+      if (reloadCategories) await reloadCategories();
+      await reloadServices();
+      setShowEditCategory(false);
+      notify(`Categoria alterada para "${trimmed}".`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDeleteCategory() {
+    if (!category || busy) return;
+    const catName = currentCategory?.name || "esta categoria";
+    if (
+      !window.confirm(
+        `Deseja realmente excluir a categoria "${catName}"? Os serviços vinculados serão mantidos em "Outros (Geral)".`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/categories/${category}`, {
+        method: "DELETE",
+      });
+      setExtraCategories((prev) => prev.filter((c) => c.id !== category));
+      setCategory("");
+      setShowEditCategory(false);
+      if (reloadCategories) await reloadCategories();
+      await reloadServices();
+      notify(`Categoria "${catName}" excluída.`);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -235,14 +299,38 @@ export function ServiceEditor({
               <label htmlFor="service-category" className={styles.label}>
                 Categoria
               </label>
-              <button
-                type="button"
-                className={styles.addCategoryTrigger}
-                onClick={() => setShowNewCategory(!showNewCategory)}
-              >
-                <FolderPlus size={13} />
-                <span>{showNewCategory ? "Fechar" : "+ Nova categoria"}</span>
-              </button>
+              <div className={styles.categoryActionButtons}>
+                {Boolean(category && currentCategory) && (
+                  <button
+                    type="button"
+                    className={styles.editCategoryTrigger}
+                    onClick={() => {
+                      if (!showEditCategory) {
+                        setEditingCategoryName(currentCategory?.name ?? "");
+                        setShowEditCategory(true);
+                        setShowNewCategory(false);
+                      } else {
+                        setShowEditCategory(false);
+                      }
+                    }}
+                    title="Editar categoria selecionada"
+                  >
+                    <Pencil size={12} />
+                    <span>{showEditCategory ? "Fechar" : "Editar categoria"}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.addCategoryTrigger}
+                  onClick={() => {
+                    setShowNewCategory(!showNewCategory);
+                    setShowEditCategory(false);
+                  }}
+                >
+                  <FolderPlus size={13} />
+                  <span>{showNewCategory ? "Fechar" : "+ Nova categoria"}</span>
+                </button>
+              </div>
             </div>
             <div className={styles.categoryBar}>
               <div className={styles.categorySelectWrapper}>
@@ -250,15 +338,13 @@ export function ServiceEditor({
                   id="service-category"
                   className={styles.select}
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    setCategory(e.target.value);
+                    setShowEditCategory(false);
+                  }}
                 >
                   <option value="">Outros (Geral)</option>
-                  {[
-                    ...categories,
-                    ...extraCategories.filter(
-                      (c) => !categories.some((x) => x.id === c.id),
-                    ),
-                  ].map((c) => (
+                  {allCategories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -266,6 +352,43 @@ export function ServiceEditor({
                 </select>
               </div>
             </div>
+
+            {showEditCategory && currentCategory && (
+              <div className={styles.newCategoryBox}>
+                <input
+                  aria-label="Editar nome da categoria"
+                  value={editingCategoryName}
+                  onChange={(e) => setEditingCategoryName(e.target.value)}
+                  placeholder="Nome da categoria"
+                  className={styles.newCategoryInput}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleUpdateCategory();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className={styles.newCategoryBtn}
+                  disabled={editingCategoryName.trim().length < 2 || busy}
+                  onClick={handleUpdateCategory}
+                >
+                  Salvar
+                </button>
+                <button
+                  type="button"
+                  className={styles.deleteCategoryBtn}
+                  disabled={busy}
+                  onClick={handleDeleteCategory}
+                  title="Excluir categoria"
+                  aria-label="Excluir categoria"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            )}
 
             {showNewCategory && (
               <div className={styles.newCategoryBox}>
