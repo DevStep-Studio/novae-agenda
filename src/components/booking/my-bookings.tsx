@@ -411,19 +411,7 @@ export function MyBookings({
         )}
 
         {!user ? (
-          <div className={b.authContainer}>
-            <div className={b.authHero}>
-              <div className={b.authHeroIcon}>
-                <UserRound size={26} />
-              </div>
-              <span className={b.authHeroBadge}>Área do Cliente</span>
-              <h1 className={b.title}>Seus agendamentos em um só lugar</h1>
-              <p className={b.subtitle}>
-                Entre na sua conta para acompanhar seus próximos horários, histórico e alterações.
-              </p>
-            </div>
-            <CustomerAuth onReady={onReady} requireVerified={false} />
-          </div>
+          <AuthScreen initialMode="reservas" />
         ) : loading ? (
           <div className={b.detailContainer}>
             <Skeleton label="Buscando seus agendamentos…" />

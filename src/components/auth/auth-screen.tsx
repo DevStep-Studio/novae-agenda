@@ -235,11 +235,8 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
       if (store) await store.reloadSession();
 
-      if (onAuthenticated) {
-        onAuthenticated(false);
-      } else {
-        window.location.assign("/minhas-reservas");
-      }
+      // Cliente com PIN vai SEMPRE e DIRETO para suas reservas
+      window.location.assign("/minhas-reservas");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -282,11 +279,8 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
       if (store) await store.reloadSession();
 
-      if (onAuthenticated) {
-        onAuthenticated(false);
-      } else {
-        window.location.assign("/minhas-reservas");
-      }
+      // Cliente com PIN vai SEMPRE e DIRETO para suas reservas
+      window.location.assign("/minhas-reservas");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -364,11 +358,8 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
       if (store) await store.reloadSession();
 
-      if (onAuthenticated) {
-        onAuthenticated(false);
-      } else {
-        window.location.assign("/minhas-reservas");
-      }
+      // Cliente com PIN vai SEMPRE e DIRETO para suas reservas
+      window.location.assign("/minhas-reservas");
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -709,7 +700,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
               <div className="auth-split-divider">
                 <div className="auth-split-divider-line" />
-                <span className="auth-split-divider-text">ou acesse com</span>
+                <span className="auth-split-divider-text">ou é cliente?</span>
                 <div className="auth-split-divider-line" />
               </div>
 
@@ -719,30 +710,30 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                 onClick={() => handleModeChange("reservas")}
               >
                 <CalendarDays size={16} />
-                <span>Ver minhas reservas</span>
+                <span>Consultar minhas reservas com PIN</span>
               </button>
 
               <div className="auth-split-switch-row">
-                Não tem conta?{" "}
+                É dono de estabelecimento?{" "}
                 <button
                   type="button"
                   onClick={() => handleModeChange("register")}
                   style={{ color: greenText }}
                 >
-                  Criar conta grátis
+                  Criar conta de proprietário
                 </button>
               </div>
             </>
           )}
 
           {/* ======================================================= */}
-          {/* MODO 2: REGISTRO (Crie sua conta)                        */}
+          {/* MODO 2: REGISTRO (Cadastro de Proprietário)              */}
           {/* ======================================================= */}
           {mode === "register" && (
             <>
-              <h1 className="auth-split-title">Crie sua conta</h1>
+              <h1 className="auth-split-title">Cadastre seu estabelecimento</h1>
               <p className="auth-split-subtitle">
-                Comece gratuitamente e modernize seus agendamentos hoje mesmo.
+                Crie sua conta de proprietário e teste gratuitamente por 7 dias.
               </p>
 
               <form onSubmit={submitAuth} className="auth-split-form">
@@ -1302,16 +1293,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                       )}
                     </button>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px" }}>
-                      <button
-                        type="button"
-                        className="auth-split-link-btn"
-                        onClick={() => handleModeChange("login")}
-                        style={{ color: theme === "dark" ? "#a1a1aa" : "#64748b", fontSize: "12.5px" }}
-                      >
-                        ← Painel do estabelecimento
-                      </button>
-
+                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginTop: "14px" }}>
                       <button
                         type="button"
                         className="auth-split-link-btn"
@@ -1578,31 +1560,14 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                 </>
               ) : null}
 
-              <div className="auth-split-divider">
-                <div className="auth-split-divider-line" />
-                <span className="auth-split-divider-text">
-                  ou painel de gestão
-                </span>
-                <div className="auth-split-divider-line" />
-              </div>
-
-              <button
-                type="button"
-                className="auth-split-secondary-btn"
-                onClick={() => handleModeChange("login")}
-              >
-                <ArrowLeft size={15} />
-                <span>Entrar no painel do estabelecimento</span>
-              </button>
-
-              <div className="auth-split-switch-row">
-                Ainda não tem agendamento?{" "}
+              <div className="auth-split-switch-row" style={{ marginTop: "24px" }}>
+                É proprietário ou profissional?{" "}
                 <button
                   type="button"
-                  onClick={() => handleModeChange("register")}
+                  onClick={() => handleModeChange("login")}
                   style={{ color: greenText }}
                 >
-                  Criar conta de profissional
+                  Entrar com e-mail e senha
                 </button>
               </div>
             </>

@@ -1,23 +1,23 @@
 "use client";
 
 import { StoreProvider, useStore } from "@/store/store";
-import { ClientPortal } from "@/components/client/client-portal";
+import { MyBookings } from "@/components/booking/my-bookings";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 
 function ClientContent() {
-  const { session, loading, logout } = useStore();
+  const { loading } = useStore();
 
   if (loading) {
     return (
       <div className="boot-screen">
         <ReserveiLogo size={36} priority />
         <span className="boot-spinner" />
-        <p style={{ margin: 0, fontSize: "13px", fontWeight: 500 }}>Carregando seu espaço...</p>
+        <p style={{ margin: 0, fontSize: "13px", fontWeight: 500 }}>Carregando seus agendamentos...</p>
       </div>
     );
   }
 
-  return <ClientPortal initialSession={session} onLogout={logout} />;
+  return <MyBookings />;
 }
 
 export default function ClientePage() {

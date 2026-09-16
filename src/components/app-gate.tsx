@@ -7,7 +7,7 @@ import { OnboardingScreen } from "@/components/auth/onboarding-screen";
 import { ResetPasswordScreen } from "@/components/auth/reset-password-screen";
 import { VerifyEmailScreen } from "@/components/auth/verify-email-screen";
 import { AppShell } from "@/components/app-shell";
-import { ClientPortal } from "@/components/client/client-portal";
+import { MyBookings } from "@/components/booking/my-bookings";
 import { EmployeeDashboard } from "@/components/employee/employee-dashboard";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
@@ -100,7 +100,7 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
     session.targetPortal === "/minhas-reservas" ||
     session.targetPortal === "/cliente"
   ) {
-    return <ClientPortal />;
+    return <MyBookings />;
   }
 
   // Business (owner, admin, manager)

@@ -163,6 +163,7 @@ export class CustomerAccessService {
 
   /**
    * Localiza ou unifica o usuário cliente associado ao telefone normalizado.
+   * IMPORTANTE: Nunca vincula nem retorna usuários com role 'owner', 'admin' ou 'employee'.
    */
   static async resolveCustomerUser(phoneNormalized: string): Promise<{
     user: typeof users.$inferSelect | null;
@@ -182,18 +183,18 @@ export class CustomerAccessService {
         .where(eq(users.id, credential.userId))
         .limit(1);
 
-      if (user) {
+      if (user && (user.role === "customer" || user.role === "client")) {
         return { user, credential };
       }
     }
 
-    // 2. Procura em users por telefone normalizado
-    const allUsersWithPhone = await db
+    // 2. Procura em users por telefone normalizado APENAS clientes (nunca proprietários/staff)
+    const allCustomerUsers = await db
       .select()
       .from(users)
-      .where(isNotNull(users.phone));
+      .where(and(isNotNull(users.phone), eq(users.role, "customer")));
 
-    const matchedUser = allUsersWithPhone.find((u) => {
+    const matchedUser = allCustomerUsers.find((u) => {
       if (!u.phone) return false;
       return normalizePhoneDigits(u.phone) === phoneNormalized;
     });
@@ -220,12 +221,12 @@ export class CustomerAccessService {
         .where(eq(users.id, matchedClient.userId))
         .limit(1);
 
-      if (linkedUser) {
+      if (linkedUser && (linkedUser.role === "customer" || linkedUser.role === "client")) {
         return { user: linkedUser, credential: null };
       }
     }
 
-    // 4. Se cliente existe no CRM mas ainda não tem userId, cria o User correspondente
+    // 4. Se cliente existe no CRM mas ainda não tem userId de cliente, cria o User correspondente
     if (matchedClient) {
       const newUserId = crypto.randomUUID();
       const defaultEmail = matchedClient.email
@@ -403,6 +404,47 @@ export class CustomerAccessService {
       throw new Error("Conta de cliente inativa ou não encontrada.");
     }
 
+    let userToAuth = user;
+    if (user.role !== "customer" && user.role !== "client") {
+      const customerEmail = credential.phoneNormalized
+        ? `cliente-${credential.phoneNormalized}@novae.local`
+        : `cliente-${user.id.slice(0, 8)}@novae.local`;
+
+      const [existingCust] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.role, "customer"), eq(users.email, customerEmail)))
+        .limit(1);
+
+      if (existingCust) {
+        userToAuth = existingCust;
+      } else {
+        const newCustId = crypto.randomUUID();
+        const fallbackPassword = await hashPassword(crypto.randomUUID());
+        await db.insert(users).values({
+          id: newCustId,
+          name: user.name || "Cliente",
+          email: customerEmail,
+          phone: user.phone || null,
+          passwordHash: fallbackPassword,
+          role: "customer",
+          active: true,
+          emailVerified: true,
+        });
+        const [createdCust] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, newCustId))
+          .limit(1);
+        userToAuth = createdCust || user;
+      }
+
+      await db
+        .update(customerCredentials)
+        .set({ userId: userToAuth.id })
+        .where(eq(customerCredentials.id, credential.id));
+    }
+
     // Sucesso no login: zera tentativas e atualiza timestamp de login
     await db
       .update(customerCredentials)
@@ -416,22 +458,22 @@ export class CustomerAccessService {
       .where(eq(customerCredentials.id, credential.id));
 
     await this.logAudit({
-      userId: user.id,
+      userId: userToAuth.id,
       phoneNormalized: credential.phoneNormalized,
       action: "PIN_LOGIN_SUCCESS",
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     });
 
-    // Emite o cookie de sessão seguro do Reservei
-    await createSession(user.id);
+    // Emite o cookie de sessão seguro do Reservei para o cliente
+    await createSession(userToAuth.id);
 
     return {
-      userId: user.id,
+      userId: userToAuth.id,
       customer: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
+        id: userToAuth.id,
+        name: userToAuth.name,
+        phone: userToAuth.phone,
         role: "customer",
         hasPin: true,
       },
@@ -546,6 +588,47 @@ export class CustomerAccessService {
       );
     }
 
+    let userToAuth = user;
+    if (user.role !== "customer" && user.role !== "client") {
+      const customerEmail = normalized
+        ? `cliente-${normalized}@novae.local`
+        : `cliente-${user.id.slice(0, 8)}@novae.local`;
+
+      const [existingCust] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.role, "customer"), eq(users.email, customerEmail)))
+        .limit(1);
+
+      if (existingCust) {
+        userToAuth = existingCust;
+      } else {
+        const newCustId = crypto.randomUUID();
+        const fallbackPassword = await hashPassword(crypto.randomUUID());
+        await db.insert(users).values({
+          id: newCustId,
+          name: user.name || "Cliente",
+          email: customerEmail,
+          phone: user.phone || null,
+          passwordHash: fallbackPassword,
+          role: "customer",
+          active: true,
+          emailVerified: true,
+        });
+        const [createdCust] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, newCustId))
+          .limit(1);
+        userToAuth = createdCust || user;
+      }
+
+      await db
+        .update(customerCredentials)
+        .set({ userId: userToAuth.id })
+        .where(eq(customerCredentials.id, credential.id));
+    }
+
     // Sucesso no login: zera tentativas, atualiza hash indexado se nulo e salva data
     const lookupHash = hashPinLookup(params.pin);
     await db
@@ -560,22 +643,22 @@ export class CustomerAccessService {
       .where(eq(customerCredentials.id, credential.id));
 
     await this.logAudit({
-      userId: user.id,
+      userId: userToAuth.id,
       phoneNormalized: normalized,
       action: "PIN_LOGIN_SUCCESS",
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,
     });
 
-    // Emite o cookie de sessão seguro do Reservei
-    await createSession(user.id);
+    // Emite o cookie de sessão seguro do Reservei para o cliente
+    await createSession(userToAuth.id);
 
     return {
-      userId: user.id,
+      userId: userToAuth.id,
       customer: {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
+        id: userToAuth.id,
+        name: userToAuth.name,
+        phone: userToAuth.phone,
         role: "customer",
         hasPin: true,
       },
@@ -620,14 +703,14 @@ export class CustomerAccessService {
     let credential: typeof customerCredentials.$inferSelect | null = null;
     const normalized = params.phone ? normalizePhoneDigits(params.phone) : "";
 
-    // 1. Verificação via sessão autenticada ativa
+    // 1. Verificação via sessão autenticada ativa (APENAS se for cliente)
     if (params.authenticatedUserId) {
       const [sessionUser] = await db
         .select()
         .from(users)
         .where(eq(users.id, params.authenticatedUserId))
         .limit(1);
-      if (sessionUser) {
+      if (sessionUser && (sessionUser.role === "customer" || sessionUser.role === "client")) {
         user = sessionUser;
         identityVerified = true;
       }
