@@ -6188,12 +6188,14 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
                 </button>
               ))}
             </div>
-            <Button variant="secondary" onClick={() => setBlockOpen(true)}>
-              <Clock3 size={16} /> Bloquear horário
-            </Button>
-            <Button onClick={() => { setNewAppointmentPrefill(null); setNewAppointmentOpen(true); }}>
-              <Plus size={16} /> Novo agendamento
-            </Button>
+            <div className="calendar-primary-actions">
+              <Button variant="secondary" onClick={() => setBlockOpen(true)}>
+                <Clock3 size={16} /> Bloquear horário
+              </Button>
+              <Button onClick={() => { setNewAppointmentPrefill(null); setNewAppointmentOpen(true); }}>
+                <Plus size={16} /> Novo agendamento
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -6220,7 +6222,11 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           </div>
         </div>
 
-        {calMode === "day" && <OperationsAvailability date={selectedDate} onNew={prefill => { setNewAppointmentPrefill(prefill); setNewAppointmentOpen(true); }} />}
+        {calMode === "day" && (
+          <div className="calendar-availability-wrap">
+            <OperationsAvailability date={selectedDate} onNew={prefill => { setNewAppointmentPrefill(prefill); setNewAppointmentOpen(true); }} />
+          </div>
+        )}
         {calMode === "day" && (
           <DayCalendar
             appointments={displayed}
