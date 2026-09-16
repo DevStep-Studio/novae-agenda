@@ -9,6 +9,10 @@ import { and, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+export async function GET() {
+  return Response.json({ status: "ok", gateway: "mercadopago" });
+}
+
 function verifyMercadoPagoSignature(
   request: Request,
   dataId: string,
@@ -44,12 +48,14 @@ function verifyMercadoPagoSignature(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => null);
-    if (!body) return Response.json({ received: true });
+    const url = new URL(request.url);
+    const queryDataId = url.searchParams.get("data.id") || url.searchParams.get("id");
+    const queryType = url.searchParams.get("type") || url.searchParams.get("topic");
 
-    const action = body.action || body.type || "payment";
-    const data = body.data || {};
-    const paymentId = String(data.id || body.id || "");
+    const body = await request.json().catch(() => null);
+    const action = body?.action || body?.type || queryType || "payment";
+    const data = body?.data || {};
+    const paymentId = String(data.id || body?.id || queryDataId || "");
 
     if (!paymentId) {
       return Response.json({ received: true, note: "No payment id" });

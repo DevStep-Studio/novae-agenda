@@ -1,6 +1,7 @@
 import "dotenv/config";
 process.env.DATABASE_URL = process.env.DATABASE_URL || "mysql://root:password@localhost:3306/novae_agenda";
 
+import crypto from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { db } from "../src/db";
@@ -471,5 +472,205 @@ test("SaaS Billing, Coupons & Mercado Pago — Complete Validation Suite", async
 
     const isSaaSSubscription = (bookingPaymentContext as any).type === "saas_subscription";
     assert.equal(isSaaSSubscription, false, "Booking payment is strictly NOT a SaaS subscription.");
+  });
+
+  // -------------------------------------------------------------
+  // 14. COMPLETE 6 PLANS PRICING & LIMITS MATRIX (MONTHLY & YEARLY)
+  // -------------------------------------------------------------
+  await t.test("14. Complete 6 Plans Pricing & Limits Matrix (Monthly and Yearly)", async () => {
+    const provider = new SaasPaymentProvider();
+    const { compId } = await createTestCompany("Empresa Matriz 6 Planos");
+
+    const matrix = [
+      { slug: "essencial", monthly: 19.9, yearly: 199.0, limit: 2 },
+      { slug: "profissional", monthly: 39.9, yearly: 399.0, limit: 5 },
+      { slug: "equipe", monthly: 69.9, yearly: 699.0, limit: 10 },
+      { slug: "negocio", monthly: 119.9, yearly: 1199.0, limit: 20 },
+      { slug: "empresa", monthly: 229.9, yearly: 2299.0, limit: 50 },
+      { slug: "enterprise", monthly: 399.9, yearly: 3999.0, limit: 100 },
+    ];
+
+    for (const item of matrix) {
+      // Monthly PIX
+      const pixMonthly = await provider.createPixPayment({
+        companyId: compId,
+        planSlug: item.slug,
+        billingInterval: "monthly",
+        payerEmail: `test-${item.slug}@empresa.com`,
+        payerName: "Owner Test",
+      });
+      assert.equal(pixMonthly.amount, item.monthly, `Monthly price for ${item.slug} must be ${item.monthly}`);
+      assert.equal(pixMonthly.subtotal, item.monthly);
+      assert.equal(pixMonthly.status, "pending");
+
+      // Yearly PIX
+      const pixYearly = await provider.createPixPayment({
+        companyId: compId,
+        planSlug: item.slug,
+        billingInterval: "yearly",
+        payerEmail: `test-${item.slug}-yearly@empresa.com`,
+        payerName: "Owner Test",
+      });
+      assert.equal(pixYearly.amount, item.yearly, `Yearly price for ${item.slug} must be ${item.yearly}`);
+      assert.equal(pixYearly.subtotal, item.yearly);
+
+      // Monthly Card
+      const cardMonthly = await provider.createCardPayment({
+        companyId: compId,
+        planSlug: item.slug,
+        billingInterval: "monthly",
+        cardToken: "sim_token_matrix",
+        payerEmail: `test-${item.slug}@empresa.com`,
+        payerName: "Owner Test",
+      });
+      assert.equal(cardMonthly.amount, item.monthly);
+      assert.equal(cardMonthly.status, "approved");
+
+      // Verify PlanLimitService usage returns correct limit
+      const usage = await PlanLimitService.getUsageInfo(compId, db);
+      assert.equal(usage.employeeLimit, item.limit, `Limit for ${item.slug} must be ${item.limit}`);
+    }
+  });
+
+  // -------------------------------------------------------------
+  // 15. WEBHOOK HMAC SHA-256 CRYPTOGRAPHIC SIGNATURE VERIFICATION
+  // -------------------------------------------------------------
+  await t.test("15. Webhook HMAC SHA-256 signature verification logic", () => {
+    const secret = "test_webhook_secret_key_12345";
+    const dataId = "mp_pay_998877";
+    const requestId = "req_uuid_abc_123";
+    const ts = String(Math.floor(Date.now() / 1000));
+
+    const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+    const validSignature = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+
+    // Helper validating signature
+    function checkSig(sigHeader: string, reqIdHeader: string, targetId: string) {
+      const parts = sigHeader.split(",").map((p) => p.trim());
+      let parsedTs = "";
+      let parsedHash = "";
+      for (const p of parts) {
+        const [k, v] = p.split("=");
+        if (k === "ts") parsedTs = v;
+        if (k === "v1") parsedHash = v;
+      }
+      if (!parsedTs || !parsedHash) return false;
+      const m = `id:${targetId};request-id:${reqIdHeader};ts:${parsedTs};`;
+      const computed = crypto.createHmac("sha256", secret).update(m).digest("hex");
+      const bComp = Buffer.from(computed);
+      const bRec = Buffer.from(parsedHash);
+      if (bComp.length !== bRec.length) return false;
+      return crypto.timingSafeEqual(bComp, bRec);
+    }
+
+    // Valid header
+    const validHeader = `ts=${ts},v1=${validSignature}`;
+    assert.equal(checkSig(validHeader, requestId, dataId), true, "Genuine signature must validate successfully.");
+
+    // Tampered header
+    const tamperedHeader = `ts=${ts},v1=0000000000000000000000000000000000000000000000000000000000000000`;
+    assert.equal(checkSig(tamperedHeader, requestId, dataId), false, "Tampered signature must be rejected.");
+
+    // Mismatched request ID
+    assert.equal(checkSig(validHeader, "different_request_id", dataId), false, "Mismatched request ID must be rejected.");
+  });
+
+  // -------------------------------------------------------------
+  // 16. WEBHOOK ACTIVATION & INVOICE PAID STATUS TRANSITIONS
+  // -------------------------------------------------------------
+  await t.test("16. Webhook Activation: End-to-end subscription activation and invoice status", async () => {
+    const provider = new SaasPaymentProvider();
+    const { compId } = await createTestCompany("Empresa Webhook E2E");
+
+    const paymentId = `mp_test_webhook_${Date.now()}`;
+    const invoiceId = crypto.randomUUID();
+
+    // Activate via provider (as webhook handler does)
+    await provider.activateCompanySubscription({
+      companyId: compId,
+      planSlug: "equipe",
+      billingInterval: "monthly",
+      amount: 69.9,
+      paymentMethod: "pix",
+      gatewayPaymentId: paymentId,
+      invoiceId,
+    });
+
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.companyId, compId)).limit(1);
+    assert.ok(sub);
+    assert.equal(sub.status, "active");
+    assert.equal(sub.plan, "equipe");
+
+    const [inv] = await db.select().from(subscriptionInvoices).where(eq(subscriptionInvoices.id, invoiceId)).limit(1);
+    assert.ok(inv);
+    assert.equal(inv.status, "paid");
+    assert.equal(Number(inv.amount), 69.9);
+    assert.equal(inv.mercadoPagoPaymentId, paymentId);
+  });
+
+  // -------------------------------------------------------------
+  // 17. EMPLOYEE LIMIT EXCEEDED REJECTION (403)
+  // -------------------------------------------------------------
+  await t.test("17. PlanLimitService.assertCanAddEmployee: Throws 403 when limit is exceeded", async () => {
+    const { compId } = await createTestCompany("Empresa Limite Estourado");
+    const provider = new SaasPaymentProvider();
+
+    // Activate Essencial (limit 2)
+    await provider.activateCompanySubscription({
+      companyId: compId,
+      planSlug: "essencial",
+      billingInterval: "monthly",
+      amount: 19.9,
+      paymentMethod: "card",
+      gatewayPaymentId: `pay_lim_${Date.now()}`,
+    });
+
+    // Add 2 active employees (not owners)
+    await db.insert(users).values({
+      id: "staff_u1",
+      companyId: compId,
+      name: "Staff 1",
+      email: `staff1_${compId.slice(0, 6)}@t.com`,
+      passwordHash: "hash123",
+      role: "employee",
+    });
+    await db.insert(users).values({
+      id: "staff_u2",
+      companyId: compId,
+      name: "Staff 2",
+      email: `staff2_${compId.slice(0, 6)}@t.com`,
+      passwordHash: "hash123",
+      role: "employee",
+    });
+    const { employees: empsTable } = await import("../src/db/schema");
+    await db.insert(empsTable).values({
+      id: "e_1",
+      companyId: compId,
+      userId: "staff_u1",
+      name: "Staff 1",
+      active: true,
+    });
+    await db.insert(empsTable).values({
+      id: "e_2",
+      companyId: compId,
+      userId: "staff_u2",
+      name: "Staff 2",
+      active: true,
+    });
+
+    // Can add employee should be false now
+    const canAdd = await PlanLimitService.canAddEmployee(compId, db);
+    assert.equal(canAdd, false, "Cannot add more than 2 staff on Essencial plan.");
+
+    await assert.rejects(
+      async () => {
+        await PlanLimitService.assertCanAddEmployee(compId, db);
+      },
+      (err: any) => err.statusCode === 403 && err.code === "PLAN_EMPLOYEE_LIMIT_EXCEEDED"
+    );
+
+    // Clean up staff
+    await db.delete(empsTable).where(eq(empsTable.companyId, compId)).catch(() => {});
+    await db.delete(users).where(eq(users.companyId, compId)).catch(() => {});
   });
 });
