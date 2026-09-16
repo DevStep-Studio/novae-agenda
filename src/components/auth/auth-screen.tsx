@@ -238,7 +238,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       if (onAuthenticated) {
         onAuthenticated(false);
       } else {
-        window.location.assign("/meus-agendamentos");
+        window.location.assign("/minhas-reservas");
       }
     } catch (err) {
       setError(
@@ -285,7 +285,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       if (onAuthenticated) {
         onAuthenticated(false);
       } else {
-        window.location.assign("/cliente");
+        window.location.assign("/minhas-reservas");
       }
     } catch (err) {
       setError(
@@ -367,7 +367,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
       if (onAuthenticated) {
         onAuthenticated(false);
       } else {
-        window.location.assign("/cliente");
+        window.location.assign("/minhas-reservas");
       }
     } catch (err) {
       setError(
@@ -409,7 +409,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
         if (onAuthenticated) {
           onAuthenticated(false);
         } else {
-          window.location.assign("/cliente");
+          window.location.assign("/minhas-reservas");
         }
         return;
       }
@@ -424,11 +424,15 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
         const updatedSession = store ? await store.reloadSession() : null;
 
-        if (mode === "reservas" || response.data?.targetPortal === "/cliente") {
+        if (
+          mode === "reservas" ||
+          response.data?.targetPortal === "/minhas-reservas" ||
+          response.data?.targetPortal === "/cliente"
+        ) {
           if (onAuthenticated) {
             onAuthenticated(false);
           } else {
-            window.location.assign("/cliente");
+            window.location.assign("/minhas-reservas");
           }
           return;
         }

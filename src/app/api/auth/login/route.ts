@@ -49,7 +49,7 @@ export async function POST(request: Request) {
           userId: result.userId,
           name: result.customer.name,
           role: result.customer.role,
-          targetPortal: "/cliente",
+          targetPortal: "/minhas-reservas",
         },
       });
     } catch (err: any) {
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
   await Promise.all([clearRateLimit(ipBucket), clearRateLimit(emailBucket)]);
   await createSession(user.id);
 
-  let targetPortal = "/cliente";
+  let targetPortal = "/minhas-reservas";
   if (user.isSuperadmin) {
     targetPortal = "/admin";
   } else if (user.role === "owner" || user.role === "admin" || user.role === "manager") {

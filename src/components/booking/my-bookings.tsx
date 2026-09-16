@@ -453,10 +453,10 @@ export function MyBookings({
                     onClick={() => {
                       setSelected("");
                       setAction(null);
-                      window.history.replaceState({}, "", "/meus-agendamentos");
+                      window.history.replaceState({}, "", "/minhas-reservas");
                     }}
                   >
-                    <ArrowLeft size={16} /> Voltar para meus agendamentos
+                    <ArrowLeft size={16} /> Voltar para minhas reservas
                   </button>
                 </div>
                 <div className={b.detailHeroCompact}>
@@ -795,10 +795,10 @@ export function MyBookings({
                 setSelected("");
                 setConfirmed(false);
                 setAction(null);
-                window.history.replaceState({}, "", "/meus-agendamentos");
+                window.history.replaceState({}, "", "/minhas-reservas");
               }}
             >
-              <ArrowLeft size={16} /> Ver todos os meus agendamentos
+              <ArrowLeft size={16} /> Ver todas as minhas reservas
             </button>
           </div>
         ) : (
@@ -811,31 +811,42 @@ export function MyBookings({
                 </span>
                 <h1 className={b.title}>
                   {tab === "Anteriores"
-                    ? "Histórico de agendamentos"
+                    ? "Histórico de reservas"
                     : tab === "Cancelados"
-                      ? "Agendamentos cancelados"
-                      : "Meus agendamentos"}
+                      ? "Reservas canceladas"
+                      : "Minhas reservas"}
                 </h1>
                 <p className={b.subtitle}>
                   {tab === "Anteriores"
                     ? "Consulte seus atendimentos realizados e serviços anteriores."
                     : tab === "Cancelados"
                       ? "Histórico de horários e reservas desmarcadas."
-                      : "Gerencie seus próximos horários confirmados e consulte seu histórico."}
+                      : "Acompanhe seus próximos horários confirmados e gerencie suas reservas."}
                 </p>
               </div>
-              {!embedded && (
-                <button
-                  className={`${b.button} ${b.outline} ${b.small}`}
-                  onClick={async () => {
-                    await api("/api/auth/logout", { method: "POST" });
-                    setUser(null);
-                    setRows([]);
-                  }}
-                >
-                  Sair
-                </button>
-              )}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {rows[0]?.company?.slug && (
+                  <Link
+                    href={`/agendar/${rows[0].company.slug}`}
+                    className={`${b.button} ${b.small}`}
+                    style={{ background: "#dcff4c", color: "#0a0a0a", fontWeight: 600 }}
+                  >
+                    <CalendarPlus size={14} /> Agendar novo horário
+                  </Link>
+                )}
+                {!embedded && (
+                  <button
+                    className={`${b.button} ${b.outline} ${b.small}`}
+                    onClick={async () => {
+                      await api("/api/auth/logout", { method: "POST" });
+                      setUser(null);
+                      setRows([]);
+                    }}
+                  >
+                    Sair
+                  </button>
+                )}
+              </div>
             </header>
             <div className={b.bookingTabs} role="tablist" aria-label="Filtrar agendamentos">
               {(["Próximos", "Anteriores", "Cancelados"] as const).map((t) => {

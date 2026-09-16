@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       data: {
         userId: result.userId,
         customer: result.customer,
-        targetPortal: "/meus-agendamentos",
+        targetPortal: "/minhas-reservas",
       },
     });
   } catch (error: any) {

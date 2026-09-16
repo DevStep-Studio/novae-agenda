@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const token = await issueToken(user.id, "email_verification");
   const body = await request.json().catch(() => ({}));
-  const destination = session.role === "customer" ? (/^\/agendar\/[a-z0-9-]+$/.test(body.returnTo ?? "") ? body.returnTo : "/meus-agendamentos") : "/";
+  const destination = session.role === "customer" ? (/^\/agendar\/[a-z0-9-]+$/.test(body.returnTo ?? "") ? body.returnTo : "/minhas-reservas") : "/";
   const link = `${appUrl()}${destination}?verify=${token}`;
   const mail = verificationEmail(user.name, link);
   await sendMail({ ...mail, to: user.email });

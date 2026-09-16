@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       data: {
         userId: result.userId,
         customer: result.customer,
-        targetPortal: "/cliente",
+        targetPortal: "/minhas-reservas",
         message: "PIN criado com sucesso!",
       },
     });

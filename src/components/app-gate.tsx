@@ -95,7 +95,11 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
     return <EmployeeDashboard />;
   }
 
-  if (session.primaryRole === "client" || session.targetPortal === "/cliente") {
+  if (
+    session.primaryRole === "client" ||
+    session.targetPortal === "/minhas-reservas" ||
+    session.targetPortal === "/cliente"
+  ) {
     return <ClientPortal />;
   }
 

@@ -67,7 +67,7 @@ export type SessionInfo = {
   companyId: string;
   role: Role;
   primaryRole?: Role;
-  targetPortal?: "/cliente" | "/gestao" | "/profissional" | "/admin";
+  targetPortal?: "/minhas-reservas" | "/cliente" | "/gestao" | "/profissional" | "/admin";
   name: string;
   email: string;
   phone?: string | null;

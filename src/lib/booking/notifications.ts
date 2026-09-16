@@ -88,7 +88,7 @@ export async function processBookingNotifications(
             : log.event.startsWith("booking.reminder")
               ? "Lembrete do seu agendamento"
               : "Seu agendamento está confirmado";
-      const text = `Olá, ${user.name}.\n${title}.\n${company.name}\n${localDate(booking.startsAt, booking.timezone)} às ${localTime(booking.startsAt, booking.timezone)} (${booking.timezone})\nVeja os detalhes: ${appUrl()}/meus-agendamentos?booking=${booking.id}`;
+      const text = `Olá, ${user.name}.\n${title}.\n${company.name}\n${localDate(booking.startsAt, booking.timezone)} às ${localTime(booking.startsAt, booking.timezone)} (${booking.timezone})\nVeja os detalhes: ${appUrl()}/minhas-reservas?booking=${booking.id}`;
       const result = await channel.send({
         to: user.email,
         subject: title,

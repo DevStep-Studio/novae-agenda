@@ -23,7 +23,7 @@ export type Customer = {
 
 export function CustomerAuth({
   onReady,
-  returnTo = "/meus-agendamentos",
+  returnTo = "/minhas-reservas",
   requireVerified = true,
 }: {
   onReady: (user: Customer) => void;

@@ -1004,10 +1004,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
             <div className={b.successActions}>
               <a
-                href={`/meus-agendamentos?booking=${bookingId}&confirmed=1`}
+                href={`/minhas-reservas?booking=${bookingId}&confirmed=1`}
                 className={`${b.button} ${b.wide}`}
               >
-                <UserRound size={16} /> Ver meus agendamentos
+                <UserRound size={16} /> Ver minhas reservas
               </a>
 
               <div className={b.actionBtnRow}>

@@ -42,7 +42,7 @@ export function hasMinRole(role: Role, min: Role): boolean {
   return (ROLE_RANK[role] ?? 0) >= (ROLE_RANK[min] ?? 0);
 }
 
-export type TargetPortal = "/cliente" | "/gestao" | "/profissional" | "/admin";
+export type TargetPortal = "/minhas-reservas" | "/cliente" | "/gestao" | "/profissional" | "/admin";
 
 export type SessionUser = {
   userId: string;
@@ -205,7 +205,7 @@ export async function getSession(): Promise<SessionUser | null> {
     if (employee) employeeId = employee.id;
 
     // Resolve target portal based on authenticated roles
-    let targetPortal: TargetPortal = "/cliente";
+    let targetPortal: TargetPortal = "/minhas-reservas";
     let effectiveRole: Role = activeRole;
 
     if (user.isSuperadmin) {
@@ -217,7 +217,7 @@ export async function getSession(): Promise<SessionUser | null> {
       targetPortal = "/profissional";
       effectiveRole = "employee";
     } else {
-      targetPortal = "/cliente";
+      targetPortal = "/minhas-reservas";
       effectiveRole = "client";
     }
 

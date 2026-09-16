@@ -31,7 +31,7 @@ function MyBookingsAccessModal({ onClose }: { onClose: () => void }) {
         method: "POST",
         body: JSON.stringify({ pin }),
       });
-      window.location.assign("/meus-agendamentos");
+      window.location.assign("/minhas-reservas");
     } catch (err) {
       setError(
         err instanceof ApiError

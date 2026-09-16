@@ -197,7 +197,7 @@ export function ClientPortal({
     );
   });
   const startReschedule = (booking: CustomerBooking) => {
-    router.push(`/meus-agendamentos?booking=${booking.id}&action=reschedule`);
+    router.push(`/minhas-reservas?booking=${booking.id}&action=reschedule`);
   };
   const getWhatsAppLink = (booking: CustomerBooking) => {
     const phone = companies.find(c => c.id === booking.companyId)?.phone?.replace(/\D/g, "");
@@ -607,7 +607,7 @@ export function ClientPortal({
                   <button
                     type="button"
                     className={styles.actionBtn}
-                    onClick={() => router.push(`/meus-agendamentos?booking=${nextBooking.id}`)}
+                    onClick={() => router.push(`/minhas-reservas?booking=${nextBooking.id}`)}
                   >
                     Ver detalhes
                   </button>

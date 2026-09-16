@@ -190,11 +190,6 @@ export function EmployeeDashboard() {
             </div>
           </div>
 
-          <a href="/cliente" className={styles.portalSwitchBtn}>
-            <ExternalLink size={13} />
-            Acessar Área do Cliente
-          </a>
-
           <button
             type="button"
             onClick={logout}
