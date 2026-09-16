@@ -8331,10 +8331,26 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     gap: 8px !important;
   }
   .modal-footer button,
-  .modal-footer .whatsapp-button {
+  .modal-footer .whatsapp-button,
+  .modal-footer .button {
     width: 100% !important;
     justify-content: center !important;
-    min-height: 42px !important;
+    min-height: 44px !important;
+    white-space: nowrap !important;
+  }
+  .modal-footer .modal-actions {
+    width: 100% !important;
+    margin-left: 0 !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+  .modal-footer .modal-actions button,
+  .modal-footer .modal-actions .button {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    white-space: nowrap !important;
   }
 
   /* Appointment Detail Sheet Responsive */

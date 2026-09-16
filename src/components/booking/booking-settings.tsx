@@ -49,6 +49,16 @@ type Data = {
   funnel: Array<{ event: string; count: number }>;
 };
 
+const WEEKDAYS = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+];
+
 export function BookingSettings() {
   const {
     employees,
@@ -904,22 +914,154 @@ export function BookingSettings() {
               </div>
             </div>
 
-            <div className={styles.tableResponsiveWrap}>
-              <table className={styles.scheduleTable}>
-              <thead>
-                <tr>
-                  <th style={{ width: 40 }}>Ativo</th>
-                  <th>Dia da Semana</th>
-                  <th>Horário Entrada</th>
-                  <th>Horário Saída</th>
-                  <th>Almoço / Intervalo</th>
-                  <th style={{ width: 40 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedule.map((s, i) => (
-                  <tr key={i}>
-                    <td>
+            {/* Desktop Table View */}
+            <div className={styles.scheduleDesktopWrap}>
+              <div className={styles.tableResponsiveWrap}>
+                <table className={styles.scheduleTable}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 50, minWidth: 50, textAlign: "center" }}>Ativo</th>
+                      <th style={{ width: 170, minWidth: 170 }}>Dia da Semana</th>
+                      <th style={{ width: 130, minWidth: 130 }}>Horário Entrada</th>
+                      <th style={{ width: 130, minWidth: 130 }}>Horário Saída</th>
+                      <th style={{ minWidth: 230 }}>Almoço / Intervalo</th>
+                      <th style={{ width: 44, minWidth: 44 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {schedule.map((s, i) => (
+                      <tr key={i}>
+                        <td style={{ textAlign: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={s.active}
+                            onChange={(e) =>
+                              setSchedule(
+                                schedule.map((r, n) =>
+                                  n === i ? { ...r, active: e.target.checked } : r,
+                                ),
+                              )
+                            }
+                            style={{ width: 18, height: 18, accentColor: "var(--primary)", cursor: "pointer" }}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className={styles.select}
+                            value={s.dayOfWeek}
+                            style={{ padding: "6px 28px 6px 10px", fontSize: "13px", width: "100%", minWidth: 140, height: 38 }}
+                            onChange={(e) =>
+                              setSchedule(
+                                schedule.map((r, n) =>
+                                  n === i
+                                    ? { ...r, dayOfWeek: Number(e.target.value) }
+                                    : r,
+                                ),
+                              )
+                            }
+                          >
+                            {WEEKDAYS.map((d, n) => (
+                              <option key={d} value={n}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            type="time"
+                            className={styles.input}
+                            value={s.startTime}
+                            style={{ padding: "6px 10px", width: 110, height: 38, fontSize: "13px" }}
+                            onChange={(e) =>
+                              setSchedule(
+                                schedule.map((r, n) =>
+                                  n === i ? { ...r, startTime: e.target.value } : r,
+                                ),
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="time"
+                            className={styles.input}
+                            value={s.endTime}
+                            style={{ padding: "6px 10px", width: 110, height: 38, fontSize: "13px" }}
+                            onChange={(e) =>
+                              setSchedule(
+                                schedule.map((r, n) =>
+                                  n === i ? { ...r, endTime: e.target.value } : r,
+                                ),
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <input
+                              type="time"
+                              className={styles.input}
+                              placeholder="Início"
+                              value={s.breakStart ?? ""}
+                              style={{ padding: "6px 10px", width: 100, height: 38, fontSize: "13px" }}
+                              onChange={(e) =>
+                                setSchedule(
+                                  schedule.map((r, n) =>
+                                    n === i
+                                      ? { ...r, breakStart: e.target.value || null }
+                                      : r,
+                                  ),
+                                )
+                              }
+                            />
+                            <span style={{ color: "var(--text-muted)", fontSize: 12 }}>até</span>
+                            <input
+                              type="time"
+                              className={styles.input}
+                              placeholder="Fim"
+                              value={s.breakEnd ?? ""}
+                              style={{ padding: "6px 10px", width: 100, height: 38, fontSize: "13px" }}
+                              onChange={(e) =>
+                                setSchedule(
+                                  schedule.map((r, n) =>
+                                    n === i
+                                      ? { ...r, breakEnd: e.target.value || null }
+                                      : r,
+                                  ),
+                                )
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.btnIcon}
+                            onClick={() =>
+                              setSchedule(schedule.filter((_, n) => n !== i))
+                            }
+                            title="Remover período"
+                          >
+                            <Trash2 size={15} style={{ color: "#f87171" }} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className={styles.scheduleMobileWrap}>
+              {schedule.map((s, i) => (
+                <div
+                  key={i}
+                  className={`${styles.mobileScheduleCard} ${s.active ? styles.mobileScheduleCardActive : ""}`}
+                >
+                  <div className={styles.mobileCardHeader}>
+                    <label className={styles.mobileActiveToggle}>
                       <input
                         type="checkbox"
                         checked={s.active}
@@ -931,43 +1073,55 @@ export function BookingSettings() {
                           )
                         }
                       />
-                    </td>
-                    <td>
-                      <select
-                        className={styles.select}
-                        value={s.dayOfWeek}
-                        style={{ padding: "6px 10px", fontSize: "13px" }}
-                        onChange={(e) =>
-                          setSchedule(
-                            schedule.map((r, n) =>
-                              n === i
-                                ? { ...r, dayOfWeek: Number(e.target.value) }
-                                : r,
-                            ),
-                          )
-                        }
-                      >
-                        {[
-                          "Domingo",
-                          "Segunda",
-                          "Terça",
-                          "Quarta",
-                          "Quinta",
-                          "Sexta",
-                          "Sábado",
-                        ].map((d, n) => (
-                          <option key={d} value={n}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
+                      <span className={styles.mobileActiveLabel}>
+                        {s.active ? "Atendimento ativo" : "Dia inativo / Folga"}
+                      </span>
+                    </label>
+
+                    <button
+                      type="button"
+                      className={styles.btnIcon}
+                      onClick={() =>
+                        setSchedule(schedule.filter((_, n) => n !== i))
+                      }
+                      title="Remover período"
+                    >
+                      <Trash2 size={16} style={{ color: "#f87171" }} />
+                    </button>
+                  </div>
+
+                  <div className={styles.mobileFieldGroup}>
+                    <label className={styles.mobileFieldLabel}>Dia da semana</label>
+                    <select
+                      className={styles.select}
+                      value={s.dayOfWeek}
+                      style={{ height: 42, fontSize: "14px", width: "100%" }}
+                      onChange={(e) =>
+                        setSchedule(
+                          schedule.map((r, n) =>
+                            n === i
+                              ? { ...r, dayOfWeek: Number(e.target.value) }
+                              : r,
+                          ),
+                        )
+                      }
+                    >
+                      {WEEKDAYS.map((d, n) => (
+                        <option key={d} value={n}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.mobileTimeGrid}>
+                    <div className={styles.mobileFieldGroup}>
+                      <label className={styles.mobileFieldLabel}>Entrada</label>
                       <input
                         type="time"
                         className={styles.input}
                         value={s.startTime}
-                        style={{ padding: "6px 10px", width: 110 }}
+                        style={{ height: 42, fontSize: "14px", width: "100%" }}
                         onChange={(e) =>
                           setSchedule(
                             schedule.map((r, n) =>
@@ -976,13 +1130,14 @@ export function BookingSettings() {
                           )
                         }
                       />
-                    </td>
-                    <td>
+                    </div>
+                    <div className={styles.mobileFieldGroup}>
+                      <label className={styles.mobileFieldLabel}>Saída</label>
                       <input
                         type="time"
                         className={styles.input}
                         value={s.endTime}
-                        style={{ padding: "6px 10px", width: 110 }}
+                        style={{ height: 42, fontSize: "14px", width: "100%" }}
                         onChange={(e) =>
                           setSchedule(
                             schedule.map((r, n) =>
@@ -991,63 +1146,54 @@ export function BookingSettings() {
                           )
                         }
                       />
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <input
-                          type="time"
-                          className={styles.input}
-                          placeholder="Início"
-                          value={s.breakStart ?? ""}
-                          style={{ padding: "6px 10px", width: 100 }}
-                          onChange={(e) =>
-                            setSchedule(
-                              schedule.map((r, n) =>
-                                n === i
-                                  ? { ...r, breakStart: e.target.value || null }
-                                  : r,
-                              ),
-                            )
-                          }
-                        />
-                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>até</span>
-                        <input
-                          type="time"
-                          className={styles.input}
-                          placeholder="Fim"
-                          value={s.breakEnd ?? ""}
-                          style={{ padding: "6px 10px", width: 100 }}
-                          onChange={(e) =>
-                            setSchedule(
-                              schedule.map((r, n) =>
-                                n === i
-                                  ? { ...r, breakEnd: e.target.value || null }
-                                  : r,
-                              ),
-                            )
-                          }
-                        />
-                      </div>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className={styles.btnIcon}
-                        onClick={() =>
-                          setSchedule(schedule.filter((_, n) => n !== i))
+                    </div>
+                  </div>
+
+                  <div className={styles.mobileTimeGrid}>
+                    <div className={styles.mobileFieldGroup}>
+                      <label className={styles.mobileFieldLabel}>Almoço início</label>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        placeholder="Início"
+                        value={s.breakStart ?? ""}
+                        style={{ height: 42, fontSize: "14px", width: "100%" }}
+                        onChange={(e) =>
+                          setSchedule(
+                            schedule.map((r, n) =>
+                              n === i
+                                ? { ...r, breakStart: e.target.value || null }
+                                : r,
+                            ),
+                          )
                         }
-                        title="Remover período"
-                      >
-                        <Trash2 size={15} style={{ color: "#f87171" }} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      />
+                    </div>
+                    <div className={styles.mobileFieldGroup}>
+                      <label className={styles.mobileFieldLabel}>Almoço fim</label>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        placeholder="Fim"
+                        value={s.breakEnd ?? ""}
+                        style={{ height: 42, fontSize: "14px", width: "100%" }}
+                        onChange={(e) =>
+                          setSchedule(
+                            schedule.map((r, n) =>
+                              n === i
+                                ? { ...r, breakEnd: e.target.value || null }
+                                : r,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div className={styles.scheduleActions}>
               <button
                 type="button"
                 className={styles.btnSecondary}
@@ -1066,8 +1212,8 @@ export function BookingSettings() {
                   ])
                 }
               >
-                <Plus size={15} />
-                Adicionar período
+                <Plus size={16} />
+                <span>Adicionar período</span>
               </button>
 
               <button
@@ -1076,7 +1222,8 @@ export function BookingSettings() {
                 disabled={busy}
                 onClick={saveSchedule}
               >
-                Salvar disponibilidade do profissional
+                <Check size={16} />
+                <span>Salvar disponibilidade do profissional</span>
               </button>
             </div>
           </div>
