@@ -145,8 +145,16 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinCreatedSuccess, setPinCreatedSuccess] = useState(false);
 
+  // Estados para alteração de PIN quando já logado
+  const [isChangingPin, setIsChangingPin] = useState(false);
+  const [changePin, setChangePin] = useState("");
+  const [confirmChangePin, setConfirmChangePin] = useState("");
+  const [changePinBusy, setChangePinBusy] = useState(false);
+  const [changePinError, setChangePinError] = useState("");
+  const [changePinSuccess, setChangePinSuccess] = useState("");
+
   // Estados para identificação sem senha ou login por PIN
-  const [authMethod, setAuthMethod] = useState<"form" | "pin">("form");
+  const [authMethod, setAuthMethod] = useState<"form" | "pin">("pin");
   const [loginPin, setLoginPin] = useState("");
   const [loginPinBusy, setLoginPinBusy] = useState(false);
   const [loginPinError, setLoginPinError] = useState("");
@@ -155,6 +163,101 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [formEmail, setFormEmail] = useState("");
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const refreshCustomerMembership = useCallback(async () => {
+    try {
+      const data = await api<import("@/shared/types").CustomerMembershipDTO>(
+        `/api/my/membership?companySlug=${company.slug}`,
+      );
+      setCustomerMembership(data);
+    } catch {
+      setCustomerMembership(null);
+    }
+  }, [company.slug]);
+
+  const handleSwitchCustomer = async () => {
+    try {
+      await api("/api/auth/logout", { method: "POST" });
+    } catch {}
+    setCustomer(null);
+    setCustomerMembership(null);
+    setAuthMethod("pin");
+    setLoginPin("");
+    setLoginPinError("");
+    setLoginPinBusy(false);
+    setFormName("");
+    setFormPhone("");
+    setFormEmail("");
+    setFormError("");
+    setFormBusy(false);
+    setNewPin("");
+    setConfirmNewPin("");
+    setPinError("");
+    setPinCreatedSuccess(false);
+    setIsChangingPin(false);
+    setChangePin("");
+    setConfirmChangePin("");
+    setChangePinError("");
+    setChangePinSuccess("");
+  };
+
+  const handlePinSubmit = async (pinValue: string) => {
+    const cleanPin = pinValue.trim();
+    if (cleanPin.length !== 6 || loginPinBusy) return;
+    setLoginPinBusy(true);
+    setLoginPinError("");
+    try {
+      const res = await api<{ customer: Customer }>("/api/customer-access/pin/login", {
+        method: "POST",
+        body: JSON.stringify({ pin: cleanPin }),
+      });
+      setCustomer(res.customer);
+      setLoginPin("");
+      void refreshCustomerMembership();
+    } catch (err: any) {
+      setLoginPinError(err.message || "PIN incorreto ou não encontrado.");
+    } finally {
+      setLoginPinBusy(false);
+    }
+  };
+
+  const handleUpdatePin = async () => {
+    if (changePin.length !== 6 || confirmChangePin.length !== 6) {
+      setChangePinError("O PIN deve conter exatamente 6 números.");
+      return;
+    }
+    if (changePin !== confirmChangePin) {
+      setChangePinError("Os PINs não coincidem.");
+      return;
+    }
+    setChangePinBusy(true);
+    setChangePinError("");
+    try {
+      const result = await api<{ customer: Customer; message?: string }>(
+        "/api/customer-access/pin/setup",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            pin: changePin,
+            confirmPin: confirmChangePin,
+            phone: customer?.phone || undefined,
+          }),
+        },
+      );
+      if (result.customer) setCustomer(result.customer);
+      setChangePinSuccess("PIN atualizado com sucesso!");
+      setTimeout(() => {
+        setIsChangingPin(false);
+        setChangePinSuccess("");
+        setChangePin("");
+        setConfirmChangePin("");
+      }, 1500);
+    } catch (err: any) {
+      setChangePinError(err.message || "Erro ao atualizar PIN.");
+    } finally {
+      setChangePinBusy(false);
+    }
+  };
 
   const handleCreatePin = async () => {
     if (newPin.length !== 6 || confirmNewPin.length !== 6) {
@@ -180,6 +283,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       setPinCreatedSuccess(true);
       setNewPin("");
       setConfirmNewPin("");
+      void refreshCustomerMembership();
     } catch (err: any) {
       setPinError(err instanceof Error ? err.message : "Erro ao salvar PIN.");
     } finally {
@@ -1496,7 +1600,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 <>
                   {customer ? (
                     <div className={b.note}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                             <strong>{customer.name}</strong>
@@ -1543,18 +1647,114 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               : "Crie seu PIN de 6 dígitos abaixo para liberar o agendamento."}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          className={b.textButton}
-                          onClick={async () => {
-                            await api("/api/auth/logout", { method: "POST" });
-                            setCustomer(null);
-                          }}
-                          style={{ fontSize: "12px" }}
-                        >
-                          Trocar
-                        </button>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          {customer.hasPin && (
+                            <button
+                              type="button"
+                              className={b.textButton}
+                              onClick={() => {
+                                setIsChangingPin((prev) => !prev);
+                                setChangePin("");
+                                setConfirmChangePin("");
+                                setChangePinError("");
+                                setChangePinSuccess("");
+                              }}
+                              style={{ fontSize: "12px", textDecoration: "underline" }}
+                            >
+                              {isChangingPin ? "Cancelar alteração" : "Alterar meu PIN"}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={b.textButton}
+                            onClick={() => void handleSwitchCustomer()}
+                            style={{ fontSize: "12px" }}
+                          >
+                            Trocar de conta
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Formulário inline para alterar PIN */}
+                      {isChangingPin && (
+                        <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--booking-border)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                            <span style={{ fontSize: "13px", fontWeight: 600 }}>Alterar PIN de acesso (6 dígitos)</span>
+                            <button
+                              type="button"
+                              className={b.textButton}
+                              disabled={changePinBusy}
+                              onClick={async () => {
+                                setChangePinError("");
+                                try {
+                                  const result = await api<{ pin: string }>("/api/customer-access/pin/random");
+                                  setChangePin(result.pin);
+                                  setConfirmChangePin(result.pin);
+                                } catch (err) {
+                                  setChangePinError(err instanceof Error ? err.message : "Não foi possível gerar PIN.");
+                                }
+                              }}
+                              style={{ fontSize: "11.5px" }}
+                            >
+                              <Sparkles size={12} /> Gerar PIN disponível
+                            </button>
+                          </div>
+                          <div style={{ display: "grid", gap: 10, maxWidth: 360 }}>
+                            <div>
+                              <label style={{ fontSize: "12px", color: "var(--booking-text-muted)", display: "block", marginBottom: 4 }}>
+                                Novo PIN
+                              </label>
+                              <PinInput
+                                id="booking-change-pin-input"
+                                value={changePin}
+                                onChange={setChangePin}
+                                length={6}
+                                autoFocus
+                                theme="light"
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: "12px", color: "var(--booking-text-muted)", display: "block", marginBottom: 4 }}>
+                                Confirmar novo PIN
+                              </label>
+                              <PinInput
+                                id="booking-confirm-change-pin-input"
+                                value={confirmChangePin}
+                                onChange={setConfirmChangePin}
+                                length={6}
+                                theme="light"
+                              />
+                            </div>
+                            {changePinError && (
+                              <p style={{ color: "var(--booking-danger)", fontSize: "12px", margin: 0 }}>
+                                {changePinError}
+                              </p>
+                            )}
+                            {changePinSuccess && (
+                              <p style={{ color: "#10b981", fontSize: "12px", margin: 0, fontWeight: 500 }}>
+                                ✓ {changePinSuccess}
+                              </p>
+                            )}
+                            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                              <button
+                                type="button"
+                                className={`${b.button} ${b.small}`}
+                                disabled={changePinBusy || changePin.length !== 6 || confirmChangePin.length !== 6}
+                                onClick={() => void handleUpdatePin()}
+                              >
+                                {changePinBusy ? "Salvando..." : "Salvar novo PIN"}
+                              </button>
+                              <button
+                                type="button"
+                                className={`${b.button} ${b.outline} ${b.small}`}
+                                onClick={() => setIsChangingPin(false)}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className={b.authPhoneCard} style={{ margin: "16px 0" }}>
@@ -1576,7 +1776,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             <PinInput
                               id="booking-login-pin"
                               value={loginPin}
-                              onChange={setLoginPin}
+                              onChange={(val) => {
+                                setLoginPin(val);
+                                if (loginPinError) setLoginPinError("");
+                                if (val.length === 6) {
+                                  void handlePinSubmit(val);
+                                }
+                              }}
                               length={6}
                               autoFocus
                               error={Boolean(loginPinError)}
@@ -1592,21 +1798,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             type="button"
                             className={`${b.button} ${b.wide}`}
                             disabled={loginPinBusy || loginPin.length !== 6}
-                            onClick={async () => {
-                              setLoginPinBusy(true);
-                              setLoginPinError("");
-                              try {
-                                const res = await api<{ customer: Customer }>("/api/customer-access/pin/login", {
-                                  method: "POST",
-                                  body: JSON.stringify({ pin: loginPin }),
-                                });
-                                setCustomer(res.customer);
-                              } catch (err: any) {
-                                setLoginPinError(err.message || "PIN incorreto ou não encontrado.");
-                              } finally {
-                                setLoginPinBusy(false);
-                              }
-                            }}
+                            onClick={() => void handlePinSubmit(loginPin)}
                           >
                             {loginPinBusy ? "Identificando..." : "Confirmar PIN e prosseguir"}
                           </button>
@@ -1654,9 +1846,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 });
                                 if (res.hasPin) {
                                   setAuthMethod("pin");
+                                  setLoginPin("");
                                   setLoginPinError("Este celular já possui PIN. Digite-o para continuar.");
                                 } else if (res.customer) {
                                   setCustomer(res.customer);
+                                  void refreshCustomerMembership();
                                 }
                               } catch (err: any) {
                                 setFormError(err.message || "Erro ao salvar dados.");

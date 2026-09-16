@@ -13,12 +13,14 @@ import {
   ExternalLink,
   FileText,
   History,
+  KeyRound,
   MapPin,
   Phone,
   RotateCcw,
   Share2,
   Sparkles,
   UserRound,
+  X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
@@ -30,6 +32,7 @@ import type { AppointmentStatus } from "@/shared/types";
 import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { PinInput } from "./pin-input";
 import {
   b,
   BookingAvatar,
@@ -73,6 +76,13 @@ export function MyBookings({
     [slot, setSlot] = useState<AvailableSlot | null>(null),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+
+  const [pinModalOpen, setPinModalOpen] = useState(false);
+  const [pinChangeVal, setPinChangeVal] = useState("");
+  const [confirmPinChangeVal, setConfirmPinChangeVal] = useState("");
+  const [pinChangeError, setPinChangeError] = useState("");
+  const [pinChangeSuccess, setPinChangeSuccess] = useState("");
+  const [pinChangeBusy, setPinChangeBusy] = useState(false);
   const onReady = useCallback((u: Customer) => setUser(u), []);
   const load = useCallback(async () => {
     setLoading(true);
@@ -277,6 +287,141 @@ export function MyBookings({
         {message && (
           <div className={b.note} role="status">
             {message}
+          </div>
+        )}
+
+        {/* Modal de Alteração de PIN */}
+        {pinModalOpen && (
+          <div className={b.modalBackdrop} onClick={() => !pinChangeBusy && setPinModalOpen(false)}>
+            <div className={b.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Alterar PIN de acesso">
+              <div className={b.modalHeader}>
+                <div style={{ margin: "0 auto 12px", width: 44, height: 44, borderRadius: "50%", background: "rgba(16, 185, 129, 0.12)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <KeyRound size={22} />
+                </div>
+                <h2 className={b.modalTitle}>Alterar PIN de acesso</h2>
+                <p className={b.modalSubtitle}>
+                  Defina um novo PIN de 6 dígitos para consultar suas reservas no Reservei.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                <button
+                  type="button"
+                  className={b.textButton}
+                  disabled={pinChangeBusy}
+                  onClick={async () => {
+                    setPinChangeError("");
+                    try {
+                      const result = await api<{ pin: string }>("/api/customer-access/pin/random");
+                      setPinChangeVal(result.pin);
+                      setConfirmPinChangeVal(result.pin);
+                    } catch (err) {
+                      setPinChangeError(err instanceof Error ? err.message : "Não foi possível gerar PIN.");
+                    }
+                  }}
+                  style={{ fontSize: "12px" }}
+                >
+                  <Sparkles size={13} /> Gerar PIN disponível
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: "12.5px", fontWeight: 500, display: "block", marginBottom: 6 }}>
+                    Novo PIN (6 números)
+                  </label>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <PinInput
+                      id="my-bookings-new-pin"
+                      value={pinChangeVal}
+                      onChange={setPinChangeVal}
+                      length={6}
+                      autoFocus
+                      theme="light"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12.5px", fontWeight: 500, display: "block", marginBottom: 6 }}>
+                    Confirme o novo PIN
+                  </label>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <PinInput
+                      id="my-bookings-confirm-pin"
+                      value={confirmPinChangeVal}
+                      onChange={setConfirmPinChangeVal}
+                      length={6}
+                      theme="light"
+                    />
+                  </div>
+                </div>
+
+                {pinChangeError && (
+                  <p style={{ color: "var(--booking-danger)", fontSize: "12.5px", margin: 0, textAlign: "center" }}>
+                    {pinChangeError}
+                  </p>
+                )}
+
+                {pinChangeSuccess && (
+                  <p style={{ color: "#10b981", fontSize: "12.5px", margin: 0, textAlign: "center", fontWeight: 500 }}>
+                    ✓ {pinChangeSuccess}
+                  </p>
+                )}
+
+                <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className={`${b.button} ${b.wide}`}
+                    disabled={pinChangeBusy || pinChangeVal.length !== 6 || confirmPinChangeVal.length !== 6}
+                    onClick={async () => {
+                      if (pinChangeVal.length !== 6 || confirmPinChangeVal.length !== 6) {
+                        setPinChangeError("O PIN deve conter exatamente 6 números.");
+                        return;
+                      }
+                      if (pinChangeVal !== confirmPinChangeVal) {
+                        setPinChangeError("Os PINs não coincidem.");
+                        return;
+                      }
+                      setPinChangeBusy(true);
+                      setPinChangeError("");
+                      try {
+                        const result = await api<{ customer: Customer }>("/api/customer-access/pin/setup", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            pin: pinChangeVal,
+                            confirmPin: confirmPinChangeVal,
+                            phone: user?.phone || undefined,
+                          }),
+                        });
+                        if (result.customer) setUser(result.customer);
+                        setPinChangeSuccess("PIN atualizado com sucesso!");
+                        setTimeout(() => {
+                          setPinModalOpen(false);
+                          setPinChangeSuccess("");
+                          setPinChangeVal("");
+                          setConfirmPinChangeVal("");
+                        }, 1500);
+                      } catch (err: any) {
+                        setPinChangeError(err.message || "Erro ao atualizar PIN.");
+                      } finally {
+                        setPinChangeBusy(false);
+                      }
+                    }}
+                  >
+                    {pinChangeBusy ? "Salvando..." : "Salvar novo PIN"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${b.button} ${b.outline}`}
+                    onClick={() => setPinModalOpen(false)}
+                    disabled={pinChangeBusy}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -812,7 +957,7 @@ export function MyBookings({
                       : "Acompanhe seus próximos horários confirmados e gerencie suas reservas."}
                 </p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 {rows[0]?.company?.slug && (
                   <Link
                     href={`/agendar/${rows[0].company.slug}`}
@@ -823,16 +968,32 @@ export function MyBookings({
                   </Link>
                 )}
                 {!embedded && (
-                  <button
-                    className={`${b.button} ${b.outline} ${b.small}`}
-                    onClick={async () => {
-                      await api("/api/auth/logout", { method: "POST" });
-                      setUser(null);
-                      setRows([]);
-                    }}
-                  >
-                    Sair
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className={`${b.button} ${b.outline} ${b.small}`}
+                      onClick={() => {
+                        setPinModalOpen(true);
+                        setPinChangeVal("");
+                        setConfirmPinChangeVal("");
+                        setPinChangeError("");
+                        setPinChangeSuccess("");
+                      }}
+                    >
+                      <KeyRound size={13} /> Alterar PIN
+                    </button>
+                    <button
+                      type="button"
+                      className={`${b.button} ${b.outline} ${b.small}`}
+                      onClick={async () => {
+                        await api("/api/auth/logout", { method: "POST" });
+                        setUser(null);
+                        setRows([]);
+                      }}
+                    >
+                      Trocar de conta
+                    </button>
+                  </>
                 )}
               </div>
             </header>
