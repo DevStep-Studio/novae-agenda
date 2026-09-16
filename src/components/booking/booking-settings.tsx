@@ -840,6 +840,68 @@ export function BookingSettings() {
 
         {employeeId && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap", padding: "10px 14px", borderRadius: "8px", background: "var(--surface-secondary)", border: "1px solid var(--border)" }}>
+              <span style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-secondary)" }}>
+                Modelos rápidos:
+              </span>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                  onClick={() => {
+                    const days = [1, 2, 3, 4, 5].map((d) => ({
+                      employeeId,
+                      dayOfWeek: d,
+                      startTime: "08:00",
+                      endTime: "18:00",
+                      breakStart: "12:00",
+                      breakEnd: "13:00",
+                      active: true,
+                    }));
+                    setSchedule(days);
+                  }}
+                >
+                  Seg a Sex (08:00 às 18:00)
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                  onClick={() => {
+                    const days = [1, 2, 3, 4, 5, 6].map((d) => ({
+                      employeeId,
+                      dayOfWeek: d,
+                      startTime: "08:00",
+                      endTime: d === 6 ? "14:00" : "18:00",
+                      breakStart: d <= 5 ? "12:00" : null,
+                      breakEnd: d <= 5 ? "13:00" : null,
+                      active: true,
+                    }));
+                    setSchedule(days);
+                  }}
+                >
+                  Seg a Sáb (08:00 às 18:00)
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  style={{ fontSize: "12px", padding: "5px 10px", height: "auto", color: "var(--primary)" }}
+                  onClick={() => {
+                    const existing = schedule.find((s) => s.dayOfWeek === 4);
+                    if (existing) {
+                      setSchedule(schedule.map((s) => s.dayOfWeek === 4 ? { ...s, active: true, startTime: "08:00", endTime: "12:00", breakStart: null, breakEnd: null } : s));
+                    } else {
+                      setSchedule([...schedule, { employeeId, dayOfWeek: 4, startTime: "08:00", endTime: "12:00", breakStart: null, breakEnd: null, active: true }]);
+                    }
+                  }}
+                  title="Define Quinta-feira com saída às 12:00"
+                >
+                  ⚡ Quinta só até 12:00
+                </button>
+              </div>
+            </div>
+
             <table className={styles.scheduleTable}>
               <thead>
                 <tr>

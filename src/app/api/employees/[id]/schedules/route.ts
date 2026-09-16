@@ -1,6 +1,6 @@
 import { lockCompany } from "@/lib/booking/service";
 import { bookingError } from "@/lib/booking/errors";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { employeeSchedules, employees } from "@/db/schema";
@@ -9,6 +9,30 @@ import { requireRole } from "@/lib/auth";
 import { isUuid, isValidTime } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
+
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
+  const { id } = await params;
+  if (!isUuid(id)) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+
+  const [employee] = await db
+    .select({ id: employees.id })
+    .from(employees)
+    .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
+    .limit(1);
+
+  if (!employee) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+
+  const rows = await db
+    .select()
+    .from(employeeSchedules)
+    .where(eq(employeeSchedules.employeeId, id))
+    .orderBy(asc(employeeSchedules.dayOfWeek), asc(employeeSchedules.startTime));
+
+  return Response.json({ data: rows });
+}
 
 const scheduleSchema = z.object({
   schedules: z

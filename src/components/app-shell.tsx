@@ -1911,6 +1911,7 @@ function TeamPage({
   const [activeTab, setActiveTab] = useState<TeamTab>("all");
   const [sortBy, setSortBy] = useState<TeamSort>("appointments-desc");
   const [editingEmployee, setEditingEmployee] = useState<EmployeeDTO | null>(null);
+  const [scheduleEmployee, setScheduleEmployee] = useState<EmployeeDTO | null>(null);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const currentMonthPrefix = useMemo(() => todayStr.slice(0, 7), [todayStr]);
@@ -2254,6 +2255,16 @@ function TeamPage({
                         <button
                           type="button"
                           className="modern-team-btn agenda"
+                          onClick={() => setScheduleEmployee(employee)}
+                          title={`Definir horários e dias de atendimento de ${employee.name}`}
+                        >
+                          <Clock size={14} />
+                          <span>Horários</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="modern-team-btn agenda"
                           onClick={onGoToAgenda}
                           title="Ver grade da agenda"
                         >
@@ -2305,6 +2316,18 @@ function TeamPage({
         <EditEmployeeModal
           employee={editingEmployee}
           onClose={() => setEditingEmployee(null)}
+          onOpenSchedule={() => {
+            const emp = editingEmployee;
+            setEditingEmployee(null);
+            setScheduleEmployee(emp);
+          }}
+        />
+      )}
+
+      {scheduleEmployee && (
+        <EmployeeScheduleModal
+          employee={scheduleEmployee}
+          onClose={() => setScheduleEmployee(null)}
         />
       )}
     </div>
@@ -4596,7 +4619,15 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClose: () => void }) {
+function EditEmployeeModal({
+  employee,
+  onClose,
+  onOpenSchedule,
+}: {
+  employee: EmployeeDTO;
+  onClose: () => void;
+  onOpenSchedule?: () => void;
+}) {
   const { updateEmployee, deleteEmployee, notify, services } = useStore();
   const [name, setName] = useState(employee.name);
   const [jobTitle, setJobTitle] = useState(employee.jobTitle ?? "Profissional");
@@ -4691,6 +4722,23 @@ function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClo
               )}
             </div>
           </div>
+        </div>
+
+        {/* Schedule shortcut banner */}
+        <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--surface-secondary)", border: "1px solid var(--border)", marginBottom: "18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+          <div>
+            <strong style={{ display: "block", fontSize: "13.5px", marginBottom: "2px" }}>
+              Horários e dias de atendimento
+            </strong>
+            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+              Limite os dias da semana e horários de entrada/saída (ex: Quinta até 12:00, folgas e pausas).
+            </span>
+          </div>
+          {onOpenSchedule && (
+            <Button type="button" variant="secondary" onClick={onOpenSchedule}>
+              <Clock size={14} /> Configurar horários
+            </Button>
+          )}
         </div>
 
         <div className="modal-form-grid">
@@ -4805,6 +4853,322 @@ function EditEmployeeModal({ employee, onClose }: { employee: EmployeeDTO; onClo
             </Button>
             <Button type="submit" disabled={submitting || deleting}>
               {submitting ? "Salvando..." : <><Check size={16} /> Salvar alterações</>}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EmployeeScheduleModal({
+  employee,
+  onClose,
+}: {
+  employee: EmployeeDTO;
+  onClose: () => void;
+}) {
+  const { notify } = useStore();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [schedules, setSchedules] = useState<Array<{
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    breakStart: string | null;
+    breakEnd: string | null;
+    active: boolean;
+  }>>([]);
+
+  const WEEKDAY_NAMES = [
+    { day: 0, label: "Domingo" },
+    { day: 1, label: "Segunda-feira" },
+    { day: 2, label: "Terça-feira" },
+    { day: 3, label: "Quarta-feira" },
+    { day: 4, label: "Quinta-feira" },
+    { day: 5, label: "Sexta-feira" },
+    { day: 6, label: "Sábado" },
+  ];
+
+  useEffect(() => {
+    let active = true;
+    api<{ data: Array<{ dayOfWeek: number; startTime: string; endTime: string; breakStart: string | null; breakEnd: string | null; active: boolean }> }>(
+      `/api/employees/${employee.id}/schedules`,
+    )
+      .then((res) => {
+        if (!active) return;
+        const loaded = res.data;
+        const map = new Map<number, { dayOfWeek: number; startTime: string; endTime: string; breakStart: string | null; breakEnd: string | null; active: boolean }>();
+        if (loaded && loaded.length > 0) {
+          loaded.forEach((r) => {
+            map.set(r.dayOfWeek, {
+              dayOfWeek: r.dayOfWeek,
+              startTime: r.startTime.slice(0, 5),
+              endTime: r.endTime.slice(0, 5),
+              breakStart: r.breakStart ? r.breakStart.slice(0, 5) : null,
+              breakEnd: r.breakEnd ? r.breakEnd.slice(0, 5) : null,
+              active: r.active,
+            });
+          });
+        }
+        const full: Array<{ dayOfWeek: number; startTime: string; endTime: string; breakStart: string | null; breakEnd: string | null; active: boolean }> = [];
+        for (let d = 0; d <= 6; d++) {
+          if (map.has(d)) {
+            full.push(map.get(d)!);
+          } else {
+            full.push({
+              dayOfWeek: d,
+              startTime: "08:00",
+              endTime: d === 6 ? "14:00" : "18:00",
+              breakStart: d >= 1 && d <= 5 ? "12:00" : null,
+              breakEnd: d >= 1 && d <= 5 ? "13:00" : null,
+              active: d >= 1 && d <= 5,
+            });
+          }
+        }
+        setSchedules(full);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Erro ao carregar horários.");
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [employee.id]);
+
+  const updateDay = (dayOfWeek: number, patch: Partial<(typeof schedules)[0]>) => {
+    setSchedules((prev) =>
+      prev.map((s) => (s.dayOfWeek === dayOfWeek ? { ...s, ...patch } : s)),
+    );
+  };
+
+  const applyPreset = (preset: "seg-sex" | "seg-sab" | "quinta-reduzida") => {
+    if (preset === "seg-sex") {
+      setSchedules((prev) =>
+        prev.map((s) => ({
+          ...s,
+          active: s.dayOfWeek >= 1 && s.dayOfWeek <= 5,
+          startTime: "08:00",
+          endTime: "18:00",
+          breakStart: s.dayOfWeek >= 1 && s.dayOfWeek <= 5 ? "12:00" : null,
+          breakEnd: s.dayOfWeek >= 1 && s.dayOfWeek <= 5 ? "13:00" : null,
+        })),
+      );
+    } else if (preset === "seg-sab") {
+      setSchedules((prev) =>
+        prev.map((s) => ({
+          ...s,
+          active: s.dayOfWeek >= 1 && s.dayOfWeek <= 6,
+          startTime: "08:00",
+          endTime: s.dayOfWeek === 6 ? "14:00" : "18:00",
+          breakStart: s.dayOfWeek >= 1 && s.dayOfWeek <= 5 ? "12:00" : null,
+          breakEnd: s.dayOfWeek >= 1 && s.dayOfWeek <= 5 ? "13:00" : null,
+        })),
+      );
+    } else if (preset === "quinta-reduzida") {
+      updateDay(4, { active: true, startTime: "08:00", endTime: "12:00", breakStart: null, breakEnd: null });
+    }
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+
+    try {
+      const payload = schedules.map((s) => ({
+        dayOfWeek: s.dayOfWeek,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        breakStart: s.breakStart || null,
+        breakEnd: s.breakEnd || null,
+        active: s.active,
+      }));
+
+      await api(`/api/employees/${employee.id}/schedules`, {
+        method: "PUT",
+        body: JSON.stringify({ schedules: payload }),
+      });
+
+      notify(`Horários e dias de atendimento de ${employee.name} salvos com sucesso!`);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar horários.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal title={`Horários de atendimento · ${employee.name}`} eyebrow="Jornada e Limite por Dia da Semana" icon={Clock} onClose={onClose} wide>
+      <form onSubmit={submit}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          {error && (
+            <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.12)", color: "#ef4444", fontSize: "13px" }}>
+              {error}
+            </div>
+          )}
+
+          {/* Quick Presets */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap", padding: "10px 14px", borderRadius: "8px", background: "var(--surface-secondary)", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-secondary)" }}>
+              Modelos rápidos:
+            </span>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                onClick={() => applyPreset("seg-sex")}
+              >
+                Seg a Sex (08:00 às 18:00)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                onClick={() => applyPreset("seg-sab")}
+              >
+                Seg a Sáb (08:00 às 18:00)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "12px", padding: "5px 10px", height: "auto", color: "var(--primary)" }}
+                onClick={() => applyPreset("quinta-reduzida")}
+                title="Define Quinta-feira com saída às 12:00"
+              >
+                ⚡ Quinta só até 12:00
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
+              Carregando horários do profissional...
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {WEEKDAY_NAMES.map(({ day, label }) => {
+                const s = schedules.find((item) => item.dayOfWeek === day) || {
+                  dayOfWeek: day,
+                  startTime: "08:00",
+                  endTime: "18:00",
+                  breakStart: null,
+                  breakEnd: null,
+                  active: false,
+                };
+
+                return (
+                  <div
+                    key={day}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "170px 1fr",
+                      gap: "14px",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      borderRadius: "10px",
+                      background: s.active ? "var(--surface)" : "var(--surface-secondary)",
+                      border: `1px solid ${s.active ? "var(--border-strong)" : "var(--border)"}`,
+                      opacity: s.active ? 1 : 0.65,
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {/* Day name & toggle */}
+                    <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", userSelect: "none" }}>
+                      <input
+                        type="checkbox"
+                        checked={s.active}
+                        onChange={(e) => updateDay(day, { active: e.target.checked })}
+                        style={{ width: 17, height: 17, accentColor: "var(--primary)", cursor: "pointer" }}
+                      />
+                      <div>
+                        <strong style={{ display: "block", fontSize: "13.5px", color: s.active ? "var(--text-primary)" : "var(--text-secondary)" }}>
+                          {label}
+                        </strong>
+                        <span style={{ fontSize: "11.5px", color: s.active ? "var(--primary)" : "var(--text-muted)", fontWeight: 500 }}>
+                          {s.active ? "Atende neste dia" : "Folga / Fechado"}
+                        </span>
+                      </div>
+                    </label>
+
+                    {/* Time fields */}
+                    {s.active ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Entrada:</span>
+                          <input
+                            type="time"
+                            className="input"
+                            value={s.startTime}
+                            onChange={(e) => updateDay(day, { startTime: e.target.value })}
+                            style={{ padding: "6px 8px", width: "95px", fontSize: "13px" }}
+                            required
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Saída:</span>
+                          <input
+                            type="time"
+                            className="input"
+                            value={s.endTime}
+                            onChange={(e) => updateDay(day, { endTime: e.target.value })}
+                            style={{ padding: "6px 8px", width: "95px", fontSize: "13px" }}
+                            required
+                          />
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto" }}>
+                          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Almoço:</span>
+                          <input
+                            type="time"
+                            className="input"
+                            placeholder="Início"
+                            value={s.breakStart ?? ""}
+                            onChange={(e) => updateDay(day, { breakStart: e.target.value || null })}
+                            style={{ padding: "6px 8px", width: "90px", fontSize: "12px" }}
+                          />
+                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>às</span>
+                          <input
+                            type="time"
+                            className="input"
+                            placeholder="Fim"
+                            value={s.breakEnd ?? ""}
+                            onChange={(e) => updateDay(day, { breakEnd: e.target.value || null })}
+                            style={{ padding: "6px 8px", width: "90px", fontSize: "12px" }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "12.5px", color: "var(--text-muted)", fontStyle: "italic" }}>
+                        Nenhum atendimento realizado aos domingos / folgas deste profissional.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-muted)", lineHeight: 1.4 }}>
+            💡 <strong>Exemplo:</strong> Se na Quinta-feira você deseja trabalhar somente até 12:00, basta deixar a Quinta ativa com entrada às <code>08:00</code> e saída às <code>12:00</code>. O sistema não liberará horários após as 12:00 nesse dia.
+          </p>
+        </div>
+
+        <div className="modal-footer" style={{ marginTop: "18px" }}>
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={saving || loading}>
+              {saving ? "Salvando..." : <><Check size={16} /> Salvar horários do profissional</>}
             </Button>
           </div>
         </div>
