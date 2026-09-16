@@ -7908,6 +7908,26 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   .sidebar-collapsed {
     width: 260px;
   }
+  .collapse-button {
+    display: none !important;
+  }
+  .mobile-close-button {
+    display: inline-grid !important;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mobile-close-button:hover,
+  .mobile-close-button:active {
+    background: var(--surface-tertiary);
+    color: var(--text-primary);
+  }
   .main-content, .main-content.main-expanded {
     margin-left: 0 !important;
     max-width: 100vw !important;
@@ -9600,6 +9620,9 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   width: 100%;
   height: 100%;
 }
+.mobile-close-button {
+  display: none !important;
+}
 .collapse-button,
 .desktop-expand-button {
   flex-shrink: 0;
@@ -9635,6 +9658,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-color: var(--primary);
 }
 @media (max-width: 900px) {
+  .collapse-button,
   .desktop-expand-button {
     display: none !important;
   }

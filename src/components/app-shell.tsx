@@ -5959,6 +5959,17 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenu]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window !== "undefined" && window.innerWidth <= 900) {
+        setCollapsed(false);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => { window.removeEventListener("resize", handleResize); };
+  }, []);
+
   // Global search hook
   useEffect(() => {
     if (!globalSearch.trim() || globalSearch.trim().length < 2) {
@@ -6273,6 +6284,13 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
               <ChevronLeft size={18} />
             </IconButton>
           )}
+          <IconButton
+            className="mobile-close-button"
+            label="Fechar menu"
+            onClick={() => setMobileMenu(false)}
+          >
+            <X size={18} />
+          </IconButton>
         </div>
         
         {/* Workspace Switcher */}
@@ -6373,7 +6391,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       <main className={`main-content ${collapsed ? "main-expanded" : ""}`}>
         <header className="topbar" onClick={(e) => e.stopPropagation()}>
           <div className="topbar-left">
-            <IconButton label="Menu" className="mobile-menu-button" onClick={() => setMobileMenu((v) => !v)}><Menu size={20} /></IconButton>
+            <IconButton label="Menu" className="mobile-menu-button" onClick={() => { setCollapsed(false); setMobileMenu((v) => !v); }}><Menu size={20} /></IconButton>
             {collapsed && (
               <IconButton
                 label="Expandir menu"
@@ -6656,7 +6674,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
         <button
           type="button"
           className="mobile-nav-item"
-          onClick={() => setMobileMenu(true)}
+          onClick={() => { setCollapsed(false); setMobileMenu(true); }}
           aria-label="Abrir menu"
         >
           <Menu size={18} />
