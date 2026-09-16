@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { KeyRound, ShieldCheck, UserRound, X } from "lucide-react";
+import { KeyRound, Moon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
@@ -13,7 +13,13 @@ import { PinInput } from "./pin-input";
 import styles from "./booking.module.css";
 export { styles as b };
 
-function MyBookingsAccessModal({ onClose }: { onClose: () => void }) {
+function MyBookingsAccessModal({
+  onClose,
+  theme = "dark",
+}: {
+  onClose: () => void;
+  theme?: "dark" | "light";
+}) {
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +84,7 @@ function MyBookingsAccessModal({ onClose }: { onClose: () => void }) {
               length={6}
               autoFocus
               error={Boolean(error)}
-              theme="light"
+              theme={theme}
             />
           </div>
           {error && <span className={styles.myBookingsModalError}>{error}</span>}
@@ -166,12 +172,34 @@ export function PublicFrame({
     address?: string | null;
   };
 }) {
+  const [themePreference, setThemePreference] = useState<"dark" | "light">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("reservei_client_theme");
+      if (saved === "light" || saved === "dark") return saved;
+    }
+    return "dark";
+  });
+
   const prefersDark = useSyncExternalStore(
     subscribeToColorScheme,
     prefersDarkScheme,
     () => true,
   );
-  const resolvedTheme = themeMode === "auto" ? (prefersDark ? "dark" : "light") : themeMode;
+
+  const resolvedTheme =
+    themeMode === "light" || themeMode === "dark"
+      ? themeMode
+      : themePreference ?? (prefersDark ? "dark" : "light");
+
+  const toggleTheme = () => {
+    const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
+    setThemePreference(nextTheme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("reservei_client_theme", nextTheme);
+      document.documentElement.setAttribute("data-theme", nextTheme);
+    }
+  };
+
   const [myBookingsModalOpen, setMyBookingsModalOpen] = useState(false);
 
   const palette = createBrandPalette(color, resolvedTheme);
@@ -246,20 +274,36 @@ export function PublicFrame({
               </>
             )}
           </div>
-          <button
-            type="button"
-            disabled={Boolean(preview)}
-            onClick={() => setMyBookingsModalOpen(true)}
-            className={styles.headerLink}
-            title="Acessar meus agendamentos"
-          >
-            <UserRound size={16} />
-            <span className={styles.headerLinkText}>Meus agendamentos</span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={styles.themeToggleBtn}
+              title={resolvedTheme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+              aria-label="Alternar tema de cores"
+            >
+              {resolvedTheme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+            <button
+              type="button"
+              disabled={Boolean(preview)}
+              onClick={() => setMyBookingsModalOpen(true)}
+              className={styles.headerLink}
+              title="Acessar meus agendamentos"
+            >
+              <UserRound size={16} />
+              <span className={styles.headerLinkText}>Meus agendamentos</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      {myBookingsModalOpen && <MyBookingsAccessModal onClose={() => setMyBookingsModalOpen(false)} />}
+      {myBookingsModalOpen && (
+        <MyBookingsAccessModal
+          theme={resolvedTheme === "light" ? "light" : "dark"}
+          onClose={() => setMyBookingsModalOpen(false)}
+        />
+      )}
 
       {children}
 

@@ -818,6 +818,18 @@ export class CustomerAccessService {
     const pinHash = await hashPassword(params.pin);
     const phoneNorm = normalized || (user.phone ? normalizePhoneDigits(user.phone) : "");
 
+    if (params.phone && params.phone.trim()) {
+      await db
+        .update(users)
+        .set({ phone: params.phone.trim(), updatedAt: new Date() })
+        .where(eq(users.id, user.id));
+      await db
+        .update(clients)
+        .set({ phone: params.phone.trim(), updatedAt: new Date() })
+        .where(eq(clients.userId, user.id));
+      user.phone = params.phone.trim();
+    }
+
     if (credential) {
       await db
         .update(customerCredentials)
@@ -1132,12 +1144,24 @@ export class CustomerAccessService {
         .limit(1);
 
       user = created!;
-    } else if (rawName && (!user.name || user.name === "Cliente")) {
+    } else {
+      const updates: { name?: string; phone?: string; updatedAt: Date } = { updatedAt: new Date() };
+      if (rawName && (!user.name || user.name === "Cliente")) {
+        updates.name = rawName;
+        user.name = rawName;
+      }
+      if (params.phone && params.phone.trim() && (!user.phone || user.phone !== params.phone.trim())) {
+        updates.phone = params.phone.trim();
+        user.phone = params.phone.trim();
+        await db
+          .update(clients)
+          .set({ phone: params.phone.trim(), updatedAt: new Date() })
+          .where(eq(clients.userId, user.id));
+      }
       await db
         .update(users)
-        .set({ name: rawName, updatedAt: new Date() })
+        .set(updates)
         .where(eq(users.id, user.id));
-      user.name = rawName;
     }
 
     await createSession(user.id);

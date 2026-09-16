@@ -1,7 +1,7 @@
 import { assertSubscriptionActive } from "@/lib/subscriptions";
 import { waitlistMatches } from "./waitlist";
 import { quoteBooking } from "./pricing";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appointmentHistory,
@@ -14,6 +14,7 @@ import {
   clients,
   companies,
   coupons,
+  customerCredentials,
   employees,
   locations,
   notificationLogs,
@@ -22,6 +23,7 @@ import {
   services,
   users,
 } from "@/db/schema";
+import { normalizePhoneDigits } from "@/lib/domain";
 import type { DbExecutor } from "@/lib/availability";
 import type { z } from "zod";
 import { publicCompany } from "./catalog";
@@ -365,6 +367,55 @@ export async function ownedBooking(
   return booking;
 }
 export async function listBookingDetails(userId: string, id?: string) {
+  const [currentUser] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const [credential] = await db
+    .select()
+    .from(customerCredentials)
+    .where(eq(customerCredentials.userId, userId))
+    .limit(1);
+
+  const rawPhone = currentUser?.phone || "";
+  const normalizedPhone = rawPhone ? normalizePhoneDigits(rawPhone) : credential?.phoneNormalized || "";
+
+  const userIds = [userId];
+  const clientIds = new Set<string>();
+
+  const directClients = await db
+    .select({ id: clients.id, userId: clients.userId, phone: clients.phone })
+    .from(clients)
+    .where(eq(clients.userId, userId));
+  for (const c of directClients) {
+    clientIds.add(c.id);
+  }
+
+  if (normalizedPhone && normalizedPhone.length >= 8) {
+    const allMatchingClients = await db
+      .select({ id: clients.id, userId: clients.userId, phone: clients.phone })
+      .from(clients)
+      .where(isNotNull(clients.phone));
+
+    for (const c of allMatchingClients) {
+      if (c.phone && normalizePhoneDigits(c.phone) === normalizedPhone) {
+        clientIds.add(c.id);
+      }
+    }
+  }
+
+  const clientIdArray = Array.from(clientIds);
+
+  const bookingCondition = clientIdArray.length
+    ? or(inArray(bookings.userId, userIds), inArray(bookings.clientId, clientIdArray))
+    : inArray(bookings.userId, userIds);
+
+  const whereCondition = id
+    ? and(eq(bookings.id, id), bookingCondition)
+    : bookingCondition;
+
   const rows = await db
     .select({
       booking: bookings,
@@ -381,9 +432,7 @@ export async function listBookingDetails(userId: string, id?: string) {
     })
     .from(bookings)
     .innerJoin(companies, eq(bookings.companyId, companies.id))
-    .where(
-      and(eq(bookings.userId, userId), id ? eq(bookings.id, id) : undefined),
-    )
+    .where(whereCondition)
     .orderBy(desc(bookings.startsAt))
     .limit(100);
   if (!rows.length) return [];

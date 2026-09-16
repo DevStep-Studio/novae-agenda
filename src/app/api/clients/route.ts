@@ -7,6 +7,7 @@ import {
   customerMemberships,
   membershipPlans,
   payments,
+  users,
 } from "@/db/schema";
 import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, normalizePhoneDigits } from "@/lib/domain";
@@ -27,7 +28,26 @@ export async function GET(request: Request) {
     ? and(eq(clients.companyId, auth.user.companyId), or(sql`lower(${clients.name}) LIKE ${`%${query.toLowerCase()}%`}`, sql`${clients.phone} LIKE ${`%${query}%`}`, sql`lower(${clients.email}) LIKE ${`%${query.toLowerCase()}%`}`))
     : eq(clients.companyId, auth.user.companyId);
 
-  const rows = await db.select().from(clients).where(where).orderBy(desc(clients.createdAt)).limit(200);
+  const rows = await db
+    .select({
+      id: clients.id,
+      companyId: clients.companyId,
+      userId: clients.userId,
+      name: clients.name,
+      email: clients.email,
+      phone: sql<string | null>`coalesce(${clients.phone}, ${users.phone})`.as("phone"),
+      photoUrl: clients.photoUrl,
+      notes: clients.notes,
+      internalNotes: clients.internalNotes,
+      active: clients.active,
+      createdAt: clients.createdAt,
+      updatedAt: clients.updatedAt,
+    })
+    .from(clients)
+    .leftJoin(users, eq(clients.userId, users.id))
+    .where(where)
+    .orderBy(desc(clients.createdAt))
+    .limit(200);
   const ids = rows.map((r) => r.id);
 
   // Visits + last visit from completed appointments; spent from received payments. Two grouped

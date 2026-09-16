@@ -73,12 +73,12 @@ export async function bookingFixture() {
   };
   await db.insert(t.users).values(owner);
 
-  const customerDefs: (typeof t.users.$inferSelect)[] = ["Ana", "Beatriz"].map((name) => ({
+  const customerDefs: (typeof t.users.$inferSelect)[] = ["Ana", "Beatriz"].map((name, idx) => ({
     id: randomUUID(),
     companyId: null,
     name,
     email: `${name.toLowerCase()}-${key}@example.test`,
-    phone: "11987654321",
+    phone: idx === 0 ? "11987654321" : "11987654322",
     avatarUrl: null,
     bannerUrl: null,
     passwordHash,

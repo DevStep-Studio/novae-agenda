@@ -337,7 +337,7 @@ export function MyBookings({
                       onChange={setPinChangeVal}
                       length={6}
                       autoFocus
-                      theme="light"
+                      theme="dark"
                     />
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export function MyBookings({
                       value={confirmPinChangeVal}
                       onChange={setConfirmPinChangeVal}
                       length={6}
-                      theme="light"
+                      theme="dark"
                     />
                   </div>
                 </div>

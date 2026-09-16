@@ -1458,11 +1458,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                         onClick={() => {
                                           changeItems([{ serviceId: service.id, employeeId: null }]);
                                           event("service_selected");
-                                          const hint = serviceHints[service.id];
-                                          if (hint) { setDate(hint.date); setSlot(hint.slot); go(2); }
-                                          else go(1);
+                                          go(1);
                                         }}
-                                        title="Ver próximos horários disponíveis"
+                                        title="Escolher data e horário disponíveis"
                                       >
                                         Agendar
                                       </button>
@@ -1710,7 +1708,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 onChange={setChangePin}
                                 length={6}
                                 autoFocus
-                                theme="light"
+                                theme="dark"
                               />
                             </div>
                             <div>
@@ -1722,7 +1720,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 value={confirmChangePin}
                                 onChange={setConfirmChangePin}
                                 length={6}
-                                theme="light"
+                                theme="dark"
                               />
                             </div>
                             {changePinError && (
@@ -1786,7 +1784,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               length={6}
                               autoFocus
                               error={Boolean(loginPinError)}
-                              theme="light"
+                              theme="dark"
                             />
                           </div>
                           {loginPinError && (
@@ -1974,7 +1972,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             length={6}
                             autoFocus
                             error={Boolean(pinError)}
-                            theme="light"
+                            theme="dark"
                           />
                         </label>
                         <label className={b.field}>
@@ -1985,7 +1983,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             onChange={setConfirmNewPin}
                             length={6}
                             error={Boolean(pinError)}
-                            theme="light"
+                            theme="dark"
                           />
                         </label>
                         {pinError && (
