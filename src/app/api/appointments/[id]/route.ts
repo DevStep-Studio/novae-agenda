@@ -16,11 +16,13 @@ import {
   bookings,
   employeeServices,
   clients,
+  companies,
   employees,
   locations,
   notifications,
   payments,
   services,
+  users,
 } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { assertBookable } from "@/lib/availability";
@@ -31,6 +33,7 @@ import {
   isUuid,
   isValidDateKey,
   isValidTime,
+  normalizePhoneDigits,
   normalizeTime,
   timeToMinutes,
 } from "@/lib/domain";
@@ -59,10 +62,12 @@ async function loadOwned(
   const [apt] = await executor
     .select({
       id: appointments.id,
+      clientId: appointments.clientId,
       employeeId: appointments.employeeId,
       status: appointments.status,
       total: appointments.total,
       appointmentDate: appointments.appointmentDate,
+      startTime: appointments.startTime,
       bookingId: appointments.bookingId,
     })
     .from(appointments)
@@ -241,7 +246,7 @@ export async function PATCH(
           owned.apt.bookingId,
           auth.user.userId,
           "cancel",
-          undefined,
+          { reason: parsedGroup.reason },
           auth.user.companyId,
         );
         return Response.json({ data: { id } });
@@ -361,6 +366,73 @@ export async function PATCH(
           entityType: "appointment",
           entityId: id,
         });
+
+        if (status === "cancelled") {
+          let clientUserId: string | null = null;
+          let clientPhone: string | null = null;
+          if (apt.clientId) {
+            const [clientRow] = await tx
+              .select({ userId: clients.userId, phone: clients.phone })
+              .from(clients)
+              .where(eq(clients.id, apt.clientId))
+              .limit(1);
+            if (clientRow) {
+              clientPhone = clientRow.phone;
+              if (clientRow.userId) {
+                clientUserId = clientRow.userId;
+              } else if (clientRow.phone) {
+                const digits = normalizePhoneDigits(clientRow.phone);
+                if (digits.length >= 8) {
+                  const [foundUser] = await tx
+                    .select({ id: users.id })
+                    .from(users)
+                    .where(eq(users.phone, clientRow.phone))
+                    .limit(1);
+                  if (foundUser) clientUserId = foundUser.id;
+                }
+              }
+            }
+          }
+
+          const serviceRows = await tx
+            .select({ name: services.name })
+            .from(appointmentServices)
+            .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+            .where(eq(appointmentServices.appointmentId, id));
+
+          const [companyRow] = await tx
+            .select({ name: companies.name, phone: companies.phone })
+            .from(companies)
+            .where(eq(companies.id, auth.user.companyId))
+            .limit(1);
+
+          const [empRow] = await tx
+            .select({ name: employees.name })
+            .from(employees)
+            .where(eq(employees.id, apt.employeeId))
+            .limit(1);
+
+          await tx.insert(notifications).values({
+            id: crypto.randomUUID(),
+            companyId: auth.user.companyId,
+            userId: clientUserId,
+            type: "client_notice_cancelled",
+            title: "Atendimento cancelado pelo estabelecimento",
+            body: JSON.stringify({
+              actionType: "cancelled",
+              companyName: companyRow?.name || "Estabelecimento",
+              companyPhone: companyRow?.phone || null,
+              serviceName: serviceRows.map((s) => s.name).join(" + ") || "Serviço",
+              employeeName: empRow?.name || null,
+              date: apt.appointmentDate,
+              startTime: normalizeTime(apt.startTime),
+              reason: reason?.trim() || null,
+              clientPhone,
+            }),
+            entityType: "appointment",
+            entityId: id,
+          });
+        }
       }
 
       return Response.json({ data: { id, status } });
@@ -374,6 +446,7 @@ const rescheduleSchema = z.object({
   employeeId: z.string().optional(),
   date: z.string(),
   startTime: z.string(),
+  reason: z.string().max(300).optional(),
 });
 
 export async function PUT(
@@ -438,7 +511,7 @@ export async function PUT(
           { status: 400 },
         );
       }
-      const { date, startTime } = parsed.data;
+      const { date, startTime, reason } = parsed.data;
       if (!isValidDateKey(date) || !isValidTime(startTime)) {
         return Response.json(
           { error: "Data ou horário inválido." },
@@ -566,7 +639,7 @@ export async function PUT(
           appointmentId: id,
           actorId: auth.user.userId,
           action: "appointment.rescheduled",
-          metadata: { from: apt.appointmentDate, to: date, startTime },
+          metadata: { from: apt.appointmentDate, to: date, startTime, reason },
         });
       await recordAudit({
         companyId: auth.user.companyId,
@@ -577,7 +650,75 @@ export async function PUT(
         metadata: {
           from: { date: apt.appointmentDate },
           to: { date, startTime, endTime, employeeId },
+          reason: reason?.trim() || null,
         },
+      });
+
+      let clientUserId: string | null = null;
+      let clientPhone: string | null = null;
+      if (apt.clientId) {
+        const [clientRow] = await tx
+          .select({ userId: clients.userId, phone: clients.phone })
+          .from(clients)
+          .where(eq(clients.id, apt.clientId))
+          .limit(1);
+        if (clientRow) {
+          clientPhone = clientRow.phone;
+          if (clientRow.userId) {
+            clientUserId = clientRow.userId;
+          } else if (clientRow.phone) {
+            const digits = normalizePhoneDigits(clientRow.phone);
+            if (digits.length >= 8) {
+              const [foundUser] = await tx
+                .select({ id: users.id })
+                .from(users)
+                .where(eq(users.phone, clientRow.phone))
+                .limit(1);
+              if (foundUser) clientUserId = foundUser.id;
+            }
+          }
+        }
+      }
+
+      const serviceRows = await tx
+        .select({ name: services.name })
+        .from(appointmentServices)
+        .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+        .where(eq(appointmentServices.appointmentId, id));
+
+      const [companyRow] = await tx
+        .select({ name: companies.name, phone: companies.phone })
+        .from(companies)
+        .where(eq(companies.id, auth.user.companyId))
+        .limit(1);
+
+      const [empRow] = await tx
+        .select({ name: employees.name })
+        .from(employees)
+        .where(eq(employees.id, employeeId))
+        .limit(1);
+
+      await tx.insert(notifications).values({
+        id: crypto.randomUUID(),
+        companyId: auth.user.companyId,
+        userId: clientUserId,
+        type: "client_notice_rescheduled",
+        title: "Horário alterado pelo estabelecimento",
+        body: JSON.stringify({
+          actionType: "rescheduled",
+          companyName: companyRow?.name || "Estabelecimento",
+          companyPhone: companyRow?.phone || null,
+          serviceName: serviceRows.map((s) => s.name).join(" + ") || "Serviço",
+          employeeName: empRow?.name || null,
+          oldDate: apt.appointmentDate,
+          oldStartTime: normalizeTime(apt.startTime),
+          newDate: date,
+          newStartTime: normalizeTime(startTime),
+          reason: reason?.trim() || null,
+          clientPhone,
+        }),
+        entityType: "appointment",
+        entityId: id,
       });
 
       return Response.json({ data: { id, date, startTime, endTime } });

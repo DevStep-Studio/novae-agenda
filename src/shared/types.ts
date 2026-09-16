@@ -484,3 +484,22 @@ export type BatchBookingResultDTO = {
   message: string;
 };
 
+export type ClientNoticeDTO = {
+  id: string;
+  type: string;
+  title: string;
+  actionType: "cancelled" | "rescheduled";
+  companyName: string;
+  companyPhone?: string | null;
+  serviceName: string;
+  employeeName?: string | null;
+  date?: string;
+  startTime?: string;
+  oldDate?: string;
+  oldStartTime?: string;
+  newDate?: string;
+  newStartTime?: string;
+  reason?: string | null;
+  createdAt: string;
+};
+

@@ -489,7 +489,7 @@ export async function changeBooking(
   id: string,
   userId: string,
   action: "cancel" | "reschedule",
-  input?: { date: string; startTime: string; employeeId?: string },
+  input?: { date?: string; startTime?: string; employeeId?: string; reason?: string },
   staffCompanyId?: string,
 ) {
   return db.transaction(async (tx) => {
@@ -566,7 +566,7 @@ export async function changeBooking(
         })
         .where(eq(appointments.bookingId, id));
     } else {
-      if (!input) throw new BookingError("Informe data e horário.");
+      if (!input?.date || !input?.startTime) throw new BookingError("Informe data e horário.");
       const availability = await loadAvailability(
         company,
         booking.locationId,
@@ -646,6 +646,62 @@ export async function changeBooking(
       })),
     );
     await bookingEvent(tx, updated, event, userId, metadata);
+
+    if (staffCompanyId) {
+      let clientUserId = booking.userId || null;
+      if (!clientUserId && booking.clientId) {
+        const [cl] = await tx
+          .select({ userId: clients.userId, phone: clients.phone })
+          .from(clients)
+          .where(eq(clients.id, booking.clientId))
+          .limit(1);
+        if (cl?.userId) {
+          clientUserId = cl.userId;
+        } else if (cl?.phone) {
+          const digits = normalizePhoneDigits(cl.phone);
+          if (digits.length >= 8) {
+            const [u] = await tx
+              .select({ id: users.id })
+              .from(users)
+              .where(eq(users.phone, cl.phone))
+              .limit(1);
+            if (u) clientUserId = u.id;
+          }
+        }
+      }
+      const serviceNames = await tx
+        .select({ name: services.name })
+        .from(appointmentServices)
+        .innerJoin(services, eq(appointmentServices.serviceId, services.id))
+        .where(eq(appointmentServices.appointmentId, items[0]?.apt.id));
+      const sName = serviceNames.map((s) => s.name).join(" + ") || "Serviço";
+
+      await tx.insert(notifications).values({
+        id: crypto.randomUUID(),
+        companyId: booking.companyId,
+        userId: clientUserId,
+        type: action === "cancel" ? "client_notice_cancelled" : "client_notice_rescheduled",
+        title:
+          action === "cancel"
+            ? "Atendimento cancelado pelo estabelecimento"
+            : "Horário alterado pelo estabelecimento",
+        body: JSON.stringify({
+          actionType: action === "cancel" ? "cancelled" : "rescheduled",
+          companyName: company.name,
+          companyPhone: company.phone || null,
+          serviceName: sName,
+          oldDate: localDate(booking.startsAt, company.timezone),
+          oldStartTime: localTime(booking.startsAt, company.timezone),
+          newDate: action === "reschedule" && input?.date ? input.date : undefined,
+          newStartTime: action === "reschedule" && input?.startTime ? input.startTime : undefined,
+          reason: input?.reason?.trim() || undefined,
+        }),
+        entityType: "booking",
+        entityId: booking.id,
+      });
+    }
+
     return updated;
   });
 }
+

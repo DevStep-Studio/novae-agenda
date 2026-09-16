@@ -33,6 +33,7 @@ import { AvailabilityPicker } from "./availability-picker";
 import { CustomerAuth, type Customer } from "./customer-auth";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { PinInput } from "./pin-input";
+import { ClientNoticeModal } from "./client-notice-modal";
 import {
   b,
   BookingAvatar,
