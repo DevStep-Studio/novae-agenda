@@ -1149,18 +1149,23 @@ export function MyBookings({
         )}
       </Content>
   );
-  return embedded ? content : (
-    <PublicFrame
-      color={current?.company.color}
-      company={current ? {
-        name: current.company.name,
-        category: current.company.businessType,
-        logoUrl: current.company.logoUrl,
-        slug: current.company.slug ?? undefined,
-        address: current.company.address,
-      } : undefined}
-    >
-      {content}
-    </PublicFrame>
+  return (
+    <>
+      <ClientNoticeModal />
+      {embedded ? content : (
+        <PublicFrame
+          color={current?.company.color}
+          company={current ? {
+            name: current.company.name,
+            category: current.company.businessType,
+            logoUrl: current.company.logoUrl,
+            slug: current.company.slug ?? undefined,
+            address: current.company.address,
+          } : undefined}
+        >
+          {content}
+        </PublicFrame>
+      )}
+    </>
   );
 }
