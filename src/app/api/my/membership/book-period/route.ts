@@ -29,6 +29,15 @@ export async function POST(request: Request) {
 
   const userId = auth.user.userId;
 
+  const { CustomerAccessService } = await import("@/lib/customer-access/service");
+  const hasPin = await CustomerAccessService.userHasPin(userId);
+  if (!hasPin && auth.user.role === "client") {
+    return Response.json(
+      { error: "Crie ou cadastre seu PIN de 6 dígitos antes de agendar." },
+      { status: 400 },
+    );
+  }
+
   try {
     const json = await request.json();
     const parsed = clientBatchSchema.parse(json);

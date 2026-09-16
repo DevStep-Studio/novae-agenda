@@ -16,6 +16,12 @@ export async function POST(request: Request) {
     const user = await getIdentity();
     if (!user) throw new BookingError("Entre na sua conta para confirmar.", 401);
 
+    const { CustomerAccessService } = await import("@/lib/customer-access/service");
+    const hasPin = await CustomerAccessService.userHasPin(user.id);
+    if (!hasPin && (user.role === "customer" || user.role === "client")) {
+      throw new BookingError("Crie ou cadastre seu PIN de 6 dígitos antes de confirmar o agendamento.", 400);
+    }
+
     const limit = await consumeRateLimit(
       `booking:${user.id}:${clientIp(request)}`,
       { limit: 15, windowMs: 60000, blockMs: 60000 },

@@ -697,7 +697,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           {busy
             ? "Processando…"
             : step === 2
-              ? resolveCopy(company.copyOverrides, "ctaConfirm")
+              ? (!customer
+                  ? "Informe seus dados para agendar"
+                  : !customer.hasPin
+                    ? "Crie seu PIN de 6 dígitos para agendar"
+                    : !paymentMethod
+                      ? "Escolha a forma de pagamento"
+                      : resolveCopy(company.copyOverrides, "ctaConfirm"))
               : resolveCopy(company.copyOverrides, "ctaContinue")}
           {!busy && <ArrowRight size={16} />}
         </button>
@@ -1508,9 +1514,49 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     <div className={b.note}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <strong>{customer.name}</strong>
-                          <p style={{ margin: "2px 0 0", fontSize: "13px", color: "var(--booking-text-muted)" }}>
-                            {customer.phone ? customer.phone : "Contato registrado"} · Confira os dados e confirme seu horário.
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <strong>{customer.name}</strong>
+                            {customer.hasPin ? (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  background: "rgba(16, 185, 129, 0.15)",
+                                  color: "#10b981",
+                                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                                  padding: "2px 7px",
+                                  borderRadius: 4,
+                                  fontWeight: 600,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                }}
+                              >
+                                <Check size={11} /> PIN ativo
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  background: "rgba(245, 158, 11, 0.15)",
+                                  color: "#f59e0b",
+                                  border: "1px solid rgba(245, 158, 11, 0.3)",
+                                  padding: "2px 7px",
+                                  borderRadius: 4,
+                                  fontWeight: 600,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                }}
+                              >
+                                PIN pendente
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ margin: "3px 0 0", fontSize: "13px", color: "var(--booking-text-muted)" }}>
+                            {customer.phone ? customer.phone : "Contato registrado"} ·{" "}
+                            {customer.hasPin
+                              ? "Confira os dados e confirme seu horário."
+                              : "Crie seu PIN de 6 dígitos abaixo para liberar o agendamento."}
                           </p>
                         </div>
                         <button
@@ -1714,12 +1760,12 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           <KeyRound size={20} />
                         </div>
                         <div className={b.authVerifyHeaderText}>
-                          <span className={b.authVerifyTag}>Proteja suas reservas</span>
+                          <span className={b.authVerifyTag}>Obrigatório para agendar</span>
                           <h3 className={b.authVerifyTitle}>Crie seu PIN de 6 dígitos</h3>
                         </div>
                       </div>
                       <p className={b.muted} style={{ margin: "0 0 16px", fontSize: "13px" }}>
-                        Este PIN será usado para entrar, consultar e remarcar seus horários. Cada cliente deve ter um PIN diferente.
+                        Para sua segurança e privacidade, o Reservei só permite marcar horários com um PIN criado. Use-o para consultar e remarcar sempre que precisar.
                       </p>
                       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
                         <button
@@ -1775,7 +1821,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           disabled={pinBusy || newPin.length !== 6 || confirmNewPin.length !== 6}
                           onClick={() => void handleCreatePin()}
                         >
-                          {pinBusy ? "Criando PIN..." : "Criar PIN e continuar"}
+                          {pinBusy ? "Criando PIN..." : "Criar PIN e liberar agendamento"}
                         </button>
                       </div>
                     </div>
@@ -1783,6 +1829,21 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
                   {customer?.hasPin && (
                     <>
+                      {pinCreatedSuccess && (
+                        <div
+                          className={b.note}
+                          style={{
+                            borderColor: "rgba(16, 185, 129, 0.3)",
+                            background: "rgba(16, 185, 129, 0.08)",
+                            marginTop: 12,
+                            marginBottom: 12,
+                          }}
+                        >
+                          <p style={{ color: "#10b981", fontSize: "13px", margin: 0, fontWeight: 500 }}>
+                            ✓ PIN cadastrado com sucesso! Agora escolha a forma de pagamento para confirmar seu horário.
+                          </p>
+                        </div>
+                      )}
 
                   {/* Payment method — chosen here only to tell the establishment how
                       the customer intends to pay; nothing is charged online. */}
@@ -1947,7 +2008,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 {busy
                   ? "Aguarde…"
                   : step === 2
-                    ? resolveCopy(company.copyOverrides, "ctaConfirm")
+                    ? (!customer
+                        ? "Identifique-se"
+                        : !customer.hasPin
+                          ? "Crie seu PIN"
+                          : !paymentMethod
+                            ? "Forma de pagamento"
+                            : resolveCopy(company.copyOverrides, "ctaConfirm"))
                     : resolveCopy(company.copyOverrides, "ctaContinue")}
                 {!busy && <ArrowRight size={15} />}
               </button>

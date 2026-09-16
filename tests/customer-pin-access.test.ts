@@ -470,4 +470,26 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
       /PIN não encontrado/,
     );
   });
+
+  it("12. Booking Barrier: Booking requires PIN for customer accounts", async () => {
+    // Cria um usuário cliente sem PIN
+    const noPinUserId = randomUUID();
+    await db.insert(users).values({
+      id: noPinUserId,
+      name: "Cliente Sem PIN",
+      email: `sem-pin-${Date.now()}@example.test`,
+      phone: "(11) 98888-0000",
+      passwordHash: "dummy",
+      role: "customer",
+      active: true,
+      emailVerified: true,
+    });
+
+    const hasPin = await CustomerAccessService.userHasPin(noPinUserId);
+    assert.equal(hasPin, false, "Cliente recém-criado sem setupPin não deve ter PIN");
+
+    // Limpeza
+    await db.delete(users).where(eq(users.id, noPinUserId));
+  });
 });
+
