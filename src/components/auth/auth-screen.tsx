@@ -461,16 +461,18 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           }),
         });
 
-        const updatedSession = store ? await store.reloadSession() : null;
+        if (store) {
+          await store.reloadSession();
+        }
+
         if (onAuthenticated) {
-          onAuthenticated(
-            Boolean(
-              !updatedSession?.company?.onboarded &&
-                updatedSession?.primaryRole !== "client"
-            )
-          );
+          onAuthenticated(true);
         } else {
-          window.location.assign("/gestao");
+          window.location.assign("/");
+        }
+
+        if (typeof window !== "undefined" && window.location.pathname !== "/" && window.location.pathname !== "/login") {
+          window.location.assign("/");
         }
       }
     } catch (err) {

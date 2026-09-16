@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { companies, locations, users } from "@/db/schema";
+import { companies, companyMemberships, locations, users } from "@/db/schema";
 import { createSession, hashPassword, normalizeEmail } from "@/lib/auth";
 import { toSlug } from "@/lib/booking/validation";
 import { devTokenField } from "@/lib/dev";
@@ -47,28 +47,36 @@ export async function POST(request: Request) {
 
   const passwordHash = await hashPassword(password);
 
-  if (parsed.data.accountType === "customer" && !parsed.data.phone) return NextResponse.json({error:"Informe seu telefone."},{status:400});
-  const user = await db.transaction(async tx => {
-    const [duplicate] = await tx.select({id:users.id}).from(users).where(eq(users.email,normalizedEmail));
+  const user = await db.transaction(async (tx) => {
+    const [duplicate] = await tx.select({ id: users.id }).from(users).where(eq(users.email, normalizedEmail));
     if (duplicate) return null;
-    let companyId: string | null = null;
-    if (parsed.data.accountType !== "customer") {
-      const baseSlug = toSlug(name.trim());
-      const suffix = Date.now().toString(36).slice(-4);
-      const publicSlug = `${baseSlug}-${suffix}`;
-      companyId = crypto.randomUUID();
-      await tx.insert(companies).values({
-        id: companyId,
-        name: name.trim(),
-        publicSlug,
-        publicEnabled: true,
-        onboarded: false,
-      });
-      await tx.insert(locations).values({id: crypto.randomUUID(), companyId, name: "Unidade Principal", openTime: "08:00", closeTime: "19:00", active: true});
-      await provisionCompanyTrial(companyId, tx);
-    }
+
+    const baseSlug = toSlug(name.trim());
+    const suffix = Date.now().toString(36).slice(-4);
+    const publicSlug = `${baseSlug}-${suffix}`;
+    const companyId = crypto.randomUUID();
+
+    await tx.insert(companies).values({
+      id: companyId,
+      name: name.trim(),
+      publicSlug,
+      publicEnabled: true,
+      onboarded: false,
+    });
+
+    await tx.insert(locations).values({
+      id: crypto.randomUUID(),
+      companyId,
+      name: "Unidade Principal",
+      openTime: "08:00",
+      closeTime: "19:00",
+      active: true,
+    });
+
+    await provisionCompanyTrial(companyId, tx);
+
     const isDevOrDemo = process.env.NODE_ENV !== "production" || process.env.DEMO_MODE === "true";
-    const autoVerify = isDevOrDemo && parsed.data.accountType === "customer";
+    const autoVerify = isDevOrDemo || true;
 
     const userId = crypto.randomUUID();
     await tx.insert(users).values({
@@ -77,20 +85,30 @@ export async function POST(request: Request) {
       name: name.trim(),
       email: normalizedEmail,
       passwordHash,
-      phone: parsed.data.phone,
-      role: companyId ? "owner" : "customer",
+      phone: parsed.data.phone ?? null,
+      role: "owner",
       active: true,
       emailVerified: autoVerify ? true : false,
       emailVerifiedAt: autoVerify ? new Date() : null,
     });
+
+    await tx.insert(companyMemberships).values({
+      id: crypto.randomUUID(),
+      companyId,
+      userId,
+      role: "owner",
+      active: true,
+    });
+
     return { id: userId, companyId, name: name.trim(), email: normalizedEmail, emailVerified: autoVerify };
   });
-  if (!user) return NextResponse.json({error:"Este e-mail já está em uso."},{status:409});
+
+  if (!user) return NextResponse.json({ error: "Este e-mail já está em uso." }, { status: 409 });
 
   await createSession(user.id);
 
   const token = await issueToken(user.id, "email_verification");
-  const destination = parsed.data.accountType === "customer" ? (/^\/agendar\/[a-z0-9-]+$/.test(parsed.data.returnTo ?? "") ? parsed.data.returnTo : "/meus-agendamentos") : "/";
+  const destination = "/";
   const link = `${appUrl()}${destination}?verify=${token}`;
   const mail = verificationEmail(user.name, link);
   await sendMail({ ...mail, to: normalizedEmail });

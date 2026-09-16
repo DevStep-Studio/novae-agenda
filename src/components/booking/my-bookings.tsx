@@ -205,7 +205,11 @@ export function MyBookings({
     return (
       <AuthScreen
         initialMode="reservas"
-        onAuthenticated={async () => {
+        onAuthenticated={async (needsOnboarding) => {
+          if (needsOnboarding) {
+            window.location.assign("/");
+            return;
+          }
           try {
             const identity = await api<Customer | null>("/api/my/session");
             setUser(identity);
