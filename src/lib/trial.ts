@@ -77,7 +77,7 @@ export function buildTrialStatus({ status, plan, startedAt, endsAt, serverNow }:
   const currentDay = Math.min(TRIAL_DURATION_DAYS, elapsedDays + 1);
   const isTrialStatus = status === "trialing";
   const isTrialPlan = !plan || plan === "trial" || plan === "teste";
-  const trialIsActive = !expired && isTrialStatus && isTrialPlan;
+  const trialIsActive = !expired && isTrialStatus && isTrialPlan && remainingDays <= 14;
   const countdown = formatTrialCountdown(remainingSeconds);
 
   return {

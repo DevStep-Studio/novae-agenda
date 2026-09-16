@@ -75,6 +75,12 @@ test("assinatura expirada ou past_due nunca exibe card de trial", () => {
   assert.equal(pastDueResult.visible, false);
 });
 
+test("data de trial estendida manualmente acima de 14 dias não exibe card de progresso de 7 dias", () => {
+  const farFuture = new Date("2026-12-31T01:54:21.000Z");
+  const result = buildTrialStatus({ status: "trialing", plan: "trial", startedAt: start, endsAt: farFuture, serverNow: start });
+  assert.equal(result.visible, false);
+});
+
 test("contador usa singular e aviso inferior a uma hora", () => {
   assert.deepEqual(formatTrialCountdown(3600), {
     headline: "Seu teste gratuito encerra em breve.",

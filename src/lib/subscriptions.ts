@@ -266,8 +266,8 @@ export async function getCompanySubscription(
 
   // Normalize status
   const rawStatus = (existing.status || "trialing").toLowerCase().trim();
-  const isPaidOrActiveRaw = ["active", "paid", "approved", "pago"].includes(rawStatus) || Boolean(paidInvoice);
   const isPaidPlan = Boolean(existing.plan && existing.plan !== "trial" && existing.plan !== "teste");
+  const isPaidOrActiveRaw = ["active", "paid", "approved", "pago"].includes(rawStatus) || Boolean(paidInvoice) || isPaidPlan;
 
   let effectiveStatus: SubscriptionStatus = existing.status as SubscriptionStatus;
   let isEffectiveActive = false;
@@ -275,7 +275,8 @@ export async function getCompanySubscription(
     ?? new Date(existing.trialEndsAt.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   if (isPaidOrActiveRaw) {
-    if (existing.currentPeriodEnd && existing.currentPeriodEnd.getTime() <= now.getTime()) {
+    const periodEnd = existing.currentPeriodEnd ?? (isPaidPlan || rawStatus === "paid" || rawStatus === "active" ? existing.trialEndsAt : null);
+    if (periodEnd && periodEnd.getTime() <= now.getTime()) {
       effectiveStatus = "past_due";
       isEffectiveActive = false;
     } else {
