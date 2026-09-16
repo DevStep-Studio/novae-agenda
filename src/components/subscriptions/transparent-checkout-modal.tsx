@@ -399,9 +399,9 @@ export function TransparentCheckoutModal({
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(5, 7, 13, 0.85)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        backgroundColor: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -414,64 +414,49 @@ export function TransparentCheckoutModal({
       <div
         style={{
           width: "100%",
-          maxWidth: 880,
-          background: "var(--surface, #11131a)",
-          border: "1px solid rgba(255, 255, 255, 0.08)",
-          borderRadius: 20,
-          boxShadow: "0 24px 70px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.04)",
+          maxWidth: 860,
+          background: "#111114",
+          border: "1px solid #27272f",
+          borderRadius: 16,
+          boxShadow: "0 20px 60px rgba(0, 0, 0, 0.6)",
           overflow: "hidden",
           position: "relative",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Subtle Ambient Radial Glow */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "70%",
-            height: 140,
-            background: "radial-gradient(ellipse at top, rgba(34, 197, 94, 0.12), transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-
         {/* Modal Header */}
         <div
           style={{
-            padding: "20px 26px",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+            padding: "18px 24px",
+            borderBottom: "1px solid #27272f",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            position: "relative",
-            zIndex: 1,
+            background: "#111114",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: "rgba(34, 197, 94, 0.1)",
-                border: "1px solid rgba(34, 197, 94, 0.2)",
+                width: 36,
+                height: 36,
+                borderRadius: 9,
+                background: "#18181f",
+                border: "1px solid #27272f",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "var(--primary, #22c55e)",
               }}
             >
-              <Zap size={20} />
+              <Zap size={18} />
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span
                   style={{
                     fontSize: 11,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
                     color: "var(--primary, #22c55e)",
@@ -485,11 +470,12 @@ export function TransparentCheckoutModal({
                     alignItems: "center",
                     gap: 4,
                     fontSize: 10,
-                    fontWeight: 700,
-                    background: "rgba(255, 255, 255, 0.06)",
-                    color: "rgba(255, 255, 255, 0.7)",
-                    padding: "2px 8px",
-                    borderRadius: 12,
+                    fontWeight: 600,
+                    background: "#18181f",
+                    border: "1px solid #27272f",
+                    color: "#a1a1aa",
+                    padding: "2px 7px",
+                    borderRadius: 6,
                   }}
                 >
                   <Lock size={10} /> 256-bit SSL
@@ -497,11 +483,11 @@ export function TransparentCheckoutModal({
               </div>
               <h2
                 style={{
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: 800,
                   margin: "2px 0 0",
-                  color: "var(--text-primary, #ffffff)",
-                  letterSpacing: "-0.02em",
+                  color: "#ffffff",
+                  letterSpacing: "-0.01em",
                 }}
               >
                 Assinar Plano {plan.name}
@@ -514,12 +500,12 @@ export function TransparentCheckoutModal({
             onClick={handleClose}
             aria-label="Fechar checkout"
             style={{
-              width: 34,
-              height: 34,
+              width: 32,
+              height: 32,
               borderRadius: "50%",
-              background: "rgba(255, 255, 255, 0.05)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              color: "var(--text-secondary, #94a3b8)",
+              background: "#18181f",
+              border: "1px solid #27272f",
+              color: "#a1a1aa",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -527,7 +513,7 @@ export function TransparentCheckoutModal({
               transition: "all 0.15s ease",
             }}
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -535,7 +521,7 @@ export function TransparentCheckoutModal({
         {isSuccessCompleted ? (
           <div
             style={{
-              padding: "60px 32px",
+              padding: "54px 32px",
               textAlign: "center",
               display: "flex",
               flexDirection: "column",
@@ -545,36 +531,35 @@ export function TransparentCheckoutModal({
           >
             <div
               style={{
-                width: 72,
-                height: 72,
+                width: 64,
+                height: 64,
                 borderRadius: "50%",
-                background: "rgba(34, 197, 94, 0.15)",
+                background: "#18181f",
                 border: "2px solid var(--primary, #22c55e)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "var(--primary, #22c55e)",
-                marginBottom: 20,
-                boxShadow: "0 0 30px rgba(34, 197, 94, 0.3)",
+                marginBottom: 18,
               }}
             >
-              <CheckCircle2 size={42} />
+              <CheckCircle2 size={36} />
             </div>
 
-            <h3 style={{ fontSize: 24, fontWeight: 900, color: "#ffffff", margin: "0 0 8px" }}>
+            <h3 style={{ fontSize: 22, fontWeight: 800, color: "#ffffff", margin: "0 0 8px" }}>
               Assinatura Confirmada!
             </h3>
-            <p style={{ fontSize: 14, color: "var(--text-secondary, #94a3b8)", maxWidth: 440, margin: "0 0 24px" }}>
+            <p style={{ fontSize: 13.5, color: "#a1a1aa", maxWidth: 440, margin: "0 0 22px", lineHeight: 1.5 }}>
               {successMsg || `Seu Plano ${plan.name} foi ativado com sucesso para todo o seu estabelecimento.`}
             </p>
 
             <div
               style={{
-                padding: "12px 20px",
-                background: "rgba(34, 197, 94, 0.08)",
-                border: "1px solid rgba(34, 197, 94, 0.2)",
-                borderRadius: 12,
-                fontSize: 13,
+                padding: "10px 18px",
+                background: "#18181f",
+                border: "1px solid #27272f",
+                borderRadius: 10,
+                fontSize: 12.5,
                 color: "var(--primary, #22c55e)",
                 fontWeight: 600,
                 display: "flex",
@@ -582,7 +567,7 @@ export function TransparentCheckoutModal({
                 gap: 8,
               }}
             >
-              <Sparkles size={16} /> Liberando acesso imediato à sua equipe...
+              <Sparkles size={15} /> Liberando acesso imediato à sua equipe...
             </div>
           </div>
         ) : (
@@ -597,24 +582,25 @@ export function TransparentCheckoutModal({
             {/* Left Column: Payment Methods & Inputs */}
             <div
               style={{
-                padding: "24px 28px",
-                borderRight: "1px solid rgba(255, 255, 255, 0.06)",
+                padding: "22px 26px",
+                borderRight: "1px solid #27272f",
                 display: "flex",
                 flexDirection: "column",
-                gap: 20,
+                gap: 18,
+                background: "#111114",
               }}
             >
               {/* Payment Method Switcher Tabs */}
               <div>
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: 700,
-                    color: "var(--text-secondary, #94a3b8)",
+                    color: "#71717a",
                     display: "block",
                     marginBottom: 8,
                     textTransform: "uppercase",
-                    letterSpacing: "0.04em",
+                    letterSpacing: "0.05em",
                   }}
                 >
                   Forma de Pagamento
@@ -624,24 +610,24 @@ export function TransparentCheckoutModal({
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr",
-                    gap: 10,
-                    background: "rgba(0, 0, 0, 0.3)",
+                    gap: 6,
+                    background: "#09090b",
                     padding: 4,
-                    borderRadius: 12,
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                    borderRadius: 10,
+                    border: "1px solid #27272f",
                   }}
                 >
                   <button
                     type="button"
                     onClick={() => handleMethodChange("pix")}
                     style={{
-                      padding: "10px 14px",
-                      background: method === "pix" ? "rgba(34, 197, 94, 0.15)" : "transparent",
-                      border: method === "pix" ? "1px solid var(--primary, #22c55e)" : "1px solid transparent",
-                      borderRadius: 9,
-                      color: method === "pix" ? "var(--primary, #22c55e)" : "var(--text-secondary, #94a3b8)",
-                      fontWeight: 700,
-                      fontSize: 13,
+                      padding: "9px 14px",
+                      background: method === "pix" ? "#18181f" : "transparent",
+                      border: method === "pix" ? "1px solid #383844" : "1px solid transparent",
+                      borderRadius: 7,
+                      color: method === "pix" ? "#ffffff" : "#71717a",
+                      fontWeight: method === "pix" ? 700 : 600,
+                      fontSize: 12.5,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
@@ -650,7 +636,7 @@ export function TransparentCheckoutModal({
                       transition: "all 0.15s ease",
                     }}
                   >
-                    <QrCode size={16} />
+                    <QrCode size={15} color={method === "pix" ? "var(--primary, #22c55e)" : "#71717a"} />
                     <span>PIX Instantâneo</span>
                   </button>
 
@@ -658,13 +644,13 @@ export function TransparentCheckoutModal({
                     type="button"
                     onClick={() => handleMethodChange("card")}
                     style={{
-                      padding: "10px 14px",
-                      background: method === "card" ? "rgba(34, 197, 94, 0.15)" : "transparent",
-                      border: method === "card" ? "1px solid var(--primary, #22c55e)" : "1px solid transparent",
-                      borderRadius: 9,
-                      color: method === "card" ? "var(--primary, #22c55e)" : "var(--text-secondary, #94a3b8)",
-                      fontWeight: 700,
-                      fontSize: 13,
+                      padding: "9px 14px",
+                      background: method === "card" ? "#18181f" : "transparent",
+                      border: method === "card" ? "1px solid #383844" : "1px solid transparent",
+                      borderRadius: 7,
+                      color: method === "card" ? "#ffffff" : "#71717a",
+                      fontWeight: method === "card" ? 700 : 600,
+                      fontSize: 12.5,
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
@@ -673,7 +659,7 @@ export function TransparentCheckoutModal({
                       transition: "all 0.15s ease",
                     }}
                   >
-                    <CreditCard size={16} />
+                    <CreditCard size={15} color={method === "card" ? "#38bdf8" : "#71717a"} />
                     <span>Cartão de Crédito</span>
                   </button>
                 </div>
@@ -683,59 +669,60 @@ export function TransparentCheckoutModal({
               {errorMsg && (
                 <div
                   style={{
-                    padding: "12px 14px",
+                    padding: "11px 14px",
                     background: "rgba(239, 68, 68, 0.1)",
-                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                    borderRadius: 10,
+                    border: "1px solid rgba(239, 68, 68, 0.25)",
+                    borderRadius: 8,
                     color: "#fca5a5",
-                    fontSize: 13,
+                    fontSize: 12.5,
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: 10,
+                    gap: 9,
                     lineHeight: 1.4,
                   }}
                 >
-                  <AlertCircle size={17} style={{ flexShrink: 0, marginTop: 2, color: "#ef4444" }} />
+                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1, color: "#ef4444" }} />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
               {/* PIX Flow */}
               {method === "pix" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {loading && !pixData && (
-                    <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-secondary, #94a3b8)" }}>
-                      <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--primary, #22c55e)" }} />
-                      <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>Gerando cobrança PIX oficial do Reservei...</p>
+                    <div style={{ textAlign: "center", padding: "36px 0", color: "#a1a1aa" }}>
+                      <Loader2 size={28} className="animate-spin" style={{ margin: "0 auto 10px", color: "var(--primary, #22c55e)" }} />
+                      <p style={{ fontSize: 12.5, fontWeight: 600, margin: 0 }}>Gerando cobrança PIX oficial do Reservei...</p>
                     </div>
                   )}
 
                   {pixData && !loading && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                       {/* Stylized QR Container */}
                       <div
                         style={{
                           background: "#ffffff",
-                          padding: 16,
-                          borderRadius: 16,
-                          width: 200,
-                          height: 200,
+                          padding: 14,
+                          borderRadius: 12,
+                          width: 190,
+                          height: 190,
                           margin: "0 auto",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
+                          border: "1px solid #27272f",
+                          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.4)",
                           position: "relative",
                         }}
                       >
                         {pixData.qrCode ? (
                           <Image
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=162x162&data=${encodeURIComponent(
                               pixData.copiaECola
                             )}`}
                             alt="QR Code PIX Reservei"
-                            width={168}
-                            height={168}
+                            width={162}
+                            height={162}
                             unoptimized
                             style={{ width: "100%", height: "100%", objectFit: "contain" }}
                           />
@@ -751,22 +738,21 @@ export function TransparentCheckoutModal({
                           alignItems: "center",
                           justifyContent: "center",
                           gap: 8,
-                          fontSize: 12,
-                          color: "var(--primary, #22c55e)",
-                          background: "rgba(34, 197, 94, 0.08)",
-                          padding: "8px 12px",
-                          borderRadius: 20,
-                          border: "1px solid rgba(34, 197, 94, 0.15)",
+                          fontSize: 11.5,
+                          color: "#a1a1aa",
+                          background: "#18181f",
+                          padding: "6px 14px",
+                          borderRadius: 999,
+                          border: "1px solid #27272f",
                           margin: "0 auto",
                         }}
                       >
                         <span
                           style={{
-                            width: 8,
-                            height: 8,
+                            width: 7,
+                            height: 7,
                             borderRadius: "50%",
                             background: "var(--primary, #22c55e)",
-                            boxShadow: "0 0 8px var(--primary, #22c55e)",
                           }}
                         />
                         <span style={{ fontWeight: 600 }}>Aguardando pagamento • Confirmação instantânea</span>
@@ -774,11 +760,11 @@ export function TransparentCheckoutModal({
 
                       {/* Copia e Cola Input */}
                       <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", textTransform: "uppercase" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                          <label style={{ fontSize: 11, fontWeight: 700, color: "#71717a", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                             PIX Copia e Cola
                           </label>
-                          <span style={{ fontSize: 11, color: "var(--text-secondary, #94a3b8)" }}>
+                          <span style={{ fontSize: 11, color: "#71717a" }}>
                             Validade de 15 min
                           </span>
                         </div>
@@ -791,11 +777,11 @@ export function TransparentCheckoutModal({
                             onClick={(e) => (e.target as HTMLInputElement).select()}
                             style={{
                               flex: 1,
-                              padding: "10px 14px",
-                              background: "rgba(0, 0, 0, 0.4)",
-                              border: "1px solid rgba(255, 255, 255, 0.08)",
-                              borderRadius: 10,
-                              color: "#ffffff",
+                              padding: "9px 12px",
+                              background: "#09090b",
+                              border: "1px solid #27272f",
+                              borderRadius: 8,
+                              color: "#f4f4f6",
                               fontSize: 12,
                               fontFamily: "monospace",
                               outline: "none",
@@ -806,11 +792,11 @@ export function TransparentCheckoutModal({
                             type="button"
                             onClick={handleCopyPix}
                             style={{
-                              padding: "10px 16px",
-                              background: copied ? "var(--primary, #22c55e)" : "rgba(255, 255, 255, 0.08)",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              borderRadius: 10,
-                              color: copied ? "#000000" : "#ffffff",
+                              padding: "9px 14px",
+                              background: copied ? "var(--primary, #22c55e)" : "#18181f",
+                              border: "1px solid #383844",
+                              borderRadius: 8,
+                              color: copied ? "#09090b" : "#ffffff",
                               fontWeight: 700,
                               fontSize: 12,
                               cursor: "pointer",
@@ -821,7 +807,7 @@ export function TransparentCheckoutModal({
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            {copied ? <Check size={13} /> : <Copy size={13} />}
                             {copied ? "Copiado!" : "Copiar"}
                           </button>
                         </div>
@@ -834,22 +820,22 @@ export function TransparentCheckoutModal({
                         disabled={checkingPix}
                         style={{
                           width: "100%",
-                          padding: "11px",
-                          background: "transparent",
-                          border: "1px solid rgba(255, 255, 255, 0.12)",
-                          color: "var(--text-secondary, #94a3b8)",
+                          padding: "10px",
+                          background: "#18181f",
+                          border: "1px solid #27272f",
+                          color: "#a1a1aa",
                           fontWeight: 600,
-                          borderRadius: 10,
+                          borderRadius: 8,
                           cursor: "pointer",
-                          fontSize: 13,
+                          fontSize: 12.5,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          gap: 8,
+                          gap: 7,
                           transition: "all 0.15s ease",
                         }}
                       >
-                        {checkingPix ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+                        {checkingPix ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
                         {checkingPix ? "Checando pagamento..." : "Já realizei o pagamento (Verificar)"}
                       </button>
                     </div>
@@ -861,14 +847,14 @@ export function TransparentCheckoutModal({
                       onClick={() => handleGeneratePix()}
                       style={{
                         width: "100%",
-                        padding: "14px",
+                        padding: "12px",
                         background: "var(--primary, #22c55e)",
-                        color: "#000000",
+                        color: "#09090b",
                         fontWeight: 800,
-                        borderRadius: 12,
+                        borderRadius: 8,
                         border: "none",
                         cursor: "pointer",
-                        fontSize: 14,
+                        fontSize: 13.5,
                         transition: "all 0.15s ease",
                       }}
                     >
@@ -880,50 +866,34 @@ export function TransparentCheckoutModal({
 
               {/* Credit Card Flow */}
               {method === "card" && (
-                <form onSubmit={handleCardSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {/* Interactive Virtual Card Preview */}
+                <form onSubmit={handleCardSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Virtual Card Preview (Minimalist Matte Solid) */}
                   <div
                     style={{
                       width: "100%",
-                      maxWidth: 360,
-                      margin: "0 auto 4px",
+                      maxWidth: 340,
+                      margin: "0 auto 2px",
                       aspectRatio: "1.586",
-                      borderRadius: 14,
-                      background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
-                      boxShadow: "0 12px 28px -6px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
-                      padding: "18px 20px",
+                      borderRadius: 12,
+                      background: "#141418",
+                      border: "1px solid #27272f",
+                      boxShadow: "0 8px 20px rgba(0, 0, 0, 0.4)",
+                      padding: "16px 18px",
                       display: "flex",
                       flexDirection: "column",
                       justifyContent: "space-between",
                       position: "relative",
-                      overflow: "hidden",
                     }}
                   >
-                    {/* Glass Sheen */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: -50,
-                        right: -50,
-                        width: 140,
-                        height: 140,
-                        borderRadius: "50%",
-                        background: "radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%)",
-                        pointerEvents: "none",
-                      }}
-                    />
-
                     {/* Card Top Row: Chip & Brand */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div
                         style={{
-                          width: 34,
-                          height: 24,
-                          borderRadius: 5,
-                          background: "linear-gradient(135deg, #fbbf24 0%, #d97706 100%)",
-                          border: "1px solid rgba(0, 0, 0, 0.2)",
-                          boxShadow: "inset 0 1px 2px rgba(255, 255, 255, 0.4)",
+                          width: 32,
+                          height: 22,
+                          borderRadius: 4,
+                          background: "#ca8a04",
+                          border: "1px solid #a16207",
                         }}
                       />
                       <BrandLogo brand={detectedBrand} />
@@ -934,11 +904,10 @@ export function TransparentCheckoutModal({
                       <div
                         style={{
                           fontFamily: "monospace",
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: 700,
                           letterSpacing: 2,
                           color: "#ffffff",
-                          textShadow: "0 1px 2px rgba(0,0,0,0.5)",
                         }}
                       >
                         {cardDisplayNumber}
@@ -948,17 +917,17 @@ export function TransparentCheckoutModal({
                     {/* Card Bottom: Holder & Expiry */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                       <div>
-                        <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.5)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        <div style={{ fontSize: 8, color: "#71717a", textTransform: "uppercase", letterSpacing: 0.5 }}>
                           Titular do Cartão
                         </div>
                         <div
                           style={{
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: 700,
                             color: "#ffffff",
                             textTransform: "uppercase",
-                            letterSpacing: 1,
-                            maxWidth: 180,
+                            letterSpacing: 0.5,
+                            maxWidth: 170,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
@@ -969,12 +938,12 @@ export function TransparentCheckoutModal({
                       </div>
 
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 8, color: "rgba(255, 255, 255, 0.5)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        <div style={{ fontSize: 8, color: "#71717a", textTransform: "uppercase", letterSpacing: 0.5 }}>
                           Validade
                         </div>
                         <div
                           style={{
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: 700,
                             fontFamily: "monospace",
                             color: "#ffffff",
@@ -988,7 +957,7 @@ export function TransparentCheckoutModal({
 
                   {/* Form Inputs */}
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: 5, textTransform: "uppercase" }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "#71717a", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       Número do Cartão
                     </label>
                     <div style={{ position: "relative" }}>
@@ -1000,13 +969,13 @@ export function TransparentCheckoutModal({
                         onChange={(e) => handleCardNumberChange(e.target.value)}
                         style={{
                           width: "100%",
-                          padding: "10px 14px",
+                          padding: "9px 12px",
                           paddingRight: 40,
-                          background: "rgba(0, 0, 0, 0.3)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          borderRadius: 10,
+                          background: "#09090b",
+                          border: "1px solid #27272f",
+                          borderRadius: 8,
                           color: "#ffffff",
-                          fontSize: 14,
+                          fontSize: 13,
                           fontFamily: "monospace",
                           outline: "none",
                         }}
@@ -1018,7 +987,7 @@ export function TransparentCheckoutModal({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: 5, textTransform: "uppercase" }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "#71717a", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       Nome Impresso no Cartão
                     </label>
                     <input
@@ -1028,20 +997,20 @@ export function TransparentCheckoutModal({
                       onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
                       style={{
                         width: "100%",
-                        padding: "10px 14px",
-                        background: "rgba(0, 0, 0, 0.3)",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
-                        borderRadius: 10,
+                        padding: "9px 12px",
+                        background: "#09090b",
+                        border: "1px solid #27272f",
+                        borderRadius: 8,
                         color: "#ffffff",
-                        fontSize: 13,
+                        fontSize: 12.5,
                         outline: "none",
                       }}
                     />
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: 5, textTransform: "uppercase" }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: "#71717a", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                         Validade (MM/AA)
                       </label>
                       <input
@@ -1052,19 +1021,19 @@ export function TransparentCheckoutModal({
                         onChange={(e) => handleExpiryChange(e.target.value)}
                         style={{
                           width: "100%",
-                          padding: "10px 14px",
-                          background: "rgba(0, 0, 0, 0.3)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          borderRadius: 10,
+                          padding: "9px 12px",
+                          background: "#09090b",
+                          border: "1px solid #27272f",
+                          borderRadius: 8,
                           color: "#ffffff",
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontFamily: "monospace",
                           outline: "none",
                         }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: 5, textTransform: "uppercase" }}>
+                      <label style={{ fontSize: 11, fontWeight: 700, color: "#71717a", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                         CVV
                       </label>
                       <input
@@ -1075,12 +1044,12 @@ export function TransparentCheckoutModal({
                         onChange={(e) => handleCvvChange(e.target.value)}
                         style={{
                           width: "100%",
-                          padding: "10px 14px",
-                          background: "rgba(0, 0, 0, 0.3)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          borderRadius: 10,
+                          padding: "9px 12px",
+                          background: "#09090b",
+                          border: "1px solid #27272f",
+                          borderRadius: 8,
                           color: "#ffffff",
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontFamily: "monospace",
                           outline: "none",
                         }}
@@ -1089,7 +1058,7 @@ export function TransparentCheckoutModal({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", display: "block", marginBottom: 5, textTransform: "uppercase" }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "#71717a", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       Parcelamento
                     </label>
                     <select
@@ -1097,12 +1066,12 @@ export function TransparentCheckoutModal({
                       onChange={(e) => setInstallments(Number(e.target.value))}
                       style={{
                         width: "100%",
-                        padding: "10px 14px",
-                        background: "rgba(0, 0, 0, 0.3)",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
-                        borderRadius: 10,
+                        padding: "9px 12px",
+                        background: "#09090b",
+                        border: "1px solid #27272f",
+                        borderRadius: 8,
                         color: "#ffffff",
-                        fontSize: 13,
+                        fontSize: 12.5,
                         outline: "none",
                       }}
                     >
@@ -1127,23 +1096,23 @@ export function TransparentCheckoutModal({
                     disabled={loading}
                     style={{
                       width: "100%",
-                      padding: "13px",
+                      padding: "12px",
                       background: "var(--primary, #22c55e)",
-                      color: "#000000",
+                      color: "#09090b",
                       fontWeight: 800,
-                      borderRadius: 12,
+                      borderRadius: 8,
                       border: "none",
                       cursor: "pointer",
-                      fontSize: 14,
+                      fontSize: 13.5,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
-                      marginTop: 4,
+                      marginTop: 2,
                       transition: "all 0.15s ease",
                     }}
                   >
-                    {loading && <Loader2 size={16} className="animate-spin" />}
+                    {loading && <Loader2 size={15} className="animate-spin" />}
                     {loading
                       ? "Processando pagamento..."
                       : isFreePlan
@@ -1156,8 +1125,8 @@ export function TransparentCheckoutModal({
               {/* Coupon Accordion */}
               <div
                 style={{
-                  borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-                  paddingTop: 14,
+                  borderTop: "1px solid #27272f",
+                  paddingTop: 12,
                 }}
               >
                 {!appliedCoupon ? (
@@ -1168,8 +1137,8 @@ export function TransparentCheckoutModal({
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: "var(--text-secondary, #94a3b8)",
-                        fontSize: 12,
+                        color: "#71717a",
+                        fontSize: 11.5,
                         fontWeight: 600,
                         cursor: "pointer",
                         display: "flex",
@@ -1178,13 +1147,13 @@ export function TransparentCheckoutModal({
                         padding: 0,
                       }}
                     >
-                      <Tag size={13} color="var(--primary, #22c55e)" />
+                      <Tag size={12} color="var(--primary, #22c55e)" />
                       <span>Possui um cupom de desconto?</span>
-                      {showCouponInput ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      {showCouponInput ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </button>
 
                     {showCouponInput && (
-                      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                         <input
                           type="text"
                           placeholder="Ex: RESERVEI10"
@@ -1192,12 +1161,12 @@ export function TransparentCheckoutModal({
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                           style={{
                             flex: 1,
-                            padding: "8px 12px",
-                            background: "rgba(0, 0, 0, 0.3)",
-                            border: "1px solid rgba(255, 255, 255, 0.08)",
-                            borderRadius: 8,
+                            padding: "7px 11px",
+                            background: "#09090b",
+                            border: "1px solid #27272f",
+                            borderRadius: 7,
                             color: "#ffffff",
-                            fontSize: 12,
+                            fontSize: 11.5,
                             textTransform: "uppercase",
                             fontFamily: "monospace",
                             outline: "none",
@@ -1208,12 +1177,12 @@ export function TransparentCheckoutModal({
                           onClick={() => handleApplyCoupon()}
                           disabled={couponApplying || !couponCode.trim()}
                           style={{
-                            padding: "8px 14px",
-                            background: "rgba(255, 255, 255, 0.1)",
-                            border: "1px solid rgba(255, 255, 255, 0.1)",
-                            borderRadius: 8,
+                            padding: "7px 12px",
+                            background: "#18181f",
+                            border: "1px solid #383844",
+                            borderRadius: 7,
                             color: "#ffffff",
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: 700,
                             cursor: "pointer",
                           }}
@@ -1229,15 +1198,15 @@ export function TransparentCheckoutModal({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      padding: "8px 12px",
-                      background: "rgba(34, 197, 94, 0.08)",
-                      border: "1px solid rgba(34, 197, 94, 0.2)",
-                      borderRadius: 8,
-                      fontSize: 12,
+                      padding: "7px 11px",
+                      background: "#18181f",
+                      border: "1px solid #27272f",
+                      borderRadius: 7,
+                      fontSize: 11.5,
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--primary, #22c55e)", fontWeight: 700 }}>
-                      <Tag size={13} />
+                      <Tag size={12} />
                       <span>Cupom {appliedCoupon.code} aplicado (-{formatCurrency(appliedCoupon.discountAmount)})</span>
                     </div>
                     <button
@@ -1246,7 +1215,7 @@ export function TransparentCheckoutModal({
                       style={{
                         background: "transparent",
                         border: "none",
-                        color: "rgba(255, 255, 255, 0.5)",
+                        color: "#71717a",
                         cursor: "pointer",
                         fontSize: 11,
                         textDecoration: "underline",
@@ -1262,30 +1231,31 @@ export function TransparentCheckoutModal({
             {/* Right Column: Order Summary & Trust Guarantees */}
             <div
               style={{
-                background: "rgba(0, 0, 0, 0.2)",
-                padding: "24px 28px",
+                background: "#0d0d10",
+                padding: "22px 26px",
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                gap: 24,
+                gap: 20,
               }}
             >
               <div>
                 {/* Billing Interval Toggle Inside Summary */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", textTransform: "uppercase" }}>
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#71717a", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                       Ciclo de Cobrança
                     </span>
                     {selectedInterval === "yearly" && (
                       <span
                         style={{
                           fontSize: 10,
-                          fontWeight: 800,
-                          background: "var(--primary, #22c55e)",
-                          color: "#000000",
+                          fontWeight: 700,
+                          background: "#1c1c24",
+                          border: "1px solid #383844",
+                          color: "var(--primary, #22c55e)",
                           padding: "2px 6px",
-                          borderRadius: 8,
+                          borderRadius: 6,
                         }}
                       >
                         2 MESES GRÁTIS
@@ -1297,24 +1267,24 @@ export function TransparentCheckoutModal({
                     style={{
                       display: "grid",
                       gridTemplateColumns: "1fr 1fr",
-                      gap: 6,
-                      background: "rgba(0, 0, 0, 0.3)",
-                      padding: 4,
-                      borderRadius: 10,
-                      border: "1px solid rgba(255, 255, 255, 0.06)",
+                      gap: 4,
+                      background: "#09090b",
+                      padding: 3,
+                      borderRadius: 8,
+                      border: "1px solid #27272f",
                     }}
                   >
                     <button
                       type="button"
                       onClick={() => handleIntervalChange("monthly")}
                       style={{
-                        padding: "7px 10px",
-                        borderRadius: 7,
-                        border: "none",
-                        background: selectedInterval === "monthly" ? "rgba(255, 255, 255, 0.12)" : "transparent",
-                        color: selectedInterval === "monthly" ? "#ffffff" : "var(--text-secondary, #94a3b8)",
-                        fontSize: 12,
-                        fontWeight: 700,
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        border: selectedInterval === "monthly" ? "1px solid #383844" : "1px solid transparent",
+                        background: selectedInterval === "monthly" ? "#18181f" : "transparent",
+                        color: selectedInterval === "monthly" ? "#ffffff" : "#71717a",
+                        fontSize: 11.5,
+                        fontWeight: selectedInterval === "monthly" ? 700 : 600,
                         cursor: "pointer",
                         transition: "all 0.15s ease",
                       }}
@@ -1325,13 +1295,13 @@ export function TransparentCheckoutModal({
                       type="button"
                       onClick={() => handleIntervalChange("yearly")}
                       style={{
-                        padding: "7px 10px",
-                        borderRadius: 7,
-                        border: "none",
-                        background: selectedInterval === "yearly" ? "rgba(255, 255, 255, 0.12)" : "transparent",
-                        color: selectedInterval === "yearly" ? "#ffffff" : "var(--text-secondary, #94a3b8)",
-                        fontSize: 12,
-                        fontWeight: 700,
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        border: selectedInterval === "yearly" ? "1px solid #383844" : "1px solid transparent",
+                        background: selectedInterval === "yearly" ? "#18181f" : "transparent",
+                        color: selectedInterval === "yearly" ? "#ffffff" : "#71717a",
+                        fontSize: 11.5,
+                        fontWeight: selectedInterval === "yearly" ? 700 : 600,
                         cursor: "pointer",
                         transition: "all 0.15s ease",
                       }}
@@ -1344,26 +1314,27 @@ export function TransparentCheckoutModal({
                 {/* Plan Highlights Box */}
                 <div
                   style={{
-                    padding: "16px",
-                    borderRadius: 12,
-                    background: "rgba(255, 255, 255, 0.03)",
-                    border: "1px solid rgba(255, 255, 255, 0.06)",
-                    marginBottom: 20,
+                    padding: "14px",
+                    borderRadius: 10,
+                    background: "#141418",
+                    border: "1px solid #27272f",
+                    marginBottom: 18,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: "#ffffff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 9 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff" }}>
                       Plano {plan.name}
                     </span>
                     {plan.badge && (
                       <span
                         style={{
                           fontSize: 10,
-                          fontWeight: 800,
-                          background: "var(--primary, #22c55e)",
-                          color: "#000000",
-                          padding: "2px 7px",
-                          borderRadius: 10,
+                          fontWeight: 700,
+                          background: "#18181f",
+                          border: "1px solid #383844",
+                          color: "var(--primary, #22c55e)",
+                          padding: "2px 6px",
+                          borderRadius: 6,
                         }}
                       >
                         {plan.badge}
@@ -1371,21 +1342,21 @@ export function TransparentCheckoutModal({
                     )}
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 12, color: "var(--text-secondary, #94a3b8)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 11.5, color: "#a1a1aa" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Check size={14} color="var(--primary, #22c55e)" />
+                      <Check size={13} color="var(--primary, #22c55e)" />
                       <span>1 Proprietário incluso</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Check size={14} color="var(--primary, #22c55e)" />
+                      <Check size={13} color="var(--primary, #22c55e)" />
                       <strong style={{ color: "#ffffff" }}>Até {plan.employeeLimit} profissionais da equipe</strong>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Check size={14} color="var(--primary, #22c55e)" />
+                      <Check size={13} color="var(--primary, #22c55e)" />
                       <span>Agendamentos & Clientes ilimitados</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <Check size={14} color="var(--primary, #22c55e)" />
+                      <Check size={13} color="var(--primary, #22c55e)" />
                       <span>Página pública & Notificações</span>
                     </div>
                   </div>
@@ -1393,44 +1364,44 @@ export function TransparentCheckoutModal({
 
                 {/* Price Breakdown */}
                 <div>
-                  <h4 style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary, #94a3b8)", textTransform: "uppercase", margin: "0 0 12px" }}>
+                  <h4 style={{ fontSize: 11, fontWeight: 700, color: "#71717a", textTransform: "uppercase", margin: "0 0 10px", letterSpacing: "0.04em" }}>
                     Resumo de Valores
                   </h4>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8, color: "var(--text-secondary, #94a3b8)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 7, color: "#a1a1aa" }}>
                     <span>Valor base ({selectedInterval === "yearly" ? "Anual" : "Mensal"}):</span>
                     <span>{formatCurrency(rawBasePrice)}</span>
                   </div>
 
                   {selectedInterval === "yearly" && (
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8, color: "var(--primary, #22c55e)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 7, color: "var(--primary, #22c55e)" }}>
                       <span>Economia (2 meses grátis):</span>
                       <span>- {formatCurrency(plan.monthlyPrice * 12 - plan.annualPrice)}</span>
                     </div>
                   )}
 
                   {appliedCoupon && (
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 8, color: "var(--primary, #22c55e)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 7, color: "var(--primary, #22c55e)" }}>
                       <span>Desconto Cupom ({appliedCoupon.code}):</span>
                       <span>- {formatCurrency(appliedCoupon.discountAmount)}</span>
                     </div>
                   )}
 
-                  <div style={{ height: 1, background: "rgba(255, 255, 255, 0.08)", margin: "14px 0" }} />
+                  <div style={{ height: 1, background: "#27272f", margin: "12px 0" }} />
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                     <div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#ffffff", display: "block" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", display: "block" }}>
                         Total a pagar:
                       </span>
-                      <span style={{ fontSize: 11, color: "var(--text-secondary, #94a3b8)" }}>
+                      <span style={{ fontSize: 11, color: "#71717a" }}>
                         {selectedInterval === "yearly" ? "cobrado anualmente" : "cobrado mensalmente"}
                       </span>
                     </div>
                     <span
                       style={{
-                        fontSize: 26,
-                        fontWeight: 900,
+                        fontSize: 24,
+                        fontWeight: 800,
                         color: isFreePlan ? "#4ade80" : "var(--primary, #22c55e)",
                         letterSpacing: "-0.02em",
                       }}
@@ -1446,19 +1417,19 @@ export function TransparentCheckoutModal({
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: 8,
-                  paddingTop: 16,
-                  borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+                  gap: 7,
+                  paddingTop: 14,
+                  borderTop: "1px solid #27272f",
                   fontSize: 11,
-                  color: "rgba(255, 255, 255, 0.5)",
+                  color: "#71717a",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <ShieldCheck size={14} color="var(--primary, #22c55e)" />
+                  <ShieldCheck size={13} color="var(--primary, #22c55e)" />
                   <span>Ativação instantânea do seu plano após confirmação.</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Lock size={14} color="var(--primary, #22c55e)" />
+                  <Lock size={13} color="var(--primary, #22c55e)" />
                   <span>Dados protegidos e processados de forma 100% segura.</span>
                 </div>
               </div>
