@@ -831,7 +831,7 @@ export function BookingSettings() {
             </div>
           </div>
 
-        <div className={styles.field} style={{ maxWidth: 400 }}>
+        <div className={styles.field}>
           <label className={styles.fieldLabel}>Selecione o profissional</label>
           <select
             className={styles.select}
@@ -851,15 +851,15 @@ export function BookingSettings() {
 
         {employeeId && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap", padding: "10px 14px", borderRadius: "8px", background: "var(--surface-secondary)", border: "1px solid var(--border)" }}>
-              <span style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--text-secondary)" }}>
+            <div className={styles.quickPresetsContainer}>
+              <span className={styles.quickPresetsHeader}>
+                <Sparkles size={13} style={{ color: "var(--primary)" }} />
                 Modelos rápidos:
               </span>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div className={styles.quickPresetsGrid}>
                 <button
                   type="button"
-                  className={styles.btnSecondary}
-                  style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                  className={styles.quickPresetBtn}
                   onClick={() => {
                     const days = [1, 2, 3, 4, 5].map((d) => ({
                       employeeId,
@@ -877,8 +877,7 @@ export function BookingSettings() {
                 </button>
                 <button
                   type="button"
-                  className={styles.btnSecondary}
-                  style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                  className={styles.quickPresetBtn}
                   onClick={() => {
                     const days = [1, 2, 3, 4, 5, 6].map((d) => ({
                       employeeId,
@@ -896,8 +895,7 @@ export function BookingSettings() {
                 </button>
                 <button
                   type="button"
-                  className={styles.btnSecondary}
-                  style={{ fontSize: "12px", padding: "5px 10px", height: "auto", color: "var(--primary)" }}
+                  className={`${styles.quickPresetBtn} ${styles.quickPresetBtnHighlight}`}
                   onClick={() => {
                     const existing = schedule.find((s) => s.dayOfWeek === 4);
                     if (existing) {

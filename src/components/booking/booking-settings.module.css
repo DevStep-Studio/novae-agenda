@@ -559,6 +559,73 @@
   background: var(--primary-foreground, #ffffff);
 }
 
+/* Quick Schedule Presets Container & Grid */
+.quickPresetsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quickPresetsHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.quickPresetsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.quickPresetBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  text-align: center;
+  width: 100%;
+  min-height: 38px;
+}
+
+.quickPresetBtn:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-strong);
+}
+
+.quickPresetBtnHighlight {
+  color: var(--primary);
+  border-color: var(--primary-soft, rgba(37, 99, 235, 0.3));
+  background: var(--primary-soft, rgba(37, 99, 235, 0.08));
+}
+
+.quickPresetBtnHighlight:hover {
+  background: var(--primary-soft, rgba(37, 99, 235, 0.16));
+  border-color: var(--primary);
+}
+
 /* Weekly Schedule Layout: Desktop Table vs Mobile Cards */
 .scheduleDesktopWrap {
   display: block;
