@@ -15,7 +15,7 @@ import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
-import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor } from "@/lib/theme-utils";
+import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor, isLightHex } from "@/lib/theme-utils";
 import type {
   AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
@@ -3055,19 +3055,27 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                 />
                 <div className="settings-form" style={{ gridTemplateColumns: "1fr" }}>
                   <Field label="Cor primária do sistema (substitui o verde)" hint="Altera botões, links, badges e detalhes em todo o painel.">
-                    <div className="color-palette-grid">
+                    <div className="color-palette-grid color-dots-grid">
                       {PRIMARY_COLOR_PRESETS.map((preset) => {
                         const isActive = brandingPrimaryColor.toLowerCase() === preset.hex.toLowerCase();
+                        const isLight = isLightHex(preset.hex);
                         return (
                           <button
                             type="button"
                             key={preset.id}
-                            className={`color-palette-btn ${isActive ? "active" : ""}`}
+                            className={`color-dot-btn ${isActive ? "active" : ""}`}
                             onClick={() => handlePrimaryColorSelect(preset.hex)}
+                            title={preset.name}
+                            aria-label={preset.name}
+                            style={{ backgroundColor: preset.hex }}
                           >
-                            <span className="color-swatch-circle" style={{ background: preset.hex }} />
-                            <span>{preset.name}</span>
-                            {isActive && <Check size={14} style={{ marginLeft: "auto", color: "var(--primary)" }} />}
+                            {isActive && (
+                              <Check
+                                size={16}
+                                strokeWidth={3}
+                                style={{ color: isLight ? "#0a0a0a" : "#ffffff" }}
+                              />
+                            )}
                           </button>
                         );
                       })}
@@ -6983,19 +6991,27 @@ function ProfilePage({
                 Substitua a cor de destaque do Reservei. Afeta botões, badges, status e links para você e todos os profissionais da sua empresa.
               </p>
 
-              <div className="color-palette-grid">
+              <div className="color-palette-grid color-dots-grid">
                 {PRIMARY_COLOR_PRESETS.map((preset) => {
                   const isSelected = primaryColor.toLowerCase() === preset.hex.toLowerCase();
+                  const isLight = isLightHex(preset.hex);
                   return (
                     <button
                       type="button"
                       key={preset.hex}
-                      className={`color-palette-btn ${isSelected ? "active" : ""}`}
+                      className={`color-dot-btn ${isSelected ? "active" : ""}`}
                       onClick={() => handleColorChange(preset.hex)}
+                      title={preset.name}
+                      aria-label={preset.name}
+                      style={{ backgroundColor: preset.hex }}
                     >
-                      <span className="color-swatch-circle" style={{ background: preset.hex }} />
-                      <span>{preset.name}</span>
-                      {isSelected && <Check size={13} style={{ marginLeft: "auto", color: "var(--primary)" }} />}
+                      {isSelected && (
+                        <Check
+                          size={16}
+                          strokeWidth={3}
+                          style={{ color: isLight ? "#0a0a0a" : "#ffffff" }}
+                        />
+                      )}
                     </button>
                   );
                 })}

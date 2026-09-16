@@ -61,6 +61,12 @@ export function getBrightness(r: number, g: number, b: number): number {
   return (r * 299 + g * 587 + b * 114) / 1000;
 }
 
+export function isLightHex(hex: string): boolean {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return false;
+  return getBrightness(rgb.r, rgb.g, rgb.b) > 140;
+}
+
 export function applyPrimaryColor(hex: string) {
   if (typeof document === "undefined") return;
 
