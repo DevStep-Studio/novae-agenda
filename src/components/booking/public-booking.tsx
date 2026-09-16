@@ -980,10 +980,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             </div>
 
             {/* Ticket de reserva: Mapa da Localização com GPS */}
-            {company.address && (
+            {(locations.find((l) => l.id === locationId)?.address || company.address) && (
               <LocationMapCard
-                address={company.address}
-                companyName={company.name}
+                address={locations.find((l) => l.id === locationId)?.address || company.address}
+                companyName={locations.find((l) => l.id === locationId)?.name ? `${company.name} · ${locations.find((l) => l.id === locationId)?.name}` : company.name}
                 companyLogo={company.logoUrl}
               />
             )}
@@ -1668,12 +1668,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     })}
 
                   {/* Localização e Mapa do Estabelecimento */}
-                  {company.address && (
-                    <LocationMapCard
-                      address={company.address}
-                      companyName={company.name}
-                      companyLogo={company.logoUrl}
-                    />
+                  {(locations.find((l) => l.id === locationId)?.address || company.address) && (
+                    <div style={{ marginTop: 24 }}>
+                      <LocationMapCard
+                        address={locations.find((l) => l.id === locationId)?.address || company.address}
+                        companyName={locations.find((l) => l.id === locationId)?.name ? `${company.name} · ${locations.find((l) => l.id === locationId)?.name}` : company.name}
+                        companyLogo={company.logoUrl}
+                      />
+                    </div>
                   )}
                 </>
               )}

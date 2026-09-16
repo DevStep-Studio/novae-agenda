@@ -30,6 +30,7 @@ import { prepareImageUpload } from "@/lib/image-upload-client";
 import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
 import { BrandingStudio } from "./branding-studio";
+import { LocationMapCard } from "./location-map-card";
 import type { companies, coupons, products } from "@/db/schema";
 import styles from "./booking-settings.module.css";
 
@@ -95,6 +96,7 @@ export function BookingSettings() {
   // Logo & Photos upload states
   const [logoUrl, setLogoUrl] = useState("");
   const [photosText, setPhotosText] = useState("");
+  const [addressValue, setAddressValue] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -122,6 +124,7 @@ export function BookingSettings() {
     setAllowProducts(result.company.allowProducts);
     setLogoUrl(result.company.logoUrl ?? "");
     setPhotosText((result.company.publicPhotos ?? []).join("\n"));
+    setAddressValue(result.company.address ?? "");
 
     if (result.company.publicSlug) {
       setUrl(`${window.location.origin}/agendar/${result.company.publicSlug}`);
@@ -690,9 +693,23 @@ export function BookingSettings() {
             <input
               className={styles.input}
               name="address"
-              defaultValue={c.address ?? ""}
+              value={addressValue}
+              onChange={(e) => setAddressValue(e.target.value)}
               placeholder="Rua, número, bairro, cidade - UF"
             />
+            {addressValue.trim() && (
+              <div style={{ marginTop: 10 }}>
+                <span style={{ fontSize: 12, color: "var(--text-secondary)", display: "block", marginBottom: 6 }}>
+                  Prévia do mapa com GPS (como aparecerá na página pública e no ticket de agendamento do cliente):
+                </span>
+                <LocationMapCard
+                  address={addressValue}
+                  companyName={data?.company.name || "Seu Estabelecimento"}
+                  companyLogo={logoUrl || data?.company.logoUrl}
+                  compact
+                />
+              </div>
+            )}
           </div>
         </section>
 
