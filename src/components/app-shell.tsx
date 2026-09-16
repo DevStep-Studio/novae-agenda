@@ -1856,9 +1856,15 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
                     </div>
                     <div className="service-card-footer">
                       <div>
-                        <strong className="service-price-tag">{formatCurrency(service.price)}</strong>
+                        {service.paymentType === "QUOTE" || Number(service.price) === 0 ? (
+                          <strong className="service-price-tag" style={{ color: "#38bdf8", fontSize: "13px" }}>
+                            Sob consulta
+                          </strong>
+                        ) : (
+                          <strong className="service-price-tag">{formatCurrency(service.price)}</strong>
+                        )}
                         <span className="service-duration-badge">
-                          <Clock3 size={13} /> {service.durationMinutes} min
+                          <Clock3 size={13} /> {service.durationMinutes < 60 ? `${service.durationMinutes} min` : service.durationMinutes % 60 === 0 ? `${service.durationMinutes / 60}h` : `${Math.floor(service.durationMinutes / 60)}h ${service.durationMinutes % 60}min`}
                         </span>
                       </div>
                       <button

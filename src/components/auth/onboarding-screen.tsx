@@ -34,6 +34,8 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
   const [employeeName, setEmployeeName] = useState("");
   const [serviceName, setServiceName] = useState("");
   const [servicePrice, setServicePrice] = useState("");
+  const [isQuote, setIsQuote] = useState(false);
+  const [durationUnit, setDurationUnit] = useState<"min" | "hora">("min");
   const [serviceDuration, setServiceDuration] = useState("60");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -69,6 +71,11 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
     if (err) { setError(err); return; }
     setError(null);
     setLoading(true);
+    const finalDurationMinutes =
+      durationUnit === "hora"
+        ? Math.max(5, Math.round((Number(serviceDuration) || 1) * 60))
+        : Math.max(5, Number(serviceDuration) || 60);
+
     try {
       await api("/api/auth/onboarding", {
         method: "POST",
@@ -80,8 +87,8 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
           workingDays,
           employeeName,
           serviceName,
-          servicePrice: Number(servicePrice) || 0,
-          serviceDuration: Number(serviceDuration) || 60,
+          servicePrice: isQuote ? 0 : Number(servicePrice) || 0,
+          serviceDuration: finalDurationMinutes,
         }),
       });
       onComplete();
@@ -142,7 +149,66 @@ export function OnboardingScreen({ onComplete }: { onComplete: () => void }) {
               <div className="step-heading"><span className="step-icon"><Scissors size={16} /></span><div><h2>Primeiro serviço</h2><p>Adicione o serviço mais comum do seu espaço.</p></div></div>
               <div className="settings-form">
                 <label className="field"><span className="field-label">Nome do serviço</span><input className="input" value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="Ex.: Corte" required minLength={2} autoFocus /></label>
-                <div className="field"><span className="field-label">Valor e duração</span><div className="inline-fields"><div className="input-with-prefix"><span>R$</span><input className="input" type="number" min="0" step="1" value={servicePrice} onChange={(e) => setServicePrice(e.target.value)} placeholder="50" /></div><div className="input-with-suffix"><input className="input" type="number" min="5" step="5" value={serviceDuration} onChange={(e) => setServiceDuration(e.target.value)} placeholder="60" /><span>min</span></div></div></div>
+                <div className="field">
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span className="field-label" style={{ margin: 0 }}>Valor e duração</span>
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-secondary)", cursor: "pointer", userSelect: "none" }}>
+                      <input
+                        type="checkbox"
+                        checked={isQuote}
+                        onChange={(e) => {
+                          setIsQuote(e.target.checked);
+                          if (e.target.checked) setServicePrice("0");
+                        }}
+                        style={{ accentColor: "var(--primary)" }}
+                      />
+                      <span>Orçamento direto / Sob consulta</span>
+                    </label>
+                  </div>
+                  <div className="inline-fields">
+                    {isQuote ? (
+                      <div style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", background: "var(--surface-secondary)", border: "1px dashed var(--border-strong)", fontSize: "12.5px", color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>💬 Preço sob consulta (Orçamento direto)</span>
+                      </div>
+                    ) : (
+                      <div className="input-with-prefix" style={{ flex: 1 }}>
+                        <span>R$</span>
+                        <input className="input" type="number" min="0" step="1" value={servicePrice} onChange={(e) => setServicePrice(e.target.value)} placeholder="50" />
+                      </div>
+                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <input
+                        className="input"
+                        type="number"
+                        min={durationUnit === "hora" ? "0.1" : "5"}
+                        step={durationUnit === "hora" ? "0.5" : "5"}
+                        value={serviceDuration}
+                        onChange={(e) => setServiceDuration(e.target.value)}
+                        placeholder={durationUnit === "hora" ? "1" : "60"}
+                        style={{ width: "70px" }}
+                      />
+                      <select
+                        className="input"
+                        value={durationUnit}
+                        onChange={(e) => {
+                          const next = e.target.value as "min" | "hora";
+                          if (next === "hora" && durationUnit === "min") {
+                            const mins = Number(serviceDuration) || 60;
+                            setServiceDuration((mins / 60).toString());
+                          } else if (next === "min" && durationUnit === "hora") {
+                            const hrs = Number(serviceDuration) || 1;
+                            setServiceDuration(Math.round(hrs * 60).toString());
+                          }
+                          setDurationUnit(next);
+                        }}
+                        style={{ width: "auto", padding: "8px 8px", fontSize: "12.5px", fontWeight: 600 }}
+                      >
+                        <option value="min">min</option>
+                        <option value="hora">hora(s)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
           )}

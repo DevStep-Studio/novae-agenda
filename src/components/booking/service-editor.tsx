@@ -89,9 +89,13 @@ export function ServiceEditor({
   >([]);
   const [newCategory, setNewCategory] = useState("");
   const [showNewCategory, setShowNewCategory] = useState(false);
-  const [durationValue, setDurationValue] = useState<number>(
-    service?.durationMinutes ?? 60,
+  const [isQuote, setIsQuote] = useState<boolean>(
+    service?.paymentType === "QUOTE" || (service ? Number(service.price) === 0 : false),
   );
+  const initialMinutes = service?.durationMinutes ?? 60;
+  const [durationMinutes, setDurationMinutes] = useState<number>(initialMinutes);
+  const [durationUnit, setDurationUnit] = useState<"min" | "hora">("min");
+  const [durationInput, setDurationInput] = useState<string>(String(initialMinutes));
   const [imageUrl, setImageUrl] = useState(service?.imageUrl ?? "");
   const [isDragging, setIsDragging] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -163,19 +167,25 @@ export function ServiceEditor({
     setError("");
     const f = new FormData(e.currentTarget);
     try {
+      const parsedDuration = durationUnit === "hora"
+        ? Math.max(5, Math.round(Number(durationInput) * 60))
+        : Math.max(5, Number(durationInput || durationMinutes || 60));
+      const parsedPrice = isQuote ? 0 : Number(f.get("price") || 0);
+      const parsedPaymentType = isQuote ? "QUOTE" : (f.get("payment") || paymentType);
+
       await api(service ? `/api/services/${service.id}` : "/api/services", {
         method: service ? "PATCH" : "POST",
         body: JSON.stringify({
           name: f.get("name"),
-          price: Number(f.get("price")),
-          durationMinutes: Number(f.get("duration")),
+          price: parsedPrice,
+          durationMinutes: parsedDuration,
           description: f.get("description"),
           categoryId: category || null,
           employeeIds: ids,
-          bufferMinutes: Number(f.get("buffer")),
+          bufferMinutes: Number(f.get("buffer") || 0),
           imageUrl: String(f.get("image") || imageUrl || "").trim() || null,
           deliveryMode: f.get("mode") || deliveryMode,
-          paymentType: f.get("payment") || paymentType,
+          paymentType: parsedPaymentType,
           depositAmount: Number(f.get("deposit") || 0),
           cancellationPolicy: f.get("policy") || "",
         }),
@@ -293,57 +303,133 @@ export function ServiceEditor({
             <span>Valores & Tempo</span>
           </div>
 
+          <div className={styles.pricingModeToggle}>
+            <button
+              type="button"
+              className={`${styles.pricingModeBtn} ${!isQuote ? styles.pricingModeBtnActive : ""}`}
+              onClick={() => setIsQuote(false)}
+            >
+              <Coins size={13} />
+              <span>Preço fixo</span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.pricingModeBtn} ${isQuote ? styles.pricingModeBtnActive : ""}`}
+              onClick={() => setIsQuote(true)}
+            >
+              <FileText size={13} />
+              <span>Orçamento direto (Sob consulta)</span>
+            </button>
+          </div>
+
           <div className={styles.grid3}>
-            <div className={styles.field}>
-              <label htmlFor="service-price" className={styles.label}>
-                Preço (R$)
-              </label>
-              <div className={styles.inputWrapper}>
-                <span className={styles.prefix}>R$</span>
-                <input
-                  id="service-price"
-                  name="price"
-                  aria-label="Preço (R$)"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  required
-                  defaultValue={service?.price}
-                  placeholder="0,00"
-                  className={`${styles.input} ${styles.inputWithPrefix}`}
-                />
+            {isQuote ? (
+              <div className={styles.quoteNoticeBox}>
+                <div className={styles.quoteNoticeTitle}>
+                  <Sparkles size={14} />
+                  <span>Sob consulta / Orçamento direto</span>
+                </div>
+                <span className={styles.quoteNoticeDesc}>
+                  Sem valor fixo. O cliente poderá solicitar orçamento direto pelo WhatsApp com o proprietário ou funcionário selecionado.
+                </span>
+                <input type="hidden" name="price" value="0" />
               </div>
-            </div>
+            ) : (
+              <div className={styles.field}>
+                <label htmlFor="service-price" className={styles.label}>
+                  Preço (R$)
+                </label>
+                <div className={styles.inputWrapper}>
+                  <span className={styles.prefix}>R$</span>
+                  <input
+                    id="service-price"
+                    name="price"
+                    aria-label="Preço (R$)"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    required={!isQuote}
+                    defaultValue={service?.price ?? ""}
+                    placeholder="0,00"
+                    className={`${styles.input} ${styles.inputWithPrefix}`}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className={styles.field}>
-              <label htmlFor="service-duration" className={styles.label}>
-                Duração em minutos
-              </label>
-              <div className={styles.inputWrapper}>
+              <div className={styles.labelRow}>
+                <label htmlFor="service-duration" className={styles.label}>
+                  Duração
+                </label>
+                <span className={styles.labelHint}>
+                  {durationUnit === "hora" ? `${durationMinutes} min no total` : durationMinutes >= 60 ? `${(durationMinutes / 60).toFixed(1).replace(".0", "")}h` : ""}
+                </span>
+              </div>
+              <div className={styles.durationInputWrapper}>
                 <input
                   id="service-duration"
                   name="duration"
-                  aria-label="Duração em minutos"
+                  aria-label={`Duração em ${durationUnit === "hora" ? "horas" : "minutos"}`}
                   type="number"
-                  min={5}
-                  max={1440}
-                  step={1}
+                  min={durationUnit === "hora" ? 0.1 : 5}
+                  max={durationUnit === "hora" ? 24 : 1440}
+                  step={durationUnit === "hora" ? 0.5 : 1}
                   required
-                  value={durationValue}
-                  onChange={(e) => setDurationValue(Number(e.target.value))}
-                  className={`${styles.input} ${styles.inputWithSuffix}`}
+                  value={durationInput}
+                  onChange={(e) => {
+                    const valStr = e.target.value;
+                    setDurationInput(valStr);
+                    const num = Number(valStr);
+                    if (!isNaN(num) && num > 0) {
+                      setDurationMinutes(durationUnit === "hora" ? Math.round(num * 60) : num);
+                    }
+                  }}
+                  className={`${styles.input} ${styles.durationInputField}`}
                 />
-                <span className={styles.suffix}>min</span>
+                <select
+                  aria-label="Unidade de duração"
+                  value={durationUnit}
+                  onChange={(e) => {
+                    const next = e.target.value as "min" | "hora";
+                    if (next === "hora" && durationUnit === "min") {
+                      const hrs = durationMinutes / 60;
+                      setDurationInput(hrs % 1 === 0 ? hrs.toString() : hrs.toFixed(1));
+                    } else if (next === "min" && durationUnit === "hora") {
+                      setDurationInput(durationMinutes.toString());
+                    }
+                    setDurationUnit(next);
+                  }}
+                  className={styles.durationUnitSelect}
+                >
+                  <option value="min">min</option>
+                  <option value="hora">hora(s)</option>
+                </select>
               </div>
               <div className={styles.presetRow}>
-                {[30, 45, 60, 90].map((preset) => (
+                {[
+                  { label: "15m", mins: 15 },
+                  { label: "30m", mins: 30 },
+                  { label: "45m", mins: 45 },
+                  { label: "1h", mins: 60 },
+                  { label: "1h30", mins: 90 },
+                  { label: "2h", mins: 120 },
+                ].map((preset) => (
                   <button
-                    key={preset}
+                    key={preset.label}
                     type="button"
-                    className={`${styles.presetBtn} ${durationValue === preset ? styles.presetBtnActive : ""}`}
-                    onClick={() => setDurationValue(preset)}
+                    className={`${styles.presetBtn} ${durationMinutes === preset.mins ? styles.presetBtnActive : ""}`}
+                    onClick={() => {
+                      setDurationMinutes(preset.mins);
+                      if (durationUnit === "hora") {
+                        const hrs = preset.mins / 60;
+                        setDurationInput(hrs % 1 === 0 ? hrs.toString() : hrs.toFixed(1));
+                      } else {
+                        setDurationInput(preset.mins.toString());
+                      }
+                    }}
                   >
-                    {preset}m
+                    {preset.label}
                   </button>
                 ))}
               </div>

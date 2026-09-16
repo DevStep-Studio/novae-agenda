@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appointments,
@@ -57,6 +57,7 @@ export async function publicCatalog(slug: string) {
         bufferMinutes: services.bufferMinutes,
         imageUrl: services.imageUrl,
         deliveryMode: services.deliveryMode,
+        paymentType: services.paymentType,
         cancellationPolicy: services.cancellationPolicy,
       })
       .from(services)
@@ -68,7 +69,7 @@ export async function publicCatalog(slug: string) {
         and(
           eq(services.companyId, company.id),
           eq(services.active, true),
-          eq(services.paymentType, "PAY_LATER"),
+          inArray(services.paymentType, ["PAY_LATER", "QUOTE", "FULL_PAYMENT", "DEPOSIT"]),
         ),
       )
       .orderBy(asc(services.name)),
@@ -76,6 +77,7 @@ export async function publicCatalog(slug: string) {
       .select({
         id: employees.id,
         name: employees.name,
+        phone: employees.phone,
         photoUrl: employees.photoUrl,
         jobTitle: employees.jobTitle,
         locationId: employees.locationId,

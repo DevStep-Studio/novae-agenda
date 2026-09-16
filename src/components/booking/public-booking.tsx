@@ -29,7 +29,8 @@ import {
   KeyRound,
   User,
 } from "lucide-react";
-import { api, ApiError } from "@/lib/api-client";
+import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import type { PublicCatalog } from "@/lib/booking/catalog";
 import { isSectionVisible, resolveCopy } from "@/lib/booking/customization";
 import type { AvailableSlot } from "@/lib/booking/engine";
@@ -174,6 +175,22 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       setCustomerMembership(null);
     }
   }, [company.slug]);
+
+  const getServiceQuoteWhatsAppUrl = useCallback(
+    (service: (typeof services)[0], preferredEmployeeId?: string | null) => {
+      const chosenEmp = preferredEmployeeId
+        ? professionals.find((p) => p.id === preferredEmployeeId)
+        : null;
+      const rawPhone =
+        (chosenEmp && chosenEmp.phone) || company.whatsapp || company.phone || "";
+      const waPhone = formatPhoneForWhatsApp(rawPhone);
+      if (!waPhone) return null;
+      const targetText = chosenEmp ? ` com ${chosenEmp.name}` : "";
+      const text = `Olá! Gostaria de um orçamento para o serviço "${service.name}"${targetText} no ${company.name}.`;
+      return `https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`;
+    },
+    [company.name, company.phone, company.whatsapp, professionals],
+  );
 
   const handleSwitchCustomer = async () => {
     try {
@@ -673,7 +690,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       <h3>{service.name}</h3>
                       <div className={b.summaryItemMeta}>
                         <span>{duration(service.durationMinutes)}</span>
-                        <Price amount={service.price} className={b.summaryItemPrice} />
+                        {service.paymentType === "QUOTE" || Number(service.price) === 0 ? (
+                          <span className={b.summaryItemPrice} style={{ color: "var(--accent, #3b82f6)", fontWeight: 700 }}>
+                            Sob consulta
+                          </span>
+                        ) : (
+                          <Price amount={service.price} className={b.summaryItemPrice} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -762,7 +785,16 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             {duration(minutes) || "Nenhum serviço"}
           </span>
         </div>
-        <strong><Price amount={step === 2 && quote ? quote.total : price} /></strong>
+        {items.length > 0 && items.every((it) => {
+          const s = services.find((srv) => srv.id === it.serviceId);
+          return s && (s.paymentType === "QUOTE" || Number(s.price) === 0);
+        }) ? (
+          <strong style={{ color: "var(--accent, #3b82f6)", fontSize: "0.95rem" }}>
+            Sob consulta
+          </strong>
+        ) : (
+          <strong><Price amount={step === 2 && quote ? quote.total : price} /></strong>
+        )}
       </div>
 
       {step === 2 && quoteLoading && (
@@ -932,7 +964,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               <div className={b.successDetailRow}>
                 <span className={b.successDetailLabel}>Total</span>
                 <span className={`${b.successDetailValue} ${b.successDetailHighlight}`}>
-                  <Price amount={quote?.total ?? price} />
+                  {selected.some((s) => s.paymentType === "QUOTE" || Number(s.price) === 0) ? (
+                    <span style={{ color: "var(--accent, #3b82f6)", fontWeight: 700 }}>
+                      Sob consulta (A combinar)
+                    </span>
+                  ) : (
+                    <Price amount={quote?.total ?? price} />
+                  )}
                 </span>
               </div>
             </div>
@@ -1166,6 +1204,32 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   <Share2 size={15} />{" "}
                   {copiedShare ? "Link copiado!" : "Compartilhar"}
                 </button>
+
+                {selected.some((s) => s.paymentType === "QUOTE" || Number(s.price) === 0) && (
+                  <a
+                    href={
+                      getServiceQuoteWhatsAppUrl(
+                        selected.find((s) => s.paymentType === "QUOTE" || Number(s.price) === 0) || selected[0],
+                        slot?.items[0]?.employeeId,
+                      ) || "#"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={b.button}
+                    style={{
+                      backgroundColor: "#25D366",
+                      color: "#ffffff",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <WhatsAppIcon size={16} />
+                    <span>Falar sobre o orçamento no WhatsApp</span>
+                  </a>
+                )}
               </div>
             </div>
           </div>
@@ -1444,6 +1508,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                         </span>
                                         <strong style={{ display: "block", color: "#10b981" }}>R$ 0,00</strong>
                                       </div>
+                                    ) : (service.paymentType === "QUOTE" || Number(service.price) === 0) ? (
+                                      <div>
+                                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#38bdf8", background: "rgba(56,189,248,0.14)", padding: "2px 6px", borderRadius: 4, display: "inline-block" }}>
+                                          SOB CONSULTA
+                                        </span>
+                                        <strong style={{ display: "block", fontSize: "0.95rem" }}>Orçamento direto</strong>
+                                      </div>
                                     ) : (
                                       <strong><Price amount={service.price} /></strong>
                                     )}
@@ -1451,6 +1522,33 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                   </div>
 
                                   <div className={b.serviceButtons}>
+                                    {(service.paymentType === "QUOTE" || Number(service.price) === 0) && (
+                                      <a
+                                        href={getServiceQuoteWhatsAppUrl(service) || "#"}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`${b.button} ${b.small} ${b.outline}`}
+                                        style={{
+                                          borderColor: "#25D366",
+                                          color: "#25D366",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          textDecoration: "none",
+                                        }}
+                                        onClick={(e) => {
+                                          if (!getServiceQuoteWhatsAppUrl(service)) {
+                                            e.preventDefault();
+                                            alert("Número de WhatsApp não configurado.");
+                                          }
+                                        }}
+                                        title="Pedir orçamento direto no WhatsApp"
+                                      >
+                                        <WhatsAppIcon size={13} />
+                                        <span>Orçamento</span>
+                                      </a>
+                                    )}
+
                                     {!chosen && (
                                       <button
                                         type="button"
