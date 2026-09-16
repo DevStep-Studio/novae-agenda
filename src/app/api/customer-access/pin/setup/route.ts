@@ -11,6 +11,7 @@ const pinSetupSchema = z.object({
   pin: z.string().length(6, "O PIN deve conter exatamente 6 números."),
   confirmPin: z.string().length(6, "Confirme o PIN com 6 números."),
   phone: z.string().optional(),
+  customerId: z.string().uuid().optional(),
   bookingId: z.string().uuid().optional(),
   otpToken: z.string().optional(),
 });
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       pin: parsed.data.pin,
       confirmPin: parsed.data.confirmPin,
       bookingId: parsed.data.bookingId,
+      customerId: parsed.data.customerId,
       otpToken: parsed.data.otpToken,
       authenticatedUserId: currentSessionUser?.id,
       ipAddress: ip,

@@ -258,6 +258,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             pin: changePin,
             confirmPin: confirmChangePin,
             phone: customer?.phone || undefined,
+            customerId: customer?.id || undefined,
           }),
         },
       );
@@ -294,6 +295,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           pin: newPin,
           confirmPin: confirmNewPin,
           phone: customer?.phone || undefined,
+          customerId: customer?.id || undefined,
         }),
       });
       setCustomer(result.customer);

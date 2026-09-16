@@ -674,6 +674,7 @@ export class CustomerAccessService {
     confirmPin: string;
     bookingId?: string;
     otpToken?: string;
+    customerId?: string;
     authenticatedUserId?: string;
     ipAddress?: string;
     userAgent?: string;
@@ -703,14 +704,15 @@ export class CustomerAccessService {
     let credential: typeof customerCredentials.$inferSelect | null = null;
     const normalized = params.phone ? normalizePhoneDigits(params.phone) : "";
 
-    // 1. Verificação via sessão autenticada ativa (APENAS se for cliente)
-    if (params.authenticatedUserId) {
+    // 1. Verificação via sessão autenticada ativa ou ID do cliente identificado
+    const targetUserId = params.authenticatedUserId || params.customerId;
+    if (targetUserId) {
       const [sessionUser] = await db
         .select()
         .from(users)
-        .where(eq(users.id, params.authenticatedUserId))
+        .where(eq(users.id, targetUserId))
         .limit(1);
-      if (sessionUser && (sessionUser.role === "customer" || sessionUser.role === "client")) {
+      if (sessionUser) {
         user = sessionUser;
         identityVerified = true;
       }
