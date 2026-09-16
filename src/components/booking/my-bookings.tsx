@@ -63,6 +63,11 @@ export function MyBookings({
     [selected, setSelected] = useState(""),
     [confirmed, setConfirmed] = useState(false),
     [action, setAction] = useState<"cancel" | "reschedule" | null>(null),
+    [cancelTarget, setCancelTarget] = useState<Detail | null>(null),
+    [lateNotice, setLateNotice] = useState<{
+      booking: Detail;
+      type: "cancel" | "reschedule";
+    } | null>(null),
     [catalog, setCatalog] = useState<PublicCatalog | null>(null),
     [date, setDate] = useState(""),
     [slot, setSlot] = useState<AvailableSlot | null>(null),
@@ -126,6 +131,42 @@ export function MyBookings({
   }, []);
   useEffect(() => { setTab(initialTab); }, [initialTab]);
   const current = rows.find((r) => r.id === selected);
+
+  async function confirmCancel(target: Detail) {
+    if (!target) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api(`/api/my/bookings/${target.id}/cancel`, {
+        method: "POST",
+      });
+      setCancelTarget(null);
+      setAction(null);
+      setMessage("Agendamento desmarcado com sucesso.");
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function handleCancel(booking: Detail) {
+    if (booking.canChange) {
+      setCancelTarget(booking);
+    } else {
+      setLateNotice({ booking, type: "cancel" });
+    }
+  }
+
+  function handleReschedule(booking: Detail) {
+    if (booking.canChange) {
+      void reschedule(booking);
+    } else {
+      setLateNotice({ booking, type: "reschedule" });
+    }
+  }
+
   async function change() {
     if (!current || !action) return;
     setBusy(true);
@@ -138,8 +179,8 @@ export function MyBookings({
       setAction(null);
       setMessage(
         action === "cancel"
-          ? "Agendamento cancelado."
-          : "Seu horário foi atualizado.",
+          ? "Agendamento desmarcado com sucesso."
+          : "Seu horário foi atualizado com sucesso.",
       );
       await load();
     } catch (e) {
@@ -177,7 +218,8 @@ export function MyBookings({
     if (!requested) return;
     q.delete("action");
     window.history.replaceState({}, "", `${window.location.pathname}?${q}`);
-    if (requested === "reschedule" && current.canChange) void reschedule(current);
+    if (requested === "reschedule") handleReschedule(current);
+    if (requested === "cancel") handleCancel(current);
     if (requested === "repeat") repeat(current);
     // The URL action is consumed once and removed before these functions mutate state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -222,6 +264,8 @@ export function MyBookings({
     );
   }
 
+  const isCurrentActive = current && current.status !== "cancelled" && current.status !== "completed" && current.status !== "no_show" && new Date(current.endsAt) >= new Date();
+
   const content = (
       <Content className={`${b.main} ${current ? b.success : ""} ${user && !current ? b.bookingsPage : ""}`}>
         {error &&
@@ -235,6 +279,137 @@ export function MyBookings({
             {message}
           </div>
         )}
+
+        {/* Modal de Cancelamento Online */}
+        {cancelTarget && (
+          <div className={b.modalBackdrop} onClick={() => !busy && setCancelTarget(null)}>
+            <div className={b.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Confirmar cancelamento">
+              <div className={b.modalHeader}>
+                <div className={b.modalIconDanger}>
+                  <AlertCircle size={28} />
+                </div>
+                <h2 className={b.modalTitle}>Desmarcar agendamento?</h2>
+                <p className={b.modalSubtitle}>
+                  O horário será liberado imediatamente no sistema para outras pessoas.
+                </p>
+              </div>
+
+              <div className={b.modalSummaryBox}>
+                <div className={b.modalSummaryRow}>
+                  <span>Serviço</span>
+                  <strong>{cancelTarget.items.map((i) => i.name).join(" + ")}</strong>
+                </div>
+                <div className={b.modalSummaryRow}>
+                  <span>Estabelecimento</span>
+                  <strong>{cancelTarget.company.name}</strong>
+                </div>
+                <div className={b.modalSummaryRow}>
+                  <span>Data e horário</span>
+                  <strong>
+                    {dateLabel(cancelTarget.items[0]?.date ?? cancelTarget.startsAt.slice(0, 10))} · {cancelTarget.items[0]?.startTime.slice(0, 5)}
+                  </strong>
+                </div>
+                {cancelTarget.items[0]?.employeeName && (
+                  <div className={b.modalSummaryRow}>
+                    <span>Profissional</span>
+                    <strong>{cancelTarget.items[0].employeeName}</strong>
+                  </div>
+                )}
+                <div className={b.modalSummaryRow}>
+                  <span>Valor total</span>
+                  <strong style={{ color: "var(--accent)" }}>{money(cancelTarget.total)}</strong>
+                </div>
+              </div>
+
+              <div className={b.modalActions}>
+                <button
+                  type="button"
+                  className={`${b.button} ${b.cancelButtonDanger}`}
+                  disabled={busy}
+                  onClick={() => confirmCancel(cancelTarget)}
+                >
+                  {busy ? "Desmarcando…" : "Sim, confirmar desmarcação"}
+                </button>
+                <button
+                  type="button"
+                  className={`${b.button} ${b.outline}`}
+                  disabled={busy}
+                  onClick={() => setCancelTarget(null)}
+                >
+                  Não, manter meu agendamento
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Aviso de Prazo / Contato WhatsApp */}
+        {lateNotice && (
+          <div className={b.modalBackdrop} onClick={() => setLateNotice(null)}>
+            <div className={b.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Aviso de cancelamento">
+              <div className={b.modalHeader}>
+                <div className={b.modalIconWarning}>
+                  <AlertCircle size={28} />
+                </div>
+                <h2 className={b.modalTitle}>
+                  {lateNotice.type === "cancel" ? "Desmarcar agendamento" : "Remarcar agendamento"}
+                </h2>
+                <p className={b.modalSubtitle}>
+                  Alterações fora do prazo padrão online
+                </p>
+              </div>
+
+              <div className={b.modalNoticeText}>
+                <p>
+                  A política de alterações online de <strong>{lateNotice.booking.company.name}</strong> permite {lateNotice.type === "cancel" ? "desmarcar" : "remarcar"} até <strong>{lateNotice.booking.company.cancellationHours} horas</strong> antes do horário.
+                </p>
+                <p>
+                  Como seu horário está próximo (<strong>{dateLabel(lateNotice.booking.items[0]?.date ?? lateNotice.booking.startsAt.slice(0, 10))} às {lateNotice.booking.items[0]?.startTime.slice(0, 5)}</strong>), solicite a alteração diretamente com a equipe.
+                </p>
+              </div>
+
+              <div className={b.modalSummaryBox}>
+                <div className={b.modalSummaryRow}>
+                  <span>Serviço</span>
+                  <strong>{lateNotice.booking.items.map((i) => i.name).join(" + ")}</strong>
+                </div>
+                <div className={b.modalSummaryRow}>
+                  <span>Estabelecimento</span>
+                  <strong>{lateNotice.booking.company.name}</strong>
+                </div>
+              </div>
+
+              <div className={b.modalActions}>
+                {lateNotice.booking.company.phone && (
+                  <a
+                    className={`${b.button} ${b.whatsappBtn}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    href={`https://wa.me/${lateNotice.booking.company.phone.replace(/\D/g, "").length <= 11 ? "55" : ""}${lateNotice.booking.company.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Gostaria de ${lateNotice.type === "cancel" ? "desmarcar" : "remarcar"} meu agendamento de "${lateNotice.booking.items.map((i) => i.name).join(" + ")}" agendado para ${dateLabel(lateNotice.booking.items[0]?.date ?? lateNotice.booking.startsAt.slice(0, 10))} às ${lateNotice.booking.items[0]?.startTime.slice(0, 5)}.`)}`}
+                  >
+                    <WhatsAppIcon size={16} /> Falar no WhatsApp
+                  </a>
+                )}
+                {lateNotice.booking.company.phone && (
+                  <a
+                    className={`${b.button} ${b.outline}`}
+                    href={`tel:${lateNotice.booking.company.phone.replace(/[^+\d]/g, "")}`}
+                  >
+                    <Phone size={15} /> Ligar para o estabelecimento
+                  </a>
+                )}
+                <button
+                  type="button"
+                  className={`${b.button} ${b.outline}`}
+                  onClick={() => setLateNotice(null)}
+                >
+                  Entendido, fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {!user ? (
           <div className={b.authContainer}>
             <div className={b.authHero}>
@@ -477,13 +652,13 @@ export function MyBookings({
                 <div className={b.cancelPromptIcon}>
                   <AlertCircle size={28} />
                 </div>
-                <h3>Cancelar este agendamento?</h3>
+                <h3>Desmarcar este agendamento?</h3>
                 <p>O horário será liberado imediatamente para outras pessoas no estabelecimento.</p>
                 <div className={b.cancelPromptActions}>
                   <button
                     className={`${b.button} ${b.cancelButtonDanger}`}
                     disabled={busy}
-                    onClick={change}
+                    onClick={() => confirmCancel(current)}
                   >
                     {busy ? "Cancelando…" : "Sim, confirmar cancelamento"}
                   </button>
@@ -497,6 +672,25 @@ export function MyBookings({
               </div>
             ) : (
               <div className={b.detailActionsGroup}>
+                {isCurrentActive && (
+                  <div className={b.detailActionRow}>
+                    <button
+                      className={`${b.button} ${b.outline}`}
+                      disabled={busy}
+                      onClick={() => handleReschedule(current)}
+                    >
+                      <RotateCcw size={15} /> Remarcar horário
+                    </button>
+                    <button
+                      className={`${b.button} ${b.cancelOutlineBtn}`}
+                      disabled={busy}
+                      onClick={() => handleCancel(current)}
+                    >
+                      Desmarcar agendamento
+                    </button>
+                  </div>
+                )}
+
                 <div className={b.detailActionRow}>
                   <a
                     className={`${b.button} ${b.calendarPrimaryBtn}`}
@@ -548,28 +742,10 @@ export function MyBookings({
                     <p>
                       {current.company.cancellationHours < 0
                         ? "Cancelamento e remarcação diretamente com o estabelecimento."
-                        : `Você pode cancelar ou remarcar seu atendimento gratuitamente até ${current.company.cancellationHours} horas antes do horário reservado.`}
+                        : `Você pode cancelar ou remarcar seu atendimento gratuitamente online até ${current.company.cancellationHours} horas antes do horário reservado.`}
                     </p>
                   </div>
                 </div>
-
-                {current.canChange && (
-                  <div className={b.detailActionRow}>
-                    <button
-                      className={`${b.button} ${b.outline}`}
-                      disabled={busy}
-                      onClick={() => reschedule()}
-                    >
-                      <RotateCcw size={15} /> Remarcar horário
-                    </button>
-                    <button
-                      className={`${b.button} ${b.cancelOutlineBtn}`}
-                      onClick={() => setAction("cancel")}
-                    >
-                      Cancelar agendamento
-                    </button>
-                  </div>
-                )}
 
                 <div className={b.detailActionRow}>
                   {current.status === "completed" && (
@@ -697,6 +873,7 @@ export function MyBookings({
                   const featured = tab === "Próximos" && index === 0;
                   const isUsed = tab === "Anteriores";
                   const isCancelled = tab === "Cancelados";
+                  const isUpcoming = r.status !== "cancelled" && r.status !== "completed" && r.status !== "no_show" && new Date(r.endsAt) >= new Date();
                   const firstItem = r.items[0];
                   const bookingDate = firstItem?.date ?? r.startsAt.slice(0,10);
                   const dateParts = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).formatToParts(new Date(`${bookingDate}T12:00:00Z`));
@@ -736,10 +913,29 @@ export function MyBookings({
                         <div className={b.bookingCardFooter}>
                           <Price amount={r.total} className={b.bookingCardPrice} />
                           <div className={b.bookingPrimaryActions}>
-                            <button className={`${b.button} ${b.outline}`} onClick={() => setSelected(r.id)}>Ver detalhes</button>
-                            {r.canChange && <button className={b.textButton} disabled={busy} onClick={() => reschedule(r)}>Remarcar</button>}
-                            {r.canChange && <button className={b.textButton} onClick={() => { setSelected(r.id); setAction("cancel"); }}>Cancelar</button>}
-                            {r.status === "completed" && <button className={b.button} onClick={() => repeat(r)}><RotateCcw size={15} /> Agendar novamente</button>}
+                            <button className={`${b.button} ${b.outline} ${b.small}`} onClick={() => setSelected(r.id)}>Ver detalhes</button>
+                            {isUpcoming && (
+                              <button
+                                className={`${b.button} ${b.outline} ${b.small}`}
+                                disabled={busy}
+                                onClick={() => handleReschedule(r)}
+                                title="Remarcar para outra data ou horário"
+                              >
+                                <RotateCcw size={13} />
+                                Remarcar
+                              </button>
+                            )}
+                            {isUpcoming && (
+                              <button
+                                className={`${b.button} ${b.cancelOutlineBtn} ${b.small}`}
+                                disabled={busy}
+                                onClick={() => handleCancel(r)}
+                                title="Desmarcar este agendamento"
+                              >
+                                Desmarcar
+                              </button>
+                            )}
+                            {r.status === "completed" && <button className={`${b.button} ${b.small}`} onClick={() => repeat(r)}><RotateCcw size={13} /> Agendar novamente</button>}
                           </div>
                         </div>
                         {featured && (
