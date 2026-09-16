@@ -32,6 +32,8 @@ export interface CheckoutPlan {
   annualPrice: number;
   employeeLimit: number;
   badge?: string | null;
+  popular?: boolean;
+  features?: string[];
   sortOrder?: number;
 }
 

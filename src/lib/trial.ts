@@ -25,6 +25,7 @@ export type TrialStatusSnapshot = {
 
 type BuildTrialStatusInput = {
   status: string;
+  plan?: string;
   startedAt: Date | string;
   endsAt: Date | string;
   serverNow: Date | string;
@@ -65,7 +66,7 @@ export function formatTrialCountdown(remainingSeconds: number): {
   };
 }
 
-export function buildTrialStatus({ status, startedAt, endsAt, serverNow }: BuildTrialStatusInput): TrialStatusSnapshot {
+export function buildTrialStatus({ status, plan, startedAt, endsAt, serverNow }: BuildTrialStatusInput): TrialStatusSnapshot {
   const start = asDate(startedAt);
   const end = asDate(endsAt);
   const now = asDate(serverNow);
@@ -74,7 +75,9 @@ export function buildTrialStatus({ status, startedAt, endsAt, serverNow }: Build
   const expired = now.getTime() >= end.getTime();
   const elapsedDays = Math.max(0, Math.floor((now.getTime() - start.getTime()) / TRIAL_DAY_MS));
   const currentDay = Math.min(TRIAL_DURATION_DAYS, elapsedDays + 1);
-  const trialIsActive = !expired && status !== "active" && !["cancelled", "suspended"].includes(status);
+  const isTrialStatus = status === "trialing";
+  const isTrialPlan = !plan || plan === "trial" || plan === "teste";
+  const trialIsActive = !expired && isTrialStatus && isTrialPlan;
   const countdown = formatTrialCountdown(remainingSeconds);
 
   return {

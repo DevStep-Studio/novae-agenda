@@ -54,9 +54,25 @@ test("trial expira exatamente no instante final e completa a timeline", () => {
   assert.ok(result.timeline.every((item) => item.state === "completed"));
 });
 
-test("assinatura ativa nunca exibe o card de trial", () => {
-  const result = buildTrialStatus({ status: "active", startedAt: start, endsAt: end, serverNow: start });
+test("assinatura ativa ou paga nunca exibe o card de trial", () => {
+  const activeResult = buildTrialStatus({ status: "active", startedAt: start, endsAt: end, serverNow: start });
+  assert.equal(activeResult.visible, false);
+
+  const paidResult = buildTrialStatus({ status: "paid", startedAt: start, endsAt: end, serverNow: start });
+  assert.equal(paidResult.visible, false);
+});
+
+test("plano pago mesmo com status trialing nunca exibe card de trial", () => {
+  const result = buildTrialStatus({ status: "trialing", plan: "profissional", startedAt: start, endsAt: end, serverNow: start });
   assert.equal(result.visible, false);
+});
+
+test("assinatura expirada ou past_due nunca exibe card de trial", () => {
+  const expiredResult = buildTrialStatus({ status: "expired", startedAt: start, endsAt: end, serverNow: start });
+  assert.equal(expiredResult.visible, false);
+
+  const pastDueResult = buildTrialStatus({ status: "past_due", startedAt: start, endsAt: end, serverNow: start });
+  assert.equal(pastDueResult.visible, false);
 });
 
 test("contador usa singular e aviso inferior a uma hora", () => {

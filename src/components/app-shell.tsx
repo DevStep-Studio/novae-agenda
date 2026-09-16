@@ -5455,16 +5455,24 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     setSidebarAvatarError(false);
   }, [userAvatar]);
 
-  useEffect(() => {
+  const checkSubscription = useCallback(() => {
     api<{ subscription: { status: string; isEffectiveActive: boolean } }>("/api/subscriptions")
       .then((data) => {
         if (data.subscription?.status) {
           setSubEffectiveActive(data.subscription.isEffectiveActive);
-          if (!data.subscription.isEffectiveActive) setPaywallOpen(true);
+          if (!data.subscription.isEffectiveActive) {
+            setPaywallOpen(true);
+          } else {
+            setPaywallOpen(false);
+          }
         }
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    checkSubscription();
+  }, [checkSubscription]);
 
   useEffect(() => {
     applyTheme(theme);
@@ -6180,9 +6188,11 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 
       {paywallOpen && !subEffectiveActive && (
         <SubscriptionPaywallModal
-          onSelectPlan={() => {
+          onPaymentSuccess={() => {
+            setSubEffectiveActive(true);
             setPaywallOpen(false);
-            navigate("assinatura");
+            checkSubscription();
+            reloadAppointments();
           }}
           onLogout={() => void logout()}
         />

@@ -12,6 +12,7 @@ export async function GET() {
   const subscription = await getCompanySubscription(gate.auth.user.companyId, undefined, serverNow);
   const snapshot = buildTrialStatus({
     status: subscription.status,
+    plan: subscription.plan,
     startedAt: subscription.trialStartedAt,
     endsAt: subscription.trialEndsAt,
     serverNow,

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { companies, subscriptions, subscriptionInvoices } from "@/db/schema";
 import { DEFAULT_SAAS_PLANS } from "./saas/plans-seed";
@@ -251,43 +251,74 @@ export async function getCompanySubscription(
     };
   }
 
-  // Calculate effective status
+  // Check if there are any paid invoices for this company
+  const [paidInvoice] = await executor
+    .select()
+    .from(subscriptionInvoices)
+    .where(
+      and(
+        eq(subscriptionInvoices.companyId, companyId),
+        eq(subscriptionInvoices.status, "paid")
+      )
+    )
+    .orderBy(desc(subscriptionInvoices.paidAt), desc(subscriptionInvoices.createdAt))
+    .limit(1);
+
+  // Normalize status
+  const rawStatus = (existing.status || "trialing").toLowerCase().trim();
+  const isPaidOrActiveRaw = ["active", "paid", "approved", "pago"].includes(rawStatus) || Boolean(paidInvoice);
+  const isPaidPlan = Boolean(existing.plan && existing.plan !== "trial" && existing.plan !== "teste");
+
   let effectiveStatus: SubscriptionStatus = existing.status as SubscriptionStatus;
   let isEffectiveActive = false;
   const trialStartedAt = existing.trialStartedAt
     ?? new Date(existing.trialEndsAt.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  if (existing.status === "trialing") {
+  if (isPaidOrActiveRaw) {
+    if (existing.currentPeriodEnd && existing.currentPeriodEnd.getTime() <= now.getTime()) {
+      effectiveStatus = "past_due";
+      isEffectiveActive = false;
+    } else {
+      effectiveStatus = "active";
+      isEffectiveActive = true;
+    }
+  } else if (rawStatus === "trialing") {
     if (existing.trialEndsAt.getTime() <= now.getTime()) {
       effectiveStatus = "expired";
+      isEffectiveActive = false;
       await executor
         .update(subscriptions)
         .set({ status: "expired", updatedAt: now })
         .where(eq(subscriptions.id, existing.id));
     } else {
+      effectiveStatus = "trialing";
       isEffectiveActive = true;
     }
-  } else if (existing.status === "active") {
-    if (existing.currentPeriodEnd && existing.currentPeriodEnd.getTime() <= now.getTime()) {
-      effectiveStatus = "past_due";
-    } else {
-      isEffectiveActive = true;
-    }
-  } else if (["pending", "payment_failed"].includes(existing.status) && existing.trialEndsAt.getTime() > now.getTime()) {
+  } else if (["pending", "payment_failed"].includes(rawStatus) && existing.trialEndsAt.getTime() > now.getTime() && !isPaidPlan) {
     // A cobrança pode estar pendente sem encerrar antecipadamente um trial ainda válido.
+    effectiveStatus = "trialing";
     isEffectiveActive = true;
+  } else {
+    effectiveStatus = (["past_due", "cancelled", "expired", "suspended"].includes(rawStatus) ? rawStatus : "expired") as SubscriptionStatus;
+    isEffectiveActive = false;
   }
 
   const targetDate =
-    effectiveStatus === "trialing" || (isEffectiveActive && existing.status !== "active")
+    effectiveStatus === "trialing"
       ? existing.trialEndsAt
       : (existing.currentPeriodEnd ?? existing.trialEndsAt);
-  const diffDays = Math.max(0, Math.ceil((new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+  const diffDays = isEffectiveActive
+    ? Math.max(0, Math.ceil((new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  const resolvedPlan = isPaidOrActiveRaw && (existing.plan === "trial" || !existing.plan)
+    ? (paidInvoice?.planSlug ?? "profissional")
+    : (existing.plan ?? "profissional");
 
   return {
     id: existing.id,
     companyId: existing.companyId,
-    plan: existing.plan ?? "profissional",
+    plan: resolvedPlan,
     status: effectiveStatus,
     trialStartedAt: trialStartedAt.toISOString(),
     trialEndsAt: existing.trialEndsAt.toISOString(),
