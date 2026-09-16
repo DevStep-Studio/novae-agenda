@@ -39,6 +39,7 @@ import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api, ApiError } from "@/lib/api-client";
 import { useOptionalStore } from "@/store/store";
 import { MyBookings } from "@/components/booking/my-bookings";
+import { ClientNoticeModal } from "@/components/booking/client-notice-modal";
 import type { BookingDetails } from "@/lib/booking/service";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { STATUS_LABELS } from "@/lib/client-utils";
@@ -1353,6 +1354,8 @@ export function ClientPortal({
           }}
         />
       )}
+
+      <ClientNoticeModal />
     </div>
   );
 }

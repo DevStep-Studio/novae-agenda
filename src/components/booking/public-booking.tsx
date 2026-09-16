@@ -51,6 +51,7 @@ import {
   PublicFrame,
 } from "./primitives";
 import { MonthSchedulerModal } from "@/components/membership/month-scheduler-modal";
+import { ClientNoticeModal } from "./client-notice-modal";
 import {
   MembershipPlanCard,
   ActiveMembershipBanner,
@@ -2455,6 +2456,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           </div>
         )}
       </main>
+      <ClientNoticeModal />
     </PublicFrame>
   );
 }

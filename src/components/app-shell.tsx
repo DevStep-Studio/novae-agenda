@@ -5372,15 +5372,27 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, services, clients } = useStore();
   const shareUrl = `https://wa.me/${formatPhoneForWhatsApp(appointment.clientPhone)}?text=${encodeURIComponent(`Olá, ${appointment.clientName}! Seu atendimento de ${appointment.serviceName} com ${appointment.employeeName} está confirmado para ${shortDate(appointment.date)} às ${normalizeTime(appointment.startTime)}.`)}`;
 
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+
   const confirm = async () => {
     try { await updateAppointmentStatus(appointment.id, "confirmed"); notify("Atendimento confirmado."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
   };
   const start = async () => {
     try { await updateAppointmentStatus(appointment.id, "in_progress"); notify("Atendimento iniciado."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
   };
-  const cancel = async () => {
-    if (!window.confirm("Cancelar este atendimento?")) return;
-    try { await updateAppointmentStatus(appointment.id, "cancelled"); notify("Atendimento cancelado."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
+  const doCancel = async () => {
+    setCancelling(true);
+    try {
+      await updateAppointmentStatus(appointment.id, "cancelled", cancelReason);
+      notify("Atendimento cancelado e cliente notificado.");
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao cancelar.", "error");
+    } finally {
+      setCancelling(false);
+    }
   };
   const arrived = async () => {
     try { await updateAppointmentStatus(appointment.id, "waiting"); notify("Cliente marcado como aguardando."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
@@ -5399,6 +5411,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   const [newDate, setNewDate] = useState(appointment.date);
   const [newTime, setNewTime] = useState(normalizeTime(appointment.startTime));
   const [newEmployee, setNewEmployee] = useState(appointment.employeeId);
+  const [rescheduleReason, setRescheduleReason] = useState("");
   const [rescheduleSlots, setRescheduleSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
   const [activeTab, setActiveTab] = useState<"finish" | "reschedule">("finish");
 
@@ -5436,8 +5449,13 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
   const doReschedule = async () => {
     setRescheduling(true);
     try {
-      await rescheduleAppointment(appointment.id, { date: newDate, startTime: newTime, employeeId: newEmployee });
-      notify("Atendimento reagendado com sucesso.");
+      await rescheduleAppointment(appointment.id, {
+        date: newDate,
+        startTime: newTime,
+        employeeId: newEmployee,
+        reason: rescheduleReason,
+      });
+      notify("Atendimento reagendado e cliente notificado.");
       onClose();
     } catch (e) {
       notify(e instanceof ApiError ? e.message : "Não foi possível reagendar.", "error");
@@ -5574,7 +5592,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
                   <CircleAlert size={14} /> Não compareceu
                 </Button>
               )}
-              <button type="button" className="btn-action-danger" onClick={cancel}>
+              <button type="button" className="btn-action-danger" onClick={() => setCancelModalOpen(true)}>
                 <X size={14} /> Cancelar agendamento
               </button>
             </div>
@@ -5688,6 +5706,14 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
                         </div>
                       )}
                     </Field>
+                    <Field label="Motivo da alteração (opcional, exibido ao cliente)" className="field-full">
+                      <input
+                        className="input"
+                        value={rescheduleReason}
+                        onChange={(e) => setRescheduleReason(e.target.value)}
+                        placeholder="Ex.: Ajuste de horário / Readequação de escala"
+                      />
+                    </Field>
                   </div>
                   <div className="detail-finish-action-bar">
                     <Button variant="secondary" onClick={doReschedule} disabled={rescheduling} className="detail-submit-primary">
@@ -5716,6 +5742,69 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
           </a>
         )}
       </div>
+
+      {cancelModalOpen && (
+        <Modal title="Cancelar atendimento" eyebrow={appointment.clientName} onClose={() => setCancelModalOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "8px 0" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "12px", padding: "14px" }}>
+              <CircleAlert size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: "2px" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <strong style={{ fontSize: "14px", color: "var(--text-primary)" }}>Confirmar cancelamento do horário?</strong>
+                <span style={{ fontSize: "12.5px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                  O cliente receberá uma notificação em pop-up na tela dele informando que o estabelecimento cancelou o atendimento.
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>Sugestões de motivo:</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {["Imprevisto no estabelecimento", "Readequação de agenda", "Solicitado pelo cliente", "Profissional indisponível"].map((suggestion) => (
+                  <button
+                    type="button"
+                    key={suggestion}
+                    onClick={() => setCancelReason(suggestion)}
+                    style={{
+                      background: cancelReason === suggestion ? "var(--primary-soft, #eff6ff)" : "var(--surface-secondary)",
+                      border: cancelReason === suggestion ? "1px solid var(--primary, #2563eb)" : "1px solid var(--border)",
+                      color: cancelReason === suggestion ? "var(--primary, #2563eb)" : "var(--text-secondary)",
+                      borderRadius: "8px",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      fontWeight: cancelReason === suggestion ? 700 : 500,
+                    }}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Field label="Motivo do cancelamento (opcional, será exibido ao cliente)">
+              <input
+                className="input"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Ex.: Imprevisto no estabelecimento / Solicitado pelo cliente"
+              />
+            </Field>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+              <Button variant="ghost" onClick={() => setCancelModalOpen(false)}>Voltar</Button>
+              <button
+                type="button"
+                className="btn-action-danger"
+                onClick={doCancel}
+                disabled={cancelling}
+                style={{ height: "38px", padding: "0 16px", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 700 }}
+              >
+                {cancelling ? "Cancelando..." : "Confirmar cancelamento"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Modal>
   );
 }

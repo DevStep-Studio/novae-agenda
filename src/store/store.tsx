@@ -63,8 +63,8 @@ type Store = DataState & {
   updateEmployee: (id: string, input: { name?: string; jobTitle?: string | null; phone?: string | null; active?: boolean; commissionType?: "none" | "percentage" | "fixed"; commissionValue?: number; photoUrl?: string | null; bannerUrl?: string | null; serviceIds?: string[] }) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
   createAppointment: (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string; allowConflict?: boolean }) => Promise<void>;
-  updateAppointmentStatus: (id: string, status: AppointmentStatus) => Promise<void>;
-  rescheduleAppointment: (id: string, input: { date: string; startTime: string; employeeId?: string }) => Promise<void>;
+  updateAppointmentStatus: (id: string, status: AppointmentStatus, reason?: string) => Promise<void>;
+  rescheduleAppointment: (id: string, input: { date: string; startTime: string; employeeId?: string; reason?: string }) => Promise<void>;
   finishAppointment: (id: string, amount: number, method: PaymentMethod, discount?: number) => Promise<void>;
   createBlock: (input: { employeeId?: string | null; locationId?: string | null; date: string; endDate?: string; startsAt?: string; endsAt?: string; allDay?: boolean; reason: string }) => Promise<void>;
   deleteBlock: (id: string) => Promise<void>;
@@ -289,12 +289,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await Promise.all([reloadAppointments(), reloadStats(), reloadClients(), reloadNotifications()]);
   }, [reloadAppointments, reloadStats, reloadClients, reloadNotifications]);
 
-  const updateAppointmentStatus = useCallback(async (id: string, status: AppointmentStatus) => {
-    await api(`/api/appointments/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+  const updateAppointmentStatus = useCallback(async (id: string, status: AppointmentStatus, reason?: string) => {
+    await api(`/api/appointments/${id}`, { method: "PATCH", body: JSON.stringify({ status, reason }) });
     await Promise.all([reloadAppointments(), reloadStats(), reloadNotifications()]);
   }, [reloadAppointments, reloadStats, reloadNotifications]);
 
-  const rescheduleAppointment = useCallback(async (id: string, input: { date: string; startTime: string; employeeId?: string }) => {
+  const rescheduleAppointment = useCallback(async (id: string, input: { date: string; startTime: string; employeeId?: string; reason?: string }) => {
     await api(`/api/appointments/${id}`, { method: "PUT", body: JSON.stringify(input) });
     await reloadAppointments();
   }, [reloadAppointments]);

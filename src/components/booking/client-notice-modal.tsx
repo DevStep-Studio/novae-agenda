@@ -14,8 +14,8 @@ import {
   MessageSquare,
   X,
 } from "lucide-react";
-import { WhatsAppIcon } from "@/components/icons";
-import { formatPhoneForWhatsApp } from "@/lib/domain";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { formatPhoneForWhatsApp } from "@/lib/api-client";
 import type { ClientNoticeDTO } from "@/shared/types";
 
 function shortDate(dateStr?: string): string {

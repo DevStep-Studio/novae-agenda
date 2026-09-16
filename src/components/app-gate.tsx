@@ -111,6 +111,7 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
           await reloadSession();
           setNeedsOnboarding(false);
         }}
+        onLogout={logout}
       />
     );
   }
