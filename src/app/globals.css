@@ -4720,6 +4720,24 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   margin-top: 6px;
 }
 
+/* ===== Employee Schedule Banner ===== */
+.employee-schedule-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  margin: 12px 24px 6px;
+  background: var(--surface-secondary, #181818);
+  border: 1px solid var(--border, #262626);
+  border-radius: 12px;
+}
+:root:not([data-theme="dark"]) .employee-schedule-banner {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
 /* ===== Client Photo Field Card ===== */
 .client-photo-field {
   display: flex;

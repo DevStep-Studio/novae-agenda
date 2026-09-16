@@ -61,7 +61,7 @@ const createSchema = z.object({
   bufferMinutes: z.number().int().min(0).max(180).default(0),
   imageUrl: safeImageUrl.optional().nullable(),
   deliveryMode: z.enum(["IN_PERSON","ONLINE"]).default("IN_PERSON"),
-  paymentType: z.enum(["PAY_LATER","FULL_PAYMENT","DEPOSIT"]).default("PAY_LATER"),
+  paymentType: z.enum(["PAY_LATER","QUOTE","FULL_PAYMENT","DEPOSIT"]).default("PAY_LATER"),
   depositAmount: z.number().min(0).default(0),
   cancellationPolicy: z.string().max(1000).optional(),
 });
@@ -91,7 +91,9 @@ export async function POST(request: Request) {
   let created: any;
   try {
     created = await db.transaction(async tx => {
-      if (parsed.data.depositAmount > price) throw new BookingError("O sinal não pode exceder o preço.");
+      if (parsed.data.paymentType !== "QUOTE" && parsed.data.depositAmount > price) {
+        throw new BookingError("O sinal não pode exceder o preço.");
+      }
       const employeeIds = [...new Set(parsed.data.employeeIds ?? [])];
       const team = employeeIds.length ? await tx.select().from(employees).where(and(eq(employees.companyId, auth.user.companyId), inArray(employees.id, employeeIds))) : [];
       if (team.length !== employeeIds.length) throw new BookingError("Profissional inválido.");
@@ -100,6 +102,10 @@ export async function POST(request: Request) {
       if (parsed.data.imageUrl) {
         savedImageUrl = await saveServiceImage(parsed.data.imageUrl);
       }
+
+      const isQuote = parsed.data.paymentType === "QUOTE";
+      const finalPrice = isQuote ? "0.00" : price.toFixed(2);
+      const finalDeposit = isQuote ? "0.00" : parsed.data.depositAmount.toFixed(2);
 
       const serviceId = crypto.randomUUID();
       await tx
@@ -110,7 +116,7 @@ export async function POST(request: Request) {
           name: name.trim(),
           categoryId: validCategoryId,
           description: description?.trim() || null,
-          price: price.toFixed(2),
+          price: finalPrice,
           durationMinutes,
           color: color || null,
           active: true,
@@ -118,7 +124,7 @@ export async function POST(request: Request) {
           imageUrl: savedImageUrl,
           deliveryMode: parsed.data.deliveryMode,
           paymentType: parsed.data.paymentType,
-          depositAmount: parsed.data.depositAmount.toFixed(2),
+          depositAmount: finalDeposit,
           cancellationPolicy: parsed.data.cancellationPolicy || null,
         });
 

@@ -24,7 +24,7 @@ const updateSchema = z.object({
   bufferMinutes: z.number().int().min(0).max(180).optional(),
   imageUrl: safeImageUrl.optional().nullable(),
   deliveryMode: z.enum(["IN_PERSON","ONLINE"]).optional(),
-  paymentType: z.enum(["PAY_LATER","FULL_PAYMENT","DEPOSIT"]).optional(),
+  paymentType: z.enum(["PAY_LATER","QUOTE","FULL_PAYMENT","DEPOSIT"]).optional(),
   depositAmount: z.number().min(0).optional(),
   cancellationPolicy: z.string().max(1000).optional(),
 });
@@ -53,7 +53,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (data.categoryId !== undefined) patch.categoryId = data.categoryId;
 
   for (const key of ["bufferMinutes","deliveryMode","paymentType","cancellationPolicy"] as const) if (data[key] !== undefined) patch[key] = data[key];
-  if (data.depositAmount !== undefined) patch.depositAmount = data.depositAmount.toFixed(2);
+  if (data.paymentType === "QUOTE") {
+    patch.depositAmount = "0.00";
+    patch.price = "0.00";
+  } else if (data.depositAmount !== undefined) {
+    patch.depositAmount = data.depositAmount.toFixed(2);
+  }
   let updated;
   try {
     updated = await db.transaction(async tx => {
@@ -69,7 +74,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           patch.imageUrl = null;
         }
       }
-      if ((data.depositAmount ?? Number(existing.depositAmount)) > (data.price ?? Number(existing.price))) throw new BookingError("O sinal não pode exceder o preço.");
+      const isQuoteMode = data.paymentType === "QUOTE" || (data.paymentType === undefined && existing.paymentType === "QUOTE");
+      if (!isQuoteMode && (data.depositAmount ?? Number(existing.depositAmount)) > (data.price ?? Number(existing.price))) {
+        throw new BookingError("O sinal não pode exceder o preço.");
+      }
       if (data.categoryId) {
         const [category] = await tx.select().from(serviceCategories).where(and(eq(serviceCategories.id, data.categoryId), eq(serviceCategories.companyId, auth.user.companyId)));
         if (!category) throw new BookingError("Categoria inválida.");

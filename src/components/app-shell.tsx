@@ -4741,7 +4741,7 @@ function EditEmployeeModal({
         </div>
 
         {/* Schedule shortcut banner */}
-        <div style={{ padding: "12px 16px", borderRadius: "10px", background: "var(--surface-secondary)", border: "1px solid var(--border)", marginBottom: "18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+        <div className="employee-schedule-banner">
           <div>
             <strong style={{ display: "block", fontSize: "13.5px", marginBottom: "2px" }}>
               Horários e dias de atendimento
@@ -5023,7 +5023,7 @@ function EmployeeScheduleModal({
   return (
     <Modal title={`Horários de atendimento · ${employee.name}`} eyebrow="Jornada e Limite por Dia da Semana" icon={Clock} onClose={onClose} wide>
       <form onSubmit={submit}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px", padding: "18px 24px 0" }}>
           {error && (
             <div style={{ padding: "10px 14px", borderRadius: "8px", background: "rgba(239, 68, 68, 0.12)", color: "#ef4444", fontSize: "13px" }}>
               {error}

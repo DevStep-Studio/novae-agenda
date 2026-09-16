@@ -121,7 +121,7 @@ export async function loadAvailability(
     );
   if (defs.length !== selection.length)
     throw new BookingError("Um dos serviços não está mais disponível.");
-  if (defs.some((s) => s.paymentType !== "PAY_LATER"))
+  if (defs.some((s) => s.paymentType !== "PAY_LATER" && s.paymentType !== "QUOTE"))
     throw new BookingError(
       "Este serviço exige pagamento online, ainda indisponível.",
       422,

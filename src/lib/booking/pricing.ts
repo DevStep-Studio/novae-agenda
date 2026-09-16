@@ -36,7 +36,7 @@ export async function quoteBooking(
         eq(services.companyId, company.id),
         inArray(services.id, input.serviceIds),
         eq(services.active, true),
-        eq(services.paymentType, "PAY_LATER"),
+        inArray(services.paymentType, ["PAY_LATER", "QUOTE"]),
       ),
     );
   if (serviceRows.length !== input.serviceIds.length)
