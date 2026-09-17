@@ -265,6 +265,24 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
       fs.mkdirSync(servicosDir, { recursive: true });
       await page.screenshot({ path: path.join(servicosDir, `${device.slug}.png`), fullPage: true });
 
+      // 6. Open Page Builder 2.0 and verify it loads completely (no infinite loading spinner)
+      if (device.slug === "desktop-1440x900") {
+        await page.goto("/gestao/link-agendamento", { waitUntil: "domcontentloaded" });
+        await page.waitForTimeout(600);
+        const pageBuilderBtn = page.getByRole("button", { name: "Page Builder 2.0 (Visual)", exact: true });
+        await expect(pageBuilderBtn).toBeVisible();
+        await pageBuilderBtn.click();
+
+        // Must load past the loading spinner and render toolbar and exit button
+        const exitBtn = page.getByRole("button", { name: "Voltar" }).first();
+        await expect(exitBtn).toBeVisible({ timeout: 15000 });
+        await expect(page.getByText("Carregando Page Builder 2.0...")).toBeHidden();
+
+        // Exit Page Builder
+        await exitBtn.click();
+        await expect(pageBuilderBtn).toBeVisible();
+      }
+
       expect(pageErrors).toEqual([]);
     });
   }

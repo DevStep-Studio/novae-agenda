@@ -98,31 +98,27 @@ export function PageBuilderEditor({ onExit, onSaved }: PageBuilderEditorProps) {
   const loadDocument = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api<{
-        data: {
-          draftLayout: PageBuilderDocument;
-          publishedLayout: PageBuilderDocument | null;
-          status: "draft" | "published";
-          catalog?: any;
-        };
-      }>("/api/business/page-builder");
+      const res = await api<any>("/api/business/page-builder");
 
-      const initial = res.data.draftLayout || TEMPLATES[0].document;
+      // Support both raw data return and wrapped response safely
+      const payload = res?.draftLayout ? res : (res?.data ?? res);
+      const initial = payload?.draftLayout || TEMPLATES[0].document;
       setDoc(initial);
-      setStatus(res.data.status || "published");
+      setStatus(payload?.status || "published");
 
       // Auto-expand all sections in Layers tree
       const exp: Record<string, boolean> = {};
-      initial.sections?.forEach((s) => {
+      initial.sections?.forEach((s: any) => {
         exp[s.id] = true;
       });
       setExpandedSections(exp);
 
-      if (res.data.catalog) {
-        setCatalog(res.data.catalog);
+      if (payload?.catalog) {
+        setCatalog(payload.catalog);
       }
     } catch (err: any) {
       notify(err.message || "Erro ao carregar página de agendamento.", "error");
+      setDoc(TEMPLATES[0].document);
     } finally {
       setLoading(false);
     }
@@ -130,8 +126,9 @@ export function PageBuilderEditor({ onExit, onSaved }: PageBuilderEditorProps) {
 
   const loadRevisions = useCallback(async () => {
     try {
-      const res = await api<{ data: PageBuilderRevision[] }>("/api/business/page-builder/versions");
-      setRevisions(res.data || []);
+      const res = await api<any>("/api/business/page-builder/versions");
+      const list = Array.isArray(res) ? res : (res?.data ?? []);
+      setRevisions(list);
     } catch {}
   }, []);
 
@@ -354,22 +351,25 @@ export function PageBuilderEditor({ onExit, onSaved }: PageBuilderEditorProps) {
   const handleRestoreRevision = async (rev: PageBuilderRevision) => {
     if (!confirm(`Deseja restaurar a Versão ${rev.versionNumber}?`)) return;
     try {
-      const res = await api<{ data: { restoredDoc: PageBuilderDocument } }>(
+      const res = await api<any>(
         "/api/business/page-builder/versions",
         {
           method: "POST",
           body: JSON.stringify({ revisionId: rev.id }),
         },
       );
-      setDoc(res.data.restoredDoc);
-      setHasUnsavedChanges(true);
-      notify(`Versão ${rev.versionNumber} restaurada com sucesso!`, "success");
+      const payload = res?.restoredDoc ? res : (res?.data ?? res);
+      if (payload?.restoredDoc) {
+        setDoc(payload.restoredDoc);
+        setHasUnsavedChanges(true);
+        notify(`Versão ${rev.versionNumber} restaurada com sucesso!`, "success");
+      }
     } catch (err: any) {
       notify(err.message || "Erro ao restaurar versão.", "error");
     }
   };
 
-  if (loading || !doc) {
+  if (loading && !doc) {
     return (
       <div
         style={{
@@ -383,6 +383,48 @@ export function PageBuilderEditor({ onExit, onSaved }: PageBuilderEditorProps) {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
           <Sparkles size={32} color="#dcff4c" />
           <p style={{ fontWeight: 600 }}>Carregando Page Builder 2.0...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <div
+        style={{
+          display: "grid",
+          placeItems: "center",
+          height: "100vh",
+          backgroundColor: "#09090b",
+          color: "#fafafa",
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, maxWidth: 420 }}>
+          <Sparkles size={36} color="#dcff4c" />
+          <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Carregar Modelo Padrão</h2>
+          <p style={{ color: "#a1a1aa", fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+            Não foi possível recuperar o rascunho anterior. Você pode iniciar um novo modelo agora.
+          </p>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={loadDocument}
+              style={{ minHeight: 44, padding: "0 18px" }}
+            >
+              Tentar novamente
+            </button>
+            <button
+              type="button"
+              className="button"
+              onClick={() => setDoc(TEMPLATES[0].document)}
+              style={{ minHeight: 44, padding: "0 18px" }}
+            >
+              Usar Modelo Padrão
+            </button>
+          </div>
         </div>
       </div>
     );
