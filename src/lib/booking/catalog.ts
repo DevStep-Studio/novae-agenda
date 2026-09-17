@@ -115,6 +115,19 @@ export async function publicCompany(slug: string, executor: DbExecutor = db) {
 }
 export async function publicCatalog(slug: string) {
   const company = await publicCompany(slug);
+  // The Page Builder is optional for the public catalog. Keep older database
+  // deployments working while their `booking_pages` migration is applied;
+  // otherwise a missing optional table makes every public booking link return
+  // a 500, even though the core scheduling data is available.
+  const pageRowsQuery = db
+    .select()
+    .from(bookingPages)
+    .where(eq(bookingPages.companyId, company.id))
+    .limit(1)
+    .catch((error: unknown) => {
+      if (isMissingTable(error, "booking_pages")) return [];
+      throw error;
+    });
   const [
     serviceRows,
     team,
@@ -241,11 +254,7 @@ export async function publicCatalog(slug: string) {
           eq(employeeSchedules.active, true),
         ),
       ),
-    db
-      .select()
-      .from(bookingPages)
-      .where(eq(bookingPages.companyId, company.id))
-      .limit(1),
+    pageRowsQuery,
   ]);
   const pop = new Map(
     popularity.map((p) => [p.serviceId, Number(p.count)]),
@@ -335,4 +344,14 @@ export async function publicCatalog(slug: string) {
     today: localDate(new Date(), company.timezone || "America/Sao_Paulo"),
   };
 }
+
+function isMissingTable(error: unknown, tableName: string) {
+  if (!error || typeof error !== "object") return false;
+  const dbError = error as { code?: string; message?: string };
+  return (
+    dbError.code === "ER_NO_SUCH_TABLE" &&
+    dbError.message?.toLowerCase().includes(tableName.toLowerCase()) === true
+  );
+}
+
 export type PublicCatalog = Awaited<ReturnType<typeof publicCatalog>>;
