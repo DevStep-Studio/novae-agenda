@@ -52,6 +52,21 @@ type Detail = Omit<BookingDetails, "startsAt" | "endsAt"> & {
   startsAt: string;
   endsAt: string;
 };
+type MembershipBooking = {
+  appointmentId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  serviceName: string;
+  employeeName: string;
+  status: string;
+};
+type MembershipSummary = {
+  companySlug: string;
+  companyName: string;
+  membershipPlanName: string;
+  bookings: MembershipBooking[];
+};
 export function MyBookings({
   embedded = false,
   initialTab = "Próximos",
@@ -96,7 +111,51 @@ export function MyBookings({
   const [profileSuccess, setProfileSuccess] = useState("");
   const [profileBusy, setProfileBusy] = useState(false);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const [memberships, setMemberships] = useState<MembershipSummary[]>([]);
+  const [reschedulingAppt, setReschedulingAppt] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [membershipActionBusy, setMembershipActionBusy] = useState(false);
+  const [membershipActionError, setMembershipActionError] = useState("");
   const onReady = useCallback((u: Customer) => setUser(u), []);
+  const refreshMemberships = useCallback(() => {
+    setRows((cur) => [...cur]);
+  }, []);
+  const handleCancelMembershipAppt = async (appointmentId: string) => {
+    if (!window.confirm("Tem certeza que deseja cancelar este horário fixo?")) return;
+    setMembershipActionBusy(true);
+    setMembershipActionError("");
+    try {
+      await api(`/api/my/membership/appointments/${appointmentId}/cancel`, { method: "POST", body: JSON.stringify({}) });
+      refreshMemberships();
+    } catch (err: any) {
+      setMembershipActionError(err.message || "Erro ao cancelar horário fixo.");
+    } finally {
+      setMembershipActionBusy(false);
+    }
+  };
+  const handleRescheduleMembershipAppt = async (appointmentId: string) => {
+    if (!rescheduleDate || !rescheduleTime) {
+      setMembershipActionError("Escolha uma nova data e horário.");
+      return;
+    }
+    setMembershipActionBusy(true);
+    setMembershipActionError("");
+    try {
+      await api(`/api/my/membership/appointments/${appointmentId}/reschedule`, {
+        method: "POST",
+        body: JSON.stringify({ date: rescheduleDate, startTime: rescheduleTime }),
+      });
+      setReschedulingAppt(null);
+      setRescheduleDate("");
+      setRescheduleTime("");
+      refreshMemberships();
+    } catch (err: any) {
+      setMembershipActionError(err.message || "Erro ao remarcar horário fixo.");
+    } finally {
+      setMembershipActionBusy(false);
+    }
+  };
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -122,6 +181,35 @@ export function MyBookings({
   useEffect(() => {
     if (user) void load();
   }, [user, load]);
+  useEffect(() => {
+    if (!user || rows.length === 0) return;
+    const slugs = Array.from(new Set(rows.map((r) => r.company.slug).filter((s): s is string => Boolean(s))));
+    let active = true;
+    (async () => {
+      const results: MembershipSummary[] = [];
+      for (const slug of slugs) {
+        try {
+          const data = await api<{
+            membershipPlanName: string;
+            currentPeriod?: { bookings?: MembershipBooking[] } | null;
+          } | null>(`/api/my/membership?companySlug=${encodeURIComponent(slug)}`);
+          if (data) {
+            const row = rows.find((r) => r.company.slug === slug);
+            results.push({
+              companySlug: slug,
+              companyName: row?.company.name ?? slug,
+              membershipPlanName: data.membershipPlanName,
+              bookings: (data.currentPeriod?.bookings ?? []).filter((b) => b.status !== "cancelled"),
+            });
+          }
+        } catch {
+          // No active membership at this company — skip silently.
+        }
+      }
+      if (active) setMemberships(results);
+    })();
+    return () => { active = false; };
+  }, [user, rows]);
   useEffect(() => {
     if (initialUser) setUser(initialUser);
   }, [initialUser]);
@@ -1175,6 +1263,101 @@ export function MyBookings({
                 )}
               </div>
             </header>
+            {tab === "Próximos" && memberships.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+                {memberships.map((m) => (
+                  <div key={m.companySlug} className={b.detailCard}>
+                    <div className={b.rescheduleHeader}>
+                      <RotateCcw size={20} />
+                      <div>
+                        <h3>Meu horário fixo — {m.companyName}</h3>
+                        <p>Plano {m.membershipPlanName}. Remarque ou cancele suas sessões fixas com a antecedência mínima do plano.</p>
+                      </div>
+                    </div>
+                    {membershipActionError && (
+                      <p style={{ color: "var(--booking-danger)", fontSize: "12.5px", margin: "0 0 10px" }}>{membershipActionError}</p>
+                    )}
+                    {m.bookings.length === 0 ? (
+                      <p className={b.muted} style={{ fontSize: 13 }}>Nenhuma sessão fixa agendada neste período.</p>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {m.bookings.map((booking) => (
+                          <div key={booking.appointmentId} style={{ border: "1px solid var(--booking-border)", borderRadius: 10, padding: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                              <div>
+                                <strong style={{ fontSize: 13.5 }}>{dateLabel(booking.date)} às {booking.startTime}</strong>
+                                <p className={b.muted} style={{ margin: "2px 0 0", fontSize: 12 }}>
+                                  {booking.serviceName} com {booking.employeeName}
+                                </p>
+                              </div>
+                              {booking.status !== "cancelled" && (
+                                <div style={{ display: "flex", gap: 8 }}>
+                                  <button
+                                    type="button"
+                                    className={`${b.button} ${b.outline} ${b.small}`}
+                                    disabled={membershipActionBusy}
+                                    onClick={() => {
+                                      setReschedulingAppt(reschedulingAppt === booking.appointmentId ? null : booking.appointmentId);
+                                      setRescheduleDate(booking.date);
+                                      setRescheduleTime(booking.startTime);
+                                      setMembershipActionError("");
+                                    }}
+                                  >
+                                    Remarcar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${b.button} ${b.outline} ${b.small}`}
+                                    disabled={membershipActionBusy}
+                                    onClick={() => handleCancelMembershipAppt(booking.appointmentId)}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            {reschedulingAppt === booking.appointmentId && (
+                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+                                <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5 }}>
+                                  Nova data
+                                  <input
+                                    type="date"
+                                    className={b.input}
+                                    value={rescheduleDate}
+                                    min={new Date().toISOString().slice(0, 10)}
+                                    onChange={(e) => setRescheduleDate(e.target.value)}
+                                    style={{ minHeight: 44 }}
+                                  />
+                                </label>
+                                <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 11.5 }}>
+                                  Novo horário
+                                  <input
+                                    type="time"
+                                    className={b.input}
+                                    value={rescheduleTime}
+                                    onChange={(e) => setRescheduleTime(e.target.value)}
+                                    style={{ minHeight: 44 }}
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  className={`${b.button} ${b.small}`}
+                                  disabled={membershipActionBusy}
+                                  style={{ minHeight: 44 }}
+                                  onClick={() => handleRescheduleMembershipAppt(booking.appointmentId)}
+                                >
+                                  {membershipActionBusy ? "Salvando..." : "Confirmar"}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             <div className={b.bookingTabs} role="tablist" aria-label="Filtrar agendamentos">
               {(["Próximos", "Anteriores", "Cancelados"] as const).map((t) => {
                 const count = rows.filter((row) =>

@@ -114,11 +114,11 @@ export function EmployeeDashboard() {
       {/* Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.logoArea}>
-          {session?.company.logoUrl ? (
+          {session?.company?.logoUrl ? (
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <Image
                 src={session.company.logoUrl}
-                alt={session.company.name}
+                alt={session.company.name || "Empresa"}
                 width={36}
                 height={36}
                 unoptimized
@@ -214,7 +214,7 @@ export function EmployeeDashboard() {
         <div className={styles.contentBody}>
           {activeTab === "hoje" && (
             <>
-              {session?.company.bannerUrl && (
+              {session?.company?.bannerUrl && (
                 <div
                   style={{
                     position: "relative",
@@ -254,7 +254,7 @@ export function EmployeeDashboard() {
                   >
                     <div>
                       <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                        {session?.company.name}
+                        {session?.company?.name}
                       </span>
                       <h2 style={{ margin: "4px 0 0", fontSize: "19px", fontWeight: 700, color: "var(--text-primary)" }}>
                         Bom trabalho, {session?.name?.split(" ")[0]}!
@@ -263,10 +263,10 @@ export function EmployeeDashboard() {
                         {todayApts.length === 0 ? "Você não tem atendimentos agendados para hoje." : `Você tem ${todayApts.length} atendimento(s) agendado(s) para hoje.`}
                       </p>
                     </div>
-                    {session?.company.logoUrl && (
+                    {session?.company?.logoUrl && (
                       <Image
                         src={session.company.logoUrl}
-                        alt={session.company.name}
+                        alt={session.company.name || "Logo"}
                         width={56}
                         height={56}
                         unoptimized

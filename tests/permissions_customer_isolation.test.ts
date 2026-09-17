@@ -124,7 +124,7 @@ describe("Permissions, RBAC & Customer Isolation Test Suite", () => {
   });
 
   it("4. Booking Payment Methods: Supports PIX, Card and Cash strictly as in-person intent", async () => {
-    const testDate = shiftDate(f.date, 3);
+    const testDate = shiftDate(f.date, 14);
     const slots = ["09:00", "13:30", "15:30"] as const;
 
     for (let i = 0; i < 3; i++) {

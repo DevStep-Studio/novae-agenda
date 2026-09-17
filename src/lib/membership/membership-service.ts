@@ -39,6 +39,7 @@ import type {
   MonthSlotDay,
 } from "@/shared/types";
 import { centsToNumber, isUuid, normalizeTime, timeToMinutes } from "@/lib/domain";
+import { canCustomerChange, localInstant } from "@/lib/booking/time";
 
 // ========================================================
 // 1. MEMBERSHIP PLANS CRUD (OWNER)
@@ -1170,6 +1171,7 @@ export async function rescheduleMembershipAppointment(
   newDate: string,
   newStartTime: string,
   actorId = "system",
+  options?: { enforceCustomerLeadTime?: boolean },
 ) {
   const [apt] = await db
     .select()
@@ -1190,6 +1192,24 @@ export async function rescheduleMembershipAppointment(
 
   // Validate availability for new date/time
   const [company] = await db.select().from(companies).where(eq(companies.id, companyId));
+
+  if (options?.enforceCustomerLeadTime) {
+    const [plan] = await db
+      .select({ allowReschedule: membershipPlans.allowReschedule, rescheduleHoursNotice: membershipPlans.rescheduleHoursNotice })
+      .from(membershipPlans)
+      .where(eq(membershipPlans.id, membership.membershipPlanId));
+    if (!plan?.allowReschedule) {
+      throw new BookingError("Este plano não permite remarcação pelo cliente. Fale com o estabelecimento.", 403);
+    }
+    const startsAt = localInstant(apt.appointmentDate, apt.startTime, company!.timezone);
+    if (!canCustomerChange(startsAt, plan.rescheduleHoursNotice)) {
+      throw new BookingError(
+        `O prazo para remarcar terminou. É necessário remarcar com pelo menos ${plan.rescheduleHoursNotice}h de antecedência.`,
+        422,
+      );
+    }
+  }
+
   const selection = [{ serviceId: usage.serviceId, employeeId: apt.employeeId }];
   const avail = await loadAvailability(company!, null, selection, newDate, newDate);
   const matchingSlot = avail.slots(newDate).find((s) => normalizeTime(s.startTime) === normalizeTime(newStartTime));
@@ -1225,6 +1245,7 @@ export async function cancelMembershipAppointment(
   appointmentId: string,
   reason?: string,
   actorId = "system",
+  options?: { enforceCustomerLeadTime?: boolean },
 ) {
   const [apt] = await db
     .select()
@@ -1239,6 +1260,26 @@ export async function cancelMembershipAppointment(
     .where(and(eq(bookingMembershipUsage.appointmentId, appointmentId), eq(bookingMembershipUsage.companyId, companyId)));
 
   if (!usage) throw new BookingError("Agendamento não está vinculado a um plano mensal.", 400);
+
+  if (options?.enforceCustomerLeadTime) {
+    const membership = await getCustomerMembershipDetails(companyId, usage.customerMembershipId);
+    if (!membership) throw new BookingError("Plano do cliente não encontrado.", 404);
+    const [company] = await db.select().from(companies).where(eq(companies.id, companyId));
+    const [plan] = await db
+      .select({ allowReschedule: membershipPlans.allowReschedule, rescheduleHoursNotice: membershipPlans.rescheduleHoursNotice })
+      .from(membershipPlans)
+      .where(eq(membershipPlans.id, membership.membershipPlanId));
+    if (!plan?.allowReschedule) {
+      throw new BookingError("Este plano não permite cancelamento pelo cliente. Fale com o estabelecimento.", 403);
+    }
+    const startsAt = localInstant(apt.appointmentDate, apt.startTime, company!.timezone);
+    if (!canCustomerChange(startsAt, plan.rescheduleHoursNotice)) {
+      throw new BookingError(
+        `O prazo para cancelar terminou. É necessário cancelar com pelo menos ${plan.rescheduleHoursNotice}h de antecedência.`,
+        422,
+      );
+    }
+  }
 
   const [period] = await db
     .select()

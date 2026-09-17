@@ -61,12 +61,13 @@ export function OperationsAvailability({ onNew, date }: { onNew: (prefill: Quick
   const [loading, setLoading] = useState(false);
   const selectedService = serviceId || services.find(s => s.active)?.id;
   const locationId = activeLocationId || locations[0]?.id;
-  const today = date || localDate(new Date(), session?.company.timezone || "America/Sao_Paulo");
+  const currentToday = localDate(new Date(), session?.company?.timezone || "America/Sao_Paulo");
+  const today = date || currentToday;
   const tomorrow = shiftDate(today, 1);
   const dayMeta = (day: string) => {
     const value = new Date(`${day}T12:00Z`);
     const shortDate = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).format(value).replace(".", "");
-    if (day === today) return { label: "Hoje", date: shortDate };
+    if (day === currentToday) return { label: "Hoje", date: shortDate };
     if (day === tomorrow) return { label: "Amanhã", date: shortDate };
     const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "UTC" }).format(value);
     return { label: weekday.charAt(0).toUpperCase() + weekday.slice(1), date: shortDate };
@@ -76,11 +77,12 @@ export function OperationsAvailability({ onNew, date }: { onNew: (prefill: Quick
     const controller = new AbortController();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Invalidate availability after appointment mutations.
     setLoading(true); setDays([]); setError("");
-    const q = new URLSearchParams({ date: today, locationId, items: JSON.stringify([{ serviceId: selectedService, employeeId: session?.role === "employee" ? session.employeeId : null }]) });
+    const searchDate = today < currentToday ? currentToday : today;
+    const q = new URLSearchParams({ date: searchDate, locationId, items: JSON.stringify([{ serviceId: selectedService, employeeId: session?.role === "employee" ? session.employeeId : null }]) });
     api<FreeDay[]>(`/api/next-availability?${q}`, { signal: controller.signal }).then(setDays).catch(e => { if (!controller.signal.aborted) setError(e.message); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     if (session && ["owner", "admin", "manager", "superadmin"].includes(session.role)) api<WaitEntry[]>("/api/waitlist", { signal: controller.signal }).then(setWaiting).catch(e => { if (!controller.signal.aborted) setError(e.message); });
     return () => controller.abort();
-  }, [selectedService, locationId, today, appointments, session]);
+  }, [selectedService, locationId, today, currentToday, appointments, session]);
   return (
     <section className="panel operations-availability" aria-labelledby="availability-title">
       <header className="operations-availability-header">

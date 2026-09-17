@@ -74,13 +74,18 @@ const pageTitles: Record<ViewKey, { title: string; eyebrow: string }> = {
 };
 
 function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
+  if (!time || typeof time !== "string") return 0;
+  const parts = time.split(":").map(Number);
+  const h = parts[0] || 0;
+  const m = parts[1] || 0;
   return h * 60 + m;
 }
 function minutesToTime(minutes: number): string {
+  if (typeof minutes !== "number" || isNaN(minutes)) return "00:00";
   return `${String(Math.floor(minutes / 60) % 24).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 function normalizeTime(time: string): string {
+  if (!time || typeof time !== "string") return "00:00";
   return time.length > 5 ? time.slice(0, 5) : time;
 }
 
@@ -102,10 +107,24 @@ function todayKey(): string {
 }
 
 function dateLabel(date: string): string {
-  return dateFormatter.format(new Date(`${date}T12:00:00`));
+  try {
+    if (!date) return "";
+    const d = new Date(`${date}T12:00:00`);
+    if (isNaN(d.getTime())) return date;
+    return dateFormatter.format(d);
+  } catch {
+    return date || "";
+  }
 }
 function shortDate(date: string): string {
-  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(new Date(`${date}T12:00:00`));
+  try {
+    if (!date) return "";
+    const d = new Date(`${date}T12:00:00`);
+    if (isNaN(d.getTime())) return date;
+    return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" }).format(d);
+  } catch {
+    return date || "";
+  }
 }
 function formatNextVisit(val?: string | null): string {
   if (!val) return "";
@@ -321,19 +340,19 @@ function DashboardPage({
   const [customizing, setCustomizing] = useState(false);
 
   const prefs = useMemo(() => ({
-    showBanner: session?.company.dashboardPreferences?.showBanner ?? true,
-    showChecklist: session?.company.dashboardPreferences?.showChecklist ?? true,
-    showKpis: session?.company.dashboardPreferences?.showKpis ?? true,
-    showSubmetrics: session?.company.dashboardPreferences?.showSubmetrics ?? true,
-    showNextAppointment: session?.company.dashboardPreferences?.showNextAppointment ?? true,
-    showDaySummary: session?.company.dashboardPreferences?.showDaySummary ?? true,
-    showQuickSlots: session?.company.dashboardPreferences?.showQuickSlots ?? true,
-    showTodayAppointments: session?.company.dashboardPreferences?.showTodayAppointments ?? true,
-    order: sortDashboardSections(session?.company.dashboardPreferences?.order),
-  }), [session?.company.dashboardPreferences]);
+    showBanner: session?.company?.dashboardPreferences?.showBanner ?? true,
+    showChecklist: session?.company?.dashboardPreferences?.showChecklist ?? true,
+    showKpis: session?.company?.dashboardPreferences?.showKpis ?? true,
+    showSubmetrics: session?.company?.dashboardPreferences?.showSubmetrics ?? true,
+    showNextAppointment: session?.company?.dashboardPreferences?.showNextAppointment ?? true,
+    showDaySummary: session?.company?.dashboardPreferences?.showDaySummary ?? true,
+    showQuickSlots: session?.company?.dashboardPreferences?.showQuickSlots ?? true,
+    showTodayAppointments: session?.company?.dashboardPreferences?.showTodayAppointments ?? true,
+    order: sortDashboardSections(session?.company?.dashboardPreferences?.order),
+  }), [session?.company?.dashboardPreferences]);
 
-  const today = localDate(new Date(), session?.company.timezone || "America/Sao_Paulo");
-  const nowTime = localTime(new Date(), session?.company.timezone || "America/Sao_Paulo");
+  const today = localDate(new Date(), session?.company?.timezone || "America/Sao_Paulo");
+  const nowTime = localTime(new Date(), session?.company?.timezone || "America/Sao_Paulo");
   const todayApts = appointments.filter((apt) => apt.date === today).filter((apt) => !["cancelled", "no_show"].includes(apt.status));
   const pending = todayApts.filter((apt) => apt.status !== "completed").sort((a,b) => a.startTime.localeCompare(b.startTime));
   const next = pending.find(a => a.status === "in_progress" || a.status === "waiting") || pending.find(a => a.endTime > nowTime);
@@ -344,8 +363,8 @@ function DashboardPage({
   const cancellationsToday = (stats?.today.cancelled ?? 0) + (stats?.today.noShow ?? 0);
   const firstName = session?.name ? session.name.split(" ")[0] : "você";
   const defaultBanner = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
-  const bannerUrl = session?.company.bannerUrl || defaultBanner;
-  const logoUrl = session?.company.logoUrl;
+  const bannerUrl = session?.company?.bannerUrl || defaultBanner;
+  const logoUrl = session?.company?.logoUrl;
 
   return (
     <div className="page-content dashboard-page">
@@ -384,7 +403,7 @@ function DashboardPage({
           <div className="dashboard-banner-content">
             <div className="dashboard-banner-info">
               <span className="dashboard-banner-tag">
-                <Sparkles size={11} /> {session?.company.name || "Seu Estabelecimento"}
+                <Sparkles size={11} /> {session?.company?.name || "Seu Estabelecimento"}
               </span>
               <h2>Bom trabalho, {firstName}!</h2>
               <p>
@@ -408,14 +427,14 @@ function DashboardPage({
               )}
               <div
                 className="dashboard-banner-avatar-wrap"
-                title={`${session?.company.name || "Estabelecimento"}${onOpenProfile ? " — clique para alterar logo em Meu Perfil" : ""}`}
+                title={`${session?.company?.name || "Estabelecimento"}${onOpenProfile ? " — clique para alterar logo em Meu Perfil" : ""}`}
                 onClick={onOpenProfile}
                 style={{ cursor: onOpenProfile ? "pointer" : "default" }}
               >
                 {logoUrl ? (
                   <NextImage
                     src={logoUrl}
-                    alt={session?.company.name || "Logo"}
+                    alt={session?.company?.name || "Logo"}
                     className="dashboard-banner-avatar-img"
                     width={72}
                     height={72}
@@ -423,7 +442,7 @@ function DashboardPage({
                   />
                 ) : (
                   <div className="dashboard-banner-avatar-fallback">
-                    {initials(session?.company.name || "RE")}
+                    {initials(session?.company?.name || "RE")}
                   </div>
                 )}
               </div>
@@ -1201,8 +1220,8 @@ function ClientsPage({
                             <a
                               href={`https://wa.me/${formatPhoneForWhatsApp(client.phone)}?text=${encodeURIComponent(
                                 activeTab === "inactive"
-                                  ? `Olá, ${client.name}! Faz tempo que não nos vemos no(a) ${session?.company.name || "Reservei"}. Preparamos um horário especial para você retornar, que tal agendar?`
-                                  : `Olá, ${client.name}! Tudo bem? Falamos da ${session?.company.name || "Reservei"}.`
+                                  ? `Olá, ${client.name}! Faz tempo que não nos vemos no(a) ${session?.company?.name || "Reservei"}. Preparamos um horário especial para você retornar, que tal agendar?`
+                                  : `Olá, ${client.name}! Tudo bem? Falamos da ${session?.company?.name || "Reservei"}.`
                               )}`}
                               target="_blank"
                               rel="noreferrer"
@@ -2336,7 +2355,7 @@ function TeamPage({
                 const metrics = employeeMetrics.get(employee.id) || { todayCount: 0, monthCount: 0, monthRevenue: 0, commissionTotal: 0 };
                 const isCommissionPercent = employee.commissionType === "percentage";
                 const isCommissionFixed = employee.commissionType === "fixed";
-                const coverImage = employee.bannerUrl || session?.company.bannerUrl || BANNER_PRESETS[0].url;
+                const coverImage = employee.bannerUrl || session?.company?.bannerUrl || BANNER_PRESETS[0].url;
 
                 return (
                   <article className="modern-team-card" key={employee.id}>
@@ -6397,11 +6416,15 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   };
 
   function CalendarPage({ calMode, selectedDate }: { calMode: CalendarMode; selectedDate: string }) {
-    const byEmployee = appointments.filter((a) => employeeFilter === "all" || a.employeeId === employeeFilter);
+    const byEmployee = (appointments ?? []).filter((a) => employeeFilter === "all" || a.employeeId === employeeFilter);
     const displayed = byEmployee.filter((a) => a.date === selectedDate);
 
     const changeDate = (direction: number) => {
       const d = new Date(`${selectedDate}T12:00:00Z`);
+      if (isNaN(d.getTime())) {
+        setSelectedDate(todayKey());
+        return;
+      }
       if (calMode === "day") {
         d.setUTCDate(d.getUTCDate() + direction);
       } else if (calMode === "week") {
@@ -6414,30 +6437,36 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
 
     // Calculate dynamic title for the view
     const calendarTitle = useMemo(() => {
-      if (calMode === "month") {
-        const d = new Date(`${selectedDate}T12:00:00`);
-        const formatted = monthFormatter.format(d);
-        return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-      }
-      if (calMode === "week") {
-        const start = new Date(`${selectedDate}T12:00:00Z`);
-        const monday = new Date(start);
-        monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
-        const sunday = new Date(monday);
-        sunday.setUTCDate(monday.getUTCDate() + 6);
-
-        const monDay = String(monday.getUTCDate()).padStart(2, "0");
-        const sunDay = String(sunday.getUTCDate()).padStart(2, "0");
-        const monMonth = monday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
-        const sunMonth = sunday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
-        const year = sunday.getUTCFullYear();
-
-        if (monMonth === sunMonth) {
-          return `${monDay} a ${sunDay} de ${monMonth}, ${year}`;
+      try {
+        if (calMode === "month") {
+          const d = new Date(`${selectedDate}T12:00:00`);
+          if (isNaN(d.getTime())) return "Mês";
+          const formatted = monthFormatter.format(d);
+          return formatted.charAt(0).toUpperCase() + formatted.slice(1);
         }
-        return `${monDay} de ${monMonth} a ${sunDay} de ${sunMonth}, ${year}`;
+        if (calMode === "week") {
+          const start = new Date(`${selectedDate}T12:00:00Z`);
+          if (isNaN(start.getTime())) return "Semana";
+          const monday = new Date(start);
+          monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+          const sunday = new Date(monday);
+          sunday.setUTCDate(monday.getUTCDate() + 6);
+
+          const monDay = String(monday.getUTCDate()).padStart(2, "0");
+          const sunDay = String(sunday.getUTCDate()).padStart(2, "0");
+          const monMonth = monday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+          const sunMonth = sunday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+          const year = sunday.getUTCFullYear();
+
+          if (monMonth === sunMonth) {
+            return `${monDay} a ${sunDay} de ${monMonth}, ${year}`;
+          }
+          return `${monDay} de ${monMonth} a ${sunDay} de ${sunMonth}, ${year}`;
+        }
+        return dateLabel(selectedDate);
+      } catch {
+        return "Agenda";
       }
-      return dateLabel(selectedDate);
     }, [calMode, selectedDate]);
 
     // View-specific appointment collections
@@ -6616,10 +6645,10 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
         {/* Workspace Switcher */}
         <div className="popover-container">
           <div className="workspace-switcher" onClick={() => setWorkspaceOpen((v) => !v)} style={{ cursor: "pointer" }}>
-            <span className="workspace-logo">{initials(session?.company.name ?? "A")}</span>
+            <span className="workspace-logo">{initials(session?.company?.name ?? "A")}</span>
             {!collapsed && (
               <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div><strong>{session?.company.name}</strong><small>{activeLoc?.name ?? "Unidade principal"}</small></div>
+                <div><strong>{session?.company?.name}</strong><small>{activeLoc?.name ?? "Unidade principal"}</small></div>
                 <ChevronDown size={14} className="muted-text" />
               </div>
             )}
@@ -6724,7 +6753,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             <div className="breadcrumb">
               <span className="breadcrumb-company">
                 <Building2 size={13} />
-                <span>{session?.company.name}</span>
+                <span>{session?.company?.name}</span>
               </span>
               <ChevronRight size={13} className="breadcrumb-arrow" />
               <strong className="breadcrumb-page">{pageTitles[view].title}</strong>
@@ -7082,27 +7111,27 @@ function ProfilePage({
 
   const [name, setName] = useState(session?.name ?? "");
   const [phone, setPhone] = useState(session?.phone ?? "");
-  const [companyName, setCompanyName] = useState(session?.company.name ?? "");
-  const [businessType, setBusinessType] = useState(session?.company.businessType ?? "");
-  const [avatarUrl, setAvatarUrl] = useState(session?.avatarUrl || session?.company.logoUrl || "");
-  const [bannerUrl, setBannerUrl] = useState(session?.company.bannerUrl ?? "");
+  const [companyName, setCompanyName] = useState(session?.company?.name ?? "");
+  const [businessType, setBusinessType] = useState(session?.company?.businessType ?? "");
+  const [avatarUrl, setAvatarUrl] = useState(session?.avatarUrl || session?.company?.logoUrl || "");
+  const [bannerUrl, setBannerUrl] = useState(session?.company?.bannerUrl ?? "");
 
   useEffect(() => {
     if (session?.avatarUrl || session?.company?.logoUrl) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAvatarUrl(session.avatarUrl || session.company.logoUrl || "");
+      setAvatarUrl(session.avatarUrl || session.company?.logoUrl || "");
     }
   }, [session?.avatarUrl, session?.company?.logoUrl]);
-  const [primaryColor, setPrimaryColor] = useState(session?.company.primaryColor ?? "#3b82f6");
+  const [primaryColor, setPrimaryColor] = useState(session?.company?.primaryColor ?? "#3b82f6");
   const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
-    showBanner: session?.company.dashboardPreferences?.showBanner ?? true,
-    showChecklist: session?.company.dashboardPreferences?.showChecklist ?? true,
-    showKpis: session?.company.dashboardPreferences?.showKpis ?? true,
-    showSubmetrics: session?.company.dashboardPreferences?.showSubmetrics ?? true,
-    showNextAppointment: session?.company.dashboardPreferences?.showNextAppointment ?? true,
-    showDaySummary: session?.company.dashboardPreferences?.showDaySummary ?? true,
-    showQuickSlots: session?.company.dashboardPreferences?.showQuickSlots ?? true,
-    showTodayAppointments: session?.company.dashboardPreferences?.showTodayAppointments ?? true,
+    showBanner: session?.company?.dashboardPreferences?.showBanner ?? true,
+    showChecklist: session?.company?.dashboardPreferences?.showChecklist ?? true,
+    showKpis: session?.company?.dashboardPreferences?.showKpis ?? true,
+    showSubmetrics: session?.company?.dashboardPreferences?.showSubmetrics ?? true,
+    showNextAppointment: session?.company?.dashboardPreferences?.showNextAppointment ?? true,
+    showDaySummary: session?.company?.dashboardPreferences?.showDaySummary ?? true,
+    showQuickSlots: session?.company?.dashboardPreferences?.showQuickSlots ?? true,
+    showTodayAppointments: session?.company?.dashboardPreferences?.showTodayAppointments ?? true,
   }));
   const [saving, setSaving] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -7189,7 +7218,7 @@ function ProfilePage({
           <div className="notice-content">
             <strong>Identidade Visual Compartilhada para Toda a Equipe</strong>
             <p>
-              Você está editando as preferências visuais de <strong>{session?.company.name}.</strong> Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
+              Você está editando as preferências visuais de <strong>{session?.company?.name}.</strong> Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
             </p>
           </div>
         </div>
@@ -7214,19 +7243,19 @@ function ProfilePage({
                 {avatarUrl && !avatarError ? (
                   <NextImage
                     src={avatarUrl}
-                    alt={companyName || session?.company.name || "Avatar"}
+                    alt={companyName || session?.company?.name || "Avatar"}
                     width={80}
                     height={80}
                     unoptimized
                     onError={() => setAvatarError(true)}
                   />
                 ) : (
-                  <span className="profile-hero-avatar-fallback">{initials(companyName || session?.company.name || name || "U")}</span>
+                  <span className="profile-hero-avatar-fallback">{initials(companyName || session?.company?.name || name || "U")}</span>
                 )}
               </div>
               <div className="profile-hero-details">
                 <h2>{name || session?.name}</h2>
-                <p>{companyName || session?.company.name} · {roleLabel(session?.role)}</p>
+                <p>{companyName || session?.company?.name} · {roleLabel(session?.role)}</p>
               </div>
             </div>
 
@@ -8229,8 +8258,9 @@ function MonthCalendar({
   setDate: (d: string) => void;
 }) {
   const today = todayKey();
-  const year = Number(anchorDate.slice(0, 4));
-  const month = Number(anchorDate.slice(5, 7)) - 1;
+  const safeAnchor = anchorDate && anchorDate.length >= 10 ? anchorDate : today;
+  const year = Number(safeAnchor.slice(0, 4)) || new Date().getFullYear();
+  const month = (Number(safeAnchor.slice(5, 7)) || (new Date().getMonth() + 1)) - 1;
   const first = new Date(Date.UTC(year, month, 1));
   const startOffset = (first.getUTCDay() + 6) % 7;
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -8255,7 +8285,7 @@ function MonthCalendar({
           cell ? (
             <button
               key={cell.date}
-              className={`month-cell ${cell.date === today ? "current" : ""} ${cell.date === anchorDate ? "selected" : ""}`}
+              className={`month-cell ${cell.date === today ? "current" : ""} ${cell.date === safeAnchor ? "selected" : ""}`}
               onClick={() => setDate(cell.date)}
             >
               <div className="month-cell-header">
@@ -8263,7 +8293,7 @@ function MonthCalendar({
                 {cell.date === today && <span className="month-today-pill">Hoje</span>}
               </div>
               <div className="month-events-list">
-                {appointments
+                {(appointments ?? [])
                   .filter((a) => a.date === cell.date && a.status !== "cancelled")
                   .slice(0, 3)
                   .map((apt) => (
@@ -8274,16 +8304,16 @@ function MonthCalendar({
                         e.stopPropagation();
                         onAppointment(apt);
                       }}
-                      title={`${normalizeTime(apt.startTime)}: ${apt.clientName}`}
+                      title={`${normalizeTime(apt.startTime)}: ${apt.clientName || "Cliente"}`}
                     >
                       <i style={{ backgroundColor: "var(--primary)" }} />
                       <b>{normalizeTime(apt.startTime)}</b>
-                      <span>{apt.clientName.split(" ")[0]}</span>
+                      <span>{(apt.clientName || "Cliente").split(" ")[0]}</span>
                     </span>
                   ))}
-                {appointments.filter((a) => a.date === cell.date && a.status !== "cancelled").length > 3 && (
+                {(appointments ?? []).filter((a) => a.date === cell.date && a.status !== "cancelled").length > 3 && (
                   <em className="month-more-chip">
-                    +{appointments.filter((a) => a.date === cell.date && a.status !== "cancelled").length - 3} mais
+                    +{(appointments ?? []).filter((a) => a.date === cell.date && a.status !== "cancelled").length - 3} mais
                   </em>
                 )}
               </div>

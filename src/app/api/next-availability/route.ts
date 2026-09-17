@@ -16,11 +16,12 @@ export async function GET(request: Request) {
     const input = searchSchema.parse({ locationId: q.get("locationId"), date: q.get("date") || localDate(new Date(), company.timezone), items: JSON.parse(q.get("items") || "[]") });
     if (gate.auth.user.role === "employee" && input.items.some(i => i.employeeId !== gate.auth.user.employeeId)) throw new BookingError("Selecione sua própria agenda.", 403);
     const today = localDate(new Date(), company.timezone);
-    if (input.date < today || input.date > shiftDate(today, 366)) throw new BookingError("Data fora do período de busca.");
-    const engine = await loadAvailability(company, input.locationId, input.items, input.date, shiftDate(input.date, 6));
+    const searchDate = input.date < today ? today : input.date;
+    if (searchDate > shiftDate(today, 366)) throw new BookingError("Data fora do período de busca.");
+    const engine = await loadAvailability(company, input.locationId, input.items, searchDate, shiftDate(searchDate, 6));
     const days = [];
     for (let i = 0; i < 7; i++) {
-      const date = shiftDate(input.date, i);
+      const date = shiftDate(searchDate, i);
       const slots = engine.slots(date);
       if (slots.length) days.push({ date, slots: slots.slice(0, 6).map(s => ({ startTime: s.startTime, endTime: s.endTime, employeeId: s.items[0].employeeId })) });
       if (days.length >= 3) break;

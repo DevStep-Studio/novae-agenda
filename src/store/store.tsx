@@ -134,16 +134,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const reloadLocations = useCallback(async () => {
     try {
       const data = await api<LocationDTO[]>("/api/locations");
-      setLocations(data);
-      setActiveLocationId((current) => current ?? (data[0]?.id || null));
+      const list = Array.isArray(data) ? data : [];
+      setLocations(list);
+      setActiveLocationId((current) => current ?? (list[0]?.id || null));
     } catch {
       // ignore
     }
   }, []);
 
   const reloadClients = useCallback(async () => {
-    const data = await api<ClientDTO[]>("/api/clients");
-    setClients(data);
+    try {
+      const data = await api<ClientDTO[]>("/api/clients");
+      setClients(Array.isArray(data) ? data : []);
+    } catch {
+      setClients([]);
+    }
   }, []);
 
   const reloadCategories = useCallback(async () => {
@@ -171,18 +176,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reloadEmployees = useCallback(async () => {
-    const data = await api<EmployeeDTO[]>("/api/employees");
-    setEmployees(data);
+    try {
+      const data = await api<EmployeeDTO[]>("/api/employees");
+      setEmployees(Array.isArray(data) ? data : []);
+    } catch {
+      setEmployees([]);
+    }
   }, []);
 
   const reloadAppointments = useCallback(async () => {
-    const data = await api<AppointmentDTO[]>("/api/appointments");
-    setAppointments(data);
+    try {
+      const data = await api<AppointmentDTO[]>("/api/appointments");
+      setAppointments(Array.isArray(data) ? data : []);
+    } catch {
+      setAppointments([]);
+    }
   }, []);
 
   const reloadBlocks = useCallback(async () => {
-    const data = await api<ScheduleBlockDTO[]>("/api/blocks");
-    setBlocks(data);
+    try {
+      const data = await api<ScheduleBlockDTO[]>("/api/blocks");
+      setBlocks(Array.isArray(data) ? data : []);
+    } catch {
+      setBlocks([]);
+    }
   }, []);
 
   const reloadNotifications = useCallback(async () => {
