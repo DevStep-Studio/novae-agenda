@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Check, ChevronDown, Clock3, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { AvailableSlot } from "@/lib/booking/engine";
-import { b, dateLabelShort } from "./primitives";
+import { b, dateLabelShort, getProfessionalAvatar } from "./primitives";
 
 type Professional = {
   id: string;
@@ -22,10 +22,11 @@ function initials(name: string) {
 function ProfessionalAvatar({ professional, any = false }: { professional?: Professional; any?: boolean }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   if (any) return <span className={`${b.professionalAvatar} ${b.professionalAvatarAny}`}><Sparkles size={18} /></span>;
+  const photo = professional?.photoUrl || getProfessionalAvatar(professional?.name || "Profissional");
   return (
     <span className={b.professionalAvatar}>
-      {professional?.photoUrl && failedSrc !== professional.photoUrl
-        ? <Image src={professional.photoUrl} alt="" width={40} height={40} onError={() => setFailedSrc(professional.photoUrl)} unoptimized />
+      {photo && failedSrc !== photo
+        ? <Image src={photo} alt="" width={40} height={40} onError={() => setFailedSrc(photo)} unoptimized />
         : <span>{initials(professional?.name || "Profissional")}</span>}
     </span>
   );

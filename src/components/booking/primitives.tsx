@@ -443,26 +443,80 @@ export function Price({ amount, className = "" }: { amount: number | string; cla
   return <span className={`${styles.priceValue} ${className}`}>{money(amount)}</span>;
 }
 
+export const PROFESSIONAL_PORTRAITS = [
+  "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=256&q=80",
+  "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=256&q=80",
+];
+
+export function getProfessionalAvatar(name: string, customSrc?: string | null): string {
+  if (customSrc && customSrc.trim().length > 0) return customSrc.trim();
+  const clean = (name || "Profissional").trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < clean.length; i++) {
+    hash = (hash << 5) - hash + clean.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % PROFESSIONAL_PORTRAITS.length;
+  return PROFESSIONAL_PORTRAITS[idx];
+}
+
 export function BookingAvatar({
   name,
   src,
   size = "md",
+  autoFallbackImage = true,
 }: {
   name: string;
   src?: string | null;
   size?: "sm" | "md" | "lg";
+  autoFallbackImage?: boolean;
 }) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const fallback = name
+  const [failedFallback, setFailedFallback] = useState(false);
+
+  const fallbackText = name
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+
+  const fallbackImg = getProfessionalAvatar(name);
+  const activeSrc = src && failedSrc !== src ? src : (autoFallbackImage && !failedFallback ? fallbackImg : null);
+
+  const px = size === "sm" ? 36 : size === "lg" ? 56 : 44;
+
   return (
     <span className={`${styles.bookingAvatar} ${styles[`bookingAvatar${size.toUpperCase()}`]}`} aria-hidden="true">
-      {src && failedSrc !== src ? <Image src={src} alt="" width={40} height={40} onError={() => setFailedSrc(src)} unoptimized /> : fallback || "?"}
+      {activeSrc ? (
+        <Image
+          src={activeSrc}
+          alt={name}
+          width={px}
+          height={px}
+          onError={() => {
+            if (activeSrc === src) {
+              setFailedSrc(src);
+            } else {
+              setFailedFallback(true);
+            }
+          }}
+          unoptimized
+        />
+      ) : (
+        fallbackText || "?"
+      )}
     </span>
   );
 }

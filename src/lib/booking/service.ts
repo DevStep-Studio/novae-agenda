@@ -448,7 +448,7 @@ export async function listBookingDetails(userId: string, id?: string) {
         id: appointments.id,
         employeeId: appointments.employeeId,
         employeeName: employees.name,
-        employeePhotoUrl: employees.photoUrl,
+        employeePhotoUrl: sql<string | null>`COALESCE(${employees.photoUrl}, ${users.avatarUrl})`,
         employeeJobTitle: employees.jobTitle,
         startTime: appointments.startTime,
         endTime: appointments.endTime,
@@ -461,6 +461,7 @@ export async function listBookingDetails(userId: string, id?: string) {
       })
       .from(appointments)
       .innerJoin(employees, eq(appointments.employeeId, employees.id))
+      .leftJoin(users, eq(employees.userId, users.id))
       .innerJoin(
         appointmentServices,
         eq(appointmentServices.appointmentId, appointments.id),

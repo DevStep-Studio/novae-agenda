@@ -50,6 +50,7 @@ import {
   duration,
   ErrorMessage,
   friendlyTimezone,
+  getProfessionalAvatar,
   money,
   Price,
   PublicFrame,
@@ -1792,24 +1793,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           >
                             <div className={b.professionalCardAvatarWrap}>
                               <span className={b.professionalAvatar}>
-                                {professional.photoUrl ? (
-                                  <Image
-                                    src={professional.photoUrl}
-                                    alt={professional.name}
-                                    width={48}
-                                    height={48}
-                                    unoptimized
-                                  />
-                                ) : (
-                                  <span>
-                                    {professional.name
-                                      .split(" ")
-                                      .filter(Boolean)
-                                      .slice(0, 2)
-                                      .map((part) => part[0]?.toUpperCase())
-                                      .join("")}
-                                  </span>
-                                )}
+                                <Image
+                                  src={professional.photoUrl || getProfessionalAvatar(professional.name)}
+                                  alt={professional.name}
+                                  width={48}
+                                  height={48}
+                                  unoptimized
+                                />
                               </span>
                             </div>
                             <div className={b.professionalCardInfo}>
