@@ -147,7 +147,13 @@ export async function getIdentity() {
     if (!payload.sub) return null;
     const [user] = await db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
     return user?.active ? user : null;
-  } catch { return null; }
+  } catch (err) {
+    // Silent failures here are invisible in prod and look identical to "not logged in" —
+    // logging the reason (bad signature vs expired vs DB error) is the only way to tell
+    // a SESSION_SECRET mismatch between instances apart from a genuinely stale cookie.
+    console.error("[auth] session verification failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 export async function getSession(): Promise<SessionUser | null> {
