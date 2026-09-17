@@ -215,21 +215,8 @@ export function ReportsView() {
       </div>
 
       {/* 2. Filter Toolbar: Period Segmented Switcher + Date Range */}
-      <div
-        className="reports-toolbar"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 14,
-          padding: "14px 18px",
-          borderRadius: 12,
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      <div className="reports-toolbar">
+        <div className="reports-range-group">
           {RANGES.map((item) => {
             const active = range === item.id;
             return (
@@ -238,17 +225,6 @@ export function ReportsView() {
                 type="button"
                 onClick={() => handleSelectRange(item.id)}
                 className={`reports-range-btn ${active ? "active" : ""}`}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: 7,
-                  border: active ? "1px solid var(--primary)" : "1px solid transparent",
-                  fontSize: 12,
-                  fontWeight: active ? 700 : 500,
-                  cursor: "pointer",
-                  background: active ? "var(--primary)" : "transparent",
-                  color: active ? "var(--primary-foreground, #ffffff)" : "var(--text-secondary)",
-                  transition: "all 0.15s ease",
-                }}
               >
                 {item.label}
               </button>
@@ -257,20 +233,7 @@ export function ReportsView() {
         </div>
 
         {data && (
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "7px 14px",
-              borderRadius: 8,
-              background: "var(--surface-secondary)",
-              border: "1px solid var(--border)",
-              fontSize: 12,
-              color: "var(--text-secondary)",
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
+          <div className="reports-date-badge">
             <Calendar size={14} style={{ color: "var(--primary)" }} />
             <span>
               {formatDateDisplay(data.fromDate)} — {formatDateDisplay(data.toDate)}

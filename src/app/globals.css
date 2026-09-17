@@ -699,6 +699,13 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   padding-bottom: 90px;
 }
 .reports-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: none !important;
@@ -706,6 +713,69 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
 :root[data-theme="dark"] .reports-toolbar {
   background: var(--surface);
   border-color: var(--border);
+}
+.reports-range-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.reports-range-btn {
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  min-height: 36px;
+  white-space: nowrap;
+}
+.reports-range-btn.active {
+  border-color: var(--primary);
+  font-weight: 700;
+  background: var(--primary);
+  color: var(--primary-foreground, #ffffff);
+}
+.reports-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .reports-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+  }
+  .reports-range-group {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  }
+  .reports-range-group::-webkit-scrollbar {
+    display: none;
+  }
+  .reports-range-btn {
+    flex-shrink: 0;
+  }
+  .reports-date-badge {
+    justify-content: center;
+  }
 }
 .reports-panel {
   border: 1px solid var(--border);
