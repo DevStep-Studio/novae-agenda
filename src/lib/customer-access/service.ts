@@ -5,6 +5,7 @@ import { authTokens, bookings, clients, customerAccessLogs, customerCredentials,
 import { createSession, hashPassword, verifyPassword } from "@/lib/auth";
 import { normalizePhoneDigits } from "@/lib/domain";
 import { sendMail } from "@/lib/mailer";
+import { saveClientImage } from "@/lib/storage";
 
 export type CustomerPhoneStatus = "HAS_PIN" | "NEEDS_PIN_SETUP" | "NOT_FOUND";
 
@@ -1096,7 +1097,8 @@ export class CustomerAccessService {
   static async quickIdentifyCustomer(params: {
     name: string;
     phone: string;
-    email?: string;
+    email: string;
+    photoUrl?: string;
   }): Promise<{
     userId: string | null;
     customer: CustomerAccessIdentity | null;
@@ -1121,22 +1123,24 @@ export class CustomerAccessService {
     }
 
     if (!user) {
+      const email = params.email.trim().toLowerCase();
+      if (!email.includes("@")) {
+        throw new Error("Informe um e-mail válido.");
+      }
       const newUserId = crypto.randomUUID();
-      const defaultEmail =
-        params.email && params.email.includes("@")
-          ? params.email.trim().toLowerCase()
-          : `cliente-${normalized}@novae.local`;
       const fallbackPassword = await hashPassword(crypto.randomUUID());
+      const avatarUrl = params.photoUrl ? await saveClientImage(params.photoUrl) : null;
 
       await db.insert(users).values({
         id: newUserId,
         name: rawName,
-        email: defaultEmail,
+        email,
         phone: params.phone.trim(),
         passwordHash: fallbackPassword,
         role: "customer",
         active: true,
         emailVerified: true,
+        avatarUrl,
       });
 
       const [created] = await db

@@ -235,6 +235,7 @@ export async function createBooking(
           name: user.name,
           email: user.email,
           phone,
+          photoUrl: user.avatarUrl,
         });
       client = {
         id: newClientId,
@@ -243,7 +244,7 @@ export async function createBooking(
         name: user.name,
         email: user.email,
         phone,
-        photoUrl: null,
+        photoUrl: user.avatarUrl,
         notes: null,
         internalNotes: null,
         active: true,

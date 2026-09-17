@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -28,8 +29,10 @@ import {
   Phone,
   KeyRound,
   User,
+  Camera,
 } from "lucide-react";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
+import { prepareImageUpload } from "@/lib/image-upload-client";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import type { PublicCatalog } from "@/lib/booking/catalog";
 import { isSectionVisible, resolveCopy } from "@/lib/booking/customization";
@@ -165,6 +168,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
+  const [formPhotoUrl, setFormPhotoUrl] = useState<string | null>(null);
+  const [formPhotoUploading, setFormPhotoUploading] = useState(false);
+  const formPhotoInputRef = useRef<HTMLInputElement>(null);
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -1986,7 +1992,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                   body: JSON.stringify({
                                     name: formName,
                                     phone: formPhone,
-                                    email: formEmail || undefined,
+                                    email: formEmail,
+                                    photoUrl: formPhotoUrl || undefined,
                                   }),
                                 });
                                 if (res.hasPin) {
@@ -2005,6 +2012,50 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             }}
                             style={{ display: "grid", gap: "12px" }}
                           >
+                            <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
+                              <input
+                                ref={formPhotoInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                style={{ display: "none" }}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  try {
+                                    setFormPhotoUploading(true);
+                                    const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
+                                    setFormPhotoUrl(dataUrl);
+                                  } catch (err) {
+                                    setFormError((err as Error).message || "Erro ao carregar imagem.");
+                                  } finally {
+                                    setFormPhotoUploading(false);
+                                    e.target.value = "";
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => formPhotoInputRef.current?.click()}
+                                disabled={formPhotoUploading}
+                                style={{
+                                  width: 72,
+                                  height: 72,
+                                  borderRadius: "50%",
+                                  border: "1.5px dashed var(--booking-border)",
+                                  background: formPhotoUrl ? `url('${formPhotoUrl}') center/cover` : "transparent",
+                                  color: "var(--booking-text-secondary)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: formPhotoUploading ? "not-allowed" : "pointer",
+                                  minWidth: 44,
+                                  minHeight: 44,
+                                }}
+                                title="Adicionar foto de perfil (opcional)"
+                              >
+                                {!formPhotoUrl && <Camera size={22} />}
+                              </button>
+                            </div>
                             <label className={b.field}>
                               Seu nome completo *
                               <input
@@ -2036,12 +2087,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                               />
                             </label>
                             <label className={b.field}>
-                              E-mail (opcional)
+                              E-mail *
                               <input
                                 type="email"
+                                required
                                 value={formEmail}
                                 onChange={(e) => setFormEmail(e.target.value)}
-                                placeholder="Para receber comprovante"
+                                placeholder="Necessário para recuperar seu PIN"
                               />
                             </label>
                             {formError && (
@@ -2052,7 +2104,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             <button
                               type="submit"
                               className={`${b.button} ${b.wide}`}
-                              disabled={formBusy || formName.trim().length < 2 || formPhone.replace(/\D/g, "").length < 8}
+                              disabled={
+                                formBusy ||
+                                formPhotoUploading ||
+                                formName.trim().length < 2 ||
+                                formPhone.replace(/\D/g, "").length < 8 ||
+                                !/^\S+@\S+\.\S+$/.test(formEmail)
+                              }
                               style={{ marginTop: "6px" }}
                             >
                               {formBusy ? "Salvando..." : "Continuar com agendamento"}

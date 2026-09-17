@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 const identifySchema = z.object({
   name: z.string().min(2, "Informe seu nome completo."),
   phone: z.string().min(8, "Informe seu número com DDD."),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().email("Informe um e-mail válido."),
+  photoUrl: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -30,7 +31,8 @@ export async function POST(request: Request) {
     const result = await CustomerAccessService.quickIdentifyCustomer({
       name: parsed.data.name,
       phone: parsed.data.phone,
-      email: parsed.data.email || undefined,
+      email: parsed.data.email,
+      photoUrl: parsed.data.photoUrl,
     });
 
     return NextResponse.json({
