@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { AlertCircle, KeyRound, Moon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
+import { AlertCircle, KeyRound, ShieldCheck, UserRound, X } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
@@ -82,7 +82,6 @@ function MyBookingsAccessModal({
               value={pin}
               onChange={setPin}
               length={6}
-              autoFocus
               error={Boolean(error)}
               theme={theme}
             />
@@ -281,15 +280,6 @@ export function PublicFrame({
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={styles.themeToggleBtn}
-              title={resolvedTheme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
-              aria-label="Alternar tema de cores"
-            >
-              {resolvedTheme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
             <button
               type="button"
               disabled={Boolean(preview)}

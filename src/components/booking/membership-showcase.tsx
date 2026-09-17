@@ -429,7 +429,6 @@ export function MembershipAccessModal({
                   <input
                     type="tel"
                     required
-                    autoFocus
                     value={phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     placeholder="(11) 99999-9999"
@@ -461,7 +460,6 @@ export function MembershipAccessModal({
                     value={pin}
                     onChange={setPin}
                     length={6}
-                    autoFocus
                     theme="light"
                   />
                 </div>

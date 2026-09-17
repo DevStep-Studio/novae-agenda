@@ -1132,7 +1132,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         value={newPin}
                         onChange={setNewPin}
                         length={6}
-                        autoFocus
                         theme="dark"
                       />
                     </div>
@@ -1993,7 +1992,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 value={changePin}
                                 onChange={setChangePin}
                                 length={6}
-                                autoFocus
                                 theme="dark"
                               />
                             </div>
@@ -2069,7 +2067,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 }
                               }}
                               length={6}
-                              autoFocus
                               error={Boolean(loginPinError)}
                               theme="dark"
                             />
@@ -2199,7 +2196,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 value={formName}
                                 onChange={(e) => setFormName(e.target.value)}
                                 placeholder="Ex: Maria Silva"
-                                autoFocus
                               />
                             </label>
                             <label className={b.field}>
@@ -2309,7 +2305,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                             value={newPin}
                             onChange={setNewPin}
                             length={6}
-                            autoFocus
                             error={Boolean(pinError)}
                             theme="dark"
                           />

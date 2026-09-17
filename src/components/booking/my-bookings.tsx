@@ -438,7 +438,6 @@ export function MyBookings({
                       value={pinChangeVal}
                       onChange={setPinChangeVal}
                       length={6}
-                      autoFocus
                       theme="dark"
                     />
                   </div>

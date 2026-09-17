@@ -13382,3 +13382,21 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     background: transparent !important;
   }
 }
+
+/* =========================================================
+   PREVENT MOBILE / IOS AUTO-ZOOM ON INPUT FOCUS
+   ========================================================= */
+@media screen and (max-width: 900px) {
+  html,
+  body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

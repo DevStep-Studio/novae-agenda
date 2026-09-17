@@ -4755,3 +4755,13 @@
   }
 }
 
+@media (max-width: 900px) {
+  .page input,
+  .page select,
+  .page textarea,
+  .search input {
+    font-size: 16px !important;
+  }
+}
+
+
