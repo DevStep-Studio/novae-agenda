@@ -4,6 +4,7 @@ import NextImage from "next/image";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import type { ServiceDTO } from "@/shared/types";
+import { getServiceDescription } from "@/lib/client-utils";
 import { ErrorMessage } from "./primitives";
 import styles from "./service-editor.module.css";
 import {
@@ -100,6 +101,7 @@ export function ServiceEditor({
   const [durationUnit, setDurationUnit] = useState<"min" | "hora">("min");
   const [durationInput, setDurationInput] = useState<string>(String(initialMinutes));
   const [imageUrl, setImageUrl] = useState(service?.imageUrl ?? "");
+  const [description, setDescription] = useState(service?.description ?? "");
   const [isDragging, setIsDragging] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -595,14 +597,41 @@ export function ServiceEditor({
               <label htmlFor="service-description" className={styles.label}>
                 Descrição
               </label>
-              <span className={styles.labelHint}>Opcional</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  type="button"
+                  className={styles.editCategoryTrigger}
+                  style={{
+                    height: 26,
+                    padding: "0 10px",
+                    fontSize: 11,
+                    color: "var(--primary, #38bdf8)",
+                    borderColor: "rgba(56, 189, 248, 0.35)",
+                    background: "rgba(56, 189, 248, 0.08)",
+                  }}
+                  onClick={() => {
+                    const nameInput = document.querySelector<HTMLInputElement>("#service-name");
+                    const currentName = nameInput?.value || service?.name || "";
+                    const categoryObj = extraCategories.find((c) => c.id === category) || categories.find((c) => c.id === category);
+                    const suggested = getServiceDescription({ name: currentName, categoryName: categoryObj?.name });
+                    setDescription(suggested);
+                    notify("Sugestão de descrição inteligente aplicada!");
+                  }}
+                  title="Gerar sugestão inteligente baseada no nome e categoria do serviço"
+                >
+                  <Sparkles size={12} />
+                  <span>Sugerir descrição</span>
+                </button>
+                <span className={styles.labelHint}>Opcional</span>
+              </div>
             </div>
             <textarea
               id="service-description"
               name="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className={styles.textarea}
               placeholder="Descreva o que está incluso no atendimento, benefícios e orientações para o cliente..."
-              defaultValue={service?.description ?? ""}
             />
           </div>
 

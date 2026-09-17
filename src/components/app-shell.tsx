@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
-import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
+import { avatarColor, formatCurrency, getServiceDescription, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
 import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor, isLightHex } from "@/lib/theme-utils";
 import type {
@@ -2032,13 +2032,23 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
                         <span>{service.categoryName ?? "Sem categoria"}</span>
                       </span>
                     </div>
-                    <div className="service-card-body">
+                    <div
+                      className="service-card-body"
+                      onClick={() => setEditing(service)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setEditing(service);
+                        }
+                      }}
+                      title="Clique para editar detalhes e descrição deste serviço"
+                    >
                       <h3>{service.name}</h3>
-                      {service.description ? (
-                        <p>{service.description}</p>
-                      ) : (
-                        <p className="service-desc-fallback">Duração de {duration} min</p>
-                      )}
+                      <p className={`service-card-desc ${!service.description ? "service-desc-smart" : ""}`}>
+                        {getServiceDescription(service)}
+                      </p>
                     </div>
                     <div className="service-card-footer">
                       <div>
