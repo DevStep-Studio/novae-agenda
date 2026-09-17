@@ -8269,17 +8269,29 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     touch-action: pan-y pinch-zoom;
   }
   .topbar {
-    height: calc(58px + env(safe-area-inset-top, 0px)) !important;
+    height: calc(64px + env(safe-area-inset-top, 0px)) !important;
+    min-height: calc(64px + env(safe-area-inset-top, 0px)) !important;
     padding: env(safe-area-inset-top, 0px) 16px 0 !important;
     background: var(--surface) !important;
     border-bottom: 1px solid var(--border) !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 90 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
   :root:not([data-theme="dark"]) .topbar {
     background: #ffffff !important;
     border-bottom: 1px solid var(--border) !important;
+  }
+  .topbar-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
   }
   .breadcrumb {
     display: none !important;
@@ -8292,17 +8304,17 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     gap: 1px !important;
   }
   .mobile-topbar-title {
-    font-size: 15px !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.025em !important;
     color: var(--text-primary) !important;
-    line-height: 1.25 !important;
+    line-height: 1.2 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
   .mobile-topbar-company {
-    font-size: 11px !important;
+    font-size: 11.5px !important;
     font-weight: 500 !important;
     color: var(--text-muted) !important;
     line-height: 1.15 !important;
@@ -8317,23 +8329,27 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     height: 38px !important;
     min-width: 38px !important;
     min-height: 38px !important;
-    border-radius: 9px !important;
+    border-radius: 8px !important;
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
     color: var(--text-primary) !important;
-    margin-right: 8px !important;
+    margin-right: 4px !important;
+    padding: 0 !important;
     flex-shrink: 0 !important;
+    cursor: pointer !important;
     transition: background 0.15s ease, transform 0.15s ease !important;
   }
   .mobile-menu-button:hover,
   .mobile-menu-button:active {
     background: var(--surface-secondary) !important;
-    transform: scale(0.96);
+    transform: scale(0.95);
   }
   .topbar-actions {
     gap: 8px !important;
     align-items: center !important;
     flex-shrink: 0 !important;
+    display: flex !important;
   }
   .topbar-actions .global-search,
   .theme-button,
@@ -8345,19 +8361,23 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     height: 38px !important;
     min-width: 38px !important;
     min-height: 38px !important;
-    border-radius: 9px !important;
+    border-radius: 8px !important;
     background: transparent !important;
     border: none !important;
+    box-shadow: none !important;
     color: var(--text-secondary) !important;
     position: relative !important;
     display: grid !important;
     place-items: center !important;
+    padding: 0 !important;
+    cursor: pointer !important;
     transition: background 0.15s ease, transform 0.15s ease !important;
   }
   .notification-button:hover,
   .notification-button:active {
     background: var(--surface-secondary) !important;
-    transform: scale(0.96);
+    color: var(--text-primary) !important;
+    transform: scale(0.95);
   }
   .topbar-notification-badge {
     position: absolute !important;
@@ -8383,6 +8403,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     background: transparent !important;
     border: none !important;
     cursor: pointer !important;
+    margin-left: 2px !important;
   }
   .topbar-avatar-wrap {
     display: inline-flex !important;
@@ -8391,11 +8412,13 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   .topbar-avatar {
     width: 34px !important;
     height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
     display: grid !important;
     place-items: center !important;
     border-radius: 50% !important;
     overflow: hidden !important;
-    border: 1px solid var(--border) !important;
+    border: 1.5px solid var(--border) !important;
     background: var(--surface-secondary) !important;
   }
   .topbar-online-dot {
