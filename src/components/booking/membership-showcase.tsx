@@ -16,6 +16,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api-client";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { money } from "./primitives";
 import { PinInput } from "./pin-input";
 import type { CustomerMembershipDTO, MembershipPlanDTO } from "@/shared/types";
@@ -133,10 +134,10 @@ export function MembershipPlanCard({
             type="button"
             className={styles.btnSecondary}
             onClick={() => onInspect(plan)}
-            title="Conheça todos os detalhes e contrate este plano"
+            title="Falar no WhatsApp para contratar este plano"
           >
-            <Sparkles size={14} />
-            <span>Quero este Plano</span>
+            <WhatsAppIcon size={14} />
+            <span>Falar no WhatsApp</span>
           </button>
         </div>
       </div>

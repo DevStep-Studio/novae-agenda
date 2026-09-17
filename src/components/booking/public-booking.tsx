@@ -384,6 +384,27 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     }
   }
 
+  function handleOpenPlanWhatsApp(plan: { name: string; price: number }) {
+    const rawNumber =
+      company.whatsapp ||
+      company.phone ||
+      professionals.find((p) => p.phone)?.phone ||
+      "";
+    const cleanPhone = rawNumber.replace(/\D/g, "");
+    const formattedPhone =
+      cleanPhone.length <= 11 && !cleanPhone.startsWith("55")
+        ? `55${cleanPhone}`
+        : cleanPhone;
+    const text = encodeURIComponent(
+      `Olá! Gostaria de falar sobre o plano mensal "${plan.name}" (${money(plan.price)}/mês) no ${company.name}. Como posso aderir?`
+    );
+    if (formattedPhone) {
+      window.open(`https://wa.me/${formattedPhone}?text=${text}`, "_blank");
+    } else {
+      alert(`Entre em contato com ${company.name} pelo telefone cadastrado para aderir a este plano mensal.`);
+    }
+  }
+
   useEffect(() => {
     void api<import("@/shared/types").MembershipPlanDTO[]>(`/api/public/${company.slug}/membership-plans`)
       .then((data) => setMembershipPlans(data || []))
@@ -1442,7 +1463,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           <MembershipPlanCard
                             key={plan.id}
                             plan={plan}
-                            onInspect={(p) => setInspectingPlan(p)}
+                            onInspect={(p) => handleOpenPlanWhatsApp(p)}
                             onSouMensalista={(p) => {
                               if (customerMembership && customerMembership.status === "active") {
                                 setMonthSchedulerOpen(true);
@@ -2543,18 +2564,22 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   type="button"
                   className={`${b.button} ${b.wide}`}
                   onClick={() => {
-                    const phone = company.phone?.replace(/\D/g, "");
-                    const text = encodeURIComponent(`Olá! Gostaria de contratar o plano mensal "${inspectingPlan.name}" (${money(inspectingPlan.price)}/mês) no ${company.name}.`);
-                    if (phone) {
-                      window.open(`https://wa.me/${phone.length <= 11 ? "55" : ""}${phone}?text=${text}`, "_blank");
-                    } else {
-                      alert(`Entre em contato com ${company.name} para aderir a este plano mensal!`);
-                    }
+                    handleOpenPlanWhatsApp(inspectingPlan);
                     setInspectingPlan(null);
                   }}
-                  style={{ fontWeight: 700 }}
+                  style={{
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    background: "#25D366",
+                    color: "#ffffff",
+                    border: "none",
+                  }}
                 >
-                  Quero Este Plano
+                  <WhatsAppIcon size={18} />
+                  <span>Falar no WhatsApp para Contratar</span>
                 </button>
               </div>
             </div>
