@@ -343,6 +343,38 @@ export const auditLogs = mysqlTable("audit_logs", {
   entityIdx: index("audit_logs_entity_idx").on(table.entity, table.entityId),
 }));
 
+// Visual Page Builder 2.0: Public Booking Pages & Layout Documents
+export const bookingPages = mysqlTable("booking_pages", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  schemaVersion: int("schema_version").default(2).notNull(),
+  draftLayout: json("draft_layout"),
+  publishedLayout: json("published_layout"),
+  globalTokens: json("global_tokens"),
+  status: varchar("status", { length: 20 }).default("draft").notNull(), // 'draft' | 'published'
+  publishedAt: timestamp("published_at", { mode: "date" }),
+  publishedBy: varchar("published_by", { length: 36 }),
+  lastEditedBy: varchar("last_edited_by", { length: 36 }),
+  ...timestamps,
+}, (table) => ({
+  companyIdx: uniqueIndex("booking_pages_company_idx").on(table.companyId),
+}));
+
+export const bookingPageRevisions = mysqlTable("booking_page_revisions", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  pageId: varchar("page_id", { length: 36 }).notNull().references(() => bookingPages.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  versionNumber: int("version_number").notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  layout: json("layout").notNull(),
+  globalTokens: json("global_tokens"),
+  createdBy: varchar("created_by", { length: 36 }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+}, (table) => ({
+  pageIdx: index("booking_page_revisions_page_idx").on(table.pageId, table.versionNumber),
+  companyIdx: index("booking_page_revisions_company_idx").on(table.companyId),
+}));
+
 export const products = mysqlTable("products", {
   id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),

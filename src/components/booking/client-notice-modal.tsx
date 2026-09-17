@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- Loads client notices on mount. */
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";

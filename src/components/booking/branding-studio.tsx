@@ -57,6 +57,7 @@ import {
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { b, Price, PublicFrame } from "./primitives";
 import { PreviewToolbar } from "./preview-toolbar";
+import { PageBuilderEditor } from "./page-builder/page-builder-editor";
 import styles from "./branding-studio.module.css";
 
 type BrandingData = {
@@ -100,6 +101,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showVisualBuilder, setShowVisualBuilder] = useState(false);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -373,6 +375,32 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
     }
   };
 
+  if (showVisualBuilder) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 99999,
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: "#09090b",
+        }}
+      >
+        <PageBuilderEditor
+          onExit={() => {
+            setShowVisualBuilder(false);
+            void loadBranding();
+          }}
+          onSaved={() => {
+            void loadBranding();
+            onSaved?.();
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       {/* Header with quick save action */}
@@ -385,6 +413,28 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
           </p>
         </div>
         <div className={styles.studioHeaderActions}>
+          <button
+            type="button"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#dcff4c",
+              color: "#09090b",
+              fontWeight: 700,
+              fontSize: "13px",
+              padding: "8px 16px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 0 16px rgba(220, 255, 76, 0.25)",
+            }}
+            onClick={() => setShowVisualBuilder(true)}
+          >
+            <Sparkles size={16} />
+            <span>Abrir Page Builder 2.0 (Visual)</span>
+          </button>
+
           {hasChanges && (
             <span className={styles.unsavedBadge}>
               <AlertTriangle size={13} /> Alterações não salvas
@@ -409,6 +459,65 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
             )}
           </button>
         </div>
+      </div>
+
+      {/* Page Builder 2.0 Banner */}
+      <div
+        style={{
+          margin: "0 0 24px",
+          padding: "16px 20px",
+          borderRadius: "12px",
+          background: "linear-gradient(135deg, rgba(220, 255, 76, 0.08) 0%, rgba(24, 24, 27, 0.9) 100%)",
+          border: "1px solid rgba(220, 255, 76, 0.3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "10px",
+              background: "#dcff4c",
+              color: "#09090b",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <Sparkles size={22} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#f4f4f5" }}>
+              Reservei Visual Page Builder 2.0
+            </h3>
+            <p style={{ margin: "2px 0 0", fontSize: "13px", color: "#a1a1aa" }}>
+              Experiência completa inspirada no Elementor: arraste blocos, altere grades de colunas, tipografia e personalize a versão do celular em tempo real.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          style={{
+            padding: "9px 18px",
+            borderRadius: "8px",
+            backgroundColor: "#dcff4c",
+            color: "#09090b",
+            fontWeight: 700,
+            fontSize: "13px",
+            border: "none",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+          onClick={() => setShowVisualBuilder(true)}
+        >
+          <span>Entrar no Construtor Visual</span>
+        </button>
       </div>
 
       {/* Main Split Layout */}

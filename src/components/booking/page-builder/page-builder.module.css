@@ -1,0 +1,567 @@
+/* Visual Page Builder 2.0 Studio Styles */
+
+.builderRoot {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background-color: #09090b;
+  color: #fafafa;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+  user-select: none;
+}
+
+/* =========================================================
+   TOP TOOLBAR
+   ========================================================= */
+
+.topToolbar {
+  height: 56px;
+  min-height: 56px;
+  background-color: #121215;
+  border-bottom: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 40;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exitBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid #27272a;
+  color: #a1a1aa;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.exitBtn:hover {
+  background: #27272a;
+  color: #f4f4f5;
+}
+
+.docTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f4f4f5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusBadgeDraft {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  font-weight: 600;
+}
+
+.statusBadgePublished {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  font-weight: 600;
+}
+
+.statusBadgeSaving {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-weight: 600;
+}
+
+.toolbarCenter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.undoRedoGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.toolIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.toolIconBtn:hover:not(:disabled) {
+  background: #27272a;
+  color: #f4f4f5;
+}
+
+.toolIconBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.toolIconBtnActive {
+  background: #27272a !important;
+  color: #dcff4c !important;
+}
+
+.deviceGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saveDraftBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.saveDraftBtn:hover:not(:disabled) {
+  background: #27272a;
+}
+
+.publishBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #dcff4c;
+  color: #09090b;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.publishBtn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.publishBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   WORKSPACE THREE COLUMNS
+   ========================================================= */
+
+.builderWorkspace {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left Sidebar */
+.leftSidebar {
+  width: 320px;
+  min-width: 320px;
+  background: #121215;
+  border-right: 1px solid #27272a;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  z-index: 20;
+}
+
+.sidebarTabs {
+  display: flex;
+  border-bottom: 1px solid #27272a;
+  background: #0d0d10;
+}
+
+.sidebarTabBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #71717a;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.sidebarTabBtn:hover {
+  color: #d4d4d8;
+}
+
+.sidebarTabBtnActive {
+  color: #dcff4c !important;
+  border-bottom-color: #dcff4c !important;
+  background: rgba(220, 255, 76, 0.04);
+}
+
+.sidebarContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Central Canvas */
+.canvasArea {
+  flex: 1;
+  background: #09090b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 24px;
+  position: relative;
+}
+
+.viewportFrame {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  background: #000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  overflow-y: auto;
+  transition: max-width 0.25s ease;
+  position: relative;
+}
+
+.viewportDesktop {
+  max-width: 100%;
+}
+
+.viewportTablet {
+  max-width: 768px;
+  border: 4px solid #27272a;
+  border-radius: 20px;
+}
+
+.viewportMobile {
+  max-width: 390px;
+  height: 844px;
+  max-height: 844px;
+  border: 10px solid #27272a;
+  border-radius: 36px;
+}
+
+/* Right Properties Inspector */
+.rightSidebar {
+  width: 320px;
+  min-width: 320px;
+  background: #121215;
+  border-left: 1px solid #27272a;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  z-index: 20;
+}
+
+.inspectorHeader {
+  padding: 14px 16px;
+  border-bottom: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspectorTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspectorBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Form Fields */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fieldInput {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #f4f4f5;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.fieldInput:focus {
+  border-color: #dcff4c;
+}
+
+.fieldSelect {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #f4f4f5;
+  font-size: 13px;
+  outline: none;
+}
+
+.fieldColorWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.colorPicker {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #27272a;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+}
+
+/* Layers Navigator Tree */
+.layersTree {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.layerSection {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.layerSectionHeader {
+  padding: 8px 12px;
+  background: #1f1f23;
+  font-size: 12px;
+  font-weight: 700;
+  color: #d4d4d8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.layerBlockItem {
+  padding: 8px 12px 8px 24px;
+  font-size: 12px;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  border-top: 1px solid #27272a;
+}
+
+.layerBlockItem:hover {
+  background: #27272a;
+  color: #f4f4f5;
+}
+
+.layerBlockItemActive {
+  background: rgba(220, 255, 76, 0.1) !important;
+  color: #dcff4c !important;
+  font-weight: 600;
+}
+
+/* Elements Library */
+.elementCategories {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.categoryTitle {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #71717a;
+  margin: 0 0 8px;
+}
+
+.elementGrid {
+  display: grid;
+  grid-templateColumns: 1fr 1fr;
+  gap: 8px;
+}
+
+.elementCard {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.elementCard:hover {
+  background: #27272a;
+  border-color: #dcff4c;
+  transform: translateY(-1px);
+}
+
+.elementCardIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #27272a;
+  display: grid;
+  place-items: center;
+  color: #dcff4c;
+}
+
+.elementCardTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+/* Templates list */
+.templateCard {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.templateCard:hover {
+  border-color: #dcff4c;
+  background: #1f1f23;
+}
+
+.templateCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.templateBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #27272a;
+  color: #dcff4c;
+}
+
+/* Revisions list */
+.revisionItem {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .leftSidebar,
+  .rightSidebar {
+    display: none;
+  }
+
+  .canvasArea {
+    padding: 8px;
+  }
+
+  .viewportFrame {
+    border: none;
+    border-radius: 0;
+  }
+}

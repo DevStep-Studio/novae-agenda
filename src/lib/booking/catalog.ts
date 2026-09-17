@@ -13,8 +13,10 @@ import {
   serviceCategories,
   services,
   employeeSchedules,
+  bookingPages,
 } from "@/db/schema";
 import type { DbExecutor } from "@/lib/availability";
+import type { PageBuilderDocument } from "@/components/booking/page-builder/page-builder-types";
 import { BookingError } from "./errors";
 import { parseCopyOverrides, parseSectionsConfig } from "./customization";
 import { DEFAULT_FONT_PACK } from "./fonts";
@@ -45,6 +47,7 @@ export async function publicCatalog(slug: string) {
     rawSettingsRows,
     popularity,
     schedules,
+    pageRows,
   ] = await Promise.all([
     db
       .select({
@@ -159,10 +162,16 @@ export async function publicCatalog(slug: string) {
           eq(employeeSchedules.active, true),
         ),
       ),
+    db
+      .select()
+      .from(bookingPages)
+      .where(eq(bookingPages.companyId, company.id))
+      .limit(1),
   ]);
   const pop = new Map(
     popularity.map((p) => [p.serviceId, Number(p.count)]),
   );
+  const publishedPage = pageRows[0];
   // getCompanySettings() only surfaces the fixed CompanySettings shape (open/close
   // time, buffers, etc) — branding fields live in company_settings under separate
   // keys, so they're read from the raw rows instead (mirrors GET /api/business/branding).
@@ -189,6 +198,13 @@ export async function publicCatalog(slug: string) {
       photos: company.publicPhotos,
       timezone: company.timezone,
       cancellationHours: company.cancellationHours,
+      pageBuilder:
+        publishedPage?.status === "published" && publishedPage?.publishedLayout
+          ? {
+              layout: publishedPage.publishedLayout as PageBuilderDocument,
+              tokens: (publishedPage.globalTokens || null) as any,
+            }
+          : null,
     },
     services: serviceRows.map((s) => ({
       ...s,

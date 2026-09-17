@@ -31,6 +31,7 @@ import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
 import { BrandingStudio } from "./branding-studio";
 import { LocationMapCard } from "./location-map-card";
+import { PageBuilderEditor } from "./page-builder/page-builder-editor";
 import type { companies, coupons, products } from "@/db/schema";
 import styles from "./booking-settings.module.css";
 
@@ -86,6 +87,7 @@ export function BookingSettings() {
   const [cancellation, setCancellation] = useState(24);
   const [color, setColor] = useState("#234e3d");
   const [activeTab, setActiveTab] = useState<"branding" | "link" | "schedules" | "extras">("branding");
+  const [showPageBuilder, setShowPageBuilder] = useState(false);
 
   // State for toggles
   const [publicEnabled, setPublicEnabled] = useState(true);
@@ -315,6 +317,26 @@ export function BookingSettings() {
 
   const c = data.company;
 
+  if (showPageBuilder) {
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 99999,
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: "#09090b",
+        }}
+      >
+        <PageBuilderEditor
+          onExit={() => setShowPageBuilder(false)}
+          onSaved={() => void load()}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       {/* Top Header */}
@@ -337,6 +359,15 @@ export function BookingSettings() {
         >
           <Palette size={16} />
           Identidade & Branding Studio
+        </button>
+        <button
+          type="button"
+          className={styles.tabBtn}
+          style={{ color: "#dcff4c", borderColor: "rgba(220, 255, 76, 0.3)" }}
+          onClick={() => setShowPageBuilder(true)}
+        >
+          <Sparkles size={16} />
+          Page Builder 2.0 (Visual)
         </button>
         <button
           type="button"
@@ -410,6 +441,24 @@ export function BookingSettings() {
                 Visualizar
               </a>
             )}
+
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(220, 255, 76, 0.12)",
+                color: "#dcff4c",
+                borderColor: "rgba(220, 255, 76, 0.35)",
+                fontWeight: 600,
+              }}
+              onClick={() => setShowPageBuilder(true)}
+            >
+              <Sparkles size={14} />
+              Personalizar Página (Visual)
+            </button>
 
             <button type="button" className={styles.btnSecondary} onClick={share}>
               <Share2 size={14} />

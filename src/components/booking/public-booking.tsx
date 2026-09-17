@@ -58,6 +58,7 @@ import {
   ActiveMembershipBanner,
   MembershipAccessModal,
 } from "./membership-showcase";
+import { PageBuilderRenderer } from "./page-builder/page-builder-renderer";
 
 function downloadBookingIcs(booking: {
   companyName: string;
@@ -166,6 +167,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const [formEmail, setFormEmail] = useState("");
   const [formBusy, setFormBusy] = useState(false);
   const [formError, setFormError] = useState("");
+
+  const [membershipPlans, setMembershipPlans] = useState<import("@/shared/types").MembershipPlanDTO[]>([]);
+  const [customerMembership, setCustomerMembership] = useState<import("@/shared/types").CustomerMembershipDTO | null>(null);
+  const [inspectingPlan, setInspectingPlan] = useState<import("@/shared/types").MembershipPlanDTO | null>(null);
+  const [monthSchedulerOpen, setMonthSchedulerOpen] = useState(false);
+  const [membershipAccessModalOpen, setMembershipAccessModalOpen] = useState(false);
+  const [selectedPlanForAccess, setSelectedPlanForAccess] = useState<import("@/shared/types").MembershipPlanDTO | null>(null);
 
   const refreshCustomerMembership = useCallback(async () => {
     try {
@@ -369,13 +377,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       }).catch(() => {});
     }
   }
-
-  const [membershipPlans, setMembershipPlans] = useState<import("@/shared/types").MembershipPlanDTO[]>([]);
-  const [customerMembership, setCustomerMembership] = useState<import("@/shared/types").CustomerMembershipDTO | null>(null);
-  const [inspectingPlan, setInspectingPlan] = useState<import("@/shared/types").MembershipPlanDTO | null>(null);
-  const [monthSchedulerOpen, setMonthSchedulerOpen] = useState(false);
-  const [membershipAccessModalOpen, setMembershipAccessModalOpen] = useState(false);
-  const [selectedPlanForAccess, setSelectedPlanForAccess] = useState<import("@/shared/types").MembershipPlanDTO | null>(null);
 
   useEffect(() => {
     void api<import("@/shared/types").MembershipPlanDTO[]>(`/api/public/${company.slug}/membership-plans`)
@@ -1294,6 +1295,26 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
               {/* STEP 0: SERVICES SELECTION */}
               {step === 0 && (
+                (company as any).pageBuilder?.layout ? (
+                  <div style={{ width: "100%", margin: "0 auto" }}>
+                    <PageBuilderRenderer
+                      document={(company as any).pageBuilder.layout}
+                      mode="public"
+                      catalog={catalog}
+                      selectedServiceIds={items.map((i) => i.serviceId)}
+                      onToggleService={(serviceId) => {
+                        if (items.some((i) => i.serviceId === serviceId)) {
+                          changeItems(items.filter((i) => i.serviceId !== serviceId));
+                        } else {
+                          changeItems([...items, { serviceId, employeeId: null }]);
+                        }
+                      }}
+                      onContinueBooking={() => {
+                        if (items.length > 0) go(1);
+                      }}
+                    />
+                  </div>
+                ) : (
                 <>
                   {/* Establishment Hero Info */}
                   <div className={b.profile}>
@@ -1678,7 +1699,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </div>
                   )}
                 </>
-              )}
+              ))}
 
               {/* STEP 1: DATE & TIME PICKER */}
               {step === 1 && items.length > 0 && (
