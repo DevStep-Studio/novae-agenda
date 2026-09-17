@@ -33,6 +33,42 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
     applyTheme(getStoredTheme());
   }, []);
 
+  // Redireciona para /login se tentar acessar /gestao, /notificacoes ou /profissional sem sessão.
+  // Não age enquanto a tela de reset de senha ou confirmação de e-mail estiver em exibição.
+  useEffect(() => {
+    if (!loading && !session && !params.reset && !params.verify && typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      if (
+        pathname.startsWith("/gestao") ||
+        pathname.startsWith("/notificacoes") ||
+        pathname.startsWith("/profissional")
+      ) {
+        const returnTo = encodeURIComponent(pathname + window.location.search);
+        window.location.replace(`/login?returnTo=${returnTo}`);
+      }
+    }
+  }, [loading, session, params.reset, params.verify]);
+
+  // Se estiver na rota /login e já possuir sessão ativa, redireciona para o destino ou painel
+  useEffect(() => {
+    if (!loading && session && !params.reset && !params.verify && typeof window !== "undefined") {
+      if (window.location.pathname === "/login") {
+        const searchParams = new URLSearchParams(window.location.search);
+        const returnTo = searchParams.get("returnTo");
+        const destination =
+          returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
+            ? returnTo
+            : session.targetPortal ||
+              (session.primaryRole === "employee"
+                ? "/profissional"
+                : session.primaryRole === "superadmin"
+                ? "/admin"
+                : "/gestao");
+        window.location.replace(destination);
+      }
+    }
+  }, [loading, session, params.reset, params.verify]);
+
   // Password reset link — available whether or not there's a session.
   if (params.reset) {
     return (
@@ -60,41 +96,6 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
       />
     );
   }
-
-  // Redireciona para /login se tentar acessar /gestao, /notificacoes ou /profissional sem sessão
-  useEffect(() => {
-    if (!loading && !session && typeof window !== "undefined") {
-      const pathname = window.location.pathname;
-      if (
-        pathname.startsWith("/gestao") ||
-        pathname.startsWith("/notificacoes") ||
-        pathname.startsWith("/profissional")
-      ) {
-        const returnTo = encodeURIComponent(pathname + window.location.search);
-        window.location.replace(`/login?returnTo=${returnTo}`);
-      }
-    }
-  }, [loading, session]);
-
-  // Se estiver na rota /login e já possuir sessão ativa, redireciona para o destino ou painel
-  useEffect(() => {
-    if (!loading && session && typeof window !== "undefined") {
-      if (window.location.pathname === "/login") {
-        const params = new URLSearchParams(window.location.search);
-        const returnTo = params.get("returnTo");
-        const destination =
-          returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
-            ? returnTo
-            : session.targetPortal ||
-              (session.primaryRole === "employee"
-                ? "/profissional"
-                : session.primaryRole === "superadmin"
-                ? "/admin"
-                : "/gestao");
-        window.location.replace(destination);
-      }
-    }
-  }, [loading, session]);
 
   if (loading) {
     return (
