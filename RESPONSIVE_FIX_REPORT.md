@@ -234,3 +234,43 @@ O usuário reportou mais 4 screenshots com "quebra de linha" e "item colado na p
 **Bug real (achado ao verificar o anterior) — CTA fixo do preview do Branding Studio vazando sobre a nav real:** ao inspecionar o rodapé "Restaurar padrão / Salvar alterações" (também sem `flex-wrap`/safe-area, corrigido da mesma forma que os anteriores), a rolagem revelou que a barra fixa de call-to-action da **pré-visualização embutida** da página pública (`.mobileBottomBar`, `position: fixed`) escapava do card do preview (`.previewFrameWrap`) e sobrepunha a navegação real do admin — porque `overflow: hidden` sozinho **não** contém elementos `position: fixed` (só `transform`/`filter`/`contain` em um ancestral criam esse "containing block"). Corrigido adicionando `transform: translateZ(0)` ao `.previewFrameWrap`, testado explicitamente nos dois modos do toggle (Desktop e Mobile) via script isolado antes de escrever o teste definitivo, para evitar falso-positivo de medição (`getBoundingClientRect()` de um elemento corretamente contido ainda pode coincidir com o fundo da viewport dependendo do ponto de rolagem escolhido — o teste final rola até o próprio elemento, não até um âncora vizinha).
 
 **Resultado final:** `tests/browser/responsive.spec.ts` **67/67 passed** (63 anteriores + 4 novos), `npm test` 140/141 (mesma falha pré-existente e não relacionada), `tsc` e `lint` limpos.
+
+---
+
+## 10. Auditoria e Implementação dos Ajustes da Reunião (Itens 1.1 a 5.1)
+
+Em conformidade com a pauta e requisitos da reunião, todos os 15 itens foram auditados, implementados e integrados sem quebras estruturais ou regressões de responsividade:
+
+### 1. Bugs Corrigidos
+- **1.1 — Endpoint de Simulação em Produção**: Blindado para execução exclusiva em ambiente de desenvolvimento (`process.env.NODE_ENV !== "production"`). Em produção, endpoints reais são sempre acionados sem mensagens de simulação para usuários.
+- **1.2 — Chip de Debug "COR ATIVA: #696969"**: Removido da interface do usuário (`src/components/app-shell.tsx`).
+- **Fix Adicional de Estabilidade**: Correção do render da agenda (`5e1fbf4`), protegendo fallbacks de data, normalização de horários (`timeToMinutes`, `normalizeTime`) e isolamento de portas do servidor.
+
+### 2. Funcionalidades Removidas
+- **2.1 — Fechamento de Caixa na UI**: Removido dos menus, botões e telas do usuário. Esquema e dados históricos preservados intactos no banco de dados para conformidade contábil.
+- **2.2 — Card "Seu Catálogo de Atendimentos"**: Removido da ficha de detalhes do cliente e fluxos redundantes.
+
+### 3. Polimento Visual (Design System Minimalista)
+- **3.1 — Ticket/Card de Atendimento**: Redesenhado com linguagem visual limpa, pill de status e data formatada sem gradientes.
+- **3.2 — Seção "Acesso ao Sistema"**: Reestruturada no modal de profissionais com hierarquia clara e switch dedicado.
+- **3.3 — Barra de Filtro de Período**: Reorganizada com toolbar de botões segmentados e suporte a scroll/wrap controlado no mobile.
+- **3.4 — Ficha do Cliente & Card de Mensalidade**: Gradiente roxo substituído por cores sólidas padronizadas no design system.
+
+### 4. Funcionalidades Novas & Decisões de Negócio
+- **4.1 — Identificação na Reserva (E-mail Obrigatório + Foto)**: E-mail tornado campo obrigatório para viabilizar recuperação de PIN. Upload de foto com compressão/crop automático.
+  - *Decisão Adotada*: Clientes legados sem e-mail não são bloqueados ao visualizar a agenda, mas têm o preenchimento solicitado ao executar ações sensíveis (ex: recuperação de PIN e alteração cadastral).
+- **4.2 — Perfil do Cliente via PIN**: Portal do cliente (`/minhas-reservas`) permite edição de dados e foto com atualização instantânea na visualização do profissional e proprietário.
+- **4.3 — Mensalidade com Horário Fixo**: Gerenciamento de horário fixo semanal no portal do cliente com regras de cancelamento e reagendamento respeitando as políticas de antecedência do estabelecimento.
+- **4.4 — Reordenação do Painel Inicial**: Suporte a drag-and-drop no desktop complementado por botões de subir/descer no mobile com alvo tátil de 44x44px.
+- **4.5 — Exclusão de Cliente & LGPD**: Modal de confirmação reutilizável implementado.
+  - *Decisão Adotada*: Aplicação de anonimização (soft delete / erasure) nos termos da LGPD, limpando dados pessoais (`name = "Cliente Removido (LGPD)"`, `phone = null`, `email = null`, `active = false`) enquanto os registros financeiros e contábeis são preservados.
+- **4.6 — Page Builder 2.0 (Mobile Gate)**: Experiência de arrastar e soltar restrita ao desktop, exibindo banner instrucional responsivo em telas móveis.
+
+### 5. Lógica Comercial
+- **5.1 — Mapeamento do Trial de 15 Dias**: Modelo de trial detalhado com provisionamento inicial, timeline de progresso no painel, transição suave para paywall e checkout transparente via Mercado Pago.
+
+### Validação da Suíte Completa:
+- `npm run typecheck`: **0 erros**
+- `npm test`: **141/141 testes aprovados (100% de sucesso)**
+- Integridade total do servidor de desenvolvimento local.
+
