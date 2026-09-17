@@ -8361,9 +8361,31 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     display: flex !important;
   }
   .topbar-actions .global-search,
-  .theme-button,
   .topbar-quick-add-btn {
     display: none !important;
+  }
+  .theme-button {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text-secondary) !important;
+    position: relative !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease, transform 0.15s ease !important;
+  }
+  .theme-button:hover,
+  .theme-button:active {
+    background: var(--surface-secondary) !important;
+    color: var(--text-primary) !important;
+    transform: scale(0.95);
   }
   .notification-button {
     width: 38px !important;
