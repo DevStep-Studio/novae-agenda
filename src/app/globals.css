@@ -6814,22 +6814,21 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .client-badge.badge-vip {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.25) 100%);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid var(--warning);
 }
 
 .client-badge.badge-frequent {
-  background: rgba(99, 102, 241, 0.12);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: var(--purple-soft);
+  color: var(--purple);
+  border: 1px solid var(--purple);
 }
 
 .client-badge.badge-new {
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid var(--success);
 }
 
 .profile-since {
@@ -6929,8 +6928,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   margin: 0 20px 14px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.22);
+  background: var(--purple-soft);
+  border: 1px solid var(--purple);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6940,8 +6939,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .customer-membership-empty-card:hover {
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .membership-empty-info {
@@ -6984,21 +6982,18 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 8px 14px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
-  color: #ffffff;
-  border: none;
+  background: var(--purple-soft);
+  color: var(--purple);
+  border: 1px solid var(--purple);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.28);
   transition: all 0.15s ease;
 }
 
 .membership-bind-btn:hover {
-  background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Active Membership Card */
