@@ -1,6 +1,7 @@
 import { db } from "@/db";
-import { saasCouponPlans, saasCouponRedemptions, saasCoupons } from "@/db/schema";
+import { companies, saasCouponPlans, saasCouponRedemptions, saasCoupons, subscriptions } from "@/db/schema";
 import { requireSuperadmin } from "@/lib/auth";
+import { logAdminAction } from "@/lib/admin/audit";
 import { SaasCouponService } from "@/lib/saas/coupon-service";
 import { seedSaasCoupons } from "@/lib/saas/coupons-seed";
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
@@ -25,6 +26,10 @@ const createCouponSchema = z.object({
   durationCycles: z.number().int().positive().default(1),
   minimumPlanAmount: z.number().min(0).optional().nullable(),
   isActive: z.boolean().default(true),
+  influencerName: z.string().optional().nullable(),
+  influencerContact: z.string().optional().nullable(),
+  commissionType: z.enum(["NONE", "PERCENTAGE", "FIXED"]).default("NONE"),
+  commissionValue: z.number().min(0).default(0),
 });
 
 export async function GET() {
@@ -50,17 +55,14 @@ export async function GET() {
       ? await db
           .select({
             couponId: saasCouponRedemptions.couponId,
-            totalUses: count(),
+            totalRedemptions: count(),
+            convertedUses: sql<number>`sum(case when ${saasCouponRedemptions.isConverted} = true or ${saasCouponRedemptions.status} = 'confirmed' then 1 else 0 end)`,
+            cancelledUses: sql<number>`sum(case when ${saasCouponRedemptions.status} = 'cancelled' then 1 else 0 end)`,
             totalDiscount: sql<string>`sum(discount_amount)`,
             totalFinal: sql<string>`sum(final_amount)`,
           })
           .from(saasCouponRedemptions)
-          .where(
-            and(
-              inArray(saasCouponRedemptions.couponId, couponIds),
-              eq(saasCouponRedemptions.status, "confirmed")
-            )
-          )
+          .where(inArray(saasCouponRedemptions.couponId, couponIds))
           .groupBy(saasCouponRedemptions.couponId)
       : [];
 
@@ -68,6 +70,13 @@ export async function GET() {
 
     const data = list.map((c) => {
       const stats = statsMap.get(c.id);
+      const totalRedemptions = Number(stats?.totalRedemptions ?? 0);
+      const convertedUses = Number(stats?.convertedUses ?? 0);
+      const cancelledUses = Number(stats?.cancelledUses ?? 0);
+      const conversionRate = totalRedemptions > 0
+        ? Number(((convertedUses / totalRedemptions) * 100).toFixed(1))
+        : 0;
+
       return {
         id: c.id,
         code: c.code,
@@ -85,7 +94,14 @@ export async function GET() {
         durationCycles: c.durationCycles,
         minimumPlanAmount: c.minimumPlanAmount ? Number(c.minimumPlanAmount) : null,
         isActive: c.isActive,
-        totalUses: Number(stats?.totalUses ?? 0),
+        influencerName: c.influencerName,
+        influencerContact: c.influencerContact,
+        commissionType: c.commissionType,
+        commissionValue: Number(c.commissionValue || 0),
+        totalUses: totalRedemptions,
+        convertedUses,
+        cancelledUses,
+        conversionRate,
         totalDiscountGiven: Number(stats?.totalDiscount ?? 0),
         totalRevenueGenerated: Number(stats?.totalFinal ?? 0),
         createdAt: c.createdAt.toISOString(),
@@ -129,6 +145,10 @@ export async function POST(request: Request) {
     durationCycles,
     minimumPlanAmount,
     isActive,
+    influencerName,
+    influencerContact,
+    commissionType,
+    commissionValue,
   } = parsed.data;
 
   const normalizedCode = SaasCouponService.normalizeCode(code);
@@ -165,6 +185,10 @@ export async function POST(request: Request) {
       durationCycles: durationCycles ?? 1,
       minimumPlanAmount: minimumPlanAmount ? minimumPlanAmount.toFixed(2) : null,
       isActive,
+      influencerName: influencerName ?? null,
+      influencerContact: influencerContact ?? null,
+      commissionType: commissionType ?? "NONE",
+      commissionValue: commissionValue.toFixed(2),
     });
 
     if (appliesTo === "SPECIFIC_PLANS" && planIds && planIds.length > 0) {
@@ -175,6 +199,25 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    await logAdminAction({
+      adminUserId: gate.auth.user.userId,
+      adminEmail: gate.auth.user.email,
+      action: "COUPON_CREATE",
+      entity: "coupon",
+      entityId: couponId,
+      entityName: normalizedCode,
+      reason: influencerName ? `Criado cupom para influenciador: ${influencerName}` : "Criação de cupom SaaS",
+      afterState: {
+        code: normalizedCode,
+        name,
+        discountType,
+        discountValue,
+        influencerName,
+        commissionType,
+        commissionValue,
+      },
+    });
 
     return Response.json(
       {

@@ -44,6 +44,10 @@ export const companies = mysqlTable("companies", {
   cancellationHours: int("cancellation_hours").default(24).notNull(),
   allowProducts: boolean("allow_products").default(false).notNull(),
   onboarded: boolean("onboarded").default(false).notNull(),
+  cnpjOrCpf: varchar("cnpj_or_cpf", { length: 30 }),
+  originCouponId: varchar("origin_coupon_id", { length: 36 }),
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
+  deletedBy: varchar("deleted_by", { length: 36 }),
   ...timestamps,
 });
 
@@ -73,6 +77,9 @@ export const users = mysqlTable("users", {
   emailVerifiedAt: timestamp("email_verified_at", { mode: "date" }),
   avatarUrl: text("avatar_url"),
   bannerUrl: text("banner_url"),
+  adminRole: varchar("admin_role", { length: 50 }).default("super_admin"),
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
+  deletedBy: varchar("deleted_by", { length: 36 }),
   ...timestamps,
 }, (table) => ({
   emailCompanyIdx: uniqueIndex("users_company_email_idx").on(table.companyId, table.email),
@@ -130,6 +137,8 @@ export const employees = mysqlTable("employees", {
   commissionType: varchar("commission_type", { length: 50 }).default("percentage").notNull(),
   commissionValue: decimal("commission_value", { precision: 12, scale: 2 }).default("0").notNull(),
   active: boolean("active").default(true).notNull(),
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
+  deletedBy: varchar("deleted_by", { length: 36 }),
   ...timestamps,
 }, (table) => ({ companyIdx: index("employees_company_idx").on(table.companyId) }));
 
@@ -151,9 +160,12 @@ export const clients = mysqlTable("clients", {
   photoUrl: text("photo_url"),
   phone: varchar("phone", { length: 50 }).notNull(),
   email: varchar("email", { length: 255 }),
+  document: varchar("document", { length: 30 }),
   notes: text("notes"),
   internalNotes: text("internal_notes"),
   active: boolean("active").default(true).notNull(),
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
+  deletedBy: varchar("deleted_by", { length: 36 }),
   ...timestamps,
 }, (table) => ({
   userCompanyIdx: uniqueIndex("clients_company_user_idx").on(table.companyId, table.userId),
@@ -477,6 +489,10 @@ export const saasCoupons = mysqlTable("saas_coupons", {
   durationCycles: int("duration_cycles").default(1),
   minimumPlanAmount: decimal("minimum_plan_amount", { precision: 12, scale: 2 }),
   isActive: boolean("is_active").default(true).notNull(),
+  influencerName: varchar("influencer_name", { length: 150 }),
+  influencerContact: varchar("influencer_contact", { length: 150 }),
+  commissionType: varchar("commission_type", { length: 50 }).default("NONE").notNull(), // 'NONE' | 'PERCENTAGE' | 'FIXED'
+  commissionValue: decimal("commission_value", { precision: 12, scale: 2 }).default("0").notNull(),
   ...timestamps,
 }, (table) => ({
   codeIdx: uniqueIndex("saas_coupons_code_idx").on(table.code),
@@ -508,6 +524,11 @@ export const subscriptions = mysqlTable("subscriptions", {
   gatewayCustomerId: varchar("gateway_customer_id", { length: 100 }),
   gatewaySubscriptionId: varchar("gateway_subscription_id", { length: 100 }),
   gatewayPaymentId: varchar("gateway_payment_id", { length: 100 }),
+  origin: varchar("origin", { length: 50 }).default("checkout").notNull(), // 'checkout' | 'manual_courtesy' | 'manual_paid'
+  grantedByAdminId: varchar("granted_by_admin_id", { length: 36 }),
+  grantReason: text("grant_reason"),
+  revokedByAdminId: varchar("revoked_by_admin_id", { length: 36 }),
+  revokeReason: text("revoke_reason"),
   trialStartedAt: timestamp("trial_started_at", { mode: "date" }),
   trialEndsAt: timestamp("trial_ends_at", { mode: "date" }).notNull(),
   currentPeriodStart: timestamp("current_period_start", { mode: "date" }),
@@ -569,6 +590,8 @@ export const saasCouponRedemptions = mysqlTable("saas_coupon_redemptions", {
   finalAmount: decimal("final_amount", { precision: 12, scale: 2 }).notNull(),
   cycleNumber: int("cycle_number").default(1).notNull(),
   status: varchar("status", { length: 50 }).default("pending").notNull(), // 'pending' | 'confirmed' | 'cancelled'
+  isConverted: boolean("is_converted").default(false).notNull(),
+  convertedAt: timestamp("converted_at", { mode: "date" }),
   redeemedAt: timestamp("redeemed_at", { mode: "date" }),
   ...timestamps,
 }, (table) => ({
@@ -758,3 +781,25 @@ export const customerAccessLogs = mysqlTable("customer_access_logs", {
   actionIdx: index("customer_access_logs_action_idx").on(table.action),
   createdIdx: index("customer_access_logs_created_idx").on(table.createdAt),
 }));
+
+export const adminAuditLogs = mysqlTable("admin_audit_logs", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  adminUserId: varchar("admin_user_id", { length: 36 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  adminEmail: varchar("admin_email", { length: 255 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(), // e.g. 'COMPANY_SOFT_DELETE', 'COMPANY_HARD_DELETE', 'GRANT_SUBSCRIPTION', 'REVOKE_SUBSCRIPTION', 'IMPERSONATE', 'EDIT_COMPANY'
+  entity: varchar("entity", { length: 50 }).notNull(), // 'company' | 'user' | 'subscription' | 'coupon' | 'employee' | 'client'
+  entityId: varchar("entity_id", { length: 36 }),
+  entityName: varchar("entity_name", { length: 255 }),
+  reason: text("reason"),
+  beforeState: json("before_state"),
+  afterState: json("after_state"),
+  ipAddress: varchar("ip_address", { length: 64 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+}, (table) => ({
+  adminIdx: index("admin_audit_logs_admin_idx").on(table.adminUserId),
+  entityIdx: index("admin_audit_logs_entity_idx").on(table.entity, table.entityId),
+  actionIdx: index("admin_audit_logs_action_idx").on(table.action),
+  createdIdx: index("admin_audit_logs_created_idx").on(table.createdAt),
+}));
+

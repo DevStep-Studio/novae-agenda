@@ -245,9 +245,12 @@ export async function createBooking(
         email: user.email,
         phone,
         photoUrl: user.avatarUrl,
+        document: null,
         notes: null,
         internalNotes: null,
         active: true,
+        deletedAt: null,
+        deletedBy: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

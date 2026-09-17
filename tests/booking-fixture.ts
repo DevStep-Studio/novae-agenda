@@ -37,6 +37,10 @@ export async function bookingFixture() {
     publicPhotos: [],
     publicPhone: false,
     publicInstagram: false,
+    cnpjOrCpf: null,
+    originCouponId: null,
+    deletedAt: null,
+    deletedBy: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -68,6 +72,9 @@ export async function bookingFixture() {
     isSuperadmin: false,
     emailVerified: true,
     emailVerifiedAt: now,
+    adminRole: "super_admin",
+    deletedAt: null,
+    deletedBy: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -87,6 +94,9 @@ export async function bookingFixture() {
     isSuperadmin: false,
     emailVerified: true,
     emailVerifiedAt: now,
+    adminRole: null,
+    deletedAt: null,
+    deletedBy: null,
     createdAt: now,
     updatedAt: now,
   }));

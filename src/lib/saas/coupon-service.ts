@@ -293,6 +293,8 @@ export class SaasCouponService {
         .update(saasCouponRedemptions)
         .set({
           status: "confirmed",
+          isConverted: true,
+          convertedAt: now,
           redeemedAt: now,
           updatedAt: now,
         })
@@ -305,6 +307,8 @@ export class SaasCouponService {
         .update(saasCouponRedemptions)
         .set({
           status: "confirmed",
+          isConverted: true,
+          convertedAt: now,
           redeemedAt: now,
           updatedAt: now,
         })
@@ -322,6 +326,8 @@ export class SaasCouponService {
         .update(saasCouponRedemptions)
         .set({
           status: "confirmed",
+          isConverted: true,
+          convertedAt: now,
           redeemedAt: now,
           updatedAt: now,
         })
