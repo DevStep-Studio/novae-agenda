@@ -8802,10 +8802,15 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
 
   /* Modals as Responsive Bottom Sheets on Mobile */
+  /* z-index raised above .mobile-bottom-nav (990) and the hamburger .sidebar
+     (9990/9999) — otherwise the fixed bottom nav paints over modal footer
+     buttons (Salvar/Cancelar/Adicionar), since the base stacking (80/90) only
+     accounted for desktop, where there is no competing fixed bottom bar. */
   .modal-backdrop {
     padding: 0 !important;
     align-items: flex-end !important;
     background: rgba(0, 0, 0, 0.7) !important;
+    z-index: 10010 !important;
   }
   .modal {
     width: 100% !important;
@@ -8816,6 +8821,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     border-bottom: 0 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    z-index: 10020 !important;
   }
   .modal-header {
     padding: 16px 16px 12px !important;
@@ -8907,6 +8913,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     right: 14px !important;
     bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
     left: 14px !important;
+    z-index: 10030 !important;
   }
 
   /* Employee Schedule Modal Responsive */
