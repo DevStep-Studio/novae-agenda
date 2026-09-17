@@ -30,7 +30,6 @@ import { ReportsView } from "@/components/reports/reports-view";
 import { SubscriptionView } from "@/components/subscriptions/subscription-view";
 import { SubscriptionPaywallModal } from "@/components/subscriptions/subscription-paywall-modal";
 import { TrialStatusCard } from "@/components/subscriptions/trial-status-card";
-import { CashClosingModal } from "@/components/financial/cash-closing-modal";
 import { OnboardingChecklistCard } from "@/components/onboarding/onboarding-checklist";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { NotificationsView } from "@/components/notifications/notifications-view";
@@ -2352,7 +2351,6 @@ type FinancialPeriod = "today" | "week" | "month" | "all";
 function FinancialPage() {
   const { session, stats, employees, appointments, locations } = useStore();
   const [period, setPeriod] = useState<FinancialPeriod>("month");
-  const [cashClosingOpen, setCashClosingOpen] = useState(false);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -2560,21 +2558,12 @@ function FinancialPage() {
   return (
     <div className="page-content financial-page-content">
       {/* Intro Header */}
-      <div className="page-intro" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+      <div className="page-intro">
         <div>
           <p className="eyebrow">Visão financeira</p>
           <h1>Financeiro</h1>
           <p className="intro-copy">Faturamento real calculado a partir dos atendimentos finalizados e comissões da equipe.</p>
         </div>
-        <button
-          type="button"
-          className="button-secondary"
-          onClick={() => setCashClosingOpen(true)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", cursor: "pointer", fontWeight: 600, fontSize: 13 }}
-        >
-          <ReceiptText size={16} />
-          <span>Fechamento de Caixa</span>
-        </button>
       </div>
 
       {/* Segmented Period Tabs ("Aba acima") */}
@@ -2805,16 +2794,6 @@ function FinancialPage() {
             })}
           </div>
         </section>
-      )}
-      {cashClosingOpen && (
-        <CashClosingModal
-          onClose={() => setCashClosingOpen(false)}
-          appointments={appointments}
-          employees={employees}
-          locations={locations}
-          stats={stats}
-          companyName={session?.company.name || "Reservei"}
-        />
       )}
     </div>
   );
@@ -4510,7 +4489,7 @@ function ClientReservationsModal({
 }
 
 function NewServiceModal({ onClose }: { onClose: () => void }) {
-  return <Modal title="Novo serviço" eyebrow="Seu catálogo de atendimentos" onClose={onClose} wide><ServiceEditor onDone={onClose}/></Modal>;
+  return <Modal title="Novo serviço" onClose={onClose} wide><ServiceEditor onDone={onClose}/></Modal>;
 }
 
 function NewEmployeeModal({ onClose }: { onClose: () => void }) {
