@@ -1411,8 +1411,14 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--booking-space-6);
+  gap: 20px;
   margin-bottom: 24px;
+}
+.bookingsHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 .bookingsHeaderActions {
   display: flex;
@@ -1420,62 +1426,90 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.bookingsPrimaryAction {
+  background: var(--accent) !important;
+  color: #09090b !important;
+  font-weight: 700 !important;
+  border: 1px solid var(--accent) !important;
+  min-height: 38px !important;
+  padding: 0 16px !important;
+}
+.bookingsPrimaryAction:hover {
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+  transform: translateY(-1px);
+}
+.bookingsSecondaryActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bookingsSecondaryBtn {
+  min-height: 38px !important;
+  padding: 0 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: var(--booking-text-secondary) !important;
+  border-color: var(--booking-border) !important;
+  background: var(--booking-surface-secondary) !important;
+}
+.bookingsSecondaryBtn:hover {
+  background: var(--booking-surface-hover) !important;
+  border-color: var(--booking-border-strong) !important;
+  color: var(--booking-text-primary) !important;
+}
 .bookingsHeader .title {
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: var(--booking-text-primary);
+  line-height: 1.2;
 }
 .bookingsHeader .subtitle {
-  margin-bottom: 0;
-  font-size: 14px;
-  color: var(--booking-text-secondary);
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--booking-text-muted);
   line-height: 1.45;
 }
 .bookingsBadge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: var(--booking-surface-secondary);
-  border: 1px solid var(--booking-border-strong);
+  border: 1px solid var(--booking-border);
   color: var(--accent);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   letter-spacing: 0.01em;
 }
 .bookingTabs {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
   background: var(--booking-surface);
   border: 1px solid var(--booking-border);
-  padding: 5px;
+  padding: 4px;
   border-radius: 12px;
   margin-bottom: 24px;
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.bookingTabs::-webkit-scrollbar {
-  display: none;
+  width: 100%;
 }
 .bookingTab {
-  min-height: 38px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  flex: 0 0 auto;
-  padding: 7px 16px;
+  padding: 6px 12px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
   color: var(--booking-text-secondary);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -1499,7 +1533,7 @@
 }
 .bookingTab > span,
 .bookingTabBadge {
-  min-width: 22px;
+  min-width: 20px;
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
@@ -1724,18 +1758,52 @@
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
+    margin-bottom: 20px;
+  }
+  .bookingsHeader .title {
+    font-size: 24px;
   }
   .bookingsHeaderActions {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    flex-wrap: wrap;
+    width: 100%;
+  }
+  .bookingsPrimaryAction {
+    width: 100% !important;
+    min-height: 42px !important;
+    justify-content: center;
+    font-size: 13.5px !important;
+  }
+  .bookingsSecondaryActions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  .bookingsSecondaryBtn {
+    width: 100% !important;
+    min-height: 38px !important;
+    padding: 0 6px !important;
+    font-size: 11.5px !important;
+    justify-content: center;
+  }
+  .bookingTabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .bookingTab {
+    padding: 6px 4px;
+    font-size: 12.5px;
+    gap: 6px;
   }
 }
 
 @media (max-width: 640px) {
   .bookingsHeader { gap: 14px; }
-  .bookingsHeader .title { font-size: 26px; }
+  .bookingsHeader .title { font-size: 22px; }
   .featuredBookingCard,
   .bookingCardCompact { grid-template-columns: 58px minmax(0, 1fr); }
   .ticketCard::before,

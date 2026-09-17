@@ -15,6 +15,7 @@ import {
   FileText,
   History,
   KeyRound,
+  LogOut,
   MapPin,
   Phone,
   RotateCcw,
@@ -1246,7 +1247,7 @@ export function MyBookings({
 
           <>
             <header className={b.bookingsHeader}>
-              <div>
+              <div className={b.bookingsHeaderInfo}>
                 <span className={b.bookingsBadge}>
                   <UserRound size={12} /> {user.name ? `Olá, ${user.name.split(" ")[0]}` : "Área do Cliente"}
                 </span>
@@ -1269,17 +1270,16 @@ export function MyBookings({
                 {rows[0]?.company?.slug && (
                   <Link
                     href={`/agendar/${rows[0].company.slug}`}
-                    className={`${b.button} ${b.small}`}
-                    style={{ background: "#dcff4c", color: "#0a0a0a", fontWeight: 600 }}
+                    className={`${b.button} ${b.small} ${b.bookingsPrimaryAction}`}
                   >
                     <CalendarPlus size={14} /> Agendar novo horário
                   </Link>
                 )}
                 {!embedded && (
-                  <>
+                  <div className={b.bookingsSecondaryActions}>
                     <button
                       type="button"
-                      className={`${b.button} ${b.outline} ${b.small}`}
+                      className={`${b.button} ${b.outline} ${b.small} ${b.bookingsSecondaryBtn}`}
                       onClick={() => {
                         setProfileModalOpen(true);
                         setProfileName(user?.name || "");
@@ -1293,7 +1293,7 @@ export function MyBookings({
                     </button>
                     <button
                       type="button"
-                      className={`${b.button} ${b.outline} ${b.small}`}
+                      className={`${b.button} ${b.outline} ${b.small} ${b.bookingsSecondaryBtn}`}
                       onClick={() => {
                         setPinModalOpen(true);
                         setPinChangeVal("");
@@ -1306,16 +1306,16 @@ export function MyBookings({
                     </button>
                     <button
                       type="button"
-                      className={`${b.button} ${b.outline} ${b.small}`}
+                      className={`${b.button} ${b.outline} ${b.small} ${b.bookingsSecondaryBtn}`}
                       onClick={async () => {
                         await api("/api/auth/logout", { method: "POST" });
                         setUser(null);
                         setRows([]);
                       }}
                     >
-                      Trocar de conta
+                      <LogOut size={13} /> Trocar conta
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </header>
