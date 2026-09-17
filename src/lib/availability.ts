@@ -271,9 +271,10 @@ export async function getAvailabilitySlotGaps(
     open = Math.max(open, timeToMinutes(loc.openTime));
     close = Math.min(close, timeToMinutes(loc.closeTime));
   }
-  const rawWindows = hasCustomConfig
-    ? (hasSchedule ? windows : [])
-    : [{ start: open, end: close }];
+  const rawWindows =
+    hasSchedule && windows.length > 0
+      ? windows
+      : [{ start: open, end: close }];
   const working = rawWindows
     .map((w) => ({
       start: Math.max(w.start, open),

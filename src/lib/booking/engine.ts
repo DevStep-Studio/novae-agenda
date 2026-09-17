@@ -182,10 +182,12 @@ export async function loadAvailability(
                 and(
                   inArray(employeeSchedules.employeeId, empIds),
                   eq(employeeSchedules.active, true),
-                  or(
-                    eq(employeeSchedules.locationId, effectiveLocationId),
-                    isNull(employeeSchedules.locationId),
-                  ),
+                  effectiveLocationId
+                    ? or(
+                        eq(employeeSchedules.locationId, effectiveLocationId),
+                        isNull(employeeSchedules.locationId),
+                      )
+                    : undefined,
                 ),
               ),
           () => {
@@ -224,28 +226,57 @@ export async function loadAvailability(
                     scheduleBlocks.endsAt,
                     localInstant(from, "00:00", company.timezone),
                   ),
-                  or(
-                    isNull(scheduleBlocks.locationId),
-                    eq(scheduleBlocks.locationId, effectiveLocationId),
-                  ),
+                  effectiveLocationId
+                    ? or(
+                        isNull(scheduleBlocks.locationId),
+                        eq(scheduleBlocks.locationId, effectiveLocationId),
+                      )
+                    : undefined,
                 ),
               ),
         ] as const,
         executor !== db,
       )
     : [[], [], [], [], []];
+
+  const effectiveTeam =
+    team.length > 0
+      ? team
+      : [
+          {
+            id: company.id,
+            companyId: company.id,
+            userId: null,
+            name: company.name || "Atendimento",
+            jobTitle: "Profissional",
+            phone: company.phone ?? null,
+            photoUrl: null,
+            bannerUrl: null,
+            locationId: effectiveLocationId ?? null,
+            commissionType: "none",
+            commissionValue: "0",
+            active: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          } as any,
+        ];
+
   const ordered = selection.map((item) => {
     const service = defs.find((s) => s.id === item.serviceId)!;
-    const candidates = team.filter((e) => {
-      if (item.employeeId && e.id !== item.employeeId) return false;
+    let candidates = effectiveTeam.filter((e) => {
+      if (item.employeeId) {
+        return e.id === item.employeeId;
+      }
 
-      const empUnitLinks = unitLinks.filter((l) => l.employeeId === e.id);
-      const hasLocRestriction = empUnitLinks.length > 0 || Boolean(e.locationId);
-      if (hasLocRestriction) {
-        const matchesLoc =
-          e.locationId === effectiveLocationId ||
-          empUnitLinks.some((l) => l.locationId === effectiveLocationId);
-        if (!matchesLoc) return false;
+      if (effectiveLocationId) {
+        const empUnitLinks = unitLinks.filter((l) => l.employeeId === e.id);
+        const hasLocRestriction = empUnitLinks.length > 0 || Boolean(e.locationId);
+        if (hasLocRestriction) {
+          const matchesLoc =
+            e.locationId === effectiveLocationId ||
+            empUnitLinks.some((l) => l.locationId === effectiveLocationId);
+          if (!matchesLoc) return false;
+        }
       }
 
       const empSvcLinks = links.filter((l) => l.employeeId === e.id);
@@ -256,18 +287,23 @@ export async function loadAvailability(
 
       return true;
     });
+
     if (!candidates.length) {
       if (item.employeeId) {
-        throw new BookingError(
-          "Nenhum profissional disponível para este serviço.",
-          422,
-        );
+        const specificEmp = effectiveTeam.find((e) => e.id === item.employeeId);
+        if (specificEmp) {
+          candidates = [specificEmp];
+        } else {
+          throw new BookingError(
+            "Nenhum profissional disponível para este serviço.",
+            422,
+          );
+        }
+      } else {
+        candidates = effectiveTeam;
       }
-      throw new BookingError(
-        `Nenhum profissional disponível para ${service.name} nesta unidade.`,
-        422,
-      );
     }
+
     return { service, candidates };
   });
   const today = localDate(new Date(), company.timezone),
@@ -295,16 +331,16 @@ export async function loadAvailability(
 
     const currentDayOfWeek = dayOfWeek(date, company.timezone);
     const gaps = new Map<string, Interval[]>();
-    for (const e of team) {
+    for (const e of effectiveTeam) {
       const allEmpSchedules = schedules.filter((s) => s.employeeId === e.id);
       const daySchedules = allEmpSchedules.filter(
         (s) => s.dayOfWeek === currentDayOfWeek,
       );
 
       const rawWindows =
-        allEmpSchedules.length === 0
-          ? [{ start: open, end: close }]
-          : scheduleWindows(daySchedules);
+        daySchedules.length > 0
+          ? scheduleWindows(daySchedules)
+          : [{ start: open, end: close }];
 
       const work = rawWindows
         .map((w) => ({
