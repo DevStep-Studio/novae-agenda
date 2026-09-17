@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { StoreProvider, useStore } from "@/store/store";
 import { AdminDashboard } from "@/components/admin/admin-dashboard";
-import { AuthScreen } from "@/components/auth/auth-screen";
+import { AdminLoginScreen } from "@/components/admin/admin-login-screen";
 
 function AdminContent() {
   const { session, loading, reloadSession } = useStore();
@@ -17,19 +16,14 @@ function AdminContent() {
     );
   }
 
-  if (!session) {
-    return <AuthScreen onAuthenticated={() => void reloadSession()} />;
-  }
-
-  if (!session.isSuperadmin && session.primaryRole !== "superadmin") {
+  // Se não houver sessão ou a sessão atual não tiver permissões de superadmin,
+  // exibe a tela de login dedicada de Administrador
+  if (!session || (!session.isSuperadmin && session.primaryRole !== "superadmin")) {
     return (
-      <div style={{ padding: 40, textAlign: "center", color: "#ffffff", background: "#080808", minHeight: "100vh" }}>
-        <h2 style={{ fontSize: 22, color: "#f87171" }}>Acesso Restrito</h2>
-        <p style={{ marginTop: 12, color: "rgba(255,255,255,0.7)" }}>Esta área é reservada exclusivamente para o superadmin da plataforma Reservei.</p>
-        <Link href="/" style={{ display: "inline-block", marginTop: 24, padding: "10px 20px", background: "var(--primary, #3b82f6)", color: "#ffffff", borderRadius: 8, fontWeight: 700, textDecoration: "none" }}>
-          Voltar ao meu painel
-        </Link>
-      </div>
+      <AdminLoginScreen
+        currentSession={session}
+        onAuthenticated={() => void reloadSession()}
+      />
     );
   }
 
