@@ -7060,10 +7060,6 @@ function ProfilePage({
               <div className="profile-hero-details">
                 <h2>{name || session?.name}</h2>
                 <p>{companyName || session?.company.name} · {roleLabel(session?.role)}</p>
-                <div className="profile-hero-badge">
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: primaryColor }} />
-                  <span>Cor ativa: {primaryColor}</span>
-                </div>
               </div>
             </div>
 
