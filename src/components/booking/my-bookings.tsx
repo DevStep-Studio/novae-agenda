@@ -2,12 +2,13 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
   CalendarDays,
   CalendarPlus,
+  Camera,
   Check,
   Clock3,
   ExternalLink,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
+import { prepareImageUpload } from "@/lib/image-upload-client";
 import type { BookingDetails } from "@/lib/booking/service";
 import type { PublicCatalog } from "@/lib/booking/catalog";
 import type { AvailableSlot } from "@/lib/booking/engine";
@@ -85,6 +87,15 @@ export function MyBookings({
   const [pinChangeError, setPinChangeError] = useState("");
   const [pinChangeSuccess, setPinChangeSuccess] = useState("");
   const [pinChangeBusy, setPinChangeBusy] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [profilePhotoUploading, setProfilePhotoUploading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSuccess, setProfileSuccess] = useState("");
+  const [profileBusy, setProfileBusy] = useState(false);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const onReady = useCallback((u: Customer) => setUser(u), []);
   const load = useCallback(async () => {
     setLoading(true);
@@ -419,6 +430,148 @@ export function MyBookings({
                     className={`${b.button} ${b.outline}`}
                     onClick={() => setPinModalOpen(false)}
                     disabled={pinChangeBusy}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Meus Dados (edição de perfil pelo PIN) */}
+        {profileModalOpen && (
+          <div className={b.modalBackdrop} onClick={() => !profileBusy && setProfileModalOpen(false)}>
+            <div className={b.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Meus dados">
+              <div className={b.modalHeader}>
+                <h2 className={b.modalTitle}>Meus dados</h2>
+                <p className={b.modalSubtitle}>
+                  Essas informações aparecem para o estabelecimento sempre que você tem um agendamento.
+                </p>
+              </div>
+
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
+                  <input
+                    ref={profilePhotoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    style={{ display: "none" }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        setProfilePhotoUploading(true);
+                        const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
+                        setProfilePhotoUrl(dataUrl);
+                      } catch (err) {
+                        setProfileError((err as Error).message || "Erro ao carregar imagem.");
+                      } finally {
+                        setProfilePhotoUploading(false);
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => profilePhotoInputRef.current?.click()}
+                    disabled={profilePhotoUploading}
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: "50%",
+                      border: "1.5px dashed var(--booking-border)",
+                      background: profilePhotoUrl ? `url('${profilePhotoUrl}') center/cover` : "transparent",
+                      color: "var(--booking-text-secondary)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: profilePhotoUploading ? "not-allowed" : "pointer",
+                      minWidth: 44,
+                      minHeight: 44,
+                    }}
+                    title="Alterar foto de perfil"
+                  >
+                    {!profilePhotoUrl && <Camera size={22} />}
+                  </button>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12.5px", fontWeight: 500, display: "block", marginBottom: 6 }}>
+                    Nome completo
+                  </label>
+                  <input
+                    type="text"
+                    className={b.input}
+                    value={profileName}
+                    minLength={2}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    style={{ minHeight: 44 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: "12.5px", fontWeight: 500, display: "block", marginBottom: 6 }}>
+                    E-mail
+                  </label>
+                  <input
+                    type="email"
+                    className={b.input}
+                    value={profileEmail}
+                    onChange={(e) => setProfileEmail(e.target.value)}
+                    style={{ minHeight: 44 }}
+                  />
+                </div>
+
+                {profileError && (
+                  <p style={{ color: "var(--booking-danger)", fontSize: "12.5px", margin: 0, textAlign: "center" }}>
+                    {profileError}
+                  </p>
+                )}
+                {profileSuccess && (
+                  <p style={{ color: "#10b981", fontSize: "12.5px", margin: 0, textAlign: "center", fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                    <Check size={13} />
+                    <span>{profileSuccess}</span>
+                  </p>
+                )}
+
+                <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className={`${b.button} ${b.wide}`}
+                    disabled={profileBusy || profilePhotoUploading || profileName.trim().length < 2}
+                    onClick={async () => {
+                      setProfileBusy(true);
+                      setProfileError("");
+                      try {
+                        const result = await api<Customer>("/api/my/session", {
+                          method: "PATCH",
+                          body: JSON.stringify({
+                            name: profileName.trim(),
+                            email: profileEmail.trim() || undefined,
+                            photoUrl: profilePhotoUrl && profilePhotoUrl.startsWith("data:") ? profilePhotoUrl : undefined,
+                          }),
+                        });
+                        setUser(result);
+                        setProfileSuccess("Dados atualizados com sucesso!");
+                        setTimeout(() => {
+                          setProfileModalOpen(false);
+                          setProfileSuccess("");
+                        }, 1200);
+                      } catch (err: any) {
+                        setProfileError(err.message || "Erro ao salvar seus dados.");
+                      } finally {
+                        setProfileBusy(false);
+                      }
+                    }}
+                  >
+                    {profileBusy ? "Salvando..." : "Salvar dados"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${b.button} ${b.outline}`}
+                    onClick={() => setProfileModalOpen(false)}
+                    disabled={profileBusy}
                   >
                     Cancelar
                   </button>
@@ -980,6 +1133,20 @@ export function MyBookings({
                 )}
                 {!embedded && (
                   <>
+                    <button
+                      type="button"
+                      className={`${b.button} ${b.outline} ${b.small}`}
+                      onClick={() => {
+                        setProfileModalOpen(true);
+                        setProfileName(user?.name || "");
+                        setProfileEmail(user?.email || "");
+                        setProfilePhotoUrl(user?.photoUrl || null);
+                        setProfileError("");
+                        setProfileSuccess("");
+                      }}
+                    >
+                      <UserRound size={13} /> Meus dados
+                    </button>
                     <button
                       type="button"
                       className={`${b.button} ${b.outline} ${b.small}`}
