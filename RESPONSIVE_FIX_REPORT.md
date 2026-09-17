@@ -168,3 +168,25 @@ Os screenshots em tela cheia de cada combinação de rota e dispositivo foram gr
 ## 6. Conclusão
 
 A arquitetura do Novae Agenda agora atende rigorosamente aos mais altos padrões de engenharia front-end mobile-first. O produto proporciona uma experiência tátil imediata, fluida e ergonômica em smartphones e tablets, mantendo precisão e integridade no desktop.
+
+---
+
+## 7. Sessão de Verificação Adicional (17/09/2026)
+
+Após a reconstrução acima e os fixes pontuais subsequentes, dois bugs foram reportados visualmente pelo usuário: o botão "QR Code" cortado na barra de ações do card "Seu link público", e o dropdown "Profissional" + chips (Júlio, Marlon) vazando para fora do card no filtro da Agenda. Esta sessão investigou os dois pontos especificamente, com prova via Playwright real (não apenas leitura de código).
+
+**Achado crítico no próprio teste:** o teste autenticado navegava para `/gestao?view=agenda`, mas essa rota não existe neste app — `/gestao/page.tsx` fixa `initialView="dashboard"` e ignora qualquer query string; a navegação real por view usa caminhos (`/gestao/agenda`, `/gestao/servicos`, etc., ver `src/lib/management-routes.ts`). Isso significava que a suíte "58 passed" nunca de fato abriu a tela de Agenda: validava a Dashboard duas vezes sob um nome enganoso, e o bug do filtro de Profissional nunca foi exercitado pelos testes anteriores. Corrigido em `tests/browser/responsive.spec.ts`: rota trocada para `/gestao/agenda`, com `expect(filterRow).toBeVisible()` antes de qualquer asserção de overflow, para que o teste não possa voltar a passar "no vazio".
+
+**Bug 1 — "Seu link público" (`.urlActions`):** já havia sido corrigido no commit `e2f86d8` anterior a esta sessão (grid 2 colunas com `flex-wrap` no mobile). Confirmado agora com prova real: nenhum botão ultrapassa a borda do card em iPhone SE, iPhone 13 e Pixel 5. Adicionada asserção permanente (bounding box de cada botão vs. o card) em todos os dispositivos autenticados da suíte, para não regredir silenciosamente.
+
+**Bug 2 — Filtro "Profissional" (`.calendar-filter-row`):** ao navegar de fato para `/gestao/agenda`, o chip do segundo profissional aparecia cortado na borda direita da tela ("● Ing…"), sem nenhuma indicação visual de que a linha era rolável — tecnicamente alcançável via scroll horizontal (`overflow-x: auto`), mas lido pelo usuário como "cortado", exatamente como reportado. Corrigido em `src/app/globals.css` (bloco `@media max-width: 680px`): a linha do filtro passou de "uma linha com scroll horizontal sem affordance" para "dropdown em linha própria + chips com `flex-wrap: wrap`" — mesma abordagem seguramente usada em outros pontos do app. Confirmado visualmente: dropdown e os dois chips (Ingrid, Maria) totalmente visíveis, dentro do card, sem corte.
+
+**Sweep adicional (conforme solicitado):** varredura nos 11 arquivos `*.module.css` do projeto por grupos de botões/chips (`Row`/`Actions`/`Buttons`/`Group`/`Bar`/`Tabs`) sem `flex-wrap` nem scroll. A maioria já está segura (containers com 2 itens fixos, ou o pai já tem `flex-wrap: wrap`). Um ponto real foi endurecido preventivamente: `.serviceActions`/`.serviceButtons` no fluxo público de agendamento (`booking.module.css`) — a linha de preço + botões (ex.: "Orçamento" + "Selecionar" em serviços "sob consulta") não tinha `flex-wrap`, arriscando cortar em telas estreitas com textos mais longos. Adicionado `flex-wrap: wrap` sem alterar o layout no caso comum (verificado via suíte de regressão visual `public-booking.spec.ts`, sem diffs de pixel atribuíveis à mudança).
+
+**Resultado dos testes desta sessão:**
+- `tests/browser/responsive.spec.ts`: **58/58 passed**, agora com asserções reais de contenção de elemento (não apenas overflow de página) para os dois bugs reportados.
+- `npm test` (suíte Node): **141/141 passed**, 0 falhas.
+- `npx tsc --noEmit`: limpo.
+- Screenshots atualizados em `test-results/responsive/gestao-agenda/` e `test-results/responsive/link-agendamento/` (novos diretórios desta sessão).
+
+**Achado pré-existente, fora do escopo mobile/responsivo (não corrigido):** ao validar a suíte `tests/browser/public-booking.spec.ts` como precaução (fluxo de checkout), 3 dos 4 testes já falhavam antes de qualquer mudança desta sessão, por um motivo funcional não relacionado a CSS: o teste espera um botão `"Confirmar agendamento"` no passo de pagamento, mas a UI atual exibe `"Escolha a forma de pagamento"` enquanto nenhuma forma de pagamento foi selecionada (texto dinâmico), então o botão não é encontrado pelo nome esperado. Isso é uma divergência entre teste e produto no fluxo de pagamento — não algo introduzido aqui — e fica registrado para tratamento à parte, já que não é um bug de responsividade.
