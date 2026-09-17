@@ -20,6 +20,16 @@ export type CompanyMembershipDTO = {
   isPrimary?: boolean;
 };
 
+export type DashboardSectionKey =
+  | "showBanner"
+  | "showChecklist"
+  | "showKpis"
+  | "showSubmetrics"
+  | "showNextAppointment"
+  | "showDaySummary"
+  | "showQuickSlots"
+  | "showTodayAppointments";
+
 export type DashboardPreferences = {
   showBanner?: boolean;
   showChecklist?: boolean;
@@ -29,6 +39,7 @@ export type DashboardPreferences = {
   showDaySummary?: boolean;
   showQuickSlots?: boolean;
   showTodayAppointments?: boolean;
+  order?: DashboardSectionKey[];
 };
 
 export type Company = {

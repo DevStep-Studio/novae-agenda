@@ -18,7 +18,7 @@ const profilePatchSchema = z.object({
   bannerUrl: z.string().max(8_000_000).optional().nullable(),
   primaryColor: z.string().max(30).optional(),
   secondaryColor: z.string().max(30).optional(),
-  dashboardPreferences: z.record(z.string(), z.boolean()).optional(),
+  dashboardPreferences: z.record(z.string(), z.union([z.boolean(), z.array(z.string())])).optional(),
 });
 
 export async function GET() {

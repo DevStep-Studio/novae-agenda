@@ -5,7 +5,7 @@ import NextImage from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle, ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
-  Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
+  Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
   ImagePlus, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
@@ -17,7 +17,7 @@ import { avatarColor, formatCurrency, initials, PAYMENT_LABELS, roleLabel, STATU
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
 import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor, isLightHex } from "@/lib/theme-utils";
 import type {
-  AppointmentDTO, AppointmentStatus, ClientDTO, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
+  AppointmentDTO, AppointmentStatus, ClientDTO, DashboardSectionKey, EmployeeDTO, PaymentMethod, ScheduleBlockDTO,
   SearchResultDTO, ServiceCategoryDTO, ServiceDTO, SuperadminStatsDTO,
 } from "@/shared/types";
 import { QuickStatus, OperationsAvailability, type QuickPrefill } from "@/components/operations/quick-actions";
@@ -329,6 +329,7 @@ function DashboardPage({
     showDaySummary: session?.company.dashboardPreferences?.showDaySummary ?? true,
     showQuickSlots: session?.company.dashboardPreferences?.showQuickSlots ?? true,
     showTodayAppointments: session?.company.dashboardPreferences?.showTodayAppointments ?? true,
+    order: sortDashboardSections(session?.company.dashboardPreferences?.order),
   }), [session?.company.dashboardPreferences]);
 
   const today = localDate(new Date(), session?.company.timezone || "America/Sao_Paulo");
@@ -348,7 +349,7 @@ function DashboardPage({
 
   return (
     <div className="page-content dashboard-page">
-      <div className="page-intro">
+      <div className="page-intro" style={{ order: -2 }}>
         <div>
           <p className="eyebrow">{pageTitles.dashboard.eyebrow}</p>
           <h1>Olá! Aqui está seu dia</h1>
@@ -370,10 +371,12 @@ function DashboardPage({
         </div>
       </div>
 
-      {(session?.primaryRole ?? session?.role) === "owner" && <TrialStatusCard />}
+      {(session?.primaryRole ?? session?.role) === "owner" && (
+        <div style={{ order: -1 }}><TrialStatusCard /></div>
+      )}
 
       {prefs.showBanner && (
-        <div className="dashboard-banner-card">
+        <div className="dashboard-banner-card" style={{ order: prefs.order.indexOf("showBanner") }}>
           <div
             className="dashboard-banner-bg"
             style={{ backgroundImage: `url('${bannerUrl}')` }}
@@ -430,11 +433,13 @@ function DashboardPage({
       )}
 
       {prefs.showChecklist && (
-        <OnboardingChecklistCard onNavigate={onNavigate || onGoToAgenda} onToast={notify} />
+        <div style={{ order: prefs.order.indexOf("showChecklist") }}>
+          <OnboardingChecklistCard onNavigate={onNavigate || onGoToAgenda} onToast={notify} />
+        </div>
       )}
 
       {prefs.showKpis && (
-        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))" }}>
+        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", order: prefs.order.indexOf("showKpis") }}>
           <div className="metric-card">
             <div className="metric-icon metric-teal"><CalendarDays size={18} /></div>
             <div className="metric-copy">
@@ -479,7 +484,7 @@ function DashboardPage({
       )}
 
       {prefs.showSubmetrics && (
-        <div className="metrics-subgrid">
+        <div className="metrics-subgrid" style={{ order: prefs.order.indexOf("showSubmetrics") }}>
           <div className="submetric-card">
             <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Atendimentos pendentes</span>
             <strong style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)" }}>{pending.length}</strong>
@@ -497,7 +502,12 @@ function DashboardPage({
       )}
 
       {(prefs.showNextAppointment || prefs.showDaySummary) && (
-        <div className="dashboard-grid" style={{ gridTemplateColumns: prefs.showNextAppointment && prefs.showDaySummary ? "1.5fr 1fr" : "1fr" }}>
+        <div
+          className="dashboard-grid"
+          style={{
+            gridTemplateColumns: prefs.showNextAppointment && prefs.showDaySummary ? "1.5fr 1fr" : "1fr",
+            order: Math.min(prefs.order.indexOf("showNextAppointment"), prefs.order.indexOf("showDaySummary")),
+          }}>
           {prefs.showNextAppointment && (
             <section className="panel next-panel">
               <SectionHeading
@@ -583,11 +593,13 @@ function DashboardPage({
       )}
 
       {prefs.showQuickSlots && (
-        <OperationsAvailability onNew={onQuickNew} />
+        <div style={{ order: prefs.order.indexOf("showQuickSlots") }}>
+          <OperationsAvailability onNew={onQuickNew} />
+        </div>
       )}
 
       {prefs.showTodayAppointments && (
-        <section className="panel agenda-today-panel">
+        <section className="panel agenda-today-panel" style={{ order: prefs.order.indexOf("showTodayAppointments") }}>
           <SectionHeading
             title="Agenda de hoje"
             description="Atendimentos em ordem cronológica"
@@ -643,6 +655,28 @@ function DashboardPage({
   );
 }
 
+const DASHBOARD_SECTION_META: Record<DashboardSectionKey, { label: string; desc: string }> = {
+  showBanner: { label: "Banner e Boas-vindas", desc: "Cartão de destaque com saudação e imagem de capa da empresa" },
+  showChecklist: { label: "Checklist de Configuração", desc: "Passo a passo inicial para ativar seu agendamento" },
+  showKpis: { label: "Indicadores Principais", desc: "Métricas de atendimentos e receitas previstas/realizadas do dia" },
+  showSubmetrics: { label: "Atendimentos Pendentes e Cancelamentos", desc: "Cards compactos de contagem operacional" },
+  showNextAppointment: { label: "Próximo Atendimento em Destaque", desc: "Card hero com dados do próximo cliente e botões rápidos" },
+  showDaySummary: { label: "Resumo do Dia por Status", desc: "Contagem de atendimentos confirmados, aguardando e em andamento" },
+  showQuickSlots: { label: "Horários Livres / Encaixe Rápido", desc: "Grade de horários livres sugeridos para encaixes de última hora" },
+  showTodayAppointments: { label: "Agenda Cronológica de Hoje", desc: "Lista de todos os agendamentos do dia em ordem de horário" },
+};
+const DASHBOARD_SECTION_DEFAULT_ORDER: DashboardSectionKey[] = [
+  "showBanner", "showChecklist", "showKpis", "showSubmetrics",
+  "showNextAppointment", "showDaySummary", "showQuickSlots", "showTodayAppointments",
+];
+
+function sortDashboardSections(order: DashboardSectionKey[] | undefined): DashboardSectionKey[] {
+  if (!order || order.length === 0) return DASHBOARD_SECTION_DEFAULT_ORDER;
+  const known = order.filter((k): k is DashboardSectionKey => DASHBOARD_SECTION_DEFAULT_ORDER.includes(k as DashboardSectionKey));
+  const missing = DASHBOARD_SECTION_DEFAULT_ORDER.filter((k) => !known.includes(k));
+  return [...known, ...missing];
+}
+
 function DashboardCustomizerModal({
   currentPrefs,
   onClose,
@@ -657,21 +691,35 @@ function DashboardCustomizerModal({
     showDaySummary: boolean;
     showQuickSlots: boolean;
     showTodayAppointments: boolean;
+    order?: DashboardSectionKey[];
   };
   onClose: () => void;
   onSave: (prefs: typeof currentPrefs) => Promise<void>;
 }) {
   const [prefs, setPrefs] = useState(currentPrefs);
+  const [order, setOrder] = useState<DashboardSectionKey[]>(() => sortDashboardSections(currentPrefs.order));
   const [saving, setSaving] = useState(false);
+  const dragKey = useRef<DashboardSectionKey | null>(null);
 
   const toggle = (key: keyof typeof currentPrefs) => {
     setPrefs((cur) => ({ ...cur, [key]: !cur[key] }));
   };
 
+  const moveItem = (key: DashboardSectionKey, direction: "up" | "down") => {
+    setOrder((cur) => {
+      const index = cur.indexOf(key);
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (index === -1 || targetIndex < 0 || targetIndex >= cur.length) return cur;
+      const next = [...cur];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(prefs);
+      await onSave({ ...prefs, order });
     } finally {
       setSaving(false);
     }
@@ -688,18 +736,10 @@ function DashboardCustomizerModal({
       showQuickSlots: true,
       showTodayAppointments: true,
     });
+    setOrder(DASHBOARD_SECTION_DEFAULT_ORDER);
   };
 
-  const items = [
-    { key: "showBanner" as const, label: "Banner e Boas-vindas", desc: "Cartão de destaque com saudação e imagem de capa da empresa" },
-    { key: "showChecklist" as const, label: "Checklist de Configuração", desc: "Passo a passo inicial para ativar seu agendamento" },
-    { key: "showKpis" as const, label: "Indicadores Principais", desc: "Métricas de atendimentos e receitas previstas/realizadas do dia" },
-    { key: "showSubmetrics" as const, label: "Atendimentos Pendentes e Cancelamentos", desc: "Cards compactos de contagem operacional" },
-    { key: "showNextAppointment" as const, label: "Próximo Atendimento em Destaque", desc: "Card hero com dados do próximo cliente e botões rápidos" },
-    { key: "showDaySummary" as const, label: "Resumo do Dia por Status", desc: "Contagem de atendimentos confirmados, aguardando e em andamento" },
-    { key: "showQuickSlots" as const, label: "Horários Livres / Encaixe Rápido", desc: "Grade de horários livres sugeridos para encaixes de última hora" },
-    { key: "showTodayAppointments" as const, label: "Agenda Cronológica de Hoje", desc: "Lista de todos os agendamentos do dia em ordem de horário" },
-  ];
+  const items = order.map((key) => ({ key, ...DASHBOARD_SECTION_META[key] }));
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -716,11 +756,51 @@ function DashboardCustomizerModal({
         </div>
 
         <div style={{ padding: "16px 20px", maxHeight: "60vh", overflowY: "auto" }}>
-          {items.map(({ key, label, desc }) => (
-            <div className="customize-item-row" key={key}>
+          <p style={{ margin: "0 0 10px", fontSize: "11px", color: "var(--text-muted)" }}>
+            Arraste pelo ícone <ArrowUpDown size={11} style={{ verticalAlign: "middle" }} /> para reordenar (ou use as setas no celular).
+          </p>
+          {items.map(({ key, label, desc }, index) => (
+            <div
+              className="customize-item-row"
+              key={key}
+              draggable
+              onDragStart={() => { dragKey.current = key; }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const sourceKey = dragKey.current;
+                dragKey.current = null;
+                if (!sourceKey || sourceKey === key) return;
+                setOrder((cur) => {
+                  const next = cur.filter((k) => k !== sourceKey);
+                  const targetIndex = next.indexOf(key);
+                  next.splice(targetIndex, 0, sourceKey);
+                  return next;
+                });
+              }}
+            >
+              <span className="customize-item-drag-handle" title="Arraste para reordenar">
+                <ArrowUpDown size={14} />
+              </span>
               <div className="customize-item-info">
                 <strong>{label}</strong>
                 <span>{desc}</span>
+              </div>
+              <div className="customize-item-move-buttons">
+                <IconButton
+                  label="Mover para cima"
+                  onClick={() => moveItem(key, "up")}
+                  disabled={index === 0}
+                >
+                  <ChevronUp size={15} />
+                </IconButton>
+                <IconButton
+                  label="Mover para baixo"
+                  onClick={() => moveItem(key, "down")}
+                  disabled={index === items.length - 1}
+                >
+                  <ChevronDown size={15} />
+                </IconButton>
               </div>
               <label className="switch-control">
                 <input
