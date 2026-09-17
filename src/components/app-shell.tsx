@@ -6982,8 +6982,9 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           className={`mobile-nav-item ${view === "dashboard" ? "active" : ""}`}
           onClick={() => navigate("dashboard")}
         >
-          <Home size={18} />
+          <Home size={20} />
           <span>Início</span>
+          {view === "dashboard" && <span className="mobile-nav-indicator" />}
         </button>
 
         <button
@@ -6991,35 +6992,40 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           className={`mobile-nav-item ${view === "agenda" ? "active" : ""}`}
           onClick={() => navigate("agenda")}
         >
-          <CalendarDays size={18} />
+          <CalendarDays size={20} />
           <span>Agenda</span>
           {pendingAppointmentsCount > 0 && (
             <em className="mobile-nav-badge">
               {pendingAppointmentsCount > 99 ? "99+" : pendingAppointmentsCount}
             </em>
           )}
+          {view === "agenda" && <span className="mobile-nav-indicator" />}
         </button>
 
-        <button
-          type="button"
-          className="mobile-nav-add-btn"
-          onClick={() => {
-            setNewAppointmentPrefill(null);
-            setNewAppointmentOpen(true);
-          }}
-          title="Novo Agendamento"
-          aria-label="Novo agendamento"
-        >
-          <Plus size={22} />
-        </button>
+        <div className="mobile-nav-add-wrap">
+          <button
+            type="button"
+            className="mobile-nav-add-btn"
+            onClick={() => {
+              setNewAppointmentPrefill(null);
+              setNewAppointmentOpen(true);
+            }}
+            title="Novo Agendamento"
+            aria-label="Novo agendamento"
+          >
+            <Plus size={22} color="#000000" strokeWidth={2.6} />
+          </button>
+          <span className="mobile-nav-add-label">Novo</span>
+        </div>
 
         <button
           type="button"
           className={`mobile-nav-item ${view === "clientes" ? "active" : ""}`}
           onClick={() => navigate("clientes")}
         >
-          <Users size={18} />
+          <Users size={20} />
           <span>Clientes</span>
+          {view === "clientes" && <span className="mobile-nav-indicator" />}
         </button>
 
         <button
@@ -7028,7 +7034,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           onClick={() => { setCollapsed(false); setMobileMenu(true); }}
           aria-label="Abrir menu"
         >
-          <Menu size={18} />
+          <Menu size={20} />
           <span>Menu</span>
         </button>
       </nav>

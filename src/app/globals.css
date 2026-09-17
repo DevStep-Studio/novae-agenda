@@ -8448,7 +8448,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     display: none !important;
   }
 
-  /* Mobile Bottom Navigation - 5 Balanced Tabs with Elevated Center Action Button */
+  /* Mobile Bottom Navigation - Pixel Perfect Match */
   .mobile-bottom-nav {
     display: flex !important;
     position: fixed !important;
@@ -8456,20 +8456,20 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
-    height: calc(62px + env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
     align-items: center !important;
     justify-content: space-around !important;
-    border-top: 1px solid var(--border) !important;
-    background: var(--surface) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: #101216 !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45) !important;
   }
-  :root[data-theme="dark"] .mobile-bottom-nav {
-    background: rgba(18, 21, 28, 0.95) !important;
-    border-top-color: #242938 !important;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4) !important;
+  :root[data-theme="light"] .mobile-bottom-nav {
+    background: #111827 !important;
+    border-top-color: #1f2937 !important;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2) !important;
   }
 
   .mobile-nav-item {
@@ -8482,12 +8482,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     gap: 3px !important;
     border: none !important;
     background: transparent !important;
-    color: var(--text-muted) !important;
-    font-size: 10px !important;
+    color: #94a3b8 !important;
+    font-size: 11px !important;
     font-weight: 500 !important;
     cursor: pointer !important;
     position: relative !important;
-    padding: 4px 0 !important;
+    padding: 6px 0 !important;
     -webkit-tap-highlight-color: transparent !important;
     transition: all 0.15s ease !important;
   }
@@ -8495,8 +8495,18 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     transform: scale(0.92) !important;
   }
   .mobile-nav-item.active {
-    color: var(--primary) !important;
-    font-weight: 700 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+  }
+
+  .mobile-nav-indicator {
+    display: block !important;
+    width: 22px !important;
+    height: 2.5px !important;
+    background: #ffffff !important;
+    border-radius: 99px !important;
+    margin-top: 2px !important;
+    box-shadow: 0 1px 4px rgba(255, 255, 255, 0.3) !important;
   }
 
   .mobile-nav-badge {
@@ -8517,28 +8527,43 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4) !important;
   }
 
+  .mobile-nav-add-wrap {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    margin-top: -14px !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
   .mobile-nav-add-btn {
-    width: 46px !important;
-    height: 46px !important;
-    min-width: 46px !important;
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
     border-radius: 50% !important;
-    background: var(--primary, #2563eb) !important;
-    color: #0a0a0a !important;
-    border: 3.5px solid var(--surface) !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
     display: grid !important;
     place-items: center !important;
-    margin-top: -18px !important;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
     cursor: pointer !important;
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
     flex-shrink: 0 !important;
   }
-  :root[data-theme="dark"] .mobile-nav-add-btn {
-    border-color: #12151c !important;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6) !important;
-  }
   .mobile-nav-add-btn:active {
-    transform: scale(0.9) translateY(2px) !important;
+    transform: scale(0.92) translateY(1px) !important;
+    background: #f1f5f9 !important;
+  }
+
+  .mobile-nav-add-label {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    line-height: 1 !important;
   }
 
   .floating-add {
