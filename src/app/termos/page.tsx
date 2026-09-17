@@ -9,9 +9,19 @@ export const metadata = {
 
 export default function TermosPage() {
   return (
-    <div style={{ minHeight: "100vh", background: "#080808", color: "#f5f5f5", padding: "40px 20px" }}>
+    <div
+      style={{
+        minHeight: "100dvh",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        boxSizing: "border-box",
+        background: "#080808",
+        color: "#f5f5f5",
+        padding: "clamp(24px, 5vw, 40px) clamp(16px, 4vw, 20px)",
+      }}
+    >
       <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 40 }}>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32, flexWrap: "wrap", gap: 12 }}>
           <ReserveiLogo size={32} />
           <Link
             href="/"
@@ -19,6 +29,8 @@ export default function TermosPage() {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
+              minHeight: 44,
+              padding: "0 8px",
               fontSize: 14,
               color: "#3b82f6",
               textDecoration: "none",
@@ -34,9 +46,11 @@ export default function TermosPage() {
             background: "#121212",
             border: "1px solid #222222",
             borderRadius: 16,
-            padding: "36px 32px",
+            padding: "clamp(20px, 4vw, 36px) clamp(16px, 4vw, 32px)",
             lineHeight: 1.7,
             fontSize: 15,
+            boxSizing: "border-box",
+            width: "100%",
           }}
         >
           <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 8, color: "#ffffff" }}>

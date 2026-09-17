@@ -12,19 +12,24 @@ export default function PlanosPage() {
   return (
     <main
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
+        maxWidth: "100vw",
+        overflowX: "hidden",
+        boxSizing: "border-box",
         background: "var(--background, #090a0f)",
         color: "var(--text-primary, #ffffff)",
-        padding: "32px 20px",
+        padding: "clamp(16px, 4vw, 32px) clamp(12px, 3vw, 20px)",
       }}
     >
-      <div style={{ maxWidth: 1120, margin: "0 auto 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <Link
           href="/gestao"
           style={{
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
+            minHeight: 44,
+            padding: "0 8px",
             color: "var(--text-secondary, #94a3b8)",
             textDecoration: "none",
             fontSize: 13,

@@ -193,8 +193,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 10px;
   background: transparent;
   color: #2563eb;
@@ -244,6 +246,29 @@
 }
 
 .compact .navButton {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 480px) {
+  .mapContainer {
+    height: 210px;
+    margin: 12px 0;
+  }
+  .floatingCard {
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .companyTitle {
+    font-size: 12.5px;
+  }
+  .companyAddress {
+    font-size: 11px;
+    -webkit-line-clamp: 1;
+  }
 }

@@ -92,7 +92,7 @@ export function LocationMapCard({
             className={styles.navButton}
             onClick={handleCopyAddress}
             title={copied ? "Endereço copiado!" : "Copiar endereço"}
-            style={{ width: 34, height: 34 }}
+            style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
           >
             {copied ? <Check size={16} color="#22c55e" /> : <Copy size={16} />}
           </button>

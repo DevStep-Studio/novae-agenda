@@ -193,9 +193,11 @@ export function SubscriptionView() {
         margin: "0 auto",
         paddingTop: 32,
         paddingBottom: 80,
-        paddingLeft: 24,
-        paddingRight: 24,
+        paddingLeft: "clamp(12px, 3vw, 24px)",
+        paddingRight: "clamp(12px, 3vw, 24px)",
         fontFamily: "inherit",
+        boxSizing: "border-box",
+        width: "100%",
       }}
     >
       {/* Toast Alert */}
@@ -415,7 +417,7 @@ export function SubscriptionView() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(310px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
           gap: 20,
           marginBottom: 48,
         }}
