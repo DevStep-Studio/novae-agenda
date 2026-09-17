@@ -240,7 +240,7 @@ export function OnboardingChecklistCard({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))",
             gap: "10px",
             marginTop: "16px",
             paddingTop: "14px",

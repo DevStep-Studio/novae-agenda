@@ -1431,7 +1431,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                         </div>
                       </div>
 
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: 16 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 290px), 1fr))", gap: 16 }}>
                         {membershipPlans.map((plan) => (
                           <MembershipPlanCard
                             key={plan.id}
