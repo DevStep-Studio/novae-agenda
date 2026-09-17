@@ -4,21 +4,19 @@
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
-  background: radial-gradient(circle at 50% 18%, rgba(56, 189, 248, 0.12) 0%, rgba(10, 11, 15, 0.98) 60%, #060709 100%);
+  background: #090a0d;
   font-family: var(--font-dm-sans, inherit);
   color: #f3f4f6;
 }
 
 .card {
   width: 100%;
-  max-width: 440px;
-  background: rgba(18, 20, 26, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
+  max-width: 420px;
+  background: #111318;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
   padding: 32px 28px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
 }
@@ -40,15 +38,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  background: rgba(56, 189, 248, 0.14);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(220, 255, 76, 0.08);
+  color: #dcff4c;
+  border: 1px solid rgba(220, 255, 76, 0.25);
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   margin-bottom: 12px;
 }
 
@@ -62,17 +60,17 @@
 
 .subtitle {
   margin: 6px 0 0;
-  font-size: 13.5px;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
   line-height: 1.45;
 }
 
 .sessionNotice {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
   padding: 12px 14px;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   font-size: 12.5px;
   color: #fde68a;
   line-height: 1.45;
@@ -92,8 +90,8 @@
 }
 
 .errorBanner {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
   border-radius: 10px;
   padding: 10px 14px;
   margin-bottom: 18px;
@@ -131,34 +129,38 @@
 .inputIcon {
   position: absolute;
   left: 12px;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.4);
   display: flex;
   align-items: center;
   pointer-events: none;
+  transition: color 0.15s ease;
 }
 
 .input {
   width: 100%;
   height: 44px;
   padding: 0 42px 0 38px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  background: #181b22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
   color: #ffffff;
   font-size: 14px;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   box-sizing: border-box;
 }
 
 .input:focus {
   outline: none;
-  border-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.04);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  border-color: #dcff4c;
+  box-shadow: 0 0 0 2px rgba(220, 255, 76, 0.18);
+}
+
+.inputWrapper:focus-within .inputIcon {
+  color: #dcff4c;
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .togglePassword {
@@ -166,7 +168,7 @@
   right: 10px;
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -181,49 +183,46 @@
 
 .submitBtn {
   margin-top: 8px;
-  height: 46px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  font-size: 14.5px;
+  height: 44px;
+  background: #dcff4c;
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
-  transition: all 0.15s ease;
+  box-shadow: none;
+  transition: background-color 0.15s ease;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.5);
-  transform: translateY(-1px);
+  background: #c8ed32;
 }
 
 .submitBtn:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
 }
 
 .quickFillBox {
   margin-top: 18px;
-  padding: 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #16181f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .quickFillTitle {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -236,32 +235,32 @@
 }
 
 .quickFillText {
-  font-size: 12px;
+  font-size: 12.5px;
   color: rgba(255, 255, 255, 0.85);
   font-family: monospace;
 }
 
 .quickFillBtn {
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
+  background: rgba(220, 255, 76, 0.1);
+  border: 1px solid rgba(220, 255, 76, 0.25);
+  color: #dcff4c;
   border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 4px 10px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .quickFillBtn:hover {
-  background: rgba(56, 189, 248, 0.25);
-  color: #ffffff;
+  background: #dcff4c;
+  color: #0a0a0a;
 }
 
 .footerActions {
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -269,7 +268,7 @@
 }
 
 .backLink {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.55);
   font-size: 12.5px;
   text-decoration: none;
   display: inline-flex;
@@ -279,7 +278,7 @@
 }
 
 .backLink:hover {
-  color: #38bdf8;
+  color: #dcff4c;
 }
 
 .logoutBtn {
