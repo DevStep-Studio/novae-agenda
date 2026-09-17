@@ -115,7 +115,7 @@ export async function publicCompany(slug: string, executor: DbExecutor = db) {
 }
 export async function publicCatalog(slug: string) {
   const company = await publicCompany(slug);
-  // The Page Builder is optional for the public catalog. Keep older database
+  // The Page Builder is optional for the public catalog.  Keep older database
   // deployments working while their `booking_pages` migration is applied;
   // otherwise a missing optional table makes every public booking link return
   // a 500, even though the core scheduling data is available.
@@ -353,5 +353,4 @@ function isMissingTable(error: unknown, tableName: string) {
     dbError.message?.toLowerCase().includes(tableName.toLowerCase()) === true
   );
 }
-
 export type PublicCatalog = Awaited<ReturnType<typeof publicCatalog>>;
