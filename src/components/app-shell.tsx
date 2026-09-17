@@ -4627,49 +4627,55 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="modal-form-grid" style={{ paddingTop: 0 }}>
-          <Field label="Acesso ao sistema" icon={ShieldCheck} className="field-full">
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 10, fontWeight: 500, color: "var(--text-primary)", cursor: "pointer", fontSize: 13, padding: "8px 0" }}>
-              <input
-                type="checkbox"
-                checked={grantAccess}
-                onChange={(e) => setGrantAccess(e.target.checked)}
-                style={{ width: 16, height: 16, accentColor: "var(--primary)" }}
-              />
-              Permitir que este profissional acesse o sistema com login próprio
+          <div className="field field-full access-toggle-section">
+            <label className="access-toggle-header">
+              <span className="access-toggle-icon"><ShieldCheck size={16} /></span>
+              <span className="access-toggle-copy">
+                <strong>Acesso ao sistema</strong>
+                <span>Permite que este profissional acesse o sistema com login próprio.</span>
+              </span>
+              <span className="switch-control">
+                <input
+                  type="checkbox"
+                  checked={grantAccess}
+                  onChange={(e) => setGrantAccess(e.target.checked)}
+                />
+                <span className="switch-slider" />
+              </span>
             </label>
-          </Field>
-          {grantAccess && (
-            <>
-              <Field label="E-mail de acesso" icon={Mail}>
-                <div className="modal-input-wrap">
-                  <Mail size={17} className="modal-input-icon" />
-                  <input
-                    className="input"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="profissional@empresa.com"
-                    required={grantAccess}
-                  />
-                </div>
-              </Field>
-              <Field label="Senha inicial" icon={Lock}>
-                <div className="modal-input-wrap">
-                  <Lock size={17} className="modal-input-icon" />
-                  <input
-                    className="input"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
-                    minLength={8}
-                    required={grantAccess}
-                  />
-                </div>
-                <span className="field-hint">O profissional poderá trocar a senha depois. Compartilhe com segurança.</span>
-              </Field>
-            </>
-          )}
+            {grantAccess && (
+              <div className="access-toggle-fields">
+                <Field label="E-mail de acesso" icon={Mail}>
+                  <div className="modal-input-wrap">
+                    <Mail size={17} className="modal-input-icon" />
+                    <input
+                      className="input"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="profissional@empresa.com"
+                      required={grantAccess}
+                    />
+                  </div>
+                </Field>
+                <Field label="Senha inicial" icon={Lock}>
+                  <div className="modal-input-wrap">
+                    <Lock size={17} className="modal-input-icon" />
+                    <input
+                      className="input"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Mínimo 8 caracteres"
+                      minLength={8}
+                      required={grantAccess}
+                    />
+                  </div>
+                  <span className="field-hint">O profissional poderá trocar a senha depois. Compartilhe com segurança.</span>
+                </Field>
+              </div>
+            )}
+          </div>
           <Field label="Banner de capa do card" icon={ImagePlus} className="field-full" hint="Escolha uma imagem de capa para o card deste profissional.">
             <div className="banner-presets-row" style={{ marginBottom: "10px" }}>
               {BANNER_PRESETS.map((preset) => (
