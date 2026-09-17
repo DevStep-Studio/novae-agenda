@@ -423,9 +423,13 @@ export function BookingSettings() {
         </div>
 
         <div className={styles.urlBar}>
-          <span className={styles.urlText}>{url || `/agendar/${slug}`}</span>
+          <div className={styles.urlInputRow}>
+            <Globe size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            <span className={styles.urlText}>{url || `/agendar/${slug}`}</span>
+          </div>
+
           <div className={styles.urlActions}>
-            <button type="button" className={styles.btnPrimary} onClick={copy}>
+            <button type="button" className={styles.btnPrimary} onClick={copy} title="Copiar link público">
               {copied ? <Check size={14} /> : <Copy size={14} />}
               {copied ? "Copiado!" : "Copiar link"}
             </button>
@@ -436,31 +440,14 @@ export function BookingSettings() {
                 href={url}
                 target="_blank"
                 rel="noreferrer"
+                title="Abrir página pública em nova aba"
               >
                 <ExternalLink size={14} />
                 Visualizar
               </a>
             )}
 
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: "rgba(220, 255, 76, 0.12)",
-                color: "#dcff4c",
-                borderColor: "rgba(220, 255, 76, 0.35)",
-                fontWeight: 600,
-              }}
-              onClick={() => setShowPageBuilder(true)}
-            >
-              <Sparkles size={14} />
-              Personalizar Página (Visual)
-            </button>
-
-            <button type="button" className={styles.btnSecondary} onClick={share}>
+            <button type="button" className={styles.btnSecondary} onClick={share} title="Compartilhar link de agendamento">
               <Share2 size={14} />
               Compartilhar
             </button>
@@ -469,10 +456,30 @@ export function BookingSettings() {
               type="button"
               className={styles.btnSecondary}
               onClick={() => setShowQr(!showQr)}
-              style={showQr ? { background: "var(--primary-soft)", color: "var(--primary)" } : {}}
+              style={showQr ? { background: "var(--primary-soft)", color: "var(--primary)", borderColor: "var(--primary)" } : {}}
+              title="Exibir QR Code para balcão e impressão"
             >
               <QrCode size={14} />
               QR Code
+            </button>
+
+            <button
+              type="button"
+              className={`${styles.btnSecondary} ${styles.btnSecondaryFull}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(220, 255, 76, 0.08)",
+                color: "#dcff4c",
+                borderColor: "rgba(220, 255, 76, 0.3)",
+                fontWeight: 600,
+              }}
+              onClick={() => setShowPageBuilder(true)}
+              title="Abrir construtor visual de página"
+            >
+              <Sparkles size={14} />
+              Page Builder (Visual)
             </button>
           </div>
         </div>

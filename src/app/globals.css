@@ -138,22 +138,26 @@
 html {
   min-width: 320px;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
   background: var(--background);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 body {
   margin: 0;
   min-width: 320px;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: auto;
   background: var(--background);
   color: var(--text-primary);
   font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y pinch-zoom;
 }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -368,7 +372,7 @@ h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
   margin-left: 244px;
   max-width: calc(100vw - 244px);
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow-x: clip;
   box-sizing: border-box;
   transition: margin-left .2s ease, max-width .2s ease;
 }
@@ -8058,7 +8062,9 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   .main-content, .main-content.main-expanded {
     margin-left: 0 !important;
     max-width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
+    touch-action: pan-y pinch-zoom;
   }
   .topbar {
     height: calc(60px + env(safe-area-inset-top, 0px)) !important;
@@ -8320,8 +8326,10 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   .page-content {
     padding: 16px 14px calc(85px + env(safe-area-inset-bottom, 16px)) !important;
     max-width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
+    overflow-y: visible !important;
     box-sizing: border-box !important;
+    touch-action: pan-y pinch-zoom;
   }
 }
 
