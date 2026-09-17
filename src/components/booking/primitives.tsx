@@ -160,7 +160,7 @@ export function PublicFrame({
   copyOverrides,
   company,
   isClientPortal = false,
-  showThemeToggle = false,
+  showThemeToggle = true,
   user,
   onOpenProfile,
   onLogout,
@@ -192,12 +192,12 @@ export function PublicFrame({
   onOpenProfile?: () => void;
   onLogout?: () => void;
 }) {
-  const [themePreference, setThemePreference] = useState<"dark" | "light">(() => {
+  const [themePreference, setThemePreference] = useState<"dark" | "light" | null>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("reservei_client_theme");
       if (saved === "light" || saved === "dark") return saved;
     }
-    return "dark";
+    return null;
   });
 
   const prefersDark = useSyncExternalStore(
@@ -206,10 +206,12 @@ export function PublicFrame({
     () => true,
   );
 
-  const resolvedTheme =
+  const defaultTheme =
     themeMode === "light" || themeMode === "dark"
       ? themeMode
-      : themePreference ?? (prefersDark ? "dark" : "light");
+      : prefersDark ? "dark" : "light";
+
+  const resolvedTheme = themePreference ?? defaultTheme;
 
   const toggleTheme = () => {
     const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
@@ -304,44 +306,74 @@ export function PublicFrame({
           </div>
 
           <div className={styles.headerActions}>
-            {(showThemeToggle || isClientPortal) && (
+            {showThemeToggle && (
               <button
                 type="button"
                 onClick={toggleTheme}
                 className={styles.themeToggleBtn}
-                title={resolvedTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+                title={resolvedTheme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
                 aria-label="Alternar tema de cores"
               >
-                {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                {resolvedTheme === "dark" ? (
+                  <Sun size={17} className={styles.themeToggleIcon} />
+                ) : (
+                  <Moon size={17} className={styles.themeToggleIcon} />
+                )}
               </button>
             )}
 
-            {isClientPortal && user ? (
+            {user ? (
               <div className={styles.headerUserMenu}>
-                <button
-                  type="button"
-                  onClick={onOpenProfile}
-                  className={styles.headerUserBtn}
-                  title="Meu Perfil"
-                >
-                  {user.photoUrl ? (
-                    <Image
-                      src={user.photoUrl}
-                      alt=""
-                      width={28}
-                      height={28}
-                      className={styles.headerUserAvatarImg}
-                      unoptimized
-                    />
-                  ) : (
-                    <span className={styles.headerUserAvatarFallback}>
-                      {(user.name || "C").slice(0, 1).toUpperCase()}
+                {onOpenProfile ? (
+                  <button
+                    type="button"
+                    onClick={onOpenProfile}
+                    className={styles.headerUserBtn}
+                    title="Meu Perfil"
+                  >
+                    {user.photoUrl ? (
+                      <Image
+                        src={user.photoUrl}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className={styles.headerUserAvatarImg}
+                        unoptimized
+                      />
+                    ) : (
+                      <span className={styles.headerUserAvatarFallback}>
+                        {(user.name || "C").slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <span className={styles.headerUserName}>
+                      {user.name ? user.name.split(" ")[0] : "Minha Conta"}
                     </span>
-                  )}
-                  <span className={styles.headerUserName}>
-                    {user.name ? user.name.split(" ")[0] : "Minha Conta"}
-                  </span>
-                </button>
+                  </button>
+                ) : (
+                  <Link
+                    href="/minhas-reservas"
+                    className={styles.headerUserBtn}
+                    title="Minhas Reservas"
+                  >
+                    {user.photoUrl ? (
+                      <Image
+                        src={user.photoUrl}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className={styles.headerUserAvatarImg}
+                        unoptimized
+                      />
+                    ) : (
+                      <span className={styles.headerUserAvatarFallback}>
+                        {(user.name || "C").slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <span className={styles.headerUserName}>
+                      {user.name ? user.name.split(" ")[0] : "Minhas Reservas"}
+                    </span>
+                  </Link>
+                )}
                 {onLogout && (
                   <button
                     type="button"

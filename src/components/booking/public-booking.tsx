@@ -883,6 +883,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       themeMode={company.bookingThemeMode}
       fontFamily={company.bookingFontFamily}
       copyOverrides={company.copyOverrides}
+      showThemeToggle={true}
+      user={customer}
+      onLogout={async () => {
+        try {
+          await api("/api/auth/logout", { method: "POST" });
+          setCustomer(null);
+        } catch {}
+      }}
       company={{
         name: company.name,
         category: company.category,

@@ -130,40 +130,45 @@
 }
 
 .pageLight .header {
-  background: rgba(255, 255, 255, 0.94);
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.03);
 }
 
 .pageLight .headerCompanyName {
-  color: var(--booking-text);
+  color: #0f172a;
 }
 
 .pageLight .headerCompanyCategory {
-  color: var(--booking-text-muted);
+  color: #64748b;
 }
 
 .pageLight .headerLink {
-  background: #f1f5f9;
+  background: #f8fafc;
   border-color: #e2e8f0;
   color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .pageLight .headerLink:hover {
-  background: #e2e8f0;
+  background: #ffffff;
   border-color: #cbd5e1;
   color: #0f172a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 .pageLight .themeToggleBtn {
-  background: #f1f5f9;
+  background: #f8fafc;
   border-color: #e2e8f0;
   color: #475569;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .pageLight .themeToggleBtn:hover {
-  background: #e2e8f0;
+  background: #ffffff;
+  border-color: #cbd5e1;
   color: #0f172a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 .pageLight .headerPortalBadge {
@@ -173,25 +178,27 @@
 }
 
 .pageLight .headerUserBtn {
-  background: #ffffff;
+  background: #f8fafc;
   border-color: #e2e8f0;
   color: #0f172a;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .pageLight .headerUserBtn:hover {
-  background: #f8fafc;
+  background: #ffffff;
   border-color: #cbd5e1;
+  color: #0f172a;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 .pageLight .headerLogoutBtn {
-  background: #ffffff;
+  background: #f8fafc;
   border-color: #e2e8f0;
   color: #64748b;
 }
 
 .pageLight .headerLogoutBtn:hover {
-  background: #fee2e2;
+  background: rgba(239, 68, 68, 0.08);
   border-color: #fca5a5;
   color: #dc2626;
 }
@@ -724,13 +731,13 @@
    ========================================================= */
 .header {
   border-bottom: 1px solid var(--booking-border);
-  background: rgba(13, 15, 18, 0.88);
+  background: rgba(13, 15, 18, 0.85);
   position: sticky;
   top: 0;
   z-index: 40;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 .headerInner {
@@ -741,7 +748,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 58px;
+  min-height: 60px;
 }
 
 .headerBrandGroup {
@@ -760,6 +767,12 @@
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.brand:hover {
+  opacity: 0.9;
+  transform: translateY(-0.5px);
 }
 
 .brand span {
@@ -770,6 +783,7 @@
   color: var(--booking-text-disabled);
   font-size: 16px;
   font-weight: 300;
+  opacity: 0.4;
   flex-shrink: 0;
 }
 
@@ -783,7 +797,7 @@
 .headerCompanyLogo {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: 8px;
   object-fit: cover;
   border: 1px solid var(--booking-border-soft);
   background: var(--booking-surface);
@@ -793,7 +807,7 @@
 .headerCompanyAvatar {
   width: 28px;
   height: 28px;
-  border-radius: 7px;
+  border-radius: 8px;
   background: var(--booking-surface-elevated);
   color: var(--accent);
   display: grid;
@@ -851,6 +865,18 @@
   border-radius: 50%;
   background: currentColor;
   box-shadow: 0 0 6px currentColor;
+  animation: portalDotPulse 2s infinite ease-in-out;
+}
+
+@keyframes portalDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
 }
 
 .headerActions {
@@ -868,13 +894,14 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  height: 38px;
   min-height: 38px;
   padding: 0 14px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--booking-border);
   color: var(--booking-text-secondary);
-  transition: all 0.18s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -883,6 +910,11 @@
   background: var(--booking-border);
   border-color: var(--accent);
   color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.headerLink:active {
+  transform: scale(0.96);
 }
 
 .headerLink:disabled {
@@ -903,8 +935,10 @@
   border: 1px solid var(--booking-border, rgba(255, 255, 255, 0.1));
   color: var(--booking-text-secondary);
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .themeToggleBtn:hover {
@@ -912,10 +946,19 @@
   border-color: var(--accent);
   color: var(--accent);
   transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
 
 .themeToggleBtn:active {
-  transform: scale(0.94);
+  transform: scale(0.92);
+}
+
+.themeToggleIcon {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.18s ease;
+}
+
+.themeToggleBtn:hover .themeToggleIcon {
+  transform: rotate(15deg) scale(1.1);
 }
 
 .headerUserMenu {
@@ -928,45 +971,49 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 12px 4px 5px;
+  padding: 4px 14px 4px 6px;
+  height: 38px;
   min-height: 38px;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--booking-surface);
   border: 1px solid var(--booking-border);
-  color: var(--booking-text-primary);
+  color: var(--booking-text);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.18s ease;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   flex-shrink: 0;
 }
 
 .headerUserBtn:hover {
   border-color: var(--accent);
   background: var(--booking-surface-hover);
+  color: var(--accent);
+  transform: translateY(-1px);
 }
 
 .headerUserAvatarImg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .headerUserAvatarFallback {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--accent) 20%, var(--booking-surface-secondary));
   color: var(--accent);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11px;
   display: grid;
   place-items: center;
 }
 
 .headerUserName {
-  max-width: 120px;
+  max-width: 130px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -984,18 +1031,20 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .headerLogoutBtn:hover {
   border-color: var(--booking-danger);
   color: var(--booking-danger);
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.12);
+  transform: translateY(-1px);
 }
 
 @media (max-width: 640px) {
   .headerInner {
-    padding: 10px 16px;
+    padding: 8px 16px;
+    min-height: 54px;
   }
   .headerPortalBadge {
     font-size: 10.5px;
@@ -1006,7 +1055,20 @@
   }
   .headerUserBtn {
     padding: 4px;
-    min-height: 36px;
+    min-height: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .headerLinkText {
+    display: none;
+  }
+  .headerLink {
+    padding: 0;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    justify-content: center;
   }
 }
 
@@ -3868,16 +3930,10 @@
   .title {
     font-size: 24px;
   }
-  .headerLinkText {
-    display: none;
-  }
   .headerLink {
-    padding: 0 12px;
-    min-height: 44px;
-    min-width: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    height: 38px;
+    min-height: 38px;
+    border-radius: 10px;
   }
   .service {
     flex-direction: column;
