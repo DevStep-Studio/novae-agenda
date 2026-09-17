@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { AlertCircle, KeyRound, ShieldCheck, UserRound, X } from "lucide-react";
+import { AlertCircle, KeyRound, LogOut, Moon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
@@ -159,6 +159,11 @@ export function PublicFrame({
   fontFamily,
   copyOverrides,
   company,
+  isClientPortal = false,
+  showThemeToggle = false,
+  user,
+  onOpenProfile,
+  onLogout,
 }: {
   children: ReactNode;
   color?: string;
@@ -176,6 +181,16 @@ export function PublicFrame({
     slug?: string;
     address?: string | null;
   };
+  isClientPortal?: boolean;
+  showThemeToggle?: boolean;
+  user?: {
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    photoUrl?: string | null;
+  } | null;
+  onOpenProfile?: () => void;
+  onLogout?: () => void;
 }) {
   const [themePreference, setThemePreference] = useState<"dark" | "light">(() => {
     if (typeof window !== "undefined") {
@@ -245,8 +260,16 @@ export function PublicFrame({
         <div className={styles.headerInner}>
           <div className={styles.headerBrandGroup}>
             <Link className={styles.brand} href="/" title="Reservei">
-              <ReserveiLogo size={22} />
+              <ReserveiLogo size={24} />
             </Link>
+
+            {isClientPortal && (
+              <span className={styles.headerPortalBadge}>
+                <span className={styles.headerPortalDot} />
+                Área do Cliente
+              </span>
+            )}
+
             {company && (
               <>
                 <span className={styles.headerDivider}>/</span>
@@ -279,17 +302,81 @@ export function PublicFrame({
               </>
             )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              type="button"
-              disabled={Boolean(preview)}
-              onClick={() => setMyBookingsModalOpen(true)}
-              className={styles.headerLink}
-              title="Acessar meus agendamentos"
-            >
-              <UserRound size={16} />
-              <span className={styles.headerLinkText}>Meus agendamentos</span>
-            </button>
+
+          <div className={styles.headerActions}>
+            {(showThemeToggle || isClientPortal) && (
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={styles.themeToggleBtn}
+                title={resolvedTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
+                aria-label="Alternar tema de cores"
+              >
+                {resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            )}
+
+            {isClientPortal && user ? (
+              <div className={styles.headerUserMenu}>
+                <button
+                  type="button"
+                  onClick={onOpenProfile}
+                  className={styles.headerUserBtn}
+                  title="Meu Perfil"
+                >
+                  {user.photoUrl ? (
+                    <Image
+                      src={user.photoUrl}
+                      alt=""
+                      width={28}
+                      height={28}
+                      className={styles.headerUserAvatarImg}
+                      unoptimized
+                    />
+                  ) : (
+                    <span className={styles.headerUserAvatarFallback}>
+                      {(user.name || "C").slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  <span className={styles.headerUserName}>
+                    {user.name ? user.name.split(" ")[0] : "Minha Conta"}
+                  </span>
+                </button>
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className={styles.headerLogoutBtn}
+                    title="Sair da conta"
+                    aria-label="Sair da conta"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                )}
+              </div>
+            ) : isClientPortal ? (
+              <button
+                type="button"
+                disabled={Boolean(preview)}
+                onClick={() => setMyBookingsModalOpen(true)}
+                className={styles.headerLink}
+                title="Acessar com meu PIN"
+              >
+                <UserRound size={16} />
+                <span className={styles.headerLinkText}>Acessar</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={Boolean(preview)}
+                onClick={() => setMyBookingsModalOpen(true)}
+                className={styles.headerLink}
+                title="Acessar meus agendamentos"
+              >
+                <UserRound size={16} />
+                <span className={styles.headerLinkText}>Meus agendamentos</span>
+              </button>
+            )}
           </div>
         </div>
       </header>

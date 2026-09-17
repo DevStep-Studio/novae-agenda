@@ -1268,7 +1268,13 @@ export function MyBookings({
             <header className={b.bookingsHeader}>
               <div className={b.bookingsHeaderInfo}>
                 <span className={b.bookingsBadge}>
-                  <UserRound size={12} /> {user.name ? `Olá, ${user.name.split(" ")[0]}` : "Área do Cliente"}
+                  <span className={b.bookingsBadgeDot} aria-hidden="true" />
+                  {user.photoUrl ? (
+                    <img src={user.photoUrl} alt="" className={b.bookingsBadgeAvatar} />
+                  ) : (
+                    <UserRound size={12} />
+                  )}
+                  <span>{user.name ? `Olá, ${user.name.split(" ")[0]}` : "Área do Cliente"}</span>
                 </span>
                 <h1 className={b.title}>
                   {tab === "Anteriores"
@@ -1286,14 +1292,6 @@ export function MyBookings({
                 </p>
               </div>
               <div className={b.bookingsHeaderActions}>
-                {rows[0]?.company?.slug && (
-                  <Link
-                    href={`/agendar/${rows[0].company.slug}`}
-                    className={`${b.button} ${b.small} ${b.bookingsPrimaryAction}`}
-                  >
-                    <CalendarPlus size={14} /> Agendar novo horário
-                  </Link>
-                )}
                 {!embedded && (
                   <div className={b.bookingsSecondaryActions}>
                     <button
@@ -1335,6 +1333,17 @@ export function MyBookings({
                       <LogOut size={13} /> Trocar conta
                     </button>
                   </div>
+                )}
+                {rows[0]?.company?.slug && !embedded && (
+                  <span className={b.bookingsHeaderDivider} aria-hidden="true" />
+                )}
+                {rows[0]?.company?.slug && (
+                  <Link
+                    href={`/agendar/${rows[0].company.slug}`}
+                    className={`${b.button} ${b.small} ${b.bookingsPrimaryAction}`}
+                  >
+                    <CalendarPlus size={14} /> Agendar novo horário
+                  </Link>
                 )}
               </div>
             </header>
@@ -1674,6 +1683,22 @@ export function MyBookings({
             slug: current.company.slug ?? undefined,
             address: current.company.address,
           } : undefined}
+          isClientPortal={true}
+          showThemeToggle={true}
+          user={user}
+          onOpenProfile={() => {
+            setProfileModalOpen(true);
+            setProfileName(user?.name || "");
+            setProfileEmail(user?.email || "");
+            setProfilePhotoUrl(user?.photoUrl || null);
+            setProfileError("");
+            setProfileSuccess("");
+          }}
+          onLogout={async () => {
+            await api("/api/auth/logout", { method: "POST" });
+            setUser(null);
+            setRows([]);
+          }}
         >
           {content}
         </PublicFrame>
