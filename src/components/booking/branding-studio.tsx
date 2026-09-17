@@ -458,21 +458,8 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         </div>
       </div>
 
-      {/* Page Builder 2.0 Banner */}
-      <div
-        style={{
-          margin: "0 0 24px",
-          padding: "16px 20px",
-          borderRadius: "12px",
-          background: "linear-gradient(135deg, rgba(220, 255, 76, 0.08) 0%, rgba(24, 24, 27, 0.9) 100%)",
-          border: "1px solid rgba(220, 255, 76, 0.3)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "16px",
-          flexWrap: "wrap",
-        }}
-      >
+      {/* Page Builder 2.0 Banner (Desktop Only) */}
+      <div className={styles.pageBuilderBanner}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div
             style={{

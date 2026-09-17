@@ -859,3 +859,11 @@
   border-radius: 8px;
   font-size: 13px;
 }
+
+@media (max-width: 768px) {
+  .desktopOnlyPageBuilderTab,
+  .desktopOnlyPageBuilderBtn {
+    display: none !important;
+  }
+}
+

@@ -412,7 +412,7 @@ export function BookingSettings() {
         </button>
         <button
           type="button"
-          className={styles.tabBtn}
+          className={`${styles.tabBtn} ${styles.desktopOnlyPageBuilderTab}`}
           style={{ color: "#dcff4c", borderColor: "rgba(220, 255, 76, 0.3)" }}
           onClick={() => setShowPageBuilder(true)}
         >
@@ -515,7 +515,7 @@ export function BookingSettings() {
 
             <button
               type="button"
-              className={`${styles.btnSecondary} ${styles.btnSecondaryFull}`}
+              className={`${styles.btnSecondary} ${styles.btnSecondaryFull} ${styles.desktopOnlyPageBuilderBtn}`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
