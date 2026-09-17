@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   CheckCircle2,
+  Loader2,
   Type,
   AlignLeft,
   ListOrdered,
@@ -415,20 +416,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         <div className={styles.studioHeaderActions}>
           <button
             type="button"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "#dcff4c",
-              color: "#09090b",
-              fontWeight: 700,
-              fontSize: "13px",
-              padding: "8px 16px",
-              borderRadius: "8px",
-              border: "none",
-              cursor: "pointer",
-              boxShadow: "0 0 16px rgba(220, 255, 76, 0.25)",
-            }}
+            className={styles.btnPageBuilderTop}
             onClick={() => setShowVisualBuilder(true)}
           >
             <Sparkles size={16} />
@@ -442,16 +430,25 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
           )}
           <button
             type="button"
-            className={styles.btnSaveTop}
-            disabled={!hasChanges || saving}
+            className={`${styles.btnSaveTop} ${
+              saveSuccess
+                ? styles.btnSaveSuccess
+                : hasChanges
+                  ? styles.btnSaveHasChanges
+                  : styles.btnSaveIdle
+            }`}
+            disabled={saving}
             onClick={handleSave}
+            title={hasChanges ? "Salvar alterações pendentes" : "Salvar configurações atuais"}
           >
             {saveSuccess ? (
               <>
                 <CheckCircle2 size={16} /> Salvo!
               </>
             ) : saving ? (
-              "Salvando..."
+              <>
+                <Loader2 size={16} className={styles.spin} /> Salvando...
+              </>
             ) : (
               <>
                 <Check size={16} /> Salvar alterações
@@ -955,16 +952,25 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
 
             <button
               type="button"
-              className={styles.btnSave}
-              disabled={!hasChanges || saving}
+              className={`${styles.btnSave} ${
+                saveSuccess
+                  ? styles.btnSaveSuccess
+                  : hasChanges
+                    ? styles.btnSaveHasChanges
+                    : styles.btnSaveIdle
+              }`}
+              disabled={saving}
               onClick={handleSave}
+              title={hasChanges ? "Salvar alterações pendentes" : "Salvar configurações atuais"}
             >
               {saveSuccess ? (
                 <>
                   <CheckCircle2 size={16} /> Salvo!
                 </>
               ) : saving ? (
-                "Salvando..."
+                <>
+                  <Loader2 size={16} className={styles.spin} /> Salvando...
+                </>
               ) : (
                 <>
                   <Check size={16} /> Salvar alterações

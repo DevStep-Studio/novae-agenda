@@ -269,6 +269,35 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
       if (device.slug === "desktop-1440x900") {
         await page.goto("/gestao/link-agendamento", { waitUntil: "domcontentloaded" });
         await page.waitForTimeout(600);
+
+        // Verify Branding Studio save button styling and visibility (not bugged/washed out)
+        const saveBtn = page.getByRole("button", { name: "Salvar alterações" }).first();
+        await expect(saveBtn).toBeVisible();
+
+        const btnStyles = await saveBtn.evaluate((el) => {
+          const cs = window.getComputedStyle(el);
+          return {
+            color: cs.color,
+            backgroundColor: cs.backgroundColor,
+            opacity: cs.opacity,
+            cursor: cs.cursor,
+            filter: cs.filter,
+          };
+        });
+
+        // Ensure filter is not washing out the button and text is clearly readable
+        expect(btnStyles.filter).toBe("none");
+        expect(btnStyles.opacity).toBe("1");
+
+        // Click save button and verify successful save feedback
+        await saveBtn.click();
+        await expect(page.getByRole("button", { name: "Salvo!" }).first()).toBeVisible({ timeout: 5000 });
+
+        // Save screenshot of Branding Studio with working button
+        const brandingDir = path.join(process.cwd(), "test-results", "responsive", "branding-studio");
+        fs.mkdirSync(brandingDir, { recursive: true });
+        await page.screenshot({ path: path.join(brandingDir, "branding-save-button.png") });
+
         const pageBuilderBtn = page.getByRole("button", { name: "Page Builder 2.0 (Visual)", exact: true });
         await expect(pageBuilderBtn).toBeVisible();
         await pageBuilderBtn.click();
