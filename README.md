@@ -186,3 +186,9 @@ Ao criar ou editar qualquer tela do Reservei, garanta:
 4. [ ] **Options de `<select>` com fundo `#181818` e texto `#ffffff`**.
 5. [ ] **Botões de WhatsApp em verde oficial (`#25d366`) com ícone vetorizado**.
 6. [ ] **Testes automatizados e verificação de tipos aprovados (`npm run typecheck` e `npm test`)**.
+
+---
+
+## 📚 Documentação adicional
+
+Este arquivo é o guia de design system. Para arquitetura, deploy e relatórios, veja [`docs/`](docs/README.md).
