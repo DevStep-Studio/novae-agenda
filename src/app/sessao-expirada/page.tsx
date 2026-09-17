@@ -8,10 +8,13 @@ export default function SessaoExpiradaPage() {
   const [loginHref, setLoginHref] = useState("/login");
 
   useEffect(() => {
-    const returnTo = new URLSearchParams(window.location.search).get("returnTo");
-    if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
-      setLoginHref(`/login?returnTo=${encodeURIComponent(returnTo)}`);
-    }
+    const applyReturnTo = () => {
+      const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+      if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+        setLoginHref(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+      }
+    };
+    applyReturnTo();
   }, []);
 
   return (

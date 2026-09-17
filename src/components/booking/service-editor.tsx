@@ -81,7 +81,7 @@ export function ServiceEditor({
   service?: ServiceDTO;
   onDone: () => void;
 }) {
-  const { employees, categories, reloadServices, reloadCategories, reloadEmployees, notify } =
+  const { employees, categories, reloadServices, reloadCategories, reloadEmployees, notify, confirm } =
     useStore();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -203,13 +203,13 @@ export function ServiceEditor({
   async function handleDeleteCategory() {
     if (!category || busy) return;
     const catName = currentCategory?.name || "esta categoria";
-    if (
-      !window.confirm(
-        `Deseja realmente excluir a categoria "${catName}"? Os serviços vinculados serão mantidos em "Outros (Geral)".`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Excluir categoria",
+      description: `Deseja realmente excluir a categoria "${catName}"? Os serviços vinculados serão mantidos em "Outros (Geral)".`,
+      confirmLabel: "Excluir",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await api(`/api/categories/${category}`, {

@@ -22,6 +22,15 @@ import type {
 
 export type Toast = { id: string; message: string; tone: "success" | "error" };
 
+export type ConfirmOptions = {
+  title: string;
+  description: ReactNode;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+};
+export type ConfirmRequest = ConfirmOptions & { resolve: (value: boolean) => void };
+
 type DataState = {
   session: SessionInfo | null;
   loading: boolean;
@@ -99,6 +108,8 @@ type Store = DataState & {
   updateDashboardPreferences: (prefs: import("@/shared/types").DashboardPreferences) => Promise<void>;
   notify: (message: string, tone?: "success" | "error") => void;
   dismissToast: (id: string) => void;
+  confirm: (options: ConfirmOptions) => Promise<boolean>;
+  confirmRequest: ConfirmRequest | null;
   logout: () => Promise<void>;
 };
 
@@ -129,6 +140,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const dismissToast = useCallback((id: string) => {
     setToasts((current) => current.filter((t) => t.id !== id));
+  }, []);
+
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+
+  const confirm = useCallback((options: ConfirmOptions) => {
+    return new Promise<boolean>((resolve) => {
+      setConfirmRequest({
+        ...options,
+        resolve: (value) => {
+          setConfirmRequest(null);
+          resolve(value);
+        },
+      });
+    });
   }, []);
 
   const reloadLocations = useCallback(async () => {
@@ -566,12 +591,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateDashboardPreferences,
     notify,
     dismissToast,
+    confirm,
+    confirmRequest,
     logout,
   }), [
     session, booting, locations, activeLocationId, clients, services, categories, employees, appointments, blocks, notifications, unreadCount, settings, stats, toasts,
     setActiveLocationId, reloadSession, reloadLocations, reloadClients, reloadServices, reloadCategories, reloadEmployees, reloadAppointments, reloadBlocks, reloadNotifications, reloadSettings, reloadStats, refreshAll,
     createLocation, updateLocation, createClient, updateClient, deleteClient, createService, toggleService, createEmployee, updateEmployee, deleteEmployee, createAppointment,
-    updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, updateProfile, updateDashboardPreferences, notify, dismissToast, logout,
+    updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, updateProfile, updateDashboardPreferences, notify, dismissToast, confirm, confirmRequest, logout,
   ]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

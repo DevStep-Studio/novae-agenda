@@ -20,6 +20,8 @@ import {
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
+import { Toasts } from "@/components/ui/toast";
+import { ConfirmModalHost } from "@/components/ui/confirm-modal";
 import { api } from "@/lib/api-client";
 import type { AppointmentDTO, AppointmentStatus } from "@/shared/types";
 import styles from "./employee-dashboard.module.css";
@@ -27,7 +29,7 @@ import styles from "./employee-dashboard.module.css";
 type Tab = "hoje" | "agenda" | "clientes" | "notificacoes" | "perfil";
 
 export function EmployeeDashboard() {
-  const { session, logout } = useStore();
+  const { session, logout, toasts, dismissToast } = useStore();
   const [activeTab, setActiveTab] = useState<Tab>("hoje");
   const [appointments, setAppointments] = useState<AppointmentDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -518,6 +520,8 @@ export function EmployeeDashboard() {
           )}
         </div>
       </main>
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmModalHost />
     </div>
   );
 }

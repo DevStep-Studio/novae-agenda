@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import { OfflineBanner } from "@/components/ui/offline-banner";
+import { CookieBanner } from "@/components/ui/cookie-banner";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -34,7 +36,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <OfflineBanner />
+        {children}
+        <CookieBanner />
+      </body>
     </html>
   );
 }

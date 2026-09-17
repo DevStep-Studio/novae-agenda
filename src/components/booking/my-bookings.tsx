@@ -25,6 +25,9 @@ import {
   X,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { useStore } from "@/store/store";
+import { Toasts } from "@/components/ui/toast";
+import { ConfirmModalHost } from "@/components/ui/confirm-modal";
 import { api } from "@/lib/api-client";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import type { BookingDetails } from "@/lib/booking/service";
@@ -97,6 +100,7 @@ export function MyBookings({
   initialTab?: string;
   initialUser?: Customer | null;
 }) {
+  const { toasts, dismissToast, confirm } = useStore();
   const Content = embedded ? "section" : "main";
   const [user, setUser] = useState<Customer | null>(initialUser),
     [rows, setRows] = useState<Detail[]>([]),
@@ -143,7 +147,13 @@ export function MyBookings({
     setRows((cur) => [...cur]);
   }, []);
   const handleCancelMembershipAppt = async (appointmentId: string) => {
-    if (!window.confirm("Tem certeza que deseja cancelar este horário fixo?")) return;
+    const ok = await confirm({
+      title: "Cancelar horário fixo",
+      description: "Tem certeza que deseja cancelar este horário fixo?",
+      confirmLabel: "Cancelar horário",
+      danger: true,
+    });
+    if (!ok) return;
     setMembershipActionBusy(true);
     setMembershipActionError("");
     try {
@@ -1673,6 +1683,8 @@ export function MyBookings({
   return (
     <>
       <ClientNoticeModal />
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmModalHost />
       {embedded ? content : (
         <PublicFrame
           color={current?.company.color}

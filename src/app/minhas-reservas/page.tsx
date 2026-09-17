@@ -1,3 +1,4 @@
+import { StoreProvider } from "@/store/store";
 import { MyBookings } from "@/components/booking/my-bookings";
 
 export const metadata = {
@@ -7,5 +8,9 @@ export const metadata = {
 };
 
 export default function MinhasReservasPage() {
-  return <MyBookings />;
+  return (
+    <StoreProvider>
+      <MyBookings />
+    </StoreProvider>
+  );
 }

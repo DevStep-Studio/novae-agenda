@@ -11,8 +11,11 @@ import {
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon, Lightbulb,
 } from "lucide-react";
-import { useStore, type Toast } from "@/store/store";
+import { useStore } from "@/store/store";
 import type { LocationDTO } from "@/shared/types";
+import { Toasts } from "@/components/ui/toast";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ConfirmModal, ConfirmModalHost } from "@/components/ui/confirm-modal";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, getServiceDescription, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
@@ -272,47 +275,6 @@ function Modal({
       </section>
     </div>
   );
-}
-function ConfirmModal({
-  title,
-  description,
-  confirmLabel = "Confirmar",
-  cancelLabel = "Cancelar",
-  danger = false,
-  busy = false,
-  onConfirm,
-  onClose,
-}: {
-  title: string;
-  description: ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  danger?: boolean;
-  busy?: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-}) {
-  return (
-    <Modal title={title} onClose={onClose} icon={danger ? AlertTriangle : undefined}>
-      <div className="modal-body" style={{ padding: "0 24px 20px" }}>
-        <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.6 }}>{description}</div>
-      </div>
-      <div className="modal-footer">
-        <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
-          {cancelLabel}
-        </Button>
-        <Button type="button" variant={danger ? "danger" : "primary"} onClick={onConfirm} disabled={busy}>
-          {busy ? "Aguarde..." : confirmLabel}
-        </Button>
-      </div>
-    </Modal>
-  );
-}
-function EmptyState({ icon: Icon = CalendarDays, title, description, action }: { icon?: LucideIcon; title: string; description: string; action?: ReactNode }) {
-  return <div className="empty-state"><span className="empty-icon"><Icon size={22} /></span><h3>{title}</h3><p>{description}</p>{action}</div>;
-}
-function Toasts({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
-  return <div className="toast-stack">{toasts.map((toast) => <div key={toast.id} className={`toast ${toast.tone === "error" ? "toast-error" : ""}`}>{toast.tone === "error" ? <XCircle size={17} /> : <CheckCircle size={17} />}<span>{toast.message}</span><button onClick={() => onDismiss(toast.id)}><X size={14} /></button></div>)}</div>;
 }
 
 /* ---------- Pages ---------- */
@@ -3865,7 +3827,7 @@ function NewAppointmentModal({
   defaultServiceId?: string;
   defaultLocationId?: string;
 }) {
-  const { services, employees, locations, activeLocationId, createAppointment, notify } = useStore();
+  const { services, employees, locations, activeLocationId, createAppointment, notify, confirm } = useStore();
   const [clientId, setClientId] = useState(defaultClientId || "");
   const [locationId, setLocationId] = useState(defaultLocationId || activeLocationId || locations[0]?.id || "");
   const [serviceIds, setServiceIds] = useState<string[]>(defaultServiceId ? [defaultServiceId] : []);
@@ -3953,9 +3915,12 @@ function NewAppointmentModal({
       const msg = e instanceof ApiError ? e.message : "Não foi possível criar o agendamento.";
       const isConflict = e instanceof ApiError && (e.status === 409 || msg.toLowerCase().includes("atendimento") || msg.toLowerCase().includes("bloqueio") || msg.toLowerCase().includes("jornada"));
       if (isConflict) {
-        const wantsOverride = window.confirm(
-          `Aviso de Conflito: ${msg}\n\nDeseja realizar o ENCAIXE MANUAL forçado para este horário? (A ação será registrada na auditoria do estabelecimento)`
-        );
+        const wantsOverride = await confirm({
+          title: "Aviso de conflito",
+          description: `${msg} Deseja realizar o ENCAIXE MANUAL forçado para este horário? A ação será registrada na auditoria do estabelecimento.`,
+          confirmLabel: "Forçar encaixe",
+          danger: true,
+        });
         if (wantsOverride) {
           try {
             await createAppointment({
@@ -4939,7 +4904,7 @@ function EditEmployeeModal({
   onClose: () => void;
   onOpenSchedule?: () => void;
 }) {
-  const { updateEmployee, deleteEmployee, notify, services } = useStore();
+  const { updateEmployee, deleteEmployee, notify, services, confirm } = useStore();
   const [name, setName] = useState(employee.name);
   const [jobTitle, setJobTitle] = useState(employee.jobTitle ?? "Profissional");
   const [phone, setPhone] = useState(employee.phone ?? "");
@@ -5017,7 +4982,13 @@ function EditEmployeeModal({
   };
 
   const handleDelete = async () => {
-    if (!window.confirm(`Deseja desativar o profissional ${employee.name}?`)) return;
+    const ok = await confirm({
+      title: "Desativar profissional",
+      description: `Deseja desativar o profissional ${employee.name}?`,
+      confirmLabel: "Desativar",
+      danger: true,
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       await deleteEmployee(employee.id);
@@ -5893,14 +5864,14 @@ function BlockModal({ onClose, defaultDate }: { onClose: () => void; defaultDate
 }
 
 function AppointmentDetailModal({ appointment, onClose }: { appointment: AppointmentDTO; onClose: () => void }) {
-  const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, services, clients } = useStore();
+  const { updateAppointmentStatus, finishAppointment, rescheduleAppointment, notify, employees, services, clients, confirm } = useStore();
   const shareUrl = `https://wa.me/${formatPhoneForWhatsApp(appointment.clientPhone)}?text=${encodeURIComponent(`Olá, ${appointment.clientName}! Seu atendimento de ${appointment.serviceName} com ${appointment.employeeName} está confirmado para ${shortDate(appointment.date)} às ${normalizeTime(appointment.startTime)}.`)}`;
 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
-  const confirm = async () => {
+  const confirmAppointment = async () => {
     try { await updateAppointmentStatus(appointment.id, "confirmed"); notify("Atendimento confirmado."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
   };
   const start = async () => {
@@ -5922,7 +5893,8 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
     try { await updateAppointmentStatus(appointment.id, "waiting"); notify("Cliente marcado como aguardando."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
   };
   const noShow = async () => {
-    if (!window.confirm("Marcar como não compareceu?")) return;
+    const ok = await confirm({ title: "Não compareceu", description: "Marcar este atendimento como não compareceu?", confirmLabel: "Marcar" });
+    if (!ok) return;
     try { await updateAppointmentStatus(appointment.id, "no_show"); notify("Registrado como não compareceu."); onClose(); } catch (e) { notify(e instanceof ApiError ? e.message : "Erro.", "error"); }
   };
 
@@ -6097,7 +6069,7 @@ function AppointmentDetailModal({ appointment, onClose }: { appointment: Appoint
             <span className="detail-actions-label">Ações rápidas</span>
             <div className="detail-status-actions">
               {appointment.status === "scheduled" && (
-                <Button variant="secondary" onClick={confirm}>
+                <Button variant="secondary" onClick={confirmAppointment}>
                   <Check size={14} /> Confirmar
                 </Button>
               )}
@@ -6391,7 +6363,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
     session, appointments, employees, locations, activeLocationId, setActiveLocationId,
     blocks, deleteBlock,
     notifications, unreadCount, markAllNotificationsRead, markNotificationRead, logout, toasts, dismissToast,
-    reloadAppointments,
+    reloadAppointments, confirm,
   } = useStore();
 
   const [view, setView] = useState<ViewKey>(initialView ?? "dashboard");
@@ -6765,6 +6737,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             selectedDate={selectedDate}
             blocks={blocks}
             deleteBlock={deleteBlock}
+            confirm={confirm}
             onAppointment={setDetailAppointment}
             onNewAt={(empId, time) => {
               setNewAppointmentPrefill({ employeeId: empId, startTime: time, date: selectedDate });
@@ -7283,6 +7256,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       )}
 
       <Toasts toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmModalHost />
     </div>
   );
 }
@@ -7976,6 +7950,7 @@ function DayCalendar({
   selectedDate,
   blocks,
   deleteBlock,
+  confirm,
   onAppointment,
   onNewAt,
 }: {
@@ -7985,6 +7960,7 @@ function DayCalendar({
   selectedDate: string;
   blocks: ScheduleBlockDTO[];
   deleteBlock: (id: string) => Promise<void>;
+  confirm: (options: import("@/store/store").ConfirmOptions) => Promise<boolean>;
   onAppointment: (a: AppointmentDTO) => void;
   onNewAt: (employeeId: string, time: string) => void;
 }) {
@@ -8128,10 +8104,9 @@ function DayCalendar({
                           right: "4px",
                         }}
                         title={`Dia todo bloqueado: ${b.reason}. Clique para remover.`}
-                        onClick={() => {
-                          if (window.confirm(`Deseja remover o bloqueio "${b.reason || "Dia bloqueado"}"?`)) {
-                            deleteBlock(b.id);
-                          }
+                        onClick={async () => {
+                          const ok = await confirm({ title: "Remover bloqueio", description: `Deseja remover o bloqueio "${b.reason || "Dia bloqueado"}"?`, confirmLabel: "Remover", danger: true });
+                          if (ok) deleteBlock(b.id);
                         }}
                       >
                         <div className="timeline-block-inner">
@@ -8158,10 +8133,9 @@ function DayCalendar({
                         right: "4px",
                       }}
                       title={`Bloqueio: ${b.reason} (${normalizeTime(b.startsAt)} – ${normalizeTime(b.endsAt)}). Clique para remover.`}
-                      onClick={() => {
-                        if (window.confirm(`Deseja remover o bloqueio "${b.reason || "Horário bloqueado"}"?`)) {
-                          deleteBlock(b.id);
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({ title: "Remover bloqueio", description: `Deseja remover o bloqueio "${b.reason || "Horário bloqueado"}"?`, confirmLabel: "Remover", danger: true });
+                        if (ok) deleteBlock(b.id);
                       }}
                     >
                       <div className="timeline-block-inner">

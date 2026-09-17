@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
+import { Toasts } from "@/components/ui/toast";
+import { ConfirmModalHost } from "@/components/ui/confirm-modal";
 import { MetricsTab } from "./tabs/metrics-tab";
 import { OwnersTab } from "./tabs/owners-tab";
 import { ClientsTab } from "./tabs/clients-tab";
@@ -25,7 +27,7 @@ import styles from "./admin-dashboard.module.css";
 type Tab = "dashboard" | "proprietarios" | "clientes" | "cupons" | "logs";
 
 export function AdminDashboard() {
-  const { session, logout } = useStore();
+  const { session, logout, toasts, dismissToast } = useStore();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
 
   return (
@@ -125,6 +127,8 @@ export function AdminDashboard() {
           {activeTab === "logs" && <AuditTab />}
         </div>
       </main>
+      <Toasts toasts={toasts} onDismiss={dismissToast} />
+      <ConfirmModalHost />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { ServerCrash } from "lucide-react";
 import { StateScreen } from "@/components/ui/state-screen";
 
@@ -25,9 +26,9 @@ export default function GlobalErrorBoundary({
           <button type="button" className="state-screen-btn" onClick={() => reset()}>
             Tentar novamente
           </button>
-          <a href="/" className="state-screen-btn-secondary">
+          <Link href="/" className="state-screen-btn-secondary">
             Ir para o início
-          </a>
+          </Link>
         </>
       }
     />
