@@ -216,3 +216,21 @@ O usuário reportou, via screenshots, botões de rodapé de modal (Personalizar 
 - `npm test`: 140/141 (1 falha pré-existente e não relacionada, já documentada na sessão anterior — teste de concorrência de agendamento com dados sensíveis a colisão de horário, sem nenhuma superfície de CSS/UI envolvida).
 - `npx tsc --noEmit`: limpo.
 - `npm run lint`: 0 erros (2 warnings pré-existentes de `<img>` não otimizada, não tocados nesta sessão).
+
+---
+
+## 9. Terceira Sessão de Verificação — Modal do Editor de Serviço e Preview do Branding (17/09/2026)
+
+O usuário reportou mais 4 screenshots com "quebra de linha" e "item colado na parte de baixo". Investigação ao vivo (não apenas leitura de código) confirmou 4 dos pontos como bugs reais e 1 como falso alarme:
+
+**Falso alarme identificado e explicado:** o card "80% configurado" (checklist de onboarding) na verdade quebra linha normalmente e por completo — o screenshot enviado era um recorte extremamente apertado que cortava apenas o início de duas linhas de texto já corretamente quebradas ("Co[nclua o checklist...]" / "pa[ra liberar agendamentos...]"). Verificado ao vivo: nada precisou ser corrigido aqui.
+
+**Bug real — rodapé do modal "Novo serviço" colado na borda:** `service-editor.module.css` `.footer` tinha `padding: 16px 0 0` — **zero padding inferior**, sem `env(safe-area-inset-bottom)` e sem stacking mobile, diferente do `.modal-footer` global (que já tinha os dois). Este componente usa seu próprio rodapé bespoke, não o compartilhado — por isso escapou da correção de z-index desta sessão anterior. Corrigido: padding inferior com safe-area, e `flex-direction: column-reverse` + botões full-width abaixo de 640px.
+
+**Bug real — toggle "Preço fixo" / "Orçamento direto (Sob consulta)" quebrando linha:** os dois botões dividiam 50/50 (`flex:1`) e o rótulo mais longo quebrava para 2 linhas, esticando o botão irmão para uma altura desigual e vazia. Corrigido empilhando os dois verticalmente (`flex-direction: column`) abaixo de 640px — cada opção ocupa a largura toda, sem quebra.
+
+**Bug real — ". Todas as cores..." com ponto órfão em linha própria:** no banner "Identidade Visual Compartilhada", o nome da empresa em negrito seguido de ponto podia quebrar deixando o ponto sozinho no início da linha seguinte. Corrigido movendo o ponto para dentro da tag `<strong>` — nunca mais se separa do nome.
+
+**Bug real (achado ao verificar o anterior) — CTA fixo do preview do Branding Studio vazando sobre a nav real:** ao inspecionar o rodapé "Restaurar padrão / Salvar alterações" (também sem `flex-wrap`/safe-area, corrigido da mesma forma que os anteriores), a rolagem revelou que a barra fixa de call-to-action da **pré-visualização embutida** da página pública (`.mobileBottomBar`, `position: fixed`) escapava do card do preview (`.previewFrameWrap`) e sobrepunha a navegação real do admin — porque `overflow: hidden` sozinho **não** contém elementos `position: fixed` (só `transform`/`filter`/`contain` em um ancestral criam esse "containing block"). Corrigido adicionando `transform: translateZ(0)` ao `.previewFrameWrap`, testado explicitamente nos dois modos do toggle (Desktop e Mobile) via script isolado antes de escrever o teste definitivo, para evitar falso-positivo de medição (`getBoundingClientRect()` de um elemento corretamente contido ainda pode coincidir com o fundo da viewport dependendo do ponto de rolagem escolhido — o teste final rola até o próprio elemento, não até um âncora vizinha).
+
+**Resultado final:** `tests/browser/responsive.spec.ts` **67/67 passed** (63 anteriores + 4 novos), `npm test` 140/141 (mesma falha pré-existente e não relacionada), `tsc` e `lint` limpos.
