@@ -4,6 +4,16 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // Manutenção programada: com a flag ativa, toda página (exceto a própria
+  // tela de manutenção, já excluída pelo matcher) serve o mesmo conteúdo,
+  // sem trocar a URL visível pro usuário.
+  if (process.env.MAINTENANCE_MODE === "true") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/manutencao";
+    url.search = "";
+    return NextResponse.rewrite(url);
+  }
+
   // Canonical customer route redirects
   if (pathname === "/cliente" || pathname === "/meus-agendamentos") {
     const url = request.nextUrl.clone();
@@ -92,23 +102,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/cliente",
-    "/meus-agendamentos",
-    "/dashboard",
-    "/agenda",
-    "/clientes",
-    "/servicos",
-    "/equipe",
-    "/financeiro",
-    "/relatorios",
-    "/assinatura",
-    "/minha-assinatura",
-    "/configuracoes",
-    "/link-agendamento",
-    "/gestao/:path*",
-    "/gestao",
-    "/notificacoes",
-    "/profissional/:path*",
-    "/profissional",
+    // Todas as rotas exceto API, assets internos do Next.js, uploads,
+    // arquivos estáticos e a própria tela de manutenção.
+    "/((?!api|_next/static|_next/image|favicon\\.ico|uploads|manutencao|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|css|js|map)$).*)",
   ],
 };
