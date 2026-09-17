@@ -1566,9 +1566,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                       </div>
                                     ) : (service.paymentType === "QUOTE" || Number(service.price) === 0) ? (
                                       <div>
-                                        <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#38bdf8", background: "rgba(56,189,248,0.14)", padding: "2px 6px", borderRadius: 4, display: "inline-block" }}>
-                                          SOB CONSULTA
-                                        </span>
                                         <strong style={{ display: "block", fontSize: "0.95rem" }}>Orçamento direto</strong>
                                       </div>
                                     ) : (
@@ -1577,19 +1574,66 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                     {serviceHints[service.id] && <small className={b.muted}>Próximo horário: {serviceHints[service.id].date === today ? "Hoje" : dateLabelShort(serviceHints[service.id].date)} às {serviceHints[service.id].slot.startTime}</small>}
                                   </div>
 
-                                  <div className={b.serviceButtons}>
+                                  <div className={b.serviceButtonsWrap}>
+                                    <div className={b.serviceTopButtons}>
+                                      <button
+                                        type="button"
+                                        className={`${b.button} ${b.small} ${chosen ? "" : b.outline}`}
+                                        aria-pressed={chosen}
+                                        aria-label={`${chosen ? "Remover" : "Selecionar"} ${service.name}`}
+                                        disabled={!chosen && items.length >= 8}
+                                        onClick={() => {
+                                          changeItems(
+                                            chosen
+                                              ? items.filter(
+                                                  (i) =>
+                                                    i.serviceId !== service.id,
+                                                )
+                                              : [
+                                                  ...items,
+                                                  {
+                                                    serviceId: service.id,
+                                                    employeeId: null,
+                                                  },
+                                                ],
+                                          );
+                                          if (!chosen) event("service_selected");
+                                        }}
+                                      >
+                                        {chosen ? (
+                                          <>
+                                            <Check size={14} /> Selecionado
+                                          </>
+                                        ) : (
+                                          "Selecionar"
+                                        )}
+                                      </button>
+
+                                      {!chosen && (
+                                        <button
+                                          type="button"
+                                          className={`${b.button} ${b.small}`}
+                                          onClick={() => {
+                                            changeItems([{ serviceId: service.id, employeeId: null }]);
+                                            event("service_selected");
+                                            go(1);
+                                          }}
+                                          title="Escolher data e horário disponíveis"
+                                        >
+                                          Agendar
+                                        </button>
+                                      )}
+                                    </div>
+
                                     {(service.paymentType === "QUOTE" || Number(service.price) === 0) && (
                                       <a
                                         href={getServiceQuoteWhatsAppUrl(service) || "#"}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className={`${b.button} ${b.small} ${b.outline}`}
+                                        className={`${b.button} ${b.small} ${b.outline} ${b.serviceWhatsappBtn}`}
                                         style={{
                                           borderColor: "#25D366",
                                           color: "#25D366",
-                                          display: "inline-flex",
-                                          alignItems: "center",
-                                          gap: 4,
                                           textDecoration: "none",
                                         }}
                                         onClick={(e) => {
@@ -1600,58 +1644,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                         }}
                                         title="Pedir orçamento direto no WhatsApp"
                                       >
-                                        <WhatsAppIcon size={13} />
+                                        <WhatsAppIcon size={14} />
                                         <span>Orçamento</span>
                                       </a>
                                     )}
-
-                                    {!chosen && (
-                                      <button
-                                        type="button"
-                                        className={`${b.button} ${b.small}`}
-                                        onClick={() => {
-                                          changeItems([{ serviceId: service.id, employeeId: null }]);
-                                          event("service_selected");
-                                          go(1);
-                                        }}
-                                        title="Escolher data e horário disponíveis"
-                                      >
-                                        Agendar
-                                      </button>
-                                    )}
-
-                                    <button
-                                      type="button"
-                                      className={`${b.button} ${b.small} ${chosen ? "" : b.outline}`}
-                                      aria-pressed={chosen}
-                                      aria-label={`${chosen ? "Remover" : "Selecionar"} ${service.name}`}
-                                      disabled={!chosen && items.length >= 8}
-                                      onClick={() => {
-                                        changeItems(
-                                          chosen
-                                            ? items.filter(
-                                                (i) =>
-                                                  i.serviceId !== service.id,
-                                              )
-                                            : [
-                                                ...items,
-                                                {
-                                                  serviceId: service.id,
-                                                  employeeId: null,
-                                                },
-                                              ],
-                                        );
-                                        if (!chosen) event("service_selected");
-                                      }}
-                                    >
-                                      {chosen ? (
-                                        <>
-                                          <Check size={14} /> Selecionado
-                                        </>
-                                      ) : (
-                                        "Selecionar"
-                                      )}
-                                    </button>
                                   </div>
                                 </div>
                               </article>

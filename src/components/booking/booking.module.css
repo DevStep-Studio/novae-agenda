@@ -1295,6 +1295,39 @@
 
 .serviceButtons { display: flex; align-items: center; flex-wrap: wrap; gap: var(--booking-space-2); }
 
+.serviceButtonsWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 200px;
+}
+
+.serviceTopButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.serviceTopButtons .button {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.serviceWhatsappBtn {
+  width: 100% !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  font-weight: 600;
+}
+
 .badge {
   font-size: 10px;
   font-weight: 700;
@@ -3923,8 +3956,10 @@
 @media (max-width: 520px) {
   .serviceActions { align-items: stretch; flex-direction: column; }
   .servicePrice { text-align: left; }
-  .serviceButtons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .serviceButtons .button { width: 100%; padding-inline: 10px; }
+  .serviceButtonsWrap { width: 100%; }
+  .serviceTopButtons { display: flex; width: 100%; gap: 6px; }
+  .serviceTopButtons .button { flex: 1; width: 100%; padding-inline: 8px; }
+  .serviceWhatsappBtn { width: 100% !important; }
   .successCard { padding: 24px 16px; }
   .successDetailRow { align-items: flex-start; flex-direction: column; gap: 4px; }
   .successDetailValue { max-width: 100%; text-align: left; overflow-wrap: anywhere; }
