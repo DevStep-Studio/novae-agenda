@@ -28,7 +28,16 @@ export function CookieBanner() {
     };
     checkBottomNav();
     window.addEventListener("resize", checkBottomNav);
-    return () => window.removeEventListener("resize", checkBottomNav);
+    // The bottom nav lives in a different part of the tree (inside whichever
+    // shell AppGate mounts) and can appear well after this component's first
+    // render — e.g. while the session/dashboard data is still loading. Watch
+    // for DOM changes instead of only checking once on mount.
+    const observer = new MutationObserver(checkBottomNav);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      window.removeEventListener("resize", checkBottomNav);
+      observer.disconnect();
+    };
   }, [visible]);
 
   const dismiss = () => {
