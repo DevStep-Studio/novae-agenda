@@ -1,52 +1,63 @@
-import { eq } from "drizzle-orm";
+import { timingSafeEqual } from "node:crypto";
+import { and, asc, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { createSession, normalizeEmail, verifyPassword } from "@/lib/auth";
+import { createSession } from "@/lib/auth";
 import { AUTH_RULES, clearRateLimit, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  email: z.string().email("Informe um e-mail válido."),
-  password: z.string().min(1, "Informe sua senha."),
+  password: z.string().min(1, "Informe a senha de administrador."),
 });
 
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    // Still run a comparison so failure timing doesn't leak the expected length.
+    timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return timingSafeEqual(bufA, bufB);
+}
+
 export async function POST(request: Request) {
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    return NextResponse.json({ error: "Login de administrador não está configurado." }, { status: 503 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
 
-  const { email, password } = parsed.data;
-  const normalized = normalizeEmail(email);
-  const ipBucket = `login:ip:${clientIp(request)}`;
-  const emailBucket = `login:email:${normalized}`;
+  const ipBucket = `admin-login:ip:${clientIp(request)}`;
+  const limit = await consumeRateLimit(ipBucket, AUTH_RULES.login);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
 
-  for (const bucket of [ipBucket, emailBucket]) {
-    const limit = await consumeRateLimit(bucket, AUTH_RULES.login);
-    if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+  const valid = timingSafeStringEqual(parsed.data.password, adminPassword);
+  if (!valid) {
+    return NextResponse.json({ error: "Senha incorreta." }, { status: 401 });
   }
 
-  const [user] = await db
-    .select({ id: users.id, passwordHash: users.passwordHash, active: users.active, role: users.role })
+  const [admin] = await db
+    .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, normalized))
+    .where(and(eq(users.isSuperadmin, true), eq(users.active, true)))
+    .orderBy(asc(users.createdAt))
     .limit(1);
 
-  const valid = user ? await verifyPassword(password, user.passwordHash) : false;
-  if (!user || !valid || !user.active) {
-    return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
+  if (!admin) {
+    return NextResponse.json({ error: "Nenhuma conta de Super Admin ativa foi encontrada." }, { status: 503 });
   }
 
-  if (user.role !== "admin" && user.role !== "owner") {
-    return NextResponse.json({ error: "Esta conta não possui privilégios de administrador." }, { status: 403 });
-  }
-
-  await Promise.all([clearRateLimit(ipBucket), clearRateLimit(emailBucket)]);
-  await createSession(user.id);
-  return NextResponse.json({ data: { userId: user.id } });
+  await clearRateLimit(ipBucket);
+  await createSession(admin.id);
+  return NextResponse.json({ data: { userId: admin.id } });
 }

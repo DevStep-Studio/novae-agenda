@@ -4,7 +4,6 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
-  Mail,
   Lock,
   Eye,
   EyeOff,
@@ -26,7 +25,6 @@ interface AdminLoginScreenProps {
 
 export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLoginScreenProps) {
   const { reloadSession, logout } = useStore();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,8 +32,8 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      setError("Informe o e-mail e a senha de administrador.");
+    if (!password) {
+      setError("Informe a senha de administrador.");
       return;
     }
 
@@ -43,16 +41,10 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
     setError("");
 
     try {
-      await api<{ data: { userId: string; role?: string; targetPortal?: string } }>(
-        "/api/auth/login",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            email: email.trim(),
-            password,
-          }),
-        }
-      );
+      await api<{ data: { userId: string } }>("/api/auth/admin/login", {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      });
 
       const updated = await reloadSession();
       if (!updated?.isSuperadmin && updated?.primaryRole !== "superadmin") {
@@ -65,19 +57,13 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
       }
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message || "E-mail ou senha incorretos.");
+        setError(err.message || "Senha incorreta.");
       } else {
         setError("Falha ao autenticar como administrador. Tente novamente.");
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDefaultAdmin = () => {
-    setEmail("admin@reservei.com.br");
-    setPassword("Admin@Reservei2026");
-    setError("");
   };
 
   return (
@@ -126,30 +112,8 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="admin-email" className={styles.label}>
-              E-mail do Administrador
-            </label>
-            <div className={styles.inputWrapper}>
-              <span className={styles.inputIcon}>
-                <Mail size={16} />
-              </span>
-              <input
-                id="admin-email"
-                type="email"
-                autoComplete="email"
-                required
-                autoFocus
-                placeholder="admin@reservei.com.br"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={styles.input}
-              />
-            </div>
-          </div>
-
-          <div className={styles.field}>
             <label htmlFor="admin-password" className={styles.label}>
-              Senha
+              Senha de Administrador
             </label>
             <div className={styles.inputWrapper}>
               <span className={styles.inputIcon}>
@@ -160,6 +124,7 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 required
+                autoFocus
                 placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -201,25 +166,6 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
             )}
           </button>
         </form>
-
-        <div className={styles.quickFillBox}>
-          <div className={styles.quickFillTitle}>Acesso Master Criado</div>
-          <div className={styles.quickFillRow}>
-            <span className={styles.quickFillText}>admin@reservei.com.br</span>
-            <button
-              type="button"
-              onClick={fillDefaultAdmin}
-              className={styles.quickFillBtn}
-              style={{
-                backgroundColor: "rgba(220, 255, 76, 0.1)",
-                color: "#dcff4c",
-                borderColor: "rgba(220, 255, 76, 0.25)",
-              }}
-            >
-              Preencher dados
-            </button>
-          </div>
-        </div>
 
         <div className={styles.footerActions}>
           <Link href="/gestao" className={styles.backLink}>
