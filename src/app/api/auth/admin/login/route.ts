@@ -14,6 +14,10 @@ const schema = z.object({
   password: z.string().min(1, "Informe a senha de administrador."),
 });
 
+// Fallback used only when ADMIN_PASSWORD isn't set in the environment.
+// Set ADMIN_PASSWORD in production to override this.
+const DEFAULT_ADMIN_PASSWORD = "Reservei2026";
+
 function timingSafeStringEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
@@ -26,10 +30,7 @@ function timingSafeStringEqual(a: string, b: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword) {
-    return NextResponse.json({ error: "Login de administrador não está configurado." }, { status: 503 });
-  }
+  const adminPassword = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
 
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
