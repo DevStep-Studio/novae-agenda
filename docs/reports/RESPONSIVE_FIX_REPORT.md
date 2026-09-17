@@ -274,3 +274,56 @@ Em conformidade com a pauta e requisitos da reunião, todos os 15 itens foram au
 - `npm test`: **141/141 testes aprovados (100% de sucesso)**
 - Integridade total do servidor de desenvolvimento local.
 
+---
+
+## 11. Páginas de Erro/Estado, Avisos e Legais (17/09/2026)
+
+Implementação das páginas que faltavam pro site ficar completo: telas de erro/estado, avisos padronizados (toast, modal de confirmação, banner de cookies) e páginas legais. Entregue em 3 grupos (A, B, C), cada um com typecheck/build/teste antes do próximo, seguido de uma passada completa da suíte de responsivo.
+
+### Grupo A — Páginas de erro e estado
+Novo componente base `StateScreen` (`src/components/ui/state-screen.tsx`), paleta lima da tela de login (`#dcff4c`), usado por:
+- `not-found.tsx` (404, restilizado)
+- `error.tsx` + `global-error.tsx` (error boundary do Next.js — sem cobertura E2E possível, framework não expõe como rota navegável; QA visual manual)
+- `/acesso-negado` (role-aware, sabe pra onde mandar de volta com base na sessão)
+- `/sessao-expirada` (preserva `returnTo`; `api-client.ts` não foi alterado pra redirecionar automaticamente — ficou como rota disponível pra uso pontual)
+- `/manutencao` + flag `MAINTENANCE_MODE` no middleware (rewrite, sem trocar a URL visível)
+- Link inválido/expirado: já existia inline em `VerifyEmailScreen`/`ResetPasswordScreen`, só restilizado
+
+### Grupo B — Avisos
+- Toast (`Toasts`) e modal de confirmação (`ConfirmModal`) extraídos de `app-shell.tsx` pra `src/components/ui/`, agora montados nos 4 shells (proprietário, funcionário, cliente, superadmin) — antes só o do proprietário tinha toast visível
+- `confirm()` promise-based adicionado ao store (mesmo padrão de `notify`/`toasts`): substituiu os 7 `window.confirm()` do app por um modal consistente
+- `CookieBanner` e `OfflineBanner`, montados uma vez no layout raiz
+- `EmptyState` extraído como componente compartilhado — só onde já usava CSS genérico (owner shell); os empty states de `employee-dashboard.tsx`/`my-bookings.tsx` usam CSS de marca por empresa (`--booking-*`) e foram **deliberadamente preservados** pra não regredir a aparência já ajustada
+
+### Grupo C — Páginas legais
+- `termos`/`privacidade`: texto jurídico mantido, layout ajustado (sumário clicável, largura de leitura confortável, paleta lima), comentário `// TODO: revisar com advogado antes de publicar` adicionado, seção `## Cookies` nova em `privacidade`
+- Nova `/cancelamento-reembolso`, cobrindo os dois fluxos financeiros reais (assinatura SaaS via Mercado Pago + cancelamento de agendamento por regra de cada estabelecimento)
+- `SiteFooter` novo, linkando as 3 páginas legais entre si e a partir do login
+
+### Bugs pré-existentes corrigidos (achados pela cobertura de teste ampliada, não causados por esta sessão)
+A suíte de responsivo cresceu de 67 pra 113 testes (novas rotas entraram automaticamente no array `PUBLIC_ROUTES`, cobrindo os 9 devices já existentes). A primeira rodada completa acusou 13 falhas; investigadas uma a uma:
+
+| Falha | Causa | Status |
+|---|---|---|
+| Banner de cookies sobrepõe a nav inferior mobile | `CookieBanner` monta no layout raiz, fora da árvore do shell — a checagem de "existe bottom-nav?" rodava antes do `AppShell` montar no DOM | **Corrigido** (`MutationObserver` no lugar de checagem única) |
+| Banner de cookies flagado como "elemento fixo suspeito" perto da nav | Teste pré-existente de vazamento de CTA fixo não conhecia o banner novo | **Corrigido** (adicionado à allowlist do teste, junto com `offline-banner`) |
+| `.mobile-menu-button` (hambúrguer) 38x38px | Regra pré-existente em `globals.css`, confirmada via `git diff` como não tocada nesta sessão | **Corrigido** (44x44px) |
+| Overflow horizontal em `/agendar/[slug]` no mobile (9 devices) | `.headerLinkText { display: none }` dentro de `@media (max-width: 640px)` sendo sobrescrita por uma regra incondicional idêntica mais abaixo no arquivo (mesma especificidade, ordem de origem vence) — confirmado pré-existente via `git diff` | **Corrigido** (`!important`, mesmo padrão já usado em `.mobile-menu-button`) |
+| Botão de tema do header público 38px (< 40px exigido pelo teste) | `.themeToggleBtn` pré-existente | **Corrigido** (40px) |
+
+### Resultado final
+- `tests/browser/responsive.spec.ts`: **113/113 passed** (0 → 13 falhas na primeira rodada → 0 após as correções)
+- `npm test`: **160/160 passed**
+- `npx tsc --noEmit`: limpo
+- `npm run lint`: limpo (só o erro pré-existente em `coupons-tab.tsx`, já preservado por decisão de sessão anterior)
+- `npm run build`: sucesso
+
+### Screenshots
+Gerados automaticamente pela suíte em `test-results/responsive/<rota>/<device>.png` — inclui as rotas novas (`acesso-negado`, `sessao-expirada`, `manutencao`, `cancelamento-reembolso`, `not-found-404`) em todos os 9 devices.
+
+### Itens que precisam de revisão humana
+1. **Conteúdo jurídico** de `termos`, `privacidade` e `cancelamento-reembolso` — rascunho, não validado por advogado (comentário `TODO` no topo de cada arquivo).
+2. **Tom de voz/copy** das mensagens de erro/estado — escritas objetivamente, sem revisão de tom de marca.
+3. **Paleta lima retroativa** em `not-found.tsx`/`termos`/`privacidade` — essas páginas já estavam no ar com outra paleta (azul `#3b82f6`); a mudança para lima é visual, decidida nesta sessão a partir da tela de login, não uma correção de bug.
+4. **`/sessao-expirada` não está automaticamente conectada** a nenhum fluxo — existe como rota pronta, mas nenhum código redireciona pra ela ainda (deixei fora do escopo alterar `api-client.ts` globalmente sem validar o impacto em todos os fluxos de 401 existentes).
+
