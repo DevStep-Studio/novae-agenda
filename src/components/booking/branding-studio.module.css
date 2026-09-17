@@ -648,6 +648,12 @@
   transition: max-width 0.25s ease;
   margin: 0 auto;
   width: 100%;
+  /* `overflow: hidden` alone does not contain `position: fixed` descendants —
+     they still escape to the real browser viewport. The embedded public-page
+     preview renders its own fixed sticky CTA bar, which was overlapping the
+     admin's own bottom nav when scrolled into view. `transform` establishes a
+     containing block for fixed descendants, keeping them inside this frame. */
+  transform: translateZ(0);
 }
 
 .previewFrameMobile {
@@ -703,6 +709,19 @@
   .previewToolbar { width: 100%; justify-content: space-between; }
   .previewWindowHead { padding-inline: 10px; }
   .windowUrl { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .actionBar {
+    bottom: 0;
+    flex-direction: column-reverse;
+    gap: 10px;
+    border-radius: 14px 14px 0 0;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .btnReset,
+  .btnSave {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
 }
 
 /* =========================================================
