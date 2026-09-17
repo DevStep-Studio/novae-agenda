@@ -340,14 +340,6 @@ export async function requireOwner(): Promise<{ auth: AuthContext; response: nul
   return requireRole("owner");
 }
 
-/** Semantic alias for requireEmployee() */
-export const requireProfessional = requireEmployee;
-
-/** Semantic alias for requireClient() */
-export const requireCustomer = requireClient;
-
-/** Semantic alias for requireSuperadmin() */
-export const requireSuperAdmin = requireSuperadmin;
 
 /**
  * Validates that the active session has access to the specified target company.
