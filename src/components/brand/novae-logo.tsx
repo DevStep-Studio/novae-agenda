@@ -48,8 +48,6 @@ export function ReserveiStarIcon({
   );
 }
 
-export const NovaeStarIcon = ReserveiStarIcon;
-
 /**
  * Reservei Brand Logo Component
  * Uses the official visual identity assets from /public (logo.png, symbol.png, etc.)
@@ -226,7 +224,4 @@ export function ReserveiLogo({
     />
   );
 }
-
-// Alias for backward compatibility
-export const NovaeLogo = ReserveiLogo;
 
