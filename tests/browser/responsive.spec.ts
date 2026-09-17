@@ -225,9 +225,14 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
         await expect(page.locator(".mobile-bottom-nav")).toBeHidden();
       }
 
-      // 3. Navigate to Calendar/Agenda View
-      await page.goto("/gestao?view=agenda", { waitUntil: "domcontentloaded" });
-      await page.waitForTimeout(600);
+      // 3. Navigate to Calendar/Agenda View (real path route — "?view=" is not a
+      // routing convention this app understands; /gestao/page.tsx hardcodes
+      // initialView="dashboard" and the query string is silently ignored, so
+      // asserting here proves we actually left the dashboard).
+      await page.goto("/gestao/agenda", { waitUntil: "domcontentloaded" });
+      const filterRow = page.locator(".calendar-filter-row").first();
+      await expect(filterRow, `Calendar filter row should render on /gestao/agenda for ${device.name}`).toBeVisible({ timeout: 10000 });
+      await page.waitForTimeout(400);
 
       const agendaOverflow = await page.evaluate(() => {
         const doc = document.documentElement;
@@ -238,6 +243,66 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
         };
       });
       expect(agendaOverflow.hasOverflow, `Agenda overflow on ${device.name}`).toBe(false);
+
+      // 3b. Professional filter (select) must never be clipped by the viewport.
+      const professionalSelect = filterRow.locator("select, .select-input").first();
+      await expect(professionalSelect).toBeVisible();
+      const selectBox = await professionalSelect.boundingBox();
+      if (selectBox) {
+        expect(selectBox.x, `Professional select left edge clipped on ${device.name}`).toBeGreaterThanOrEqual(0);
+        expect(
+          selectBox.x + selectBox.width,
+          `Professional select right edge clipped by viewport on ${device.name}`,
+        ).toBeLessThanOrEqual(device.viewport.width + 1);
+      }
+
+      // 3c. Professional legend chips: either they all fit without any scroll
+      // needed, or the row is a genuine horizontal-scroll container and every
+      // chip is reachable by scrolling it (never permanently cut off with no
+      // way to reach it, which was the originally reported bug).
+      const legendChips = page.locator(".legend-chip");
+      const chipCount = await legendChips.count();
+      if (chipCount > 0) {
+        const rowScroll = await filterRow.evaluate((el) => ({
+          scrollWidth: el.scrollWidth,
+          clientWidth: el.clientWidth,
+          overflowX: getComputedStyle(el).overflowX,
+        }));
+        const rowOverflows = rowScroll.scrollWidth > rowScroll.clientWidth + 1;
+        if (rowOverflows) {
+          expect(
+            ["auto", "scroll"].includes(rowScroll.overflowX),
+            `Legend chips overflow their row on ${device.name} but the row does not scroll (overflow-x: ${rowScroll.overflowX}) — chips would be permanently cut off`,
+          ).toBe(true);
+          // Prove the last chip is actually reachable via scroll, not just theoretically.
+          await filterRow.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+          await page.waitForTimeout(150);
+          const lastChipBox = await legendChips.last().boundingBox();
+          if (lastChipBox) {
+            expect(
+              lastChipBox.x + lastChipBox.width,
+              `Last professional chip still clipped by viewport after scrolling row to end on ${device.name}`,
+            ).toBeLessThanOrEqual(device.viewport.width + 1);
+          }
+          await filterRow.evaluate((el) => { el.scrollLeft = 0; });
+        } else {
+          // No scroll needed — every chip must sit fully inside the row already.
+          const rowBox = await filterRow.boundingBox();
+          for (let i = 0; i < chipCount; i++) {
+            const chipBox = await legendChips.nth(i).boundingBox();
+            if (chipBox && rowBox) {
+              expect(
+                chipBox.x + chipBox.width,
+                `Legend chip ${i} overflows the filter row on ${device.name}`,
+              ).toBeLessThanOrEqual(rowBox.x + rowBox.width + 1);
+            }
+          }
+        }
+      }
+
+      const agendaDir = path.join(process.cwd(), "test-results", "responsive", "gestao-agenda");
+      fs.mkdirSync(agendaDir, { recursive: true });
+      await page.screenshot({ path: path.join(agendaDir, `${device.slug}.png`), fullPage: true });
 
       // 4. Navigate to Serviços View and verify catalog loads cleanly without errors
       await page.goto("/gestao/servicos", { waitUntil: "domcontentloaded" });
@@ -265,10 +330,40 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
       fs.mkdirSync(servicosDir, { recursive: true });
       await page.screenshot({ path: path.join(servicosDir, `${device.slug}.png`), fullPage: true });
 
-      // 6. Open Page Builder 2.0 and verify it loads completely (no infinite loading spinner)
+      // 6. "Seu link público" hero card: the action row (Copiar link, Visualizar,
+      // Compartilhar, QR Code, Page Builder) must never let a button spill past
+      // the card's right edge — this was reported cut off with no wrap on mobile.
+      await page.goto("/gestao/link-agendamento", { waitUntil: "domcontentloaded" });
+      const linkTab = page.getByRole("button", { name: "Link & Informações" });
+      await linkTab.waitFor({ state: "attached", timeout: 10000 });
+      await linkTab.click();
+
+      const heroCard = page.locator('[class*="heroCard"]').first();
+      await expect(heroCard).toBeVisible();
+      const actionButtons = page.locator('[class*="urlActions"] button, [class*="urlActions"] a');
+      const actionCount = await actionButtons.count();
+      expect(actionCount, "Seu link público action row should render its buttons").toBeGreaterThan(0);
+      const heroBox = await heroCard.boundingBox();
+      for (let i = 0; i < actionCount; i++) {
+        const box = await actionButtons.nth(i).boundingBox();
+        if (box && heroBox) {
+          expect(
+            box.x + box.width,
+            `Link público action button ${i} overflows the hero card on ${device.name}`,
+          ).toBeLessThanOrEqual(heroBox.x + heroBox.width + 1);
+        }
+      }
+
+      const linkDir = path.join(process.cwd(), "test-results", "responsive", "link-agendamento");
+      fs.mkdirSync(linkDir, { recursive: true });
+      await page.screenshot({ path: path.join(linkDir, `${device.slug}.png`), fullPage: true });
+
+      // 7. Open Page Builder 2.0 and verify it loads completely (no infinite loading spinner)
       if (device.slug === "desktop-1440x900") {
-        await page.goto("/gestao/link-agendamento", { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(600);
+        // Step 6 switched to the "Link & Informações" tab — go back to Branding
+        // Studio, which is where the save button and Page Builder entry live.
+        await page.getByRole("button", { name: "Identidade & Branding Studio" }).click();
+        await page.waitForTimeout(300);
 
         // Verify Branding Studio save button styling and visibility (not bugged/washed out)
         const saveBtn = page.getByRole("button", { name: "Salvar alterações" }).first();

@@ -8687,19 +8687,18 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
   .calendar-filter-row {
     width: 100% !important;
+    min-height: 0 !important;
     display: flex !important;
-    align-items: center !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
     flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding: 6px 0 !important;
-    gap: 8px !important;
-    white-space: nowrap !important;
-  }
-  .calendar-filter-row::-webkit-scrollbar {
-    display: none;
+    overflow-x: visible !important;
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    white-space: normal !important;
   }
   .employee-filter-label {
+    width: 100% !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
     display: inline-flex !important;
@@ -8708,13 +8707,19 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
   .employee-filter-label span {
     white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  .employee-filter-label .select-input {
+    flex: 1 !important;
+    width: auto !important;
+    min-width: 0 !important;
   }
   .calendar-legend {
     display: flex !important;
     align-items: center !important;
-    flex-wrap: nowrap !important;
+    flex-wrap: wrap !important;
     gap: 6px !important;
-    flex-shrink: 0 !important;
+    width: 100% !important;
   }
   .legend-chip {
     white-space: nowrap !important;
