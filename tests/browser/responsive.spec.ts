@@ -148,8 +148,10 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
   });
 
   test.afterAll(async () => {
+    // Do not close the shared `pool` here: the "Narrow Viewport Deep Audit"
+    // describe block below also needs it and runs afterward in the same
+    // worker process. Only the last describe block in this file should end it.
     await cleanupFixture(f);
-    await pool.end();
   });
 
   const AUTH_TEST_DEVICES: TestDevice[] = [
@@ -410,4 +412,109 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
       expect(pageErrors).toEqual([]);
     });
   }
+});
+
+test.describe("Narrow Viewport Deep Audit (iPhone SE 320px)", () => {
+  // This viewport is the tightest realistic width in the matrix and is what
+  // originally exposed every bug below. Page-level scrollWidth checks miss
+  // these because `.main-content { overflow-x: clip }` silently clips
+  // overflowing content instead of producing a scrollable/measurable
+  // document width — so each check here inspects the specific element.
+  let f: Fixture;
+
+  test.beforeAll(async () => {
+    f = await bookingFixture();
+  });
+
+  test.afterAll(async () => {
+    await cleanupFixture(f);
+    await pool.end();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 667 });
+    await page.request.post("/api/auth/login", { data: { email: f.owner.email, password: f.password } });
+  });
+
+  test("KPI metric card labels wrap instead of truncating with ellipsis", async ({ page }) => {
+    await page.goto("/gestao/clientes", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(700);
+    const labels = page.locator(".metric-copy p");
+    const count = await labels.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const label = labels.nth(i);
+      const text = (await label.innerText()).trim();
+      expect(text.endsWith("…") || text.endsWith("..."), `Metric label truncated: "${text}"`).toBe(false);
+      const overflowsOwnBox = await label.evaluate((el) => el.scrollWidth > el.clientWidth + 1);
+      expect(overflowsOwnBox, `Metric label clipped within its own box: "${text}"`).toBe(false);
+    }
+  });
+
+  test("Sort control label ('Ordenar:') never breaks mid-word", async ({ page }) => {
+    await page.goto("/gestao/clientes", { waitUntil: "domcontentloaded" });
+    const sortLabel = page.locator(".sort-label").first();
+    await expect(sortLabel).toBeVisible();
+    const box = await sortLabel.boundingBox();
+    // A single-line label at this font size is well under 24px tall; the
+    // original bug rendered it across 4 broken lines at ~66px tall.
+    expect(box && box.height).toBeLessThan(24);
+    expect((await sortLabel.innerText()).replace(/\s+/g, " ")).toBe("Ordenar:");
+  });
+
+  test("Relatórios analytics panels (Status/Equipe) never exceed the viewport", async ({ page }) => {
+    await page.goto("/gestao/relatorios", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Status dos Atendimentos")).toBeVisible({ timeout: 10000 });
+    const panels = page.locator(".reports-panel");
+    const count = await panels.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      const box = await panels.nth(i).boundingBox();
+      if (box) {
+        expect(box.x, `reports-panel ${i} starts left of viewport`).toBeGreaterThanOrEqual(-1);
+        expect(box.x + box.width, `reports-panel ${i} extends past the 320px viewport`).toBeLessThanOrEqual(321);
+      }
+    }
+  });
+
+  test("Profile page action buttons (Página de Agendamento / Salvar) wrap instead of overflowing", async ({ page }) => {
+    await page.goto("/gestao/perfil", { waitUntil: "domcontentloaded" });
+    const saveBtn = page.getByRole("button", { name: "Salvar alterações" }).first();
+    await expect(saveBtn).toBeVisible({ timeout: 10000 });
+    const linkBtn = page.getByRole("button", { name: "Página de Agendamento" });
+    await expect(linkBtn).toBeVisible();
+    const saveBox = await saveBtn.boundingBox();
+    const linkBox = await linkBtn.boundingBox();
+    if (saveBox) {
+      expect(saveBox.x + saveBox.width, "Salvar alterações button overflows viewport").toBeLessThanOrEqual(321);
+    }
+    if (linkBox) {
+      expect(linkBox.x + linkBox.width, "Página de Agendamento button overflows viewport").toBeLessThanOrEqual(321);
+    }
+  });
+
+  test("Modal footer buttons are never covered by the fixed bottom nav", async ({ page }) => {
+    await page.goto("/gestao", { waitUntil: "domcontentloaded" });
+    const customizeBtn = page.getByRole("button", { name: "Personalizar início" });
+    await customizeBtn.waitFor({ state: "visible", timeout: 15000 });
+    await customizeBtn.click();
+
+    const saveBtn = page.getByRole("button", { name: "Salvar preferências" });
+    await expect(saveBtn).toBeVisible({ timeout: 10000 });
+    // Playwright's actionability check fails if another element (like the nav
+    // bar sitting at a higher z-index) intercepts the click target.
+    await saveBtn.click({ trial: true });
+
+    const nav = page.locator(".mobile-bottom-nav");
+    const saveBox = await saveBtn.boundingBox();
+    const navBox = await nav.boundingBox();
+    if (saveBox && navBox) {
+      const verticallyOverlaps = saveBox.y < navBox.y + navBox.height && saveBox.y + saveBox.height > navBox.y;
+      if (verticallyOverlaps) {
+        const modalZ = await page.locator(".modal").first().evaluate((el) => Number(getComputedStyle(el).zIndex));
+        const navZ = await nav.evaluate((el) => Number(getComputedStyle(el).zIndex));
+        expect(modalZ, "Modal z-index must be above the bottom nav when they occupy the same screen area").toBeGreaterThan(navZ);
+      }
+    }
+  });
 });
