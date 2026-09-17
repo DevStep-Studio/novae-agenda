@@ -6993,6 +6993,28 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   transform: translateY(-1px);
 }
 
+.profile-btn-delete {
+  height: 40px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profile-btn-delete:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
 /* Membership Card in Client Drawer */
 .customer-membership-empty-card {
   margin: 0 20px 14px;
@@ -7870,8 +7892,10 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     flex-wrap: wrap;
   }
 
-  .client-profile-modal-body .profile-btn-edit {
+  .client-profile-modal-body .profile-btn-edit,
+  .client-profile-modal-body .profile-btn-delete {
     flex: 1 1 100%;
+    min-height: 44px;
   }
 
   .client-profile-modal-body .customer-membership-empty-card {

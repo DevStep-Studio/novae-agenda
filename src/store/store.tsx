@@ -58,6 +58,7 @@ type Store = DataState & {
   updateLocation: (id: string, input: { name?: string; address?: string; phone?: string; openTime?: string; closeTime?: string }) => Promise<void>;
   createClient: (input: { name: string; phone: string; email?: string; photoUrl?: string | null; notes?: string }) => Promise<ClientDTO>;
   updateClient: (id: string, input: { name?: string; phone?: string; email?: string | null; photoUrl?: string | null; notes?: string | null; internalNotes?: string | null }) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
   createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; bannerUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
@@ -260,6 +261,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateClient = useCallback(async (id: string, input: { name?: string; phone?: string; email?: string | null; photoUrl?: string | null; notes?: string | null; internalNotes?: string | null }) => {
     await api(`/api/clients/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+    await reloadClients();
+  }, [reloadClients]);
+
+  const deleteClient = useCallback(async (id: string) => {
+    await api(`/api/clients/${id}`, { method: "DELETE" });
     await reloadClients();
   }, [reloadClients]);
 
@@ -519,6 +525,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateLocation,
     createClient,
     updateClient,
+    deleteClient,
     createService,
     toggleService,
     createEmployee,
@@ -541,7 +548,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }), [
     session, booting, locations, activeLocationId, clients, services, categories, employees, appointments, blocks, notifications, unreadCount, settings, stats, toasts,
     setActiveLocationId, reloadSession, reloadLocations, reloadClients, reloadServices, reloadCategories, reloadEmployees, reloadAppointments, reloadBlocks, reloadNotifications, reloadSettings, reloadStats, refreshAll,
-    createLocation, updateLocation, createClient, updateClient, createService, toggleService, createEmployee, updateEmployee, deleteEmployee, createAppointment,
+    createLocation, updateLocation, createClient, updateClient, deleteClient, createService, toggleService, createEmployee, updateEmployee, deleteEmployee, createAppointment,
     updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, updateProfile, updateDashboardPreferences, notify, dismissToast, logout,
   ]);
 

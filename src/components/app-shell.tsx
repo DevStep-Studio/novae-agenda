@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import NextImage from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
+  AlertTriangle, ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
   ImagePlus, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
@@ -257,6 +257,41 @@ function Modal({
         {children}
       </section>
     </div>
+  );
+}
+function ConfirmModal({
+  title,
+  description,
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
+  danger = false,
+  busy = false,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  description: ReactNode;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  busy?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal title={title} onClose={onClose} icon={danger ? AlertTriangle : undefined}>
+      <div className="modal-body" style={{ padding: "0 24px 20px" }}>
+        <div style={{ fontSize: 13.5, color: "var(--text-secondary)", lineHeight: 1.6 }}>{description}</div>
+      </div>
+      <div className="modal-footer">
+        <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
+          {cancelLabel}
+        </Button>
+        <Button type="button" variant={danger ? "danger" : "primary"} onClick={onConfirm} disabled={busy}>
+          {busy ? "Aguarde..." : confirmLabel}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 function EmptyState({ icon: Icon = CalendarDays, title, description, action }: { icon?: LucideIcon; title: string; description: string; action?: ReactNode }) {
@@ -1206,7 +1241,7 @@ function ClientProfileModal({
   onNewAppointment: (client: ClientDTO) => void;
   onSelectAppointment?: (apt: AppointmentDTO) => void;
 }) {
-  const { clients, appointments, reloadAppointments, notify } = useStore();
+  const { clients, appointments, reloadAppointments, notify, deleteClient } = useStore();
   const [detail, setDetail] = useState<import("@/shared/types").ClientDetailDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState("");
@@ -1215,6 +1250,22 @@ function ClientProfileModal({
   const [reservationsModalOpen, setReservationsModalOpen] = useState(false);
   const [activeResFilter, setActiveResFilter] = useState<"all" | "upcoming" | "completed" | "cancelled">("all");
   const [inspectingAppointment, setInspectingAppointment] = useState<AppointmentDTO | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deletingClient, setDeletingClient] = useState(false);
+
+  const handleDeleteClient = async () => {
+    setDeletingClient(true);
+    try {
+      await deleteClient(clientId);
+      notify("Cliente excluído com sucesso.");
+      setConfirmingDelete(false);
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao excluir cliente.", "error");
+    } finally {
+      setDeletingClient(false);
+    }
+  };
 
   const client = clients.find((c) => c.id === clientId);
 
@@ -1366,6 +1417,14 @@ function ClientProfileModal({
               title="Editar dados e foto do cliente"
             >
               <Pencil size={15} /> Editar
+            </button>
+            <button
+              type="button"
+              className="profile-btn-delete"
+              onClick={() => setConfirmingDelete(true)}
+              title="Excluir cliente"
+            >
+              <Trash2 size={15} /> Excluir
             </button>
           </div>
         </div>
@@ -1740,6 +1799,28 @@ function ClientProfileModal({
             reloadDetail();
             reloadAppointments();
           }}
+        />
+      )}
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Excluir cliente"
+          danger
+          busy={deletingClient}
+          confirmLabel="Excluir cliente"
+          onClose={() => setConfirmingDelete(false)}
+          onConfirm={handleDeleteClient}
+          description={
+            <>
+              <p style={{ margin: "0 0 10px" }}>
+                Tem certeza que deseja excluir <strong>{currentClient.name}</strong>? Essa ação não pode ser desfeita.
+              </p>
+              <p style={{ margin: 0 }}>
+                Os dados pessoais (nome, telefone, e-mail e foto) serão removidos permanentemente. O histórico de
+                agendamentos e pagamentos é mantido de forma anônima, conforme exigido para fins financeiros e
+                fiscais.
+              </p>
+            </>
+          }
         />
       )}
     </>

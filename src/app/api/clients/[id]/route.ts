@@ -242,15 +242,33 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!isUuid(id)) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
   const [existing] = await db
-    .select({ id: clients.id })
+    .select({ id: clients.id, photoUrl: clients.photoUrl })
     .from(clients)
     .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
 
   if (!existing) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
+  // Anonymize rather than hard-delete: appointment/payment history stays intact
+  // for financial/fiscal continuity, but every personal-data field is scrubbed
+  // (LGPD right-to-erasure). `userId` is only unlinked here, never touched on
+  // the shared `users`/`customerCredentials` rows — that identity (and its PIN)
+  // may still be legitimately in use by this same person at another company.
+  if (existing.photoUrl) {
+    await deleteClientImage(existing.photoUrl);
+  }
+
   await db
     .update(clients)
-    .set({ active: false })
+    .set({
+      name: "Cliente removido",
+      phone: `anonimizado-${id.slice(0, 8)}`,
+      email: null,
+      photoUrl: null,
+      notes: null,
+      internalNotes: null,
+      userId: null,
+      active: false,
+    })
     .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
 
   return Response.json({ data: { id: existing.id } });
