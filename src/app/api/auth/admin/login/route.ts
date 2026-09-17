@@ -5,8 +5,6 @@ import { z } from "zod";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession } from "@/lib/auth";
-import { AUTH_RULES, clearRateLimit, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
-import { clientIp } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
 
@@ -38,10 +36,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
   }
 
-  const ipBucket = `admin-login:ip:${clientIp(request)}`;
-  const limit = await consumeRateLimit(ipBucket, AUTH_RULES.login);
-  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
-
   const valid = timingSafeStringEqual(parsed.data.password, adminPassword);
   if (!valid) {
     return NextResponse.json({ error: "Senha incorreta." }, { status: 401 });
@@ -58,7 +52,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Nenhuma conta de Super Admin ativa foi encontrada." }, { status: 503 });
   }
 
-  await clearRateLimit(ipBucket);
   await createSession(admin.id);
   return NextResponse.json({ data: { userId: admin.id } });
 }
