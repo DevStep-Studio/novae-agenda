@@ -10769,6 +10769,13 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   margin: 3px 0;
 }
 
+.location-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
 /* Security Cards Grid */
 .security-cards-grid {
   display: flex;

@@ -12,6 +12,7 @@ import {
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon, Lightbulb,
 } from "lucide-react";
 import { useStore, type Toast } from "@/store/store";
+import type { LocationDTO } from "@/shared/types";
 import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { avatarColor, formatCurrency, getServiceDescription, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
@@ -2989,7 +2990,7 @@ function FinancialPage() {
   );
 }
 
-function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setTheme: (t: Theme) => void; onNewLocation: () => void }) {
+function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { theme: Theme; setTheme: (t: Theme) => void; onNewLocation: () => void; onEditLocation: (loc: LocationDTO) => void }) {
   const { session, notify, locations, settings, updateSettings, updateProfile } = useStore();
   const company = session?.company;
   const [activeTab, setActiveTab] = useState<"empresa" | "unidades" | "funcionamento" | "notificacoes" | "seguranca" | "ajuda">("empresa");
@@ -3455,6 +3456,11 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
                       <h3>{loc.name}</h3>
                       {loc.address && <p className="location-address"><MapPin size={13} /> {loc.address}</p>}
                       <p className="location-hours"><Clock3 size={13} /> {loc.openTime} às {loc.closeTime}</p>
+                    </div>
+                    <div className="location-card-actions">
+                      <Button variant="ghost" onClick={() => onEditLocation(loc)}>
+                        <Pencil size={14} /> Editar
+                      </Button>
                     </div>
                   </article>
                 ))}
@@ -5600,6 +5606,75 @@ function NewLocationModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function EditLocationModal({ location, onClose }: { location: LocationDTO; onClose: () => void }) {
+  const { updateLocation, notify } = useStore();
+  const [name, setName] = useState(location.name);
+  const [address, setAddress] = useState(location.address ?? "");
+  const [phone, setPhone] = useState(location.phone ?? "");
+  const [openTime, setOpenTime] = useState(location.openTime);
+  const [closeTime, setCloseTime] = useState(location.closeTime);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      await updateLocation(location.id, { name, address: address || undefined, phone: phone || undefined, openTime, closeTime });
+      notify("Unidade atualizada com sucesso.");
+      onClose();
+    } catch (e) {
+      notify(e instanceof ApiError ? e.message : "Erro ao atualizar unidade.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Modal title="Editar unidade" eyebrow="Multiunidade" icon={Building2} onClose={onClose}>
+      <form onSubmit={submit}>
+        <div className="modal-form-grid">
+          <Field label="Nome da unidade" icon={Building2} className="field-full">
+            <div className="modal-input-wrap">
+              <Building2 size={17} className="modal-input-icon" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Unidade Centro" required minLength={2} />
+            </div>
+          </Field>
+          <Field label="Endereço" icon={MapPin} className="field-full">
+            <div className="modal-input-wrap">
+              <MapPin size={17} className="modal-input-icon" />
+              <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Av. Principal, 100" />
+            </div>
+          </Field>
+          <Field label="Telefone" icon={Phone} className="field-full">
+            <div className="modal-input-wrap">
+              <Phone size={17} className="modal-input-icon" />
+              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3333-4444" />
+            </div>
+          </Field>
+          <Field label="Horário de abertura" icon={Clock}>
+            <div className="modal-input-wrap">
+              <Clock size={17} className="modal-input-icon" />
+              <input className="input" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} required />
+            </div>
+          </Field>
+          <Field label="Horário de fechamento" icon={Clock}>
+            <div className="modal-input-wrap">
+              <Clock size={17} className="modal-input-icon" />
+              <input className="input" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} required />
+            </div>
+          </Field>
+        </div>
+        <div className="modal-footer">
+          <div className="modal-actions" style={{ marginLeft: "auto" }}>
+            <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>Cancelar</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? "Salvando..." : <><Check size={16} /> Salvar alterações</>}</Button>
+          </div>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function BlockModal({ onClose, defaultDate }: { onClose: () => void; defaultDate: string }) {
   const { employees, locations, createBlock, notify } = useStore();
   const [employeeId, setEmployeeId] = useState("all");
@@ -6240,6 +6315,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
   const [newServiceOpen, setNewServiceOpen] = useState(false);
   const [newEmployeeOpen, setNewEmployeeOpen] = useState(false);
   const [newLocationOpen, setNewLocationOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<LocationDTO | null>(null);
   const [blockOpen, setBlockOpen] = useState(false);
   const [superadminOpen, setSuperadminOpen] = useState(false);
   const [detailAppointment, setDetailAppointment] = useState<AppointmentDTO | null>(null);
@@ -6419,7 +6495,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           />
         );
       case "configuracoes":
-        return <SettingsPage key={session?.userId} theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} />;
+        return <SettingsPage key={session?.userId} theme={theme} setTheme={setTheme} onNewLocation={() => setNewLocationOpen(true)} onEditLocation={setEditingLocation} />;
       case "agenda":
         return <CalendarPage calMode={calMode} selectedDate={selectedDate} />;
     }
@@ -7067,6 +7143,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
       {newServiceOpen && <NewServiceModal onClose={() => setNewServiceOpen(false)} />}
       {newEmployeeOpen && <NewEmployeeModal onClose={() => setNewEmployeeOpen(false)} />}
       {newLocationOpen && <NewLocationModal onClose={() => setNewLocationOpen(false)} />}
+      {editingLocation && <EditLocationModal location={editingLocation} onClose={() => setEditingLocation(null)} />}
       {blockOpen && <BlockModal onClose={() => setBlockOpen(false)} defaultDate={selectedDate} />}
       {superadminOpen && <SuperadminModal onClose={() => setSuperadminOpen(false)} />}
       {clientModal && (
