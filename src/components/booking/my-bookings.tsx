@@ -68,6 +68,26 @@ type MembershipSummary = {
   membershipPlanName: string;
   bookings: MembershipBooking[];
 };
+
+function renderBarcodeSvg(seed: string) {
+  const hash = seed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const bars: number[] = [2, 1, 3, 1, 2, 1, 1, 3, 2, 1, 2, 3, 1, 1, 2, 1, 3, 2, 1, 2, 1, 3, 1, 2, 3, 1, 1, 2];
+  let x = 4;
+  const rects = [];
+  for (let i = 0; i < bars.length; i++) {
+    const w = bars[(i + hash) % bars.length];
+    if (i % 2 === 0) {
+      rects.push(<rect key={i} x={x} y="0" width={w} height="28" fill="currentColor" />);
+    }
+    x += w + 2;
+  }
+  return (
+    <svg viewBox={`0 0 ${x + 4} 28`} className={b.ticketBarcodeSvg} aria-hidden="true">
+      {rects}
+    </svg>
+  );
+}
+
 export function MyBookings({
   embedded = false,
   initialTab = "Próximos",
@@ -1451,48 +1471,121 @@ export function MyBookings({
                   const isCancelled = tab === "Cancelados";
                   const isUpcoming = r.status !== "cancelled" && r.status !== "completed" && r.status !== "no_show" && new Date(r.endsAt) >= new Date();
                   const firstItem = r.items[0];
-                  const bookingDate = firstItem?.date ?? r.startsAt.slice(0,10);
-                  const dateParts = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", timeZone: "UTC" }).formatToParts(new Date(`${bookingDate}T12:00:00Z`));
-                  const day = dateParts.find((part) => part.type === "day")?.value;
-                  const month = dateParts.find((part) => part.type === "month")?.value.replace(".", "");
+                  const bookingDate = firstItem?.date ?? r.startsAt.slice(0, 10);
                   return (
-                    <article
-                      className={`${featured ? b.featuredBookingCard : b.bookingCardCompact} ${b.ticketCard} ${isUsed ? b.ticketUsed : ""} ${isCancelled ? b.ticketCancelled : ""}`}
-                      key={r.id}
-                      style={{ "--card-brand": isUsed || isCancelled ? undefined : r.company.color } as React.CSSProperties}
-                    >
-                      <div className={b.bookingDateBlock}>
-                        <span>{day}</span>
-                        <strong>{month}</strong>
-                      </div>
-                      <div className={b.bookingCardBody}>
-                        {featured && <p className={b.bookingKicker}><CalendarDays size={14} /> Próximo agendamento</p>}
-                        <div className={b.bookingCardTitleRow}>
-                          <div>
-                            <p className={b.bookingFullDate}>{dateLabel(bookingDate)}</p>
-                            <h2>{r.items.map((item) => item.name).join(" + ")}</h2>
+                      <article
+                        className={`${featured ? b.featuredBookingCard : b.bookingCardCompact} ${b.ticketCard} ${isUsed ? b.ticketUsed : ""} ${isCancelled ? b.ticketCancelled : ""}`}
+                        key={r.id}
+                        style={{ "--card-brand": isUsed || isCancelled ? undefined : r.company.color } as React.CSSProperties}
+                      >
+                        {/* Top Header: Business Logo & Name + Status Badge */}
+                        <div className={b.ticketHeader}>
+                          <div className={b.ticketCompanyInfo}>
+                            {r.company.logoUrl ? (
+                              <Image src={r.company.logoUrl} alt="" width={34} height={34} className={b.ticketCompanyLogo} unoptimized />
+                            ) : (
+                              <span className={b.ticketCompanyFallbackLogo}>{r.company.name.slice(0, 1)}</span>
+                            )}
+                            <div className={b.ticketCompanyDetails}>
+                              <strong className={b.ticketCompanyName}>{r.company.name}</strong>
+                              {r.company.businessType && (
+                                <span className={b.ticketCompanyCategory}>{r.company.businessType}</span>
+                              )}
+                            </div>
                           </div>
-                          <span className={b.bookingStatus}>{STATUS_LABELS[r.status as AppointmentStatus] ?? r.status}</span>
+                          <div className={`${b.ticketStatusBadge} ${b[`ticketStatus_${r.status}`] ?? ""}`}>
+                            <span className={b.ticketStatusDot} />
+                            <span>{STATUS_LABELS[r.status as AppointmentStatus] ?? r.status}</span>
+                          </div>
                         </div>
-                        <div className={b.bookingCardMeta}>
-                          <span><Clock3 size={15} /> {firstItem?.startTime.slice(0, 5)} – {r.items.at(-1)?.endTime.slice(0, 5)}</span>
-                          <span className={b.bookingProfessional}>
-                            <BookingAvatar name={firstItem?.employeeName || "Profissional"} src={firstItem?.employeePhotoUrl} size="sm" />
-                            <span><strong>{firstItem?.employeeName}</strong><small>{firstItem?.employeeJobTitle || "Profissional"}</small></span>
-                          </span>
-                          <span className={b.bookingCompany}>
-                            {r.company.logoUrl ? <Image src={r.company.logoUrl} alt="" width={28} height={28} unoptimized /> : <span>{r.company.name.slice(0, 1)}</span>}
-                            <strong>{r.company.name}</strong>
-                          </span>
-                          {featured && r.company.address && <span><MapPin size={15} /> {r.company.address}</span>}
+
+                        {/* Main Body: Service Title & Info Grid */}
+                        <div className={b.ticketBody}>
+                          {featured && (
+                            <div className={b.bookingKicker}>
+                              <CalendarDays size={13} />
+                              <span>Próximo agendamento</span>
+                            </div>
+                          )}
+                          <h2 className={b.ticketServiceTitle}>
+                            {r.items.map((item) => item.name).join(" + ")}
+                          </h2>
+
+                          <div className={b.ticketGrid}>
+                            <div className={b.ticketGridItem}>
+                              <span className={b.ticketGridLabel}>Data</span>
+                              <div className={b.ticketGridValue}>
+                                <CalendarDays size={15} className={b.ticketGridIcon} />
+                                <span>{dateLabel(bookingDate)}</span>
+                              </div>
+                            </div>
+
+                            <div className={b.ticketGridItem}>
+                              <span className={b.ticketGridLabel}>Horário</span>
+                              <div className={b.ticketGridValue}>
+                                <Clock3 size={15} className={b.ticketGridIcon} />
+                                <span>{firstItem?.startTime.slice(0, 5)} – {r.items.at(-1)?.endTime.slice(0, 5)}</span>
+                              </div>
+                            </div>
+
+                            <div className={b.ticketGridItem}>
+                              <span className={b.ticketGridLabel}>Profissional</span>
+                              <div className={b.ticketGridValue}>
+                                <BookingAvatar name={firstItem?.employeeName || "Profissional"} src={firstItem?.employeePhotoUrl} size="sm" />
+                                <div className={b.ticketProfDetails}>
+                                  <strong>{firstItem?.employeeName}</strong>
+                                  <small>{firstItem?.employeeJobTitle || "Profissional"}</small>
+                                </div>
+                              </div>
+                            </div>
+
+                            {r.company.address && (
+                              <div className={b.ticketGridItem}>
+                                <span className={b.ticketGridLabel}>Local</span>
+                                <div className={b.ticketGridValue}>
+                                  <MapPin size={15} className={b.ticketGridIcon} />
+                                  <span className={b.ticketAddressText}>{r.company.address}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className={b.bookingCardFooter}>
-                          <Price amount={r.total} className={b.bookingCardPrice} />
-                          <div className={b.bookingPrimaryActions}>
-                            <button className={`${b.button} ${b.outline} ${b.small}`} onClick={() => setSelected(r.id)}>Ver detalhes</button>
+
+                        {/* Perforated Tear Line with Semicircle Punch Cutouts */}
+                        <div className={b.ticketPerforation}>
+                          <span className={b.ticketNotchLeft} aria-hidden="true" />
+                          <span className={b.ticketDashedLine} aria-hidden="true" />
+                          <span className={b.ticketNotchRight} aria-hidden="true" />
+                        </div>
+
+                        {/* Ticket Stub: Locator, Price, Barcode & Action Buttons */}
+                        <div className={b.ticketStub}>
+                          <div className={b.ticketStubInfo}>
+                            <div className={b.ticketVoucherCol}>
+                              <span className={b.ticketGridLabel}>Código da Reserva</span>
+                              <span className={b.ticketVoucherCode}>
+                                #RES-{r.id.replace(/-/g, "").slice(0, 6).toUpperCase()}
+                              </span>
+                            </div>
+
+                            <div className={b.ticketPriceCol}>
+                              <span className={b.ticketGridLabel}>Valor Total</span>
+                              <Price amount={r.total} className={b.ticketPriceValue} />
+                            </div>
+
+                            <div className={b.ticketBarcodeCol}>
+                              {renderBarcodeSvg(r.id)}
+                              <span className={b.ticketBarcodeLabel}>PASSE DIGITAL</span>
+                            </div>
+                          </div>
+
+                          <div className={b.ticketActions}>
+                            <button className={`${b.button} ${b.ticketBtnSecondary}`} onClick={() => setSelected(r.id)}>
+                              Ver detalhes
+                            </button>
                             {isUpcoming && (
                               <button
-                                className={`${b.button} ${b.outline} ${b.small}`}
+                                className={`${b.button} ${b.ticketBtnSecondary}`}
                                 disabled={busy}
                                 onClick={() => handleReschedule(r)}
                                 title="Remarcar para outra data ou horário"
@@ -1503,7 +1596,7 @@ export function MyBookings({
                             )}
                             {isUpcoming && (
                               <button
-                                className={`${b.button} ${b.cancelOutlineBtn} ${b.small}`}
+                                className={`${b.button} ${b.ticketBtnDanger}`}
                                 disabled={busy}
                                 onClick={() => handleCancel(r)}
                                 title="Desmarcar este agendamento"
@@ -1511,21 +1604,25 @@ export function MyBookings({
                                 Desmarcar
                               </button>
                             )}
-                            {r.status === "completed" && <button className={`${b.button} ${b.small}`} onClick={() => repeat(r)}><RotateCcw size={13} /> Agendar novamente</button>}
+                            {r.status === "completed" && (
+                              <button className={`${b.button} ${b.ticketBtnPrimary}`} onClick={() => repeat(r)}>
+                                <RotateCcw size={14} /> Agendar novamente
+                              </button>
+                            )}
                           </div>
+
+                          {featured && (
+                            <div className={b.bookingUtilityActions}>
+                              <a href={`/api/my/bookings/${r.id}/calendar`}><CalendarPlus size={14} /> Adicionar ao calendário</a>
+                              {r.company.address && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.company.address)}`}><MapPin size={14} /> Como chegar</a>}
+                              {r.company.phone && <a href={`tel:${r.company.phone.replace(/[^+\d]/g, "")}`}><Phone size={14} /> Entrar em contato</a>}
+                            </div>
+                          )}
                         </div>
-                        {featured && (
-                          <div className={b.bookingUtilityActions}>
-                            <a href={`/api/my/bookings/${r.id}/calendar`}><CalendarPlus size={15} /> Adicionar ao calendário</a>
-                            {r.company.address && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.company.address)}`}><MapPin size={15} /> Como chegar</a>}
-                            {r.company.phone && <a href={`tel:${r.company.phone.replace(/[^+\d]/g, "")}`}>Entrar em contato</a>}
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
+                      </article>
+                    );
+                  })}
+                </div>
             ) : (
               <div className={b.bookingsEmpty}>
                 <div className={b.bookingsEmptyIcon}>
