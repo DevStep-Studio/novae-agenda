@@ -1414,6 +1414,12 @@
   gap: var(--booking-space-6);
   margin-bottom: 24px;
 }
+.bookingsHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 .bookingsHeader .title {
   font-size: 26px;
   font-weight: 800;
@@ -1713,9 +1719,23 @@
   transform: translateY(-1px);
 }
 
+@media (max-width: 768px) {
+  .bookingsHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .bookingsHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 640px) {
-  .bookingsHeader { gap: 12px; }
-  .bookingsHeader .title { font-size: 28px; }
+  .bookingsHeader { gap: 14px; }
+  .bookingsHeader .title { font-size: 26px; }
   .featuredBookingCard,
   .bookingCardCompact { grid-template-columns: 58px minmax(0, 1fr); }
   .ticketCard::before,

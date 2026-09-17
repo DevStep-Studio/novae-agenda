@@ -3293,6 +3293,32 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   color: var(--text-primary);
 }
 
+@media (max-width: 640px) {
+  .client-panel-toolbar {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .client-search-wrapper {
+    flex: 1 1 100%;
+    min-width: 100%;
+    max-width: 100%;
+  }
+  .client-toolbar-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .client-sort-group {
+    flex: 1;
+    min-width: 0;
+  }
+  .client-sort-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+
 /* Rich Client Data Table (Minimalist SaaS Redesign) */
 .client-data-table {
   width: 100%;

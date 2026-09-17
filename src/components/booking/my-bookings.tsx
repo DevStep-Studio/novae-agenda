@@ -471,10 +471,11 @@ export function MyBookings({
                   </p>
                 )}
 
-                <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
                   <button
                     type="button"
-                    className={`${b.button} ${b.wide}`}
+                    className={b.button}
+                    style={{ flex: "1 1 140px" }}
                     disabled={pinChangeBusy || pinChangeVal.length !== 6 || confirmPinChangeVal.length !== 6}
                     onClick={async () => {
                       if (pinChangeVal.length !== 6 || confirmPinChangeVal.length !== 6) {
@@ -516,6 +517,7 @@ export function MyBookings({
                   <button
                     type="button"
                     className={`${b.button} ${b.outline}`}
+                    style={{ flex: "1 1 100px" }}
                     onClick={() => setPinModalOpen(false)}
                     disabled={pinChangeBusy}
                   >
@@ -527,61 +529,95 @@ export function MyBookings({
           </div>
         )}
 
-        {/* Modal de Meus Dados (edição de perfil pelo PIN) */}
+        {/* Modal de Edição de Dados do Cliente */}
         {profileModalOpen && (
           <div className={b.modalBackdrop} onClick={() => !profileBusy && setProfileModalOpen(false)}>
-            <div className={b.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Meus dados">
+            <div className={b.modalCard} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Editar meus dados">
               <div className={b.modalHeader}>
-                <h2 className={b.modalTitle}>Meus dados</h2>
+                <div style={{ margin: "0 auto 12px", width: 44, height: 44, borderRadius: "50%", background: "rgba(220, 255, 76, 0.12)", color: "#dcff4c", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <UserRound size={22} />
+                </div>
+                <h2 className={b.modalTitle}>Editar meus dados</h2>
                 <p className={b.modalSubtitle}>
-                  Essas informações aparecem para o estabelecimento sempre que você tem um agendamento.
+                  Atualize suas informações para contato e identificação nos agendamentos.
                 </p>
               </div>
 
               <div style={{ display: "grid", gap: 14 }}>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>
-                  <input
-                    ref={profilePhotoInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    style={{ display: "none" }}
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      try {
+                {/* Upload de Foto de Perfil */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div style={{ position: "relative", width: 72, height: 72 }}>
+                    {profilePhotoUrl ? (
+                      <Image
+                        src={profilePhotoUrl}
+                        alt="Foto do cliente"
+                        width={72}
+                        height={72}
+                        style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", border: "2px solid #dcff4c" }}
+                        unoptimized
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: "50%",
+                          background: "#27272a",
+                          border: "2px dashed #52525b",
+                          display: "grid",
+                          placeItems: "center",
+                          color: "#a1a1aa",
+                          fontSize: "20px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {profileName.charAt(0).toUpperCase() || "C"}
+                      </div>
+                    )}
+                    <label
+                      htmlFor="customer-profile-photo-input"
+                      style={{
+                        position: "absolute",
+                        bottom: -2,
+                        right: -2,
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: "#dcff4c",
+                        color: "#09090b",
+                        display: "grid",
+                        placeItems: "center",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.4)",
+                      }}
+                      title="Alterar foto"
+                    >
+                      <Camera size={13} />
+                    </label>
+                    <input
+                      id="customer-profile-photo-input"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      style={{ display: "none" }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
                         setProfilePhotoUploading(true);
-                        const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
-                        setProfilePhotoUrl(dataUrl);
-                      } catch (err) {
-                        setProfileError((err as Error).message || "Erro ao carregar imagem.");
-                      } finally {
-                        setProfilePhotoUploading(false);
-                        e.target.value = "";
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => profilePhotoInputRef.current?.click()}
-                    disabled={profilePhotoUploading}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: "50%",
-                      border: "1.5px dashed var(--booking-border)",
-                      background: profilePhotoUrl ? `url('${profilePhotoUrl}') center/cover` : "transparent",
-                      color: "var(--booking-text-secondary)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: profilePhotoUploading ? "not-allowed" : "pointer",
-                      minWidth: 44,
-                      minHeight: 44,
-                    }}
-                    title="Alterar foto de perfil"
-                  >
-                    {!profilePhotoUrl && <Camera size={22} />}
-                  </button>
+                        setProfileError("");
+                        try {
+                          const base64 = await prepareImageUpload(file, { maxDimension: 512, square: true, quality: 0.85 });
+                          setProfilePhotoUrl(base64);
+                        } catch (err: any) {
+                          setProfileError(err.message || "Erro ao processar imagem.");
+                        } finally {
+                          setProfilePhotoUploading(false);
+                        }
+                      }}
+                    />
+                  </div>
+                  <span style={{ fontSize: "11px", color: "#a1a1aa" }}>
+                    {profilePhotoUploading ? "Processando foto..." : "Toque no ícone para trocar sua foto"}
+                  </span>
                 </div>
 
                 <div>
@@ -590,11 +626,19 @@ export function MyBookings({
                   </label>
                   <input
                     type="text"
-                    className={b.input}
                     value={profileName}
-                    minLength={2}
                     onChange={(e) => setProfileName(e.target.value)}
-                    style={{ minHeight: 44 }}
+                    placeholder="Seu nome"
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      background: "#18181b",
+                      border: "1px solid #27272a",
+                      color: "#f4f4f5",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
                   />
                 </div>
 
@@ -604,10 +648,19 @@ export function MyBookings({
                   </label>
                   <input
                     type="email"
-                    className={b.input}
                     value={profileEmail}
                     onChange={(e) => setProfileEmail(e.target.value)}
-                    style={{ minHeight: 44 }}
+                    placeholder="seu.email@exemplo.com"
+                    style={{
+                      width: "100%",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
+                      background: "#18181b",
+                      border: "1px solid #27272a",
+                      color: "#f4f4f5",
+                      fontSize: "14px",
+                      outline: "none",
+                    }}
                   />
                 </div>
 
@@ -616,6 +669,7 @@ export function MyBookings({
                     {profileError}
                   </p>
                 )}
+
                 {profileSuccess && (
                   <p style={{ color: "#10b981", fontSize: "12.5px", margin: 0, textAlign: "center", fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                     <Check size={13} />
@@ -623,10 +677,11 @@ export function MyBookings({
                   </p>
                 )}
 
-                <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
                   <button
                     type="button"
-                    className={`${b.button} ${b.wide}`}
+                    className={b.button}
+                    style={{ flex: "1 1 140px" }}
                     disabled={profileBusy || profilePhotoUploading || profileName.trim().length < 2}
                     onClick={async () => {
                       setProfileBusy(true);
@@ -658,6 +713,7 @@ export function MyBookings({
                   <button
                     type="button"
                     className={`${b.button} ${b.outline}`}
+                    style={{ flex: "1 1 100px" }}
                     onClick={() => setProfileModalOpen(false)}
                     disabled={profileBusy}
                   >
@@ -1209,7 +1265,7 @@ export function MyBookings({
                       : "Acompanhe seus próximos horários confirmados e gerencie suas reservas."}
                 </p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <div className={b.bookingsHeaderActions}>
                 {rows[0]?.company?.slug && (
                   <Link
                     href={`/agendar/${rows[0].company.slug}`}
