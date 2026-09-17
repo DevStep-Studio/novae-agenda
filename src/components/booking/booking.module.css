@@ -444,6 +444,7 @@
 .previewPage .serviceActions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   width: 100%;
   gap: 10px;
@@ -1273,7 +1274,9 @@
 .serviceActions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px 16px;
   flex-shrink: 0;
 }
 
@@ -1290,7 +1293,7 @@
   letter-spacing: -0.3px;
 }
 
-.serviceButtons { display: flex; align-items: center; gap: var(--booking-space-2); }
+.serviceButtons { display: flex; align-items: center; flex-wrap: wrap; gap: var(--booking-space-2); }
 
 .badge {
   font-size: 10px;
