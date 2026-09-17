@@ -27,6 +27,7 @@ import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { applyTheme, getStoredTheme, resolveTheme } from "@/lib/theme";
 import { PasswordStrengthMeter } from "./password-strength-meter";
 import { PinInput } from "@/components/booking/pin-input";
+import { SiteFooter } from "@/components/ui/site-footer";
 
 export type AuthMode = "login" | "register" | "forgot-password" | "reservas";
 type RecoveryStep = "request_email" | "email_sent";
@@ -1605,6 +1606,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           </a>
           .
         </div>
+        <SiteFooter />
       </div>
     </div>
   );
