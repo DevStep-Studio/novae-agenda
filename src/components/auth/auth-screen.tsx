@@ -432,25 +432,30 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           return;
         }
 
-        if (safeReturnTo) {
-          window.location.assign(safeReturnTo);
-          return;
-        }
+        if (typeof window !== "undefined") {
+          const destination =
+            safeReturnTo ||
+            response.data?.targetPortal ||
+            updatedSession?.targetPortal ||
+            (updatedSession?.primaryRole === "employee"
+              ? "/profissional"
+              : updatedSession?.primaryRole === "superadmin"
+              ? "/admin"
+              : "/gestao");
 
-        if (typeof window !== "undefined" && window.location.pathname === "/login") {
-          window.location.assign(response.data?.targetPortal || "/gestao");
-          return;
-        }
+          if (
+            updatedSession &&
+            !updatedSession.company?.onboarded &&
+            updatedSession.primaryRole !== "client" &&
+            onAuthenticated &&
+            window.location.pathname === "/"
+          ) {
+            onAuthenticated(true);
+            return;
+          }
 
-        if (onAuthenticated) {
-          onAuthenticated(
-            Boolean(
-              !updatedSession?.company?.onboarded &&
-                updatedSession?.primaryRole !== "client"
-            )
-          );
-        } else {
-          window.location.assign(response.data?.targetPortal || "/gestao");
+          window.location.assign(destination);
+          return;
         }
       } else if (mode === "register") {
         if (password !== confirmPassword) {
