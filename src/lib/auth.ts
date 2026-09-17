@@ -242,7 +242,11 @@ export async function getSession(): Promise<SessionUser | null> {
       employeeId,
       memberships,
     };
-  } catch {
+  } catch (err) {
+    // getIdentity() already logs JWT/user-lookup failures — a throw reaching here instead
+    // comes from the membership/employee queries below it, e.g. schema drift between
+    // environments. Logging separately tells the two failure modes apart in prod.
+    console.error("[auth] getSession query failed:", err instanceof Error ? err.message : err);
     return null;
   }
 }
