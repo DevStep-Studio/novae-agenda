@@ -6801,6 +6801,15 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.profile-page-nav-tabs::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .profile-page-tab-btn {
@@ -13306,5 +13315,23 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
   .client-notice-wa-btn, .client-notice-confirm-btn {
     width: 100%;
+  }
+}
+
+/* =========================================================
+   UNIVERSAL INVISIBLE SCROLLBARS ON MOBILE / TOUCH
+   ========================================================= */
+@media (max-width: 1024px) {
+  *, *::before, *::after {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  *::-webkit-scrollbar,
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
   }
 }
