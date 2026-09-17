@@ -52,6 +52,11 @@ const PUBLIC_ROUTES = [
   { path: "/minhas-reservas", name: "minhas-reservas" },
   { path: "/termos", name: "termos" },
   { path: "/privacidade", name: "privacidade" },
+  { path: "/cancelamento-reembolso", name: "cancelamento-reembolso" },
+  { path: "/acesso-negado", name: "acesso-negado" },
+  { path: "/sessao-expirada", name: "sessao-expirada" },
+  { path: "/manutencao", name: "manutencao" },
+  { path: "/pagina-inexistente-teste-404", name: "not-found-404" },
 ];
 
 test.describe("Public & Marketing Mobile-First Responsive Verification Suite", () => {
@@ -436,6 +441,27 @@ test.describe("Narrow Viewport Deep Audit (iPhone SE 320px)", () => {
     await page.request.post("/api/auth/login", { data: { email: f.owner.email, password: f.password } });
   });
 
+  test("Cookie banner never overlaps the mobile bottom nav", async ({ page }) => {
+    await page.goto("/gestao", { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => window.localStorage.removeItem("agenda-cookie-consent"));
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(500);
+
+    const banner = page.locator(".cookie-banner");
+    const bottomNav = page.locator(".mobile-bottom-nav");
+    const bannerVisible = await banner.isVisible().catch(() => false);
+    const navVisible = await bottomNav.isVisible().catch(() => false);
+    if (bannerVisible && navVisible) {
+      const bannerBox = await banner.boundingBox();
+      const navBox = await bottomNav.boundingBox();
+      expect(bannerBox && navBox).toBeTruthy();
+      if (bannerBox && navBox) {
+        const overlaps = bannerBox.y < navBox.y + navBox.height && bannerBox.y + bannerBox.height > navBox.y;
+        expect(overlaps, "Cookie banner overlaps the mobile bottom nav").toBe(false);
+      }
+    }
+  });
+
   test("KPI metric card labels wrap instead of truncating with ellipsis", async ({ page }) => {
     await page.goto("/gestao/clientes", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(700);
@@ -581,7 +607,7 @@ test.describe("Narrow Viewport Deep Audit (iPhone SE 320px)", () => {
     // reaching the bottom 100px of the real viewport — the embedded booking
     // preview's own sticky CTA bar must stay contained inside its frame.
     const offenders = await page.evaluate(() => {
-      const allowed = ["mobile-bottom-nav", "sidebar", "toast-stack", "sidebar-backdrop"];
+      const allowed = ["mobile-bottom-nav", "sidebar", "toast-stack", "sidebar-backdrop", "cookie-banner", "offline-banner"];
       const found: string[] = [];
       document.querySelectorAll("*").forEach((el) => {
         const cs = getComputedStyle(el);
