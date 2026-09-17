@@ -11,13 +11,15 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const q = searchParams.get("q") || searchParams.get("search") || undefined;
-    const companyId = searchParams.get("companyId") ?? undefined;
+    const status = searchParams.get("status") || undefined;
+    const plan = searchParams.get("plan") || undefined;
     const page = Number(searchParams.get("page")) || 1;
     const limit = Number(searchParams.get("limit")) || 20;
 
-    const result = await AdminService.listClients({
+    const result = await AdminService.listSubscriptions({
       q,
-      companyId,
+      status,
+      plan,
       page,
       limit,
     });
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
       pagination: result.pagination,
     });
   } catch (error) {
-    console.error("[Superadmin API Clients] Error:", error);
-    return Response.json({ error: "Erro ao listar clientes." }, { status: 500 });
+    console.error("[Superadmin Subscriptions API] Error:", error);
+    return Response.json({ error: "Erro ao listar assinaturas." }, { status: 500 });
   }
 }

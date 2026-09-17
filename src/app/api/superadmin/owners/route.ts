@@ -14,6 +14,8 @@ const createOwnerSchema = z.object({
   businessType: z.string().optional(),
   cnpjOrCpf: z.string().optional(),
   planSlug: z.string().optional(),
+  accessType: z.enum(["trial", "courtesy", "pending"]).optional(),
+  grantCourtesy: z.boolean().optional(),
   couponCode: z.string().optional(),
   reason: z.string().optional(),
 });
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const searchParams = request.nextUrl.searchParams;
-    const q = searchParams.get("q") ?? undefined;
+    const q = searchParams.get("q") || searchParams.get("search") || undefined;
     const status = (searchParams.get("status") as any) ?? "all";
     const plan = searchParams.get("plan") ?? undefined;
     const startDate = searchParams.get("startDate") ?? undefined;
@@ -44,7 +46,12 @@ export async function GET(request: NextRequest) {
       limit,
     });
 
-    return Response.json(result);
+    return Response.json({
+      success: true,
+      data: result.items,
+      items: result.items,
+      pagination: result.pagination,
+    });
   } catch (error) {
     console.error("[Superadmin API Owners] Error:", error);
     return Response.json({ error: "Erro ao listar proprietários." }, { status: 500 });

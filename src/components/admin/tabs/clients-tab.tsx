@@ -9,6 +9,11 @@ import {
   X,
   Building2,
   AlertTriangle,
+  Eye,
+  Calendar,
+  Phone,
+  Mail,
+  FileText,
 } from "lucide-react";
 import styles from "../admin-dashboard.module.css";
 
@@ -20,9 +25,13 @@ export function ClientsTab() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  // Client Details Modal
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+
   // Edit Modal
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [clientToEdit, setClientToEdit] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -44,17 +53,19 @@ export function ClientsTab() {
         page: String(page),
         limit: "15",
       });
-      if (search) params.set("search", search);
+      if (search.trim()) {
+        params.set("q", search.trim());
+      }
 
       const res = await fetch(`/api/superadmin/clients?${params.toString()}`);
       const json = await res.json();
-      if (json.data) {
-        setClients(json.data);
-        setTotalPages(json.pagination.totalPages || 1);
-        setTotalCount(json.pagination.total || 0);
+      if (json.data || json.items) {
+        setClients(json.data || json.items);
+        setTotalPages(json.pagination?.totalPages || 1);
+        setTotalCount(json.pagination?.total || 0);
       }
     } catch (err) {
-      console.error("Error loading clients:", err);
+      console.error("Erro ao carregar clientes:", err);
     } finally {
       setLoading(false);
     }
@@ -63,12 +74,17 @@ export function ClientsTab() {
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadClients();
-    }, 200);
+    }, 250);
     return () => clearTimeout(timer);
   }, [loadClients]);
 
-  const handleOpenEdit = (client: any) => {
+  const handleOpenDetails = (client: any) => {
     setSelectedClient(client);
+    setDetailsModalOpen(true);
+  };
+
+  const handleOpenEdit = (client: any) => {
+    setClientToEdit(client);
     setEditForm({
       name: client.name || "",
       email: client.email || "",
@@ -81,10 +97,10 @@ export function ClientsTab() {
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClient) return;
+    if (!clientToEdit) return;
 
     try {
-      const res = await fetch(`/api/superadmin/clients/${selectedClient.id}`, {
+      const res = await fetch(`/api/superadmin/clients/${clientToEdit.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
@@ -96,6 +112,7 @@ export function ClientsTab() {
       }
       alert("Cliente atualizado com sucesso!");
       setEditModalOpen(false);
+      setClientToEdit(null);
       void loadClients();
     } catch (err: any) {
       alert("Erro ao atualizar: " + err.message);
@@ -119,7 +136,9 @@ export function ClientsTab() {
         alert(json.error || "Erro ao excluir cliente.");
         return;
       }
-      alert(`Cliente ${deleteMode === "hard" ? "excluído permanentemente" : "desativado (soft delete)"} com sucesso!`);
+      alert(
+        `Cliente ${deleteMode === "hard" ? "excluído permanentemente" : "desativado (soft delete)"} com sucesso!`
+      );
       setDeleteModalOpen(false);
       setClientToDelete(null);
       setConfirmationName("");
@@ -141,67 +160,92 @@ export function ClientsTab() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar por nome, email, telefone, documento ou empresa..."
+            placeholder="Buscar por nome, telefone, e-mail, empresa..."
             className={styles.searchInput}
-            style={{ width: 360 }}
+            style={{ width: 340 }}
           />
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table Desktop */}
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
           <thead>
             <tr>
               <th>Cliente</th>
               <th>Contato & E-mail</th>
-              <th>Documento</th>
-              <th>Empresa Proprietária</th>
+              <th>Empresa Vinculada</th>
+              <th>Agendamentos</th>
+              <th>Último Atendimento</th>
               <th>Status</th>
-              <th>Cadastrado em</th>
+              <th>Cadastro</th>
               <th style={{ textAlign: "right" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {clients.map((cli) => (
-              <tr key={cli.id}>
-                <td style={{ fontWeight: 600 }}>{cli.name}</td>
+            {clients.map((client) => (
+              <tr key={client.id}>
                 <td>
-                  <div>{cli.email || "—"}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                    {cli.phone || "—"}
-                  </div>
-                </td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>
-                  {cli.document || "—"}
-                </td>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <Building2 size={13} color="#818cf8" />
-                    <span>{cli.companyName || "N/A"}</span>
+                  <div style={{ fontWeight: 700, color: "#ffffff" }}>{client.name}</div>
+                  <div style={{ fontSize: 11, color: "#a3a3a3", fontFamily: "monospace" }}>
+                    {client.document ? `DOC: ${client.document}` : "Sem documento"}
                   </div>
                 </td>
                 <td>
-                  {cli.deletedAt ? (
+                  <div>{client.phone || "Sem telefone"}</div>
+                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>{client.email || "—"}</div>
+                </td>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#f5f5f5" }}>
+                    <Building2 size={13} color="#dcff4c" />
+                    <span>{client.companyName || "Empresa vinculada"}</span>
+                  </div>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>
+                    {client.totalBookings ?? 0} agendamentos
+                  </div>
+                </td>
+                <td>
+                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                    {client.lastBookingAt
+                      ? new Date(client.lastBookingAt).toLocaleDateString("pt-BR")
+                      : "Nenhum histórico"}
+                  </div>
+                </td>
+                <td>
+                  {client.deletedAt ? (
                     <span className={`${styles.statusPill} ${styles.statusDeleted}`}>
-                      Excluído (Soft)
+                      Inativo
                     </span>
-                  ) : (
+                  ) : client.active !== false ? (
                     <span className={`${styles.statusPill} ${styles.statusActive}`}>
                       Ativo
                     </span>
+                  ) : (
+                    <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
+                      Suspenso
+                    </span>
                   )}
                 </td>
-                <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  {new Date(cli.createdAt).toLocaleDateString("pt-BR")}
+                <td style={{ fontSize: 12, color: "#a3a3a3" }}>
+                  {new Date(client.createdAt).toLocaleDateString("pt-BR")}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     <button
                       type="button"
                       className={styles.btnGhost}
-                      title="Editar Dados Cadastrais"
-                      onClick={() => handleOpenEdit(cli)}
+                      title="Ver Detalhes do Cliente"
+                      onClick={() => handleOpenDetails(client)}
+                    >
+                      <Eye size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      title="Editar Cliente"
+                      onClick={() => handleOpenEdit(client)}
                     >
                       <Edit2 size={15} />
                     </button>
@@ -211,7 +255,7 @@ export function ClientsTab() {
                       style={{ color: "#f87171" }}
                       title="Excluir Cliente"
                       onClick={() => {
-                        setClientToDelete(cli);
+                        setClientToDelete(client);
                         setDeleteMode("soft");
                         setConfirmationName("");
                         setDeleteModalOpen(true);
@@ -225,15 +269,15 @@ export function ClientsTab() {
             ))}
             {!loading && clients.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
-                  Nenhum cliente encontrado.
+                <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                  Nenhum cliente encontrado para os filtros selecionados.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
-                  Carregando lista de clientes...
+                <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                  Carregando lista de clientes do MySQL...
                 </td>
               </tr>
             )}
@@ -243,7 +287,7 @@ export function ClientsTab() {
         {/* Pagination */}
         <div className={styles.pagination}>
           <span>
-            Mostrando {clients.length} de {totalCount} clientes
+            Mostrando {clients.length} de {totalCount} clientes cadastrados
           </span>
           <div className={styles.paginationBtns}>
             <button
@@ -269,12 +313,156 @@ export function ClientsTab() {
         </div>
       </div>
 
-      {/* Edit Client Modal */}
-      {editModalOpen && selectedClient && (
+      {/* Mobile Cards List */}
+      <div className={styles.mobileCardsList}>
+        {clients.map((client) => (
+          <div key={client.id} className={styles.mobileCard}>
+            <div className={styles.mobileCardHeader}>
+              <div>
+                <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>
+                  {client.name}
+                </div>
+                <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                  {client.companyName}
+                </div>
+              </div>
+              <span className={`${styles.statusPill} ${client.active ? styles.statusActive : styles.statusDeleted}`}>
+                {client.active ? "Ativo" : "Inativo"}
+              </span>
+            </div>
+
+            <div className={styles.mobileCardBody}>
+              <div>
+                <span style={{ color: "#737373" }}>Telefone:</span> {client.phone || "—"}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>E-mail:</span> {client.email || "—"}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Agendamentos:</span>{" "}
+                <strong style={{ color: "#ffffff" }}>{client.totalBookings ?? 0}</strong>
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Cadastro:</span>{" "}
+                {new Date(client.createdAt).toLocaleDateString("pt-BR")}
+              </div>
+            </div>
+
+            <div className={styles.mobileCardActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => handleOpenDetails(client)}
+              >
+                <Eye size={14} /> Detalhes
+              </button>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => handleOpenEdit(client)}
+              >
+                <Edit2 size={14} /> Editar
+              </button>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                style={{ color: "#f87171" }}
+                onClick={() => {
+                  setClientToDelete(client);
+                  setDeleteMode("soft");
+                  setConfirmationName("");
+                  setDeleteModalOpen(true);
+                }}
+              >
+                <Trash2 size={14} /> Excluir
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal: Detalhes do Cliente */}
+      {detailsModalOpen && selectedClient && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modalDialog}>
             <div className={styles.modalHeader}>
-              <h2>Editar Cliente: {selectedClient.name}</h2>
+              <h2>Detalhes do Cliente: {selectedClient.name}</h2>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setDetailsModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.detailSection}>
+                <div className={styles.detailSectionTitle}>
+                  <span>Dados Cadastrais & Contato</span>
+                </div>
+                <div className={styles.formGrid}>
+                  <div>
+                    <span style={{ color: "#737373", fontSize: 12 }}>Nome Completo:</span>
+                    <div style={{ fontWeight: 600 }}>{selectedClient.name}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: "#737373", fontSize: 12 }}>Empresa Vinculada:</span>
+                    <div style={{ fontWeight: 600, color: "#dcff4c" }}>
+                      {selectedClient.companyName || "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: "#737373", fontSize: 12 }}>Telefone:</span>
+                    <div>{selectedClient.phone || "Não informado"}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: "#737373", fontSize: 12 }}>E-mail:</span>
+                    <div>{selectedClient.email || "Não informado"}</div>
+                  </div>
+                  <div>
+                    <span style={{ color: "#737373", fontSize: 12 }}>Total de Agendamentos:</span>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>
+                      {selectedClient.totalBookings ?? 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span style={{ color: "#737373", fontSize: 12 }}>Último Atendimento:</span>
+                    <div>
+                      {selectedClient.lastBookingAt
+                        ? new Date(selectedClient.lastBookingAt).toLocaleDateString("pt-BR")
+                        : "Nenhum atendimento registrado"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: "#111111", padding: 12, borderRadius: 8, border: "1px solid #222222" }}>
+                <span style={{ fontSize: 11, color: "#737373" }}>
+                  Nota de Segurança: Tokens e credenciais de PIN do cliente são protegidos e nunca
+                  são exibidos em tela.
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setDetailsModalOpen(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar Cliente */}
+      {editModalOpen && clientToEdit && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalDialog}>
+            <div className={styles.modalHeader}>
+              <h2>Editar Cliente</h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -285,26 +473,18 @@ export function ClientsTab() {
             </div>
             <form onSubmit={handleSaveEdit}>
               <div className={styles.modalBody}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Nome Completo *</label>
+                  <input
+                    type="text"
+                    required
+                    className={styles.input}
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  />
+                </div>
+
                 <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Nome Completo *</label>
-                    <input
-                      type="text"
-                      required
-                      className={styles.input}
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>CPF / Documento</label>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={editForm.document}
-                      onChange={(e) => setEditForm({ ...editForm, document: e.target.value })}
-                    />
-                  </div>
                   <div className={styles.formGroup}>
                     <label className={styles.label}>E-mail</label>
                     <input
@@ -314,8 +494,9 @@ export function ClientsTab() {
                       onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                     />
                   </div>
+
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Telefone / WhatsApp</label>
+                    <label className={styles.label}>Telefone</label>
                     <input
                       type="text"
                       className={styles.input}
@@ -323,14 +504,26 @@ export function ClientsTab() {
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                     />
                   </div>
-                  <div className={styles.formGroupFull}>
-                    <label className={styles.label}>Notas / Observações</label>
-                    <textarea
-                      className={styles.textarea}
-                      value={editForm.notes}
-                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                    />
-                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Documento (CPF)</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={editForm.document}
+                    onChange={(e) => setEditForm({ ...editForm, document: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Notas / Observações</label>
+                  <textarea
+                    rows={2}
+                    className={styles.textarea}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  />
                 </div>
               </div>
 
@@ -343,7 +536,7 @@ export function ClientsTab() {
                   Cancelar
                 </button>
                 <button type="submit" className={styles.btnPrimary}>
-                  Salvar Alterações
+                  Salvar
                 </button>
               </div>
             </form>
@@ -351,12 +544,15 @@ export function ClientsTab() {
         </div>
       )}
 
-      {/* Delete Client Modal */}
+      {/* Modal: Excluir Cliente */}
       {deleteModalOpen && clientToDelete && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modalDialog}>
             <div className={styles.modalHeader}>
-              <h2 style={{ color: "#f87171" }}>Excluir Cliente: {clientToDelete.name}</h2>
+              <h2 style={{ color: "#f87171", display: "flex", alignItems: "center", gap: 8 }}>
+                <AlertTriangle size={18} />
+                Excluir Cliente: {clientToDelete.name}
+              </h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -366,41 +562,27 @@ export function ClientsTab() {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                <button
-                  type="button"
-                  className={deleteMode === "soft" ? styles.btnPrimary : styles.btnSecondary}
-                  style={{ flex: 1 }}
-                  onClick={() => setDeleteMode("soft")}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Tipo de Exclusão</label>
+                <select
+                  value={deleteMode}
+                  onChange={(e) => setDeleteMode(e.target.value as any)}
+                  className={styles.select}
                 >
-                  Soft Delete (Recomendado)
-                </button>
-                <button
-                  type="button"
-                  className={deleteMode === "hard" ? styles.btnDanger : styles.btnSecondary}
-                  style={{ flex: 1 }}
-                  onClick={() => setDeleteMode("hard")}
-                >
-                  Exclusão Definitiva (LGPD)
-                </button>
+                  <option value="soft">Soft Delete (Desativação lógica)</option>
+                  <option value="hard">Hard Delete (Exclusão definitiva)</option>
+                </select>
               </div>
 
-              {deleteMode === "soft" ? (
-                <div style={{ background: "rgba(99, 102, 241, 0.08)", padding: 16, borderRadius: 8, fontSize: 13 }}>
-                  <p style={{ color: "var(--text-secondary)" }}>
-                    O cliente será marcado como excluído (`deleted_at`). O histórico de agendamentos passados será preservado para relatórios fiscais do proprietário.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ background: "rgba(239, 68, 68, 0.08)", padding: 16, borderRadius: 8, fontSize: 13 }}>
-                  <p style={{ color: "var(--text-secondary)", marginBottom: 12 }}>
-                    O registro do cliente será fisicamente removido do banco. Digite o nome do cliente para confirmar:
+              {deleteMode === "hard" && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: 12, borderRadius: 8 }}>
+                  <p style={{ margin: 0, fontSize: 12, color: "#fca5a5" }}>
+                    Para confirmar a exclusão definitiva, digite o nome exato: <strong>{clientToDelete.name}</strong>
                   </p>
                   <input
                     type="text"
+                    style={{ marginTop: 8, borderColor: "#ef4444" }}
                     className={styles.input}
-                    style={{ borderColor: "#f87171" }}
-                    placeholder={clientToDelete.name}
                     value={confirmationName}
                     onChange={(e) => setConfirmationName(e.target.value)}
                   />
@@ -418,11 +600,10 @@ export function ClientsTab() {
               </button>
               <button
                 type="button"
-                className={deleteMode === "hard" ? styles.btnDanger : styles.btnPrimary}
+                className={styles.btnDanger}
                 onClick={handleExecuteDelete}
-                disabled={deleteMode === "hard" && confirmationName.trim() !== clientToDelete.name.trim()}
               >
-                {deleteMode === "hard" ? "Excluir Definitivamente" : "Desativar Cliente"}
+                Confirmar Exclusão
               </button>
             </div>
           </div>

@@ -18,6 +18,12 @@ import {
   Clock,
   Ticket,
   ShieldAlert,
+  Ban,
+  RotateCcw,
+  Sparkles,
+  Briefcase,
+  Copy,
+  Check,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/client-utils";
 import styles from "../admin-dashboard.module.css";
@@ -25,6 +31,7 @@ import styles from "../admin-dashboard.module.css";
 export function OwnersTab() {
   const [owners, setOwners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -33,68 +40,78 @@ export function OwnersTab() {
 
   // Modals state
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState<any | null>(null);
+  const [copiedPass, setCopiedPass] = useState(false);
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [ownerToEdit, setOwnerToEdit] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    businessType: "Geral",
+    email: "",
+    phone: "",
+    cnpjOrCpf: "",
+    ownerName: "",
+    ownerPhone: "",
+  });
+
+  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
+  const [ownerToSuspend, setOwnerToSuspend] = useState<any | null>(null);
+  const [suspendReason, setSuspendReason] = useState("");
+
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
   const [ownerDetails, setOwnerDetails] = useState<any | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  // Sub-modals for 360 view
-  const [grantSubModalOpen, setGrantSubModalOpen] = useState(false);
-  const [revokeSubModalOpen, setRevokeSubModalOpen] = useState(false);
   const [deleteOwnerModalOpen, setDeleteOwnerModalOpen] = useState(false);
   const [ownerToDelete, setOwnerToDelete] = useState<any | null>(null);
   const [deleteMode, setDeleteMode] = useState<"soft" | "hard">("soft");
+  const [deleteReason, setDeleteReason] = useState("Exclusão administrativa");
   const [confirmationName, setConfirmationName] = useState("");
 
   // New Owner Form
   const [newOwnerForm, setNewOwnerForm] = useState({
     name: "",
-    legalName: "",
+    businessType: "Geral",
     cnpjOrCpf: "",
     phone: "",
     ownerName: "",
     email: "",
     password: "",
-    planSlug: "essencial",
-    grantCourtesy: false,
-    reason: "Conta criada manualmente pelo Superadmin",
-  });
-
-  // Grant Subscription Form
-  const [grantForm, setGrantForm] = useState({
-    plan: "profissional",
-    isCourtesy: true,
-    billingInterval: "monthly",
-    durationDays: 30,
+    planSlug: "profissional",
+    accessType: "trial" as "trial" | "courtesy" | "pending",
     reason: "",
   });
 
-  // Revoke Subscription Form
-  const [revokeForm, setRevokeForm] = useState({
-    immediate: true,
-    reason: "",
-  });
-
-  // Load Owners list
+  // Load Owners list from real MySQL backend
   const loadOwners = useCallback(async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       const params = new URLSearchParams({
         page: String(page),
         limit: "15",
       });
-      if (search) params.set("search", search);
-      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (search.trim()) {
+        params.set("q", search.trim());
+      }
+      if (statusFilter !== "all") {
+        params.set("status", statusFilter);
+      }
 
       const res = await fetch(`/api/superadmin/owners?${params.toString()}`);
-      const json = await res.json();
-      if (json.data) {
-        setOwners(json.data);
-        setTotalPages(json.pagination.totalPages || 1);
-        setTotalCount(json.pagination.total || 0);
+      if (!res.ok) {
+        throw new Error(`Falha na resposta do servidor (HTTP ${res.status}).`);
       }
-    } catch (err) {
-      console.error("Error loading owners:", err);
+      const json = await res.json();
+      const list = json.data || json.items || [];
+      setOwners(list);
+      setTotalPages(json.pagination?.totalPages || 1);
+      setTotalCount(json.pagination?.total || 0);
+    } catch (err: any) {
+      console.error("Erro ao carregar proprietários:", err);
+      setFetchError(err.message || "Erro de conexão ao banco de dados.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +120,7 @@ export function OwnersTab() {
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadOwners();
-    }, 200);
+    }, 250);
     return () => clearTimeout(timer);
   }, [loadOwners]);
 
@@ -119,15 +136,119 @@ export function OwnersTab() {
         setOwnerDetails(json.data);
       }
     } catch (err) {
-      console.error("Error loading owner details:", err);
+      console.error("Erro ao carregar detalhes do proprietário:", err);
     } finally {
       setDetailsLoading(false);
     }
   };
 
+  // Open Edit Modal
+  const handleOpenEdit = (owner: any) => {
+    setOwnerToEdit(owner);
+    setEditForm({
+      name: owner.name || "",
+      businessType: owner.businessType || "Geral",
+      email: owner.email || owner.ownerEmail || "",
+      phone: owner.phone || owner.ownerPhone || "",
+      cnpjOrCpf: owner.cnpjOrCpf || "",
+      ownerName: owner.ownerName || "",
+      ownerPhone: owner.ownerPhone || "",
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ownerToEdit) return;
+
+    try {
+      const res = await fetch(`/api/superadmin/owners/${ownerToEdit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Erro ao salvar alterações.");
+        return;
+      }
+      alert("Proprietário e empresa atualizados com sucesso!");
+      setEditModalOpen(false);
+      setOwnerToEdit(null);
+      void loadOwners();
+      if (detailsModalOpen && selectedOwnerId === ownerToEdit.id) {
+        void handleOpenDetails(ownerToEdit.id);
+      }
+    } catch (err: any) {
+      alert("Erro ao atualizar: " + err.message);
+    }
+  };
+
+  // Suspend
+  const handleConfirmSuspend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ownerToSuspend) return;
+    if (!suspendReason.trim()) {
+      alert("Informe o motivo da suspensão para auditoria.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/superadmin/owners/${ownerToSuspend.id}/suspend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: suspendReason }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Erro ao suspender empresa.");
+        return;
+      }
+      alert(json.message || "Empresa suspensa com sucesso!");
+      setSuspendModalOpen(false);
+      setOwnerToSuspend(null);
+      setSuspendReason("");
+      void loadOwners();
+      if (detailsModalOpen && selectedOwnerId === ownerToSuspend.id) {
+        void handleOpenDetails(ownerToSuspend.id);
+      }
+    } catch (err: any) {
+      alert("Erro ao suspender: " + err.message);
+    }
+  };
+
+  // Reactivate
+  const handleReactivate = async (owner: any) => {
+    if (!confirm(`Deseja reativar o acesso da empresa "${owner.name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/superadmin/owners/${owner.id}/reactivate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "Reativação solicitada via Super Admin" }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Erro ao reativar empresa.");
+        return;
+      }
+      alert(json.message || "Empresa reativada com sucesso!");
+      void loadOwners();
+      if (detailsModalOpen && selectedOwnerId === owner.id) {
+        void handleOpenDetails(owner.id);
+      }
+    } catch (err: any) {
+      alert("Erro ao reativar: " + err.message);
+    }
+  };
+
   // Impersonate
   const handleImpersonate = async (id: string, name: string) => {
-    if (!confirm(`Deseja fazer login e acessar o painel como "${name}"? Todas as ações serão auditadas.`)) {
+    if (
+      !confirm(
+        `Deseja assumir a sessão da empresa "${name}" em modo suporte? Esta ação é auditada e preserva sua identidade administrativa.`
+      )
+    ) {
       return;
     }
     try {
@@ -135,9 +256,9 @@ export function OwnersTab() {
         method: "POST",
       });
       const json = await res.json();
-      if (json.data) {
-        alert(`Sessão assumida com sucesso! Você será redirecionado para o painel de ${name}.`);
-        window.location.href = json.data.redirectUrl || "/gestao";
+      if (json.success) {
+        alert(`Sessão iniciada como proprietário de ${name}. Redirecionando para o painel...`);
+        window.location.href = json.redirectUrl || "/gestao";
       } else {
         alert(json.error || "Erro ao assumir sessão.");
       }
@@ -160,19 +281,19 @@ export function OwnersTab() {
         alert(json.error || "Erro ao criar proprietário.");
         return;
       }
-      alert("Proprietário criado com sucesso!");
+      setCreatedCredentials(json);
       setCreateModalOpen(false);
       setNewOwnerForm({
         name: "",
-        legalName: "",
+        businessType: "Geral",
         cnpjOrCpf: "",
         phone: "",
         ownerName: "",
         email: "",
         password: "",
-        planSlug: "essencial",
-        grantCourtesy: false,
-        reason: "Conta criada manualmente pelo Superadmin",
+        planSlug: "profissional",
+        accessType: "trial",
+        reason: "",
       });
       void loadOwners();
     } catch (err: any) {
@@ -180,89 +301,7 @@ export function OwnersTab() {
     }
   };
 
-  // Grant Subscription
-  const handleGrantSubscription = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOwnerId) return;
-    try {
-      const res = await fetch("/api/superadmin/subscriptions/grant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyId: selectedOwnerId,
-          planSlug: grantForm.plan,
-          originType: grantForm.isCourtesy ? "manual_courtesy" : "manual_paid",
-          periodDays: grantForm.durationDays,
-          reason: grantForm.reason,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        alert(json.error || "Erro ao conceder assinatura.");
-        return;
-      }
-      alert("Assinatura concedida com sucesso!");
-      setGrantSubModalOpen(false);
-      void handleOpenDetails(selectedOwnerId);
-      void loadOwners();
-    } catch (err: any) {
-      alert("Erro: " + err.message);
-    }
-  };
-
-  // Revoke Subscription
-  const handleRevokeSubscription = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedOwnerId) return;
-    try {
-      const res = await fetch("/api/superadmin/subscriptions/revoke", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyId: selectedOwnerId,
-          immediately: revokeForm.immediate,
-          reason: revokeForm.reason,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        alert(json.error || "Erro ao revogar assinatura.");
-        return;
-      }
-      alert("Assinatura revogada com sucesso!");
-      setRevokeSubModalOpen(false);
-      void handleOpenDetails(selectedOwnerId);
-      void loadOwners();
-    } catch (err: any) {
-      alert("Erro: " + err.message);
-    }
-  };
-
-  // Delete Employee
-  const handleDeleteEmployee = async (employeeId: string, employeeName: string) => {
-    const cancelFuture = confirm(`Deseja cancelar os agendamentos futuros vinculados a ${employeeName}? Clique em OK para CANCELAR ou Cancelar para MANTER.`);
-    try {
-      const res = await fetch(`/api/superadmin/employees/${employeeId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cancelFutureAppointments: cancelFuture,
-          reason: `Excluído pelo superadmin. Agendamentos futuros cancelados: ${cancelFuture}`,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        alert(json.error || "Erro ao excluir funcionário.");
-        return;
-      }
-      alert("Funcionário excluído com sucesso.");
-      if (selectedOwnerId) void handleOpenDetails(selectedOwnerId);
-    } catch (err: any) {
-      alert("Erro ao excluir: " + err.message);
-    }
-  };
-
-  // Confirm Delete Owner
+  // Delete Owner
   const handleExecuteDeleteOwner = async () => {
     if (!ownerToDelete) return;
     if (deleteMode === "hard" && confirmationName.trim() !== ownerToDelete.name.trim()) {
@@ -271,8 +310,14 @@ export function OwnersTab() {
     }
 
     try {
-      const params = deleteMode === "hard" ? `?hard=true&confirmationName=${encodeURIComponent(confirmationName)}` : "";
-      const res = await fetch(`/api/superadmin/owners/${ownerToDelete.id}${params}`, {
+      const params = new URLSearchParams();
+      if (deleteMode === "hard") {
+        params.set("hard", "true");
+        params.set("confirmedName", confirmationName);
+      }
+      params.set("reason", deleteReason);
+
+      const res = await fetch(`/api/superadmin/owners/${ownerToDelete.id}?${params.toString()}`, {
         method: "DELETE",
       });
       const json = await res.json();
@@ -280,7 +325,9 @@ export function OwnersTab() {
         alert(json.error || "Erro ao excluir proprietário.");
         return;
       }
-      alert(`Proprietário ${deleteMode === "hard" ? "excluído permanentemente" : "desativado (soft delete)"} com sucesso!`);
+      alert(
+        `Proprietário ${deleteMode === "hard" ? "excluído permanentemente" : "desativado (soft delete)"} com sucesso!`
+      );
       setDeleteOwnerModalOpen(false);
       setOwnerToDelete(null);
       setConfirmationName("");
@@ -289,6 +336,71 @@ export function OwnersTab() {
     } catch (err: any) {
       alert("Erro ao excluir: " + err.message);
     }
+  };
+
+  const renderStatusBadge = (owner: any) => {
+    const isDeleted = Boolean(owner.deletedAt);
+    const subStatus = owner.subscriptionStatus || owner.subscription?.status;
+    const isSuspended = subStatus === "suspended" || owner.publicEnabled === false;
+    const isTrial = subStatus === "trialing";
+    const isExpired =
+      subStatus === "expired" ||
+      (isTrial && owner.trialEndsAt && new Date(owner.trialEndsAt) < new Date());
+
+    if (isDeleted) {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusDeleted}`}>
+          Excluído
+        </span>
+      );
+    }
+    if (isSuspended) {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
+          Suspenso
+        </span>
+      );
+    }
+    if (isExpired) {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
+          Trial Expirado
+        </span>
+      );
+    }
+    if (isTrial) {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusTrial}`}>
+          Teste Gratuito
+        </span>
+      );
+    }
+    if (subStatus === "active") {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusActive}`}>
+          <CheckCircle2 size={11} /> Ativa
+        </span>
+      );
+    }
+    if (subStatus === "pending" || subStatus === "past_due") {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusTrial}`}>
+          Pagamento Pendente
+        </span>
+      );
+    }
+    if (subStatus === "cancelled") {
+      return (
+        <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
+          Cancelada
+        </span>
+      );
+    }
+    return (
+      <span className={`${styles.statusPill} ${styles.statusDeleted}`}>
+        {subStatus || "Inativo"}
+      </span>
+    );
   };
 
   return (
@@ -303,9 +415,9 @@ export function OwnersTab() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar por nome, e-mail, telefone, CPF/CNPJ..."
+            placeholder="Buscar por empresa, proprietário, e-mail, telefone, documento..."
             className={styles.searchInput}
-            style={{ width: 320 }}
+            style={{ width: 340 }}
           />
 
           <select
@@ -318,9 +430,12 @@ export function OwnersTab() {
           >
             <option value="all">Todos os Status</option>
             <option value="active">Assinatura Ativa</option>
-            <option value="trialing">Em Período de Teste</option>
-            <option value="cancelled">Cancelada / Inativa</option>
-            <option value="deleted">Soft Deleted (Excluídos)</option>
+            <option value="trial">Em Teste Gratuito</option>
+            <option value="trial_expired">Trial Expirado</option>
+            <option value="pending_payment">Pagamento Pendente</option>
+            <option value="suspended">Acesso Suspenso</option>
+            <option value="cancelled">Cancelados</option>
+            <option value="deleted">Excluídos (Soft Delete)</option>
           </select>
         </div>
 
@@ -331,12 +446,42 @@ export function OwnersTab() {
             onClick={() => setCreateModalOpen(true)}
           >
             <Plus size={15} />
-            Criar Proprietário Manualmente
+            + Criar Proprietário Manualmente
           </button>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Error state */}
+      {fetchError && (
+        <div
+          style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: 8,
+            padding: "16px 20px",
+            marginBottom: 16,
+            color: "#fca5a5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <AlertTriangle size={18} color="#f87171" />
+            <span>Falha ao comunicar com o MySQL: {fetchError}</span>
+          </div>
+          <button
+            type="button"
+            className={styles.btnSecondary}
+            onClick={() => void loadOwners()}
+          >
+            <RotateCcw size={14} />
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {/* Table Desktop */}
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
           <thead>
@@ -354,15 +499,15 @@ export function OwnersTab() {
             {owners.map((owner) => (
               <tr key={owner.id}>
                 <td>
-                  <div style={{ fontWeight: 600, color: "#f3f4f6" }}>{owner.name}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                    {owner.primaryOwner?.name || "Sem proprietário vinculado"}
+                  <div style={{ fontWeight: 700, color: "#ffffff" }}>{owner.name}</div>
+                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                    {owner.ownerName || owner.primaryOwner?.name || "Sem proprietário vinculado"}
                   </div>
                 </td>
                 <td>
-                  <div>{owner.email || owner.primaryOwner?.email || "—"}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                    {owner.phone || "—"}
+                  <div>{owner.ownerEmail || owner.primaryOwner?.email || owner.email || "—"}</div>
+                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                    {owner.ownerPhone || owner.phone || "—"}
                   </div>
                 </td>
                 <td>
@@ -372,40 +517,22 @@ export function OwnersTab() {
                 </td>
                 <td>
                   <div style={{ fontWeight: 600, textTransform: "capitalize" }}>
-                    {owner.subscription?.plan || "Trial"}
+                    {owner.subscriptionPlan || owner.subscription?.plan || "Trial"}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                    {owner.subscription?.origin === "manual_courtesy"
-                      ? "Cortesia Manual"
-                      : owner.subscription?.origin === "manual_paid"
+                  <div style={{ fontSize: 11, color: "#a3a3a3" }}>
+                    {owner.subscriptionOrigin === "manual_courtesy"
+                      ? "Cortesia Admin"
+                      : owner.subscriptionOrigin === "manual_paid"
                       ? "Cobrança Manual"
                       : "Checkout Padrão"}
                   </div>
                 </td>
-                <td>
-                  {owner.deletedAt ? (
-                    <span className={`${styles.statusPill} ${styles.statusDeleted}`}>
-                      Excluído (Soft)
-                    </span>
-                  ) : owner.subscription?.status === "active" ? (
-                    <span className={`${styles.statusPill} ${styles.statusActive}`}>
-                      <CheckCircle2 size={11} /> Ativa
-                    </span>
-                  ) : owner.subscription?.status === "trialing" ? (
-                    <span className={`${styles.statusPill} ${styles.statusTrial}`}>
-                      Trial
-                    </span>
-                  ) : (
-                    <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
-                      {owner.subscription?.status?.toUpperCase() || "INATIVO"}
-                    </span>
-                  )}
-                </td>
-                <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                <td>{renderStatusBadge(owner)}</td>
+                <td style={{ fontSize: 12, color: "#a3a3a3" }}>
                   {new Date(owner.createdAt).toLocaleDateString("pt-BR")}
                 </td>
                 <td style={{ textAlign: "right" }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     <button
                       type="button"
                       className={styles.btnGhost}
@@ -417,21 +544,57 @@ export function OwnersTab() {
                     <button
                       type="button"
                       className={styles.btnGhost}
-                      style={{ color: "#818cf8" }}
-                      title="Login como Proprietário"
-                      onClick={() => handleImpersonate(owner.id, owner.name)}
+                      title="Editar Dados"
+                      onClick={() => handleOpenEdit(owner)}
                     >
-                      <LogIn size={15} />
+                      <Edit2 size={15} />
                     </button>
                     <button
                       type="button"
                       className={styles.btnGhost}
+                      style={{ color: "#dcff4c" }}
+                      title="Acessar Painel da Empresa"
+                      onClick={() => handleImpersonate(owner.id, owner.name)}
+                    >
+                      <LogIn size={15} />
+                    </button>
+
+                    {owner.publicEnabled === false || owner.subscriptionStatus === "suspended" ? (
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        style={{ color: "#10b981" }}
+                        title="Reativar Empresa"
+                        onClick={() => handleReactivate(owner)}
+                      >
+                        <RotateCcw size={15} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        style={{ color: "#fbbf24" }}
+                        title="Suspender Empresa"
+                        onClick={() => {
+                          setOwnerToSuspend(owner);
+                          setSuspendReason("");
+                          setSuspendModalOpen(true);
+                        }}
+                      >
+                        <Ban size={15} />
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
                       style={{ color: "#f87171" }}
-                      title="Excluir Proprietário"
+                      title="Excluir / Desativar"
                       onClick={() => {
                         setOwnerToDelete(owner);
                         setDeleteMode("soft");
                         setConfirmationName("");
+                        setDeleteReason("Exclusão solicitada via Super Admin");
                         setDeleteOwnerModalOpen(true);
                       }}
                     >
@@ -443,15 +606,15 @@ export function OwnersTab() {
             ))}
             {!loading && owners.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
+                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
                   Nenhum proprietário encontrado para os filtros selecionados.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
-                  Carregando lista de proprietários...
+                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                  Carregando lista de proprietários do MySQL...
                 </td>
               </tr>
             )}
@@ -479,7 +642,7 @@ export function OwnersTab() {
               type="button"
               className={styles.btnSecondary}
               disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
               Próxima
             </button>
@@ -487,12 +650,76 @@ export function OwnersTab() {
         </div>
       </div>
 
+      {/* Mobile Cards List */}
+      <div className={styles.mobileCardsList}>
+        {owners.map((owner) => (
+          <div key={owner.id} className={styles.mobileCard}>
+            <div className={styles.mobileCardHeader}>
+              <div>
+                <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>
+                  {owner.name}
+                </div>
+                <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                  {owner.ownerName || owner.primaryOwner?.name || "Sem proprietário"}
+                </div>
+              </div>
+              {renderStatusBadge(owner)}
+            </div>
+
+            <div className={styles.mobileCardBody}>
+              <div>
+                <span style={{ color: "#737373" }}>E-mail:</span>{" "}
+                {owner.ownerEmail || owner.email || "—"}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Telefone:</span>{" "}
+                {owner.ownerPhone || owner.phone || "—"}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Plano:</span>{" "}
+                <strong style={{ color: "#ffffff", textTransform: "capitalize" }}>
+                  {owner.subscriptionPlan || "Trial"}
+                </strong>
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Cadastro:</span>{" "}
+                {new Date(owner.createdAt).toLocaleDateString("pt-BR")}
+              </div>
+            </div>
+
+            <div className={styles.mobileCardActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => handleOpenDetails(owner.id)}
+              >
+                <Eye size={14} /> Detalhes
+              </button>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => handleOpenEdit(owner)}
+              >
+                <Edit2 size={14} /> Editar
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={() => handleImpersonate(owner.id, owner.name)}
+              >
+                <LogIn size={14} /> Acessar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Modal: Criar Proprietário Manualmente */}
       {createModalOpen && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modalDialog}>
             <div className={styles.modalHeader}>
-              <h2>Criar Proprietário Manualmente</h2>
+              <h2>+ Criar Proprietário Manualmente</h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -505,25 +732,25 @@ export function OwnersTab() {
               <div className={styles.modalBody}>
                 <div className={styles.formGrid}>
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Nome do Negócio *</label>
+                    <label className={styles.label}>Nome da Empresa *</label>
                     <input
                       type="text"
                       required
                       className={styles.input}
                       value={newOwnerForm.name}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, name: e.target.value })}
-                      placeholder="Ex: Studio Alpha Barber"
+                      placeholder="Ex: Barbearia Prime"
                     />
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>CPF ou CNPJ</label>
+                    <label className={styles.label}>Nicho / Categoria</label>
                     <input
                       type="text"
                       className={styles.input}
-                      value={newOwnerForm.cnpjOrCpf}
-                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, cnpjOrCpf: e.target.value })}
-                      placeholder="000.000.000-00"
+                      value={newOwnerForm.businessType}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, businessType: e.target.value })}
+                      placeholder="Ex: Barbearia, Salão, Estética"
                     />
                   </div>
 
@@ -535,19 +762,19 @@ export function OwnersTab() {
                       className={styles.input}
                       value={newOwnerForm.ownerName}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, ownerName: e.target.value })}
-                      placeholder="Ex: Roberto Silva"
+                      placeholder="Ex: João Silva"
                     />
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>E-mail de Login *</label>
+                    <label className={styles.label}>E-mail de Acesso *</label>
                     <input
                       type="email"
                       required
                       className={styles.input}
                       value={newOwnerForm.email}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, email: e.target.value })}
-                      placeholder="roberto@email.com"
+                      placeholder="proprietario@email.com"
                     />
                   </div>
 
@@ -563,15 +790,25 @@ export function OwnersTab() {
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Senha Inicial *</label>
+                    <label className={styles.label}>CPF ou CNPJ</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={newOwnerForm.cnpjOrCpf}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, cnpjOrCpf: e.target.value })}
+                      placeholder="00.000.000/0001-00"
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Senha Inicial (Opcional)</label>
                     <input
                       type="password"
-                      required
                       minLength={6}
                       className={styles.input}
                       value={newOwnerForm.password}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, password: e.target.value })}
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Deixe em branco para gerar aleatória"
                     />
                   </div>
 
@@ -582,36 +819,44 @@ export function OwnersTab() {
                       value={newOwnerForm.planSlug}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, planSlug: e.target.value })}
                     >
-                      <option value="essencial">Essencial</option>
-                      <option value="profissional">Profissional</option>
-                      <option value="equipe">Equipe</option>
-                      <option value="negocio">Negócio</option>
+                      <option value="essencial">Essencial (até 2 prof.)</option>
+                      <option value="profissional">Profissional (até 5 prof.)</option>
+                      <option value="equipe">Equipe (até 10 prof.)</option>
+                      <option value="negocio">Negócio (até 20 prof.)</option>
+                      <option value="empresa">Empresa (até 50 prof.)</option>
+                      <option value="enterprise">Enterprise (até 100 prof.)</option>
                     </select>
                   </div>
+                </div>
 
-                  <div className={styles.formGroup} style={{ justifyContent: "center" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, marginTop: 18 }}>
-                      <input
-                        type="checkbox"
-                        checked={newOwnerForm.grantCourtesy}
-                        onChange={(e) => setNewOwnerForm({ ...newOwnerForm, grantCourtesy: e.target.checked })}
-                      />
-                      <span>Conceder como Cortesia (Sem cobrança)</span>
-                    </label>
-                  </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Condição de Acesso Inicial *</label>
+                  <select
+                    className={styles.select}
+                    value={newOwnerForm.accessType}
+                    onChange={(e) =>
+                      setNewOwnerForm({ ...newOwnerForm, accessType: e.target.value as any })
+                    }
+                  >
+                    <option value="trial">Iniciar Teste Gratuito (7 dias de degustação)</option>
+                    <option value="courtesy">Concessão Administrativa (Cortesia Sem Cobrança)</option>
+                    <option value="pending">Aguardando Contratação (Status Pendente)</option>
+                  </select>
+                </div>
 
-                  <div className={styles.formGroupFull}>
-                    <label className={styles.label}>Motivo da Criação Manual (Auditoria) *</label>
-                    <input
-                      type="text"
+                {newOwnerForm.accessType === "courtesy" && (
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Justificativa Obrigatória para Cortesia *</label>
+                    <textarea
                       required
-                      className={styles.input}
+                      rows={2}
+                      className={styles.textarea}
+                      placeholder="Ex: Parceria de marketing acordada formalmente ou migração assistida."
                       value={newOwnerForm.reason}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, reason: e.target.value })}
-                      placeholder="Ex: Parceria de marketing com influenciador"
                     />
                   </div>
-                </div>
+                )}
               </div>
 
               <div className={styles.modalFooter}>
@@ -623,7 +868,7 @@ export function OwnersTab() {
                   Cancelar
                 </button>
                 <button type="submit" className={styles.btnPrimary}>
-                  Salvar e Criar Conta
+                  Criar no MySQL
                 </button>
               </div>
             </form>
@@ -631,15 +876,217 @@ export function OwnersTab() {
         </div>
       )}
 
-      {/* Modal: Detalhes 360° do Proprietário */}
+      {/* Modal: Credenciais Criadas */}
+      {createdCredentials && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalDialog}>
+            <div className={styles.modalHeader}>
+              <h2 style={{ color: "#dcff4c", display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle2 size={18} /> Conta Criada com Sucesso!
+              </h2>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setCreatedCredentials(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <p style={{ margin: 0, fontSize: 13, color: "#a3a3a3" }}>
+                Os dados foram gravados de forma transacional no banco de dados. Compartilhe as
+                credenciais com o proprietário:
+              </p>
+
+              <div className={styles.codeBox}>
+                <div><strong>E-mail:</strong> {createdCredentials.email}</div>
+                <div><strong>Senha Temporária:</strong> {createdCredentials.temporaryPassword}</div>
+                <div><strong>URL Pública:</strong> /r/{createdCredentials.slug}</div>
+              </div>
+
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `E-mail: ${createdCredentials.email}\nSenha: ${createdCredentials.temporaryPassword}\nAcesse em: https://reservei.com.br/login`
+                  );
+                  setCopiedPass(true);
+                  setTimeout(() => setCopiedPass(false), 2000);
+                }}
+              >
+                {copiedPass ? <Check size={14} color="#dcff4c" /> : <Copy size={14} />}
+                {copiedPass ? "Copiado para a área de transferência!" : "Copiar Credenciais"}
+              </button>
+            </div>
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={() => setCreatedCredentials(null)}
+              >
+                Concluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar Proprietário */}
+      {editModalOpen && ownerToEdit && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalDialog}>
+            <div className={styles.modalHeader}>
+              <h2>Editar Proprietário & Empresa</h2>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setEditModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit}>
+              <div className={styles.modalBody}>
+                <div className={styles.formGrid}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Nome da Empresa *</label>
+                    <input
+                      type="text"
+                      required
+                      className={styles.input}
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Nicho</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={editForm.businessType}
+                      onChange={(e) => setEditForm({ ...editForm, businessType: e.target.value })}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Nome do Proprietário</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={editForm.ownerName}
+                      onChange={(e) => setEditForm({ ...editForm, ownerName: e.target.value })}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>E-mail Comercial</label>
+                    <input
+                      type="email"
+                      className={styles.input}
+                      value={editForm.email}
+                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Telefone / WhatsApp</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>CPF ou CNPJ</label>
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={editForm.cnpjOrCpf}
+                      onChange={(e) => setEditForm({ ...editForm, cnpjOrCpf: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => setEditModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className={styles.btnPrimary}>
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Suspender Empresa */}
+      {suspendModalOpen && ownerToSuspend && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalDialog}>
+            <div className={styles.modalHeader}>
+              <h2 style={{ color: "#fbbf24", display: "flex", alignItems: "center", gap: 8 }}>
+                <AlertTriangle size={18} /> Suspender Empresa: {ownerToSuspend.name}
+              </h2>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setSuspendModalOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleConfirmSuspend}>
+              <div className={styles.modalBody}>
+                <p style={{ margin: 0, fontSize: 13, color: "#a3a3a3", lineHeight: 1.5 }}>
+                  A suspensão desativa a página pública e restringe o acesso operacional do proprietário,
+                  sem apagar agendamentos ou clientes existentes. Esta ação é auditada.
+                </p>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Motivo da Suspensão *</label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Descreva o motivo administrativo desta suspensão..."
+                    value={suspendReason}
+                    onChange={(e) => setSuspendReason(e.target.value)}
+                    className={styles.textarea}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.modalFooter}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => setSuspendModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  style={{ background: "#fbbf24", color: "#0a0a0a" }}
+                >
+                  Confirmar Suspensão
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Detalhes 360° */}
       {detailsModalOpen && (
         <div className={styles.modalBackdrop}>
           <div className={`${styles.modalDialog} ${styles.modalLarge}`}>
             <div className={styles.modalHeader}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Building2 size={20} color="#818cf8" />
-                <h2>Visão 360°: {ownerDetails?.company?.name || "Carregando..."}</h2>
-              </div>
+              <h2>Visão 360°: {ownerDetails?.company?.name || "Carregando..."}</h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -650,228 +1097,162 @@ export function OwnersTab() {
             </div>
 
             <div className={styles.modalBody}>
-              {detailsLoading ? (
-                <p style={{ textAlign: "center", color: "var(--text-secondary)", padding: 40 }}>
-                  Carregando informações completas do proprietário...
-                </p>
-              ) : ownerDetails ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  {/* Section 1: Assinatura */}
+              {detailsLoading && (
+                <div style={{ padding: 40, textAlign: "center", color: "#a3a3a3" }}>
+                  Carregando informações completas...
+                </div>
+              )}
+
+              {!detailsLoading && ownerDetails && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                  {/* Company Summary */}
                   <div className={styles.detailSection}>
                     <div className={styles.detailSectionTitle}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <CreditCard size={16} color="#10b981" />
-                        Assinatura & Faturamento
-                      </span>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button
-                          type="button"
-                          className={styles.btnPrimary}
-                          style={{ padding: "6px 12px", fontSize: 12 }}
-                          onClick={() => setGrantSubModalOpen(true)}
-                        >
-                          Conceder Assinatura
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.btnDanger}
-                          style={{ padding: "6px 12px", fontSize: 12 }}
-                          onClick={() => setRevokeSubModalOpen(true)}
-                        >
-                          Revogar Assinatura
-                        </button>
-                      </div>
+                      <span>Dados Gerais & Proprietário</span>
+                      <button
+                        type="button"
+                        className={styles.btnPrimary}
+                        style={{ padding: "6px 12px", fontSize: 12 }}
+                        onClick={() => handleImpersonate(ownerDetails.company.id, ownerDetails.company.name)}
+                      >
+                        <LogIn size={13} /> Acessar Painel
+                      </button>
                     </div>
+                    <div className={styles.formGrid}>
+                      <div>
+                        <span style={{ color: "#737373", fontSize: 12 }}>Proprietário:</span>
+                        <div style={{ fontWeight: 600 }}>
+                          {ownerDetails.primaryOwner?.name || "Sem proprietário"}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                          {ownerDetails.primaryOwner?.email}
+                        </div>
+                      </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, fontSize: 13 }}>
                       <div>
-                        <span style={{ color: "var(--text-secondary)" }}>Plano Atual:</span>
-                        <div style={{ fontWeight: 600, textTransform: "capitalize" }}>
-                          {ownerDetails.subscription?.plan || "Sem plano"}
+                        <span style={{ color: "#737373", fontSize: 12 }}>Slug / URL Pública:</span>
+                        <div style={{ fontFamily: "monospace", color: "#dcff4c" }}>
+                          /r/{ownerDetails.company?.publicSlug}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                          Status: {ownerDetails.company?.publicEnabled ? "Pública Ativa" : "Desativada"}
                         </div>
                       </div>
+
                       <div>
-                        <span style={{ color: "var(--text-secondary)" }}>Status:</span>
-                        <div>
-                          <span className={`${styles.statusPill} ${ownerDetails.subscription?.status === "active" ? styles.statusActive : styles.statusTrial}`}>
-                            {ownerDetails.subscription?.status?.toUpperCase() || "TRIAL"}
-                          </span>
+                        <span style={{ color: "#737373", fontSize: 12 }}>Total de Atendimentos:</span>
+                        <div style={{ fontWeight: 600, fontSize: 16 }}>
+                          {ownerDetails.totalAppointments ?? 0}
                         </div>
                       </div>
+
                       <div>
-                        <span style={{ color: "var(--text-secondary)" }}>Origem:</span>
-                        <div style={{ fontWeight: 600 }}>
-                          {ownerDetails.subscription?.origin === "manual_courtesy"
-                            ? "Cortesia Manual"
-                            : ownerDetails.subscription?.origin === "manual_paid"
-                            ? "Manual Pago"
-                            : "Checkout Normal"}
-                        </div>
-                      </div>
-                      <div>
-                        <span style={{ color: "var(--text-secondary)" }}>Próxima Cobrança:</span>
-                        <div>
-                          {ownerDetails.subscription?.nextPaymentAt
-                            ? new Date(ownerDetails.subscription.nextPaymentAt).toLocaleDateString("pt-BR")
-                            : ownerDetails.subscription?.currentPeriodEnd
-                            ? new Date(ownerDetails.subscription.currentPeriodEnd).toLocaleDateString("pt-BR")
-                            : "N/A"}
-                        </div>
-                      </div>
-                      <div>
-                        <span style={{ color: "var(--text-secondary)" }}>Valor:</span>
-                        <div style={{ fontWeight: 600 }}>
-                          {formatCurrency(Number(ownerDetails.subscription?.finalPriceSnapshot || ownerDetails.subscription?.amount || 0))}
-                        </div>
-                      </div>
-                      <div>
-                        <span style={{ color: "var(--text-secondary)" }}>Cupom de Origem:</span>
-                        <div style={{ fontWeight: 600, color: "#818cf8" }}>
-                          {ownerDetails.originCoupon?.code || "Nenhum"}
+                        <span style={{ color: "#737373", fontSize: 12 }}>Serviços Cadastrados:</span>
+                        <div style={{ fontWeight: 600, fontSize: 16 }}>
+                          {ownerDetails.totalServices ?? 0}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Section 2: Funcionários */}
+                  {/* Subscription Details */}
                   <div className={styles.detailSection}>
                     <div className={styles.detailSectionTitle}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Users size={16} color="#6366f1" />
-                        Equipe de Colaboradores ({ownerDetails.employees?.length ?? 0})
+                      <span>Assinatura & Plano SaaS</span>
+                      <span style={{ fontSize: 12, color: "#a3a3a3" }}>
+                        Origem: {ownerDetails.subscription?.origin || "Checkout"}
                       </span>
                     </div>
 
-                    <table className={styles.dataTable}>
-                      <thead>
-                        <tr>
-                          <th>Nome</th>
-                          <th>E-mail</th>
-                          <th>Cargo</th>
-                          <th>Status</th>
-                          <th style={{ textAlign: "right" }}>Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(ownerDetails.employees || []).map((emp: any) => (
-                          <tr key={emp.id}>
-                            <td style={{ fontWeight: 600 }}>{emp.name}</td>
-                            <td>{emp.email || "—"}</td>
-                            <td>{emp.role || "Profissional"}</td>
-                            <td>
-                              <span className={`${styles.statusPill} ${emp.active ? styles.statusActive : styles.statusCancelled}`}>
-                                {emp.active ? "Ativo" : "Inativo"}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: "right" }}>
-                              <button
-                                type="button"
-                                className={styles.btnGhost}
-                                style={{ color: "#f87171" }}
-                                title="Excluir Colaborador"
-                                onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </td>
-                          </tr>
+                    <div className={styles.formGrid}>
+                      <div>
+                        <span style={{ color: "#737373", fontSize: 12 }}>Plano Atual:</span>
+                        <div style={{ fontWeight: 700, textTransform: "capitalize", color: "#ffffff" }}>
+                          {ownerDetails.subscription?.plan || "Trial"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{ color: "#737373", fontSize: 12 }}>Status:</span>
+                        <div style={{ marginTop: 4 }}>
+                          {renderStatusBadge(ownerDetails.subscription || {})}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{ color: "#737373", fontSize: 12 }}>Limite de Funcionários:</span>
+                        <div style={{ fontWeight: 600 }}>
+                          {ownerDetails.plan?.employeeLimit || 2} funcionários
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{ color: "#737373", fontSize: 12 }}>Fim do Teste / Próxima Cobrança:</span>
+                        <div style={{ fontSize: 13 }}>
+                          {ownerDetails.subscription?.trialEndsAt
+                            ? new Date(ownerDetails.subscription.trialEndsAt).toLocaleDateString("pt-BR")
+                            : "—"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Employees & Clients List */}
+                  <div className={styles.formGrid}>
+                    <div className={styles.detailSection}>
+                      <div className={styles.detailSectionTitle}>
+                        <span>Funcionários ({ownerDetails.employees?.length ?? 0})</span>
+                      </div>
+                      <div style={{ maxHeight: 150, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+                        {ownerDetails.employees?.map((e: any) => (
+                          <div key={e.id} style={{ fontSize: 12, display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1f1f1f" }}>
+                            <span>{e.name}</span>
+                            <span style={{ color: "#737373" }}>{e.jobTitle || "Profissional"}</span>
+                          </div>
                         ))}
                         {(!ownerDetails.employees || ownerDetails.employees.length === 0) && (
-                          <tr>
-                            <td colSpan={5} style={{ textAlign: "center", color: "var(--text-secondary)", padding: 14 }}>
-                              Nenhum funcionário cadastrado.
-                            </td>
-                          </tr>
+                          <div style={{ color: "#737373", fontSize: 12 }}>Nenhum profissional cadastrado.</div>
                         )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Section 3: Clientes */}
-                  <div className={styles.detailSection}>
-                    <div className={styles.detailSectionTitle}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Users size={16} color="#fbbf24" />
-                        Clientes Cadastrados ({ownerDetails.clients?.length ?? 0})
-                      </span>
+                      </div>
                     </div>
 
-                    <table className={styles.dataTable}>
-                      <thead>
-                        <tr>
-                          <th>Nome</th>
-                          <th>E-mail</th>
-                          <th>Telefone</th>
-                          <th>Cadastrado em</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(ownerDetails.clients || []).slice(0, 5).map((cli: any) => (
-                          <tr key={cli.id}>
-                            <td style={{ fontWeight: 600 }}>{cli.name}</td>
-                            <td>{cli.email || "—"}</td>
-                            <td>{cli.phone || "—"}</td>
-                            <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                              {new Date(cli.createdAt).toLocaleDateString("pt-BR")}
-                            </td>
-                          </tr>
+                    <div className={styles.detailSection}>
+                      <div className={styles.detailSectionTitle}>
+                        <span>Clientes Vinculados ({ownerDetails.clients?.length ?? 0})</span>
+                      </div>
+                      <div style={{ maxHeight: 150, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+                        {ownerDetails.clients?.slice(0, 10).map((c: any) => (
+                          <div key={c.id} style={{ fontSize: 12, display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1f1f1f" }}>
+                            <span>{c.name}</span>
+                            <span style={{ color: "#737373" }}>{c.phone || c.email || "—"}</span>
+                          </div>
                         ))}
                         {(!ownerDetails.clients || ownerDetails.clients.length === 0) && (
-                          <tr>
-                            <td colSpan={4} style={{ textAlign: "center", color: "var(--text-secondary)", padding: 14 }}>
-                              Nenhum cliente cadastrado.
-                            </td>
-                          </tr>
+                          <div style={{ color: "#737373", fontSize: 12 }}>Nenhum cliente cadastrado.</div>
                         )}
-                      </tbody>
-                    </table>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Section 4: Auditoria Recente */}
+                  {/* Audit Logs */}
                   <div className={styles.detailSection}>
                     <div className={styles.detailSectionTitle}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Clock size={16} color="#f87171" />
-                        Histórico Administrativo Desta Conta
-                      </span>
+                      <span>Histórico de Auditoria Administrativa</span>
                     </div>
-
-                    <table className={styles.dataTable}>
-                      <thead>
-                        <tr>
-                          <th>Data / Hora</th>
-                          <th>Admin</th>
-                          <th>Ação</th>
-                          <th>Motivo</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(ownerDetails.auditLogs || []).map((log: any) => (
-                          <tr key={log.id}>
-                            <td style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                              {new Date(log.createdAt).toLocaleString("pt-BR")}
-                            </td>
-                            <td>{log.adminEmail}</td>
-                            <td>
-                              <span className={`${styles.statusPill} ${styles.statusTrial}`}>
-                                {log.action}
-                              </span>
-                            </td>
-                            <td style={{ fontSize: 12 }}>{log.reason || "—"}</td>
-                          </tr>
-                        ))}
-                        {(!ownerDetails.auditLogs || ownerDetails.auditLogs.length === 0) && (
-                          <tr>
-                            <td colSpan={4} style={{ textAlign: "center", color: "var(--text-secondary)", padding: 14 }}>
-                              Nenhum registro de auditoria para esta empresa.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                    <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                      {ownerDetails.auditLogs?.map((log: any) => (
+                        <div key={log.id} style={{ fontSize: 11.5, padding: "6px 8px", background: "#0f0f0f", borderRadius: 6, border: "1px solid #222222" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <strong style={{ color: "#dcff4c" }}>{log.action}</strong>
+                            <span style={{ color: "#737373" }}>{new Date(log.createdAt).toLocaleString("pt-BR")}</span>
+                          </div>
+                          <div style={{ color: "#a3a3a3", marginTop: 2 }}>{log.reason || "Sem motivo registrado"}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ) : null}
+              )}
             </div>
 
             <div className={styles.modalFooter}>
@@ -887,167 +1268,15 @@ export function OwnersTab() {
         </div>
       )}
 
-      {/* Modal: Conceder Assinatura Manual */}
-      {grantSubModalOpen && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalDialog}>
-            <div className={styles.modalHeader}>
-              <h2>Conceder Assinatura Manualmente</h2>
-              <button
-                type="button"
-                className={styles.btnGhost}
-                onClick={() => setGrantSubModalOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleGrantSubscription}>
-              <div className={styles.modalBody}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Plano *</label>
-                  <select
-                    className={styles.select}
-                    value={grantForm.plan}
-                    onChange={(e) => setGrantForm({ ...grantForm, plan: e.target.value })}
-                  >
-                    <option value="essencial">Essencial</option>
-                    <option value="profissional">Profissional</option>
-                    <option value="equipe">Equipe</option>
-                    <option value="negocio">Negócio</option>
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Tipo de Concessão</label>
-                  <select
-                    className={styles.select}
-                    value={grantForm.isCourtesy ? "courtesy" : "paid"}
-                    onChange={(e) => setGrantForm({ ...grantForm, isCourtesy: e.target.value === "courtesy" })}
-                  >
-                    <option value="courtesy">Cortesia (100% Gratuito)</option>
-                    <option value="paid">Cobrança Futura via Fatura</option>
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Periodicidade</label>
-                  <select
-                    className={styles.select}
-                    value={grantForm.billingInterval}
-                    onChange={(e) => setGrantForm({ ...grantForm, billingInterval: e.target.value })}
-                  >
-                    <option value="monthly">Mensal</option>
-                    <option value="yearly">Anual</option>
-                  </select>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Validade (Dias a partir de hoje)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={3650}
-                    className={styles.input}
-                    value={grantForm.durationDays}
-                    onChange={(e) => setGrantForm({ ...grantForm, durationDays: parseInt(e.target.value, 10) || 30 })}
-                  />
-                </div>
-
-                <div className={styles.formGroupFull}>
-                  <label className={styles.label}>Motivo Obrigatório da Concessão (Auditoria) *</label>
-                  <textarea
-                    required
-                    className={styles.textarea}
-                    value={grantForm.reason}
-                    onChange={(e) => setGrantForm({ ...grantForm, reason: e.target.value })}
-                    placeholder="Descreva detalhadamente o motivo da concessão (ex: cortesia acordada com parceiro comercial, resolução de chamado #1234)"
-                  />
-                </div>
-              </div>
-
-              <div className={styles.modalFooter}>
-                <button
-                  type="button"
-                  className={styles.btnSecondary}
-                  onClick={() => setGrantSubModalOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className={styles.btnPrimary}>
-                  Confirmar Concessão
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Revogar Assinatura */}
-      {revokeSubModalOpen && (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalDialog}>
-            <div className={styles.modalHeader}>
-              <h2 style={{ color: "#f87171" }}>Revogar Assinatura</h2>
-              <button
-                type="button"
-                className={styles.btnGhost}
-                onClick={() => setRevokeSubModalOpen(false)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleRevokeSubscription}>
-              <div className={styles.modalBody}>
-                <div className={styles.formGroup}>
-                  <label className={styles.label}>Momento do Cancelamento</label>
-                  <select
-                    className={styles.select}
-                    value={revokeForm.immediate ? "immediate" : "period_end"}
-                    onChange={(e) => setRevokeForm({ ...revokeForm, immediate: e.target.value === "immediate" })}
-                  >
-                    <option value="immediate">Cancelar Imediatamente (Bloqueio agora)</option>
-                    <option value="period_end">Agendar para o Fim do Ciclo Atual</option>
-                  </select>
-                </div>
-
-                <div className={styles.formGroupFull}>
-                  <label className={styles.label}>Motivo Obrigatório da Revogação (Auditoria) *</label>
-                  <textarea
-                    required
-                    className={styles.textarea}
-                    value={revokeForm.reason}
-                    onChange={(e) => setRevokeForm({ ...revokeForm, reason: e.target.value })}
-                    placeholder="Descreva detalhadamente o motivo da revogação..."
-                  />
-                </div>
-              </div>
-
-              <div className={styles.modalFooter}>
-                <button
-                  type="button"
-                  className={styles.btnSecondary}
-                  onClick={() => setRevokeSubModalOpen(false)}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className={styles.btnDanger}>
-                  Confirmar Revogação
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Exclusão de Proprietário (Soft Delete vs Hard Delete LGPD) */}
+      {/* Modal: Excluir Proprietário / Empresa */}
       {deleteOwnerModalOpen && ownerToDelete && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modalDialog}>
             <div className={styles.modalHeader}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ShieldAlert size={20} color="#f87171" />
-                <h2 style={{ color: "#f87171" }}>Excluir Proprietário: {ownerToDelete.name}</h2>
-              </div>
+              <h2 style={{ color: "#f87171", display: "flex", alignItems: "center", gap: 8 }}>
+                <Trash2 size={18} />
+                Excluir: {ownerToDelete.name}
+              </h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -1056,59 +1285,49 @@ export function OwnersTab() {
                 <X size={18} />
               </button>
             </div>
-
             <div className={styles.modalBody}>
-              <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                <button
-                  type="button"
-                  className={deleteMode === "soft" ? styles.btnPrimary : styles.btnSecondary}
-                  style={{ flex: 1 }}
-                  onClick={() => setDeleteMode("soft")}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Tipo de Exclusão</label>
+                <select
+                  value={deleteMode}
+                  onChange={(e) => setDeleteMode(e.target.value as any)}
+                  className={styles.select}
                 >
-                  Soft Delete (Recomendado)
-                </button>
-                <button
-                  type="button"
-                  className={deleteMode === "hard" ? styles.btnDanger : styles.btnSecondary}
-                  style={{ flex: 1 }}
-                  onClick={() => setDeleteMode("hard")}
-                >
-                  Exclusão Definitiva (LGPD)
-                </button>
+                  <option value="soft">Soft Delete (Recomendado — Desativação segura com retenção de histórico)</option>
+                  <option value="hard">Hard Delete (Exclusão Definitiva no MySQL com cascata)</option>
+                </select>
               </div>
 
-              {deleteMode === "soft" ? (
-                <div style={{ background: "rgba(99, 102, 241, 0.08)", padding: 16, borderRadius: 8, fontSize: 13 }}>
-                  <p style={{ fontWeight: 600, color: "#818cf8", marginBottom: 6 }}>
-                    O que acontece no Soft Delete:
+              {deleteMode === "hard" && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: 14, borderRadius: 8 }}>
+                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                    ⚠️ ATENÇÃO: Esta ação é irreversível!
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#fca5a5", lineHeight: 1.4 }}>
+                    Para prosseguir com a exclusão física definitiva no banco de dados, digite exatamente o nome da empresa abaixo:
                   </p>
-                  <ul style={{ paddingLeft: 18, margin: 0, color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: 4 }}>
-                    <li>Bloqueia o login imediatamente para o proprietário e equipe.</li>
-                    <li>Interrompe cobranças recorrentes no gateway.</li>
-                    <li>Preserva o histórico fiscal, relatórios e auditoria no banco.</li>
-                  </ul>
-                </div>
-              ) : (
-                <div style={{ background: "rgba(239, 68, 68, 0.08)", padding: 16, borderRadius: 8, fontSize: 13 }}>
-                  <p style={{ fontWeight: 700, color: "#f87171", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                    <AlertTriangle size={16} /> Ação Irreversível de Exclusão Física (LGPD)
-                  </p>
-                  <p style={{ color: "var(--text-secondary)", marginBottom: 12 }}>
-                    Todos os dados da empresa, colaboradores, serviços e agendamentos serão excluídos definitivamente do MySQL.
-                  </p>
-                  <label className={styles.label} style={{ color: "#f87171" }}>
-                    Para confirmar, digite exatamente o nome da empresa abaixo:
-                  </label>
-                  <input
-                    type="text"
-                    className={styles.input}
-                    style={{ borderColor: "#f87171", marginTop: 6 }}
-                    placeholder={ownerToDelete.name}
-                    value={confirmationName}
-                    onChange={(e) => setConfirmationName(e.target.value)}
-                  />
+                  <div style={{ marginTop: 10 }}>
+                    <input
+                      type="text"
+                      placeholder={ownerToDelete.name}
+                      value={confirmationName}
+                      onChange={(e) => setConfirmationName(e.target.value)}
+                      className={styles.input}
+                      style={{ borderColor: "#ef4444" }}
+                    />
+                  </div>
                 </div>
               )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Motivo para Auditoria *</label>
+                <textarea
+                  rows={2}
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className={styles.textarea}
+                />
+              </div>
             </div>
 
             <div className={styles.modalFooter}>
@@ -1121,11 +1340,10 @@ export function OwnersTab() {
               </button>
               <button
                 type="button"
-                className={deleteMode === "hard" ? styles.btnDanger : styles.btnPrimary}
+                className={styles.btnDanger}
                 onClick={handleExecuteDeleteOwner}
-                disabled={deleteMode === "hard" && confirmationName.trim() !== ownerToDelete.name.trim()}
               >
-                {deleteMode === "hard" ? "Excluir Definitivamente" : "Desativar Proprietário"}
+                {deleteMode === "hard" ? "Excluir Definitivamente" : "Desativar (Soft Delete)"}
               </button>
             </div>
           </div>

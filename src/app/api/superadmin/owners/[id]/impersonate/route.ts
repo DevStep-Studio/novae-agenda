@@ -20,7 +20,9 @@ export async function POST(
     const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!company) return Response.json({ error: "Empresa não encontrada." }, { status: 404 });
 
-    // Find the owner user
+    // Find the owner user via memberships first, then direct companyId
+    let ownerUser: { userId: string; userName: string; userEmail: string } | null = null;
+
     const [membership] = await db
       .select({
         userId: companyMemberships.userId,
@@ -32,8 +34,23 @@ export async function POST(
       .where(and(eq(companyMemberships.companyId, companyId), eq(companyMemberships.role, "owner")))
       .limit(1);
 
-    if (!membership) {
-      return Response.json({ error: "Proprietário não encontrado para esta empresa." }, { status: 404 });
+    if (membership) {
+      ownerUser = membership;
+    } else {
+      const [direct] = await db
+        .select({
+          userId: users.id,
+          userName: users.name,
+          userEmail: users.email,
+        })
+        .from(users)
+        .where(and(eq(users.companyId, companyId), eq(users.role, "owner")))
+        .limit(1);
+      if (direct) ownerUser = direct;
+    }
+
+    if (!ownerUser) {
+      return Response.json({ error: "Nenhum proprietário associado a esta empresa." }, { status: 404 });
     }
 
     // Log the impersonation action before creating session
@@ -44,21 +61,24 @@ export async function POST(
       entity: "company",
       entityId: companyId,
       entityName: company.name,
-      reason: `Acesso de suporte à conta de ${membership.userName} (${membership.userEmail})`,
+      reason: `Acesso de suporte administrativo à conta de ${ownerUser.userName} (${ownerUser.userEmail})`,
       afterState: {
-        impersonatedUserId: membership.userId,
-        impersonatedUserEmail: membership.userEmail,
+        impersonatedUserId: ownerUser.userId,
+        impersonatedUserEmail: ownerUser.userEmail,
         companyId,
       },
       request,
     });
 
     // Create session cookie for the owner
-    await createSession(membership.userId);
+    await createSession(ownerUser.userId);
 
     return Response.json({
       success: true,
-      message: `Sessão iniciada como ${membership.userName}. Redirecionando...`,
+      message: `Sessão iniciada como ${ownerUser.userName}. Redirecionando...`,
+      data: {
+        redirectUrl: "/gestao",
+      },
       redirectUrl: "/gestao",
     });
   } catch (error: any) {

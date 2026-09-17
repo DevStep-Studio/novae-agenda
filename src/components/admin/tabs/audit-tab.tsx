@@ -31,18 +31,18 @@ export function AuditTab() {
         page: String(page),
         limit: "20",
       });
-      if (search) params.set("search", search);
+      if (search.trim()) params.set("search", search.trim());
       if (actionFilter) params.set("action", actionFilter);
 
       const res = await fetch(`/api/superadmin/audit-logs?${params.toString()}`);
       const json = await res.json();
       if (json.data) {
         setLogs(json.data);
-        setTotalPages(json.pagination.totalPages || 1);
-        setTotalCount(json.pagination.total || 0);
+        setTotalPages(json.pagination?.totalPages || 1);
+        setTotalCount(json.pagination?.total || 0);
       }
     } catch (err) {
-      console.error("Error loading audit logs:", err);
+      console.error("Erro ao carregar logs de auditoria:", err);
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export function AuditTab() {
   useEffect(() => {
     const timer = setTimeout(() => {
       void loadLogs();
-    }, 200);
+    }, 250);
     return () => clearTimeout(timer);
   }, [loadLogs]);
 
@@ -69,7 +69,7 @@ export function AuditTab() {
             }}
             placeholder="Buscar por e-mail, motivo ou alvo..."
             className={styles.searchInput}
-            style={{ width: 300 }}
+            style={{ width: 320 }}
           />
 
           <select
@@ -81,58 +81,78 @@ export function AuditTab() {
             className={styles.filterSelect}
           >
             <option value="">Todas as Ações</option>
-            <option value="OWNER_CREATE">OWNER_CREATE</option>
-            <option value="OWNER_UPDATE">OWNER_UPDATE</option>
-            <option value="OWNER_SOFT_DELETE">OWNER_SOFT_DELETE</option>
-            <option value="OWNER_HARD_DELETE">OWNER_HARD_DELETE</option>
-            <option value="SUBSCRIPTION_GRANT">SUBSCRIPTION_GRANT</option>
-            <option value="SUBSCRIPTION_REVOKE">SUBSCRIPTION_REVOKE</option>
-            <option value="EMPLOYEE_DELETE">EMPLOYEE_DELETE</option>
-            <option value="CLIENT_UPDATE">CLIENT_UPDATE</option>
-            <option value="CLIENT_SOFT_DELETE">CLIENT_SOFT_DELETE</option>
-            <option value="COUPON_CREATE">COUPON_CREATE</option>
-            <option value="OWNER_IMPERSONATE">OWNER_IMPERSONATE</option>
+            <option value="CREATE_OWNER_MANUAL">CREATE_OWNER_MANUAL</option>
+            <option value="UPDATE_OWNER">UPDATE_OWNER</option>
+            <option value="SUSPEND_COMPANY">SUSPEND_COMPANY</option>
+            <option value="REACTIVATE_COMPANY">REACTIVATE_COMPANY</option>
+            <option value="SOFT_DELETE_OWNER">SOFT_DELETE_OWNER</option>
+            <option value="HARD_DELETE_OWNER">HARD_DELETE_OWNER</option>
+            <option value="GRANT_SUBSCRIPTION_MANUAL">GRANT_SUBSCRIPTION_MANUAL</option>
+            <option value="REVOKE_SUBSCRIPTION_IMMEDIATELY">REVOKE_SUBSCRIPTION_IMMEDIATELY</option>
+            <option value="IMPERSONATE_OWNER">IMPERSONATE_OWNER</option>
+            <option value="DELETE_EMPLOYEE">DELETE_EMPLOYEE</option>
+            <option value="SOFT_DELETE_CLIENT">SOFT_DELETE_CLIENT</option>
           </select>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table Desktop */}
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
           <thead>
             <tr>
-              <th>Data / Hora</th>
+              <th>Data e Hora</th>
               <th>Administrador</th>
               <th>Ação</th>
-              <th>Entidade / Alvo</th>
-              <th>Motivo Registrado</th>
+              <th>Entidade Afetada</th>
+              <th>Motivo / Justificativa</th>
               <th style={{ textAlign: "right" }}>Detalhes</th>
             </tr>
           </thead>
           <tbody>
             {logs.map((log) => (
               <tr key={log.id}>
-                <td style={{ fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                  {new Date(log.createdAt).toLocaleString("pt-BR")}
-                </td>
-                <td style={{ fontWeight: 600 }}>{log.adminEmail}</td>
                 <td>
-                  <span className={`${styles.statusPill} ${styles.statusTrial}`}>
+                  <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                    <Clock size={13} color="#dcff4c" />
+                    <span>{new Date(log.createdAt).toLocaleString("pt-BR")}</span>
+                  </div>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600, color: "#ffffff" }}>{log.adminEmail}</div>
+                </td>
+                <td>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "2px 8px",
+                      borderRadius: 4,
+                      background: "#1c1e24",
+                      color: "#dcff4c",
+                      fontFamily: "monospace",
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
                     {log.action}
                   </span>
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{log.entityName || "—"}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{log.entity}</div>
+                  <div style={{ fontSize: 11, color: "#a3a3a3", textTransform: "capitalize" }}>
+                    Tipo: {log.entity}
+                  </div>
                 </td>
-                <td style={{ fontSize: 12, maxWidth: 300 }}>
-                  {log.reason || "—"}
+                <td>
+                  <div style={{ fontSize: 12, color: "#f5f5f5", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {log.reason || "—"}
+                  </div>
                 </td>
                 <td style={{ textAlign: "right" }}>
                   <button
                     type="button"
                     className={styles.btnGhost}
-                    title="Inspecionar Diferenças (Antes / Depois)"
+                    title="Inspecionar Carga do Evento"
                     onClick={() => setSelectedLog(log)}
                   >
                     <Eye size={15} />
@@ -142,15 +162,15 @@ export function AuditTab() {
             ))}
             {!loading && logs.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
+                <td colSpan={6} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
                   Nenhum registro de auditoria encontrado.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
-                  Carregando trilha de auditoria...
+                <td colSpan={6} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                  Carregando registros de auditoria do MySQL...
                 </td>
               </tr>
             )}
@@ -160,7 +180,7 @@ export function AuditTab() {
         {/* Pagination */}
         <div className={styles.pagination}>
           <span>
-            Mostrando {logs.length} de {totalCount} registros de auditoria
+            Mostrando {logs.length} de {totalCount} eventos auditados
           </span>
           <div className={styles.paginationBtns}>
             <button
@@ -186,15 +206,65 @@ export function AuditTab() {
         </div>
       </div>
 
-      {/* Log Inspection Modal */}
+      {/* Mobile Cards List */}
+      <div className={styles.mobileCardsList}>
+        {logs.map((log) => (
+          <div key={log.id} className={styles.mobileCard}>
+            <div className={styles.mobileCardHeader}>
+              <div>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    borderRadius: 4,
+                    background: "#1c1e24",
+                    color: "#dcff4c",
+                    fontFamily: "monospace",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    marginBottom: 4,
+                  }}
+                >
+                  {log.action}
+                </span>
+                <div style={{ fontWeight: 600, color: "#ffffff", fontSize: 13 }}>
+                  {log.entityName || log.entity}
+                </div>
+              </div>
+              <span style={{ fontSize: 11, color: "#737373" }}>
+                {new Date(log.createdAt).toLocaleDateString("pt-BR")}
+              </span>
+            </div>
+
+            <div className={styles.mobileCardBody}>
+              <div>
+                <span style={{ color: "#737373" }}>Autor:</span> {log.adminEmail}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Motivo:</span> {log.reason || "—"}
+              </div>
+            </div>
+
+            <div className={styles.mobileCardActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => setSelectedLog(log)}
+              >
+                <Eye size={14} /> Inspecionar Evento
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal: Inspeção de Evento */}
       {selectedLog && (
         <div className={styles.modalBackdrop}>
           <div className={`${styles.modalDialog} ${styles.modalLarge}`}>
             <div className={styles.modalHeader}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Shield size={18} color="#818cf8" />
-                <h2>Auditoria: {selectedLog.action} em {selectedLog.entityName || selectedLog.entity}</h2>
-              </div>
+              <h2>Detalhes do Evento de Auditoria</h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -203,46 +273,62 @@ export function AuditTab() {
                 <X size={18} />
               </button>
             </div>
-
             <div className={styles.modalBody}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13, background: "rgba(255,255,255,0.03)", padding: 14, borderRadius: 8 }}>
+              <div className={styles.formGrid}>
                 <div>
-                  <span style={{ color: "var(--text-secondary)" }}>Admin:</span> <strong>{selectedLog.adminEmail}</strong>
+                  <span style={{ color: "#737373", fontSize: 12 }}>Ação:</span>
+                  <div style={{ fontWeight: 700, color: "#dcff4c", fontFamily: "monospace" }}>
+                    {selectedLog.action}
+                  </div>
                 </div>
                 <div>
-                  <span style={{ color: "var(--text-secondary)" }}>Data:</span> <strong>{new Date(selectedLog.createdAt).toLocaleString("pt-BR")}</strong>
+                  <span style={{ color: "#737373", fontSize: 12 }}>Data e Hora:</span>
+                  <div>{new Date(selectedLog.createdAt).toLocaleString("pt-BR")}</div>
                 </div>
                 <div>
-                  <span style={{ color: "var(--text-secondary)" }}>Entidade ID:</span> <code>{selectedLog.entityId || "N/A"}</code>
+                  <span style={{ color: "#737373", fontSize: 12 }}>Administrador:</span>
+                  <div>{selectedLog.adminEmail}</div>
                 </div>
                 <div>
-                  <span style={{ color: "var(--text-secondary)" }}>Endereço IP:</span> <code>{selectedLog.ipAddress || "Interno"}</code>
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <span style={{ color: "var(--text-secondary)" }}>Motivo Registrado:</span>
-                  <div style={{ marginTop: 4, fontStyle: "italic" }}>{selectedLog.reason || "Sem motivo informado."}</div>
+                  <span style={{ color: "#737373", fontSize: 12 }}>Entidade Afetada:</span>
+                  <div>{selectedLog.entityName} ({selectedLog.entity})</div>
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#f87171", marginBottom: 6 }}>
-                    Estado Anterior (Antes)
-                  </div>
-                  <pre className={styles.codeBox}>
-                    {JSON.stringify(selectedLog.beforeState, null, 2) || "null"}
-                  </pre>
+              {selectedLog.reason && (
+                <div style={{ background: "#171717", padding: 12, borderRadius: 8, border: "1px solid #262626" }}>
+                  <span style={{ color: "#a3a3a3", fontSize: 12, fontWeight: 700 }}>Motivo Registrado:</span>
+                  <p style={{ margin: "4px 0 0 0", fontSize: 13, color: "#f5f5f5" }}>
+                    {selectedLog.reason}
+                  </p>
                 </div>
+              )}
 
+              {selectedLog.afterState && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#10b981", marginBottom: 6 }}>
-                    Estado Posterior (Depois)
+                  <span style={{ color: "#a3a3a3", fontSize: 12, fontWeight: 700 }}>
+                    Estado Posterior (Payload Auditado):
+                  </span>
+                  <div className={styles.codeBox} style={{ marginTop: 6 }}>
+                    <pre style={{ margin: 0 }}>
+                      {JSON.stringify(selectedLog.afterState, null, 2)}
+                    </pre>
                   </div>
-                  <pre className={styles.codeBox}>
-                    {JSON.stringify(selectedLog.afterState, null, 2) || "null"}
-                  </pre>
                 </div>
-              </div>
+              )}
+
+              {selectedLog.beforeState && (
+                <div>
+                  <span style={{ color: "#a3a3a3", fontSize: 12, fontWeight: 700 }}>
+                    Estado Anterior:
+                  </span>
+                  <div className={styles.codeBox} style={{ marginTop: 6 }}>
+                    <pre style={{ margin: 0 }}>
+                      {JSON.stringify(selectedLog.beforeState, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className={styles.modalFooter}>

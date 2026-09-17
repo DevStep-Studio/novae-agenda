@@ -11,6 +11,8 @@ import {
   Percent,
   DollarSign,
   UserCheck,
+  Ban,
+  RotateCcw,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/client-utils";
 import styles from "../admin-dashboard.module.css";
@@ -55,14 +57,21 @@ export function CouponsTab() {
         setCoupons(json.data);
       }
     } catch (err) {
-      console.error("Error loading coupons:", err);
+      console.error("Erro ao carregar cupons:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadCoupons();
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) void loadCoupons();
+    }, 0);
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
   }, [loadCoupons]);
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
@@ -102,6 +111,23 @@ export function CouponsTab() {
     }
   };
 
+  const handleToggleActive = async (coupon: any) => {
+    try {
+      const res = await fetch(`/api/superadmin/saas-coupons/${coupon.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !coupon.isActive }),
+      });
+      if (!res.ok) {
+        alert("Erro ao alterar status do cupom.");
+        return;
+      }
+      void loadCoupons();
+    } catch (err: any) {
+      alert("Erro: " + err.message);
+    }
+  };
+
   const handleTriggerExport = () => {
     const params = new URLSearchParams();
     if (exportForm.couponId) params.set("couponId", exportForm.couponId);
@@ -117,9 +143,9 @@ export function CouponsTab() {
       {/* Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-            <Ticket size={18} color="#818cf8" />
-            Cupons & Parcerias com Influenciadores
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, display: "flex", alignItems: "center", gap: 8, color: "#ffffff" }}>
+            <Ticket size={18} color="#dcff4c" />
+            Cupons SaaS & Afiliados / Influenciadores
           </h2>
         </div>
 
@@ -130,7 +156,7 @@ export function CouponsTab() {
             onClick={() => setExportModalOpen(true)}
           >
             <Download size={15} />
-            Exportar CSV de Resgates
+            Exportar CSV
           </button>
           <button
             type="button"
@@ -138,12 +164,12 @@ export function CouponsTab() {
             onClick={() => setCreateModalOpen(true)}
           >
             <Plus size={15} />
-            Novo Cupom de Influenciador
+            + Novo Cupom
           </button>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table Desktop */}
       <div className={styles.tableWrapper}>
         <table className={styles.dataTable}>
           <thead>
@@ -153,21 +179,22 @@ export function CouponsTab() {
               <th>Desconto</th>
               <th>Comissão</th>
               <th>Resgates</th>
-              <th>Conversão em Pagamento</th>
+              <th>Conversão</th>
               <th>Receita Gerada</th>
               <th>Status</th>
+              <th style={{ textAlign: "right" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {coupons.map((c) => (
               <tr key={c.id}>
                 <td>
-                  <div style={{ fontWeight: 700, color: "#818cf8", fontSize: 14 }}>{c.code}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{c.name}</div>
+                  <div style={{ fontWeight: 700, color: "#dcff4c", fontSize: 14 }}>{c.code}</div>
+                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>{c.name}</div>
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{c.influencerName || "—"}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>
                     {c.influencerContact || "Sem contato informado"}
                   </div>
                 </td>
@@ -175,7 +202,7 @@ export function CouponsTab() {
                   <div style={{ fontWeight: 600 }}>
                     {c.discountType === "PERCENTAGE" ? `${c.discountValue}% OFF` : `R$ ${c.discountValue} OFF`}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  <div style={{ fontSize: 11, color: "#a3a3a3" }}>
                     {c.durationType === "FOREVER"
                       ? "Vitalício"
                       : c.durationType === "LIMITED_CYCLES"
@@ -189,12 +216,12 @@ export function CouponsTab() {
                   ) : c.commissionType === "FIXED" ? (
                     <span style={{ color: "#fbbf24", fontWeight: 600 }}>R$ {c.commissionValue} por venda</span>
                   ) : (
-                    <span style={{ color: "var(--text-secondary)" }}>Sem comissão</span>
+                    <span style={{ color: "#a3a3a3" }}>Sem comissão</span>
                   )}
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{c.totalUses} resgates</div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  <div style={{ fontSize: 11, color: "#a3a3a3" }}>
                     {c.maxRedemptions ? `Limite: ${c.maxRedemptions}` : "Sem limite"}
                   </div>
                 </td>
@@ -203,7 +230,7 @@ export function CouponsTab() {
                     <span className={`${styles.statusPill} ${styles.statusActive}`}>
                       {c.conversionRate}% taxa
                     </span>
-                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    <span style={{ fontSize: 12, color: "#a3a3a3" }}>
                       ({c.convertedUses} assinantes)
                     </span>
                   </div>
@@ -212,7 +239,7 @@ export function CouponsTab() {
                   <div style={{ fontWeight: 600, color: "#10b981" }}>
                     {formatCurrency(c.totalRevenueGenerated)}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  <div style={{ fontSize: 11, color: "#a3a3a3" }}>
                     Desconto: {formatCurrency(c.totalDiscountGiven)}
                   </div>
                 </td>
@@ -221,19 +248,30 @@ export function CouponsTab() {
                     {c.isActive ? "Ativo" : "Inativo"}
                   </span>
                 </td>
+                <td style={{ textAlign: "right" }}>
+                  <button
+                    type="button"
+                    className={styles.btnGhost}
+                    title={c.isActive ? "Desativar cupom" : "Ativar cupom"}
+                    style={{ color: c.isActive ? "#f87171" : "#10b981" }}
+                    onClick={() => void handleToggleActive(c)}
+                  >
+                    {c.isActive ? <Ban size={15} /> : <RotateCcw size={15} />}
+                  </button>
+                </td>
               </tr>
             ))}
             {!loading && coupons.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
-                  Nenhum cupom cadastrado.
+                <td colSpan={9} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                  Nenhum cupom SaaS cadastrado.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "var(--text-secondary)" }}>
-                  Carregando cupons...
+                <td colSpan={9} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                  Carregando cupons do MySQL...
                 </td>
               </tr>
             )}
@@ -241,12 +279,57 @@ export function CouponsTab() {
         </table>
       </div>
 
+      {/* Mobile Cards List */}
+      <div className={styles.mobileCardsList}>
+        {coupons.map((c) => (
+          <div key={c.id} className={styles.mobileCard}>
+            <div className={styles.mobileCardHeader}>
+              <div>
+                <div style={{ fontWeight: 700, color: "#dcff4c", fontSize: 14 }}>{c.code}</div>
+                <div style={{ fontSize: 12, color: "#a3a3a3" }}>{c.name}</div>
+              </div>
+              <span className={`${styles.statusPill} ${c.isActive ? styles.statusActive : styles.statusCancelled}`}>
+                {c.isActive ? "Ativo" : "Inativo"}
+              </span>
+            </div>
+
+            <div className={styles.mobileCardBody}>
+              <div>
+                <span style={{ color: "#737373" }}>Influenciador:</span> {c.influencerName || "—"}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Desconto:</span>{" "}
+                {c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `R$ ${c.discountValue}`}
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Resgates:</span> {c.totalUses} ({c.convertedUses} pagos)
+              </div>
+              <div>
+                <span style={{ color: "#737373" }}>Receita:</span>{" "}
+                <strong style={{ color: "#10b981" }}>{formatCurrency(c.totalRevenueGenerated)}</strong>
+              </div>
+            </div>
+
+            <div className={styles.mobileCardActions}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                style={{ width: "100%", justifyContent: "center" }}
+                onClick={() => void handleToggleActive(c)}
+              >
+                {c.isActive ? "Desativar Cupom" : "Ativar Cupom"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Modal: Novo Cupom */}
       {createModalOpen && (
         <div className={styles.modalBackdrop}>
           <div className={styles.modalDialog}>
             <div className={styles.modalHeader}>
-              <h2>Novo Cupom de Influenciador</h2>
+              <h2>Novo Cupom de Assinatura SaaS</h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -263,44 +346,55 @@ export function CouponsTab() {
                     <input
                       type="text"
                       required
-                      placeholder="Ex: MOA10"
                       className={styles.input}
+                      placeholder="Ex: VIP50, YOUTUBE30"
                       value={newCouponForm.code}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, code: e.target.value.toUpperCase() })}
+                      onChange={(e) =>
+                        setNewCouponForm({
+                          ...newCouponForm,
+                          code: e.target.value.toUpperCase().replace(/\s+/g, ""),
+                        })
+                      }
                     />
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Nome Identificador *</label>
+                    <label className={styles.label}>Nome Interno / Campanha *</label>
                     <input
                       type="text"
                       required
-                      placeholder="Ex: Parceria Moa Barbearia"
                       className={styles.input}
+                      placeholder="Ex: Parceria Podcast Barbearia"
                       value={newCouponForm.name}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, name: e.target.value })}
+                      onChange={(e) =>
+                        setNewCouponForm({ ...newCouponForm, name: e.target.value })
+                      }
                     />
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Nome do Influenciador</label>
+                    <label className={styles.label}>Nome do Influenciador / Parceiro</label>
                     <input
                       type="text"
-                      placeholder="Ex: Moa Ferreira"
                       className={styles.input}
+                      placeholder="Ex: Lucas Ferreira"
                       value={newCouponForm.influencerName}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, influencerName: e.target.value })}
+                      onChange={(e) =>
+                        setNewCouponForm({ ...newCouponForm, influencerName: e.target.value })
+                      }
                     />
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Contato / Instagram do Influenciador</label>
+                    <label className={styles.label}>Contato do Influenciador</label>
                     <input
                       type="text"
-                      placeholder="@moa.barber ou (11) 99999-9999"
                       className={styles.input}
+                      placeholder="WhatsApp ou e-mail"
                       value={newCouponForm.influencerContact}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, influencerContact: e.target.value })}
+                      onChange={(e) =>
+                        setNewCouponForm({ ...newCouponForm, influencerContact: e.target.value })
+                      }
                     />
                   </div>
 
@@ -309,7 +403,9 @@ export function CouponsTab() {
                     <select
                       className={styles.select}
                       value={newCouponForm.discountType}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, discountType: e.target.value })}
+                      onChange={(e) =>
+                        setNewCouponForm({ ...newCouponForm, discountType: e.target.value })
+                      }
                     >
                       <option value="PERCENTAGE">Porcentagem (%)</option>
                       <option value="FIXED_AMOUNT">Valor Fixo (R$)</option>
@@ -321,36 +417,15 @@ export function CouponsTab() {
                     <input
                       type="number"
                       required
-                      min={0}
-                      step={0.5}
+                      min={1}
                       className={styles.input}
                       value={newCouponForm.discountValue}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, discountValue: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Tipo de Comissão do Influenciador</label>
-                    <select
-                      className={styles.select}
-                      value={newCouponForm.commissionType}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, commissionType: e.target.value })}
-                    >
-                      <option value="NONE">Sem comissão (Apenas rastreio)</option>
-                      <option value="PERCENTAGE">Porcentagem sobre a assinatura (%)</option>
-                      <option value="FIXED">Valor fixo por conversão (R$)</option>
-                    </select>
-                  </div>
-
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Valor da Comissão</label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.5}
-                      className={styles.input}
-                      value={newCouponForm.commissionValue}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, commissionValue: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) =>
+                        setNewCouponForm({
+                          ...newCouponForm,
+                          discountValue: Number(e.target.value),
+                        })
+                      }
                     />
                   </div>
 
@@ -359,23 +434,49 @@ export function CouponsTab() {
                     <select
                       className={styles.select}
                       value={newCouponForm.durationType}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, durationType: e.target.value })}
+                      onChange={(e) =>
+                        setNewCouponForm({ ...newCouponForm, durationType: e.target.value })
+                      }
                     >
-                      <option value="ONCE">Apenas no 1º mês (Primeira cobrança)</option>
-                      <option value="LIMITED_CYCLES">Número limitado de ciclos</option>
-                      <option value="FOREVER">Vitalício (Para sempre)</option>
+                      <option value="ONCE">Apenas na primeira mensalidade</option>
+                      <option value="LIMITED_CYCLES">Por quantidade de meses/ciclos</option>
+                      <option value="FOREVER">Vitalício (enquanto durar a assinatura)</option>
                     </select>
                   </div>
 
+                  {newCouponForm.durationType === "LIMITED_CYCLES" && (
+                    <div className={styles.formGroup}>
+                      <label className={styles.label}>Quantidade de Ciclos</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={36}
+                        className={styles.input}
+                        value={newCouponForm.durationCycles}
+                        onChange={(e) =>
+                          setNewCouponForm({
+                            ...newCouponForm,
+                            durationCycles: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  )}
+
                   <div className={styles.formGroup}>
-                    <label className={styles.label}>Limite Máximo de Usos</label>
+                    <label className={styles.label}>Limite Máximo de Resgates</label>
                     <input
                       type="number"
                       min={1}
-                      placeholder="Ilimitado se vazio"
+                      placeholder="Deixe em branco para ilimitado"
                       className={styles.input}
                       value={newCouponForm.maxRedemptions ?? ""}
-                      onChange={(e) => setNewCouponForm({ ...newCouponForm, maxRedemptions: e.target.value ? parseInt(e.target.value, 10) : null })}
+                      onChange={(e) =>
+                        setNewCouponForm({
+                          ...newCouponForm,
+                          maxRedemptions: e.target.value ? Number(e.target.value) : null,
+                        })
+                      }
                     />
                   </div>
                 </div>
@@ -390,7 +491,7 @@ export function CouponsTab() {
                   Cancelar
                 </button>
                 <button type="submit" className={styles.btnPrimary}>
-                  Salvar Cupom
+                  Salvar Cupom no MySQL
                 </button>
               </div>
             </form>
@@ -403,7 +504,7 @@ export function CouponsTab() {
         <div className={styles.modalBackdrop}>
           <div className={styles.modalDialog}>
             <div className={styles.modalHeader}>
-              <h2>Exportar Resgates em CSV</h2>
+              <h2>Exportar Relatório de Resgates</h2>
               <button
                 type="button"
                 className={styles.btnGhost}
@@ -423,7 +524,7 @@ export function CouponsTab() {
                   <option value="">Todos os Cupons</option>
                   {coupons.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.code} - {c.influencerName || c.name}
+                      {c.code} — {c.name}
                     </option>
                   ))}
                 </select>
@@ -436,7 +537,9 @@ export function CouponsTab() {
                     type="date"
                     className={styles.input}
                     value={exportForm.startDate}
-                    onChange={(e) => setExportForm({ ...exportForm, startDate: e.target.value })}
+                    onChange={(e) =>
+                      setExportForm({ ...exportForm, startDate: e.target.value })
+                    }
                   />
                 </div>
                 <div className={styles.formGroup}>
@@ -464,8 +567,7 @@ export function CouponsTab() {
                 className={styles.btnPrimary}
                 onClick={handleTriggerExport}
               >
-                <Download size={14} />
-                Baixar Planilha CSV
+                Baixar CSV
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   adminAuditLogs,
@@ -7,8 +7,11 @@ import {
   companies,
   companyMemberships,
   employees,
+  payments,
+  saasCouponRedemptions,
   saasCoupons,
   saasPlans,
+  services,
   subscriptionInvoices,
   subscriptions,
   users,
@@ -18,7 +21,17 @@ import { logAdminAction } from "./audit";
 
 export interface ListOwnersParams {
   q?: string;
-  status?: "all" | "active" | "inactive" | "deleted";
+  search?: string;
+  status?:
+    | "all"
+    | "active"
+    | "inactive"
+    | "trial"
+    | "trial_expired"
+    | "pending_payment"
+    | "suspended"
+    | "cancelled"
+    | "deleted";
   plan?: string;
   startDate?: string;
   endDate?: string;
@@ -38,7 +51,10 @@ export interface CreateOwnerManualInput {
   businessType?: string;
   cnpjOrCpf?: string;
   planSlug?: string;
+  accessType?: "trial" | "courtesy" | "pending";
+  grantCourtesy?: boolean;
   couponCode?: string;
+  periodDays?: number;
   reason?: string;
 }
 
@@ -50,6 +66,7 @@ export class AdminService {
     const page = Math.max(1, Number(params.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
     const offset = (page - 1) * limit;
+    const now = new Date();
 
     const conditions = [];
 
@@ -57,9 +74,49 @@ export class AdminService {
     if (params.status === "deleted") {
       conditions.push(isNotNull(companies.deletedAt));
     } else if (params.status === "active") {
-      conditions.push(and(isNull(companies.deletedAt), eq(companies.onboarded, true)));
+      conditions.push(
+        and(
+          isNull(companies.deletedAt),
+          eq(companies.onboarded, true),
+          eq(companies.publicEnabled, true)
+        )
+      );
     } else if (params.status === "inactive") {
       conditions.push(and(isNull(companies.deletedAt), eq(companies.onboarded, false)));
+    } else if (params.status === "trial") {
+      conditions.push(
+        and(
+          isNull(companies.deletedAt),
+          eq(subscriptions.status, "trialing"),
+          gte(subscriptions.trialEndsAt, now)
+        )
+      );
+    } else if (params.status === "trial_expired") {
+      conditions.push(
+        and(
+          isNull(companies.deletedAt),
+          or(
+            eq(subscriptions.status, "expired"),
+            and(eq(subscriptions.status, "trialing"), lte(subscriptions.trialEndsAt, now))
+          )
+        )
+      );
+    } else if (params.status === "pending_payment") {
+      conditions.push(
+        and(
+          isNull(companies.deletedAt),
+          inArray(subscriptions.status, ["pending", "past_due", "payment_failed"])
+        )
+      );
+    } else if (params.status === "suspended") {
+      conditions.push(
+        and(
+          isNull(companies.deletedAt),
+          or(eq(subscriptions.status, "suspended"), eq(companies.publicEnabled, false))
+        )
+      );
+    } else if (params.status === "cancelled") {
+      conditions.push(and(isNull(companies.deletedAt), eq(subscriptions.status, "cancelled")));
     }
 
     // Date filters
@@ -73,8 +130,9 @@ export class AdminService {
     }
 
     // Search query across multiple fields
-    if (params.q && params.q.trim()) {
-      const q = `%${params.q.trim()}%`;
+    const queryTerm = (params.q || params.search || "").trim();
+    if (queryTerm) {
+      const q = `%${queryTerm}%`;
       conditions.push(
         or(
           like(companies.name, q),
@@ -94,22 +152,30 @@ export class AdminService {
       conditions.push(eq(subscriptions.plan, params.plan));
     }
 
-    // Base query joining company, owner user, and subscription
     const whereClause = conditions.length ? and(...conditions) : undefined;
 
     // Total count query
     const [countResult] = await db
       .select({ count: sql<number>`count(distinct ${companies.id})` })
       .from(companies)
-      .leftJoin(companyMemberships, and(eq(companyMemberships.companyId, companies.id), eq(companyMemberships.role, "owner")))
-      .leftJoin(users, eq(users.id, companyMemberships.userId))
       .leftJoin(subscriptions, eq(subscriptions.companyId, companies.id))
+      .leftJoin(
+        companyMemberships,
+        and(eq(companyMemberships.companyId, companies.id), eq(companyMemberships.role, "owner"))
+      )
+      .leftJoin(
+        users,
+        or(
+          eq(users.id, companyMemberships.userId),
+          and(eq(users.companyId, companies.id), eq(users.role, "owner"))
+        )
+      )
       .where(whereClause);
 
     const total = Number(countResult?.count ?? 0);
 
-    // Data query
-    const rows = await db
+    // Data query (Distinct per company)
+    const compRows = await db
       .select({
         id: companies.id,
         name: companies.name,
@@ -118,14 +184,11 @@ export class AdminService {
         phone: companies.phone,
         cnpjOrCpf: companies.cnpjOrCpf,
         publicSlug: companies.publicSlug,
+        publicEnabled: companies.publicEnabled,
         onboarded: companies.onboarded,
         originCouponId: companies.originCouponId,
         deletedAt: companies.deletedAt,
         createdAt: companies.createdAt,
-        ownerId: users.id,
-        ownerName: users.name,
-        ownerEmail: users.email,
-        ownerPhone: users.phone,
         subscriptionPlan: subscriptions.plan,
         subscriptionStatus: subscriptions.status,
         subscriptionOrigin: subscriptions.origin,
@@ -133,21 +196,32 @@ export class AdminService {
         nextPaymentAt: subscriptions.nextPaymentAt,
       })
       .from(companies)
-      .leftJoin(companyMemberships, and(eq(companyMemberships.companyId, companies.id), eq(companyMemberships.role, "owner")))
-      .leftJoin(users, eq(users.id, companyMemberships.userId))
       .leftJoin(subscriptions, eq(subscriptions.companyId, companies.id))
+      .leftJoin(
+        companyMemberships,
+        and(eq(companyMemberships.companyId, companies.id), eq(companyMemberships.role, "owner"))
+      )
+      .leftJoin(
+        users,
+        or(
+          eq(users.id, companyMemberships.userId),
+          and(eq(users.companyId, companies.id), eq(users.role, "owner"))
+        )
+      )
       .where(whereClause)
+      .groupBy(companies.id)
       .orderBy(desc(companies.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Fetch counts for employees and clients in batch
-    const companyIds = rows.map((r) => r.id);
+    // Batch resolve owner info, employee count, and client count
+    const companyIds = compRows.map((r) => r.id);
     let employeesCountMap = new Map<string, number>();
     let clientsCountMap = new Map<string, number>();
+    const ownerMap = new Map<string, { id: string; name: string; email: string; phone: string | null }>();
 
     if (companyIds.length > 0) {
-      const [empCounts, clientCounts] = await Promise.all([
+      const [empCounts, clientCounts, membershipOwners, directOwners] = await Promise.all([
         db
           .select({ companyId: employees.companyId, count: sql<number>`count(*)` })
           .from(employees)
@@ -158,20 +232,57 @@ export class AdminService {
           .from(clients)
           .where(and(inArray(clients.companyId, companyIds), isNull(clients.deletedAt)))
           .groupBy(clients.companyId),
+        db
+          .select({
+            companyId: companyMemberships.companyId,
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            phone: users.phone,
+          })
+          .from(companyMemberships)
+          .innerJoin(users, eq(users.id, companyMemberships.userId))
+          .where(and(inArray(companyMemberships.companyId, companyIds), eq(companyMemberships.role, "owner"))),
+        db
+          .select({
+            companyId: users.companyId,
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            phone: users.phone,
+          })
+          .from(users)
+          .where(and(inArray(users.companyId, companyIds), eq(users.role, "owner"))),
       ]);
 
       employeesCountMap = new Map(empCounts.map((e) => [e.companyId, Number(e.count)]));
       clientsCountMap = new Map(clientCounts.map((c) => [c.companyId, Number(c.count)]));
+
+      for (const d of directOwners) {
+        if (d.companyId) ownerMap.set(d.companyId, { id: d.id, name: d.name, email: d.email, phone: d.phone });
+      }
+      for (const m of membershipOwners) {
+        if (m.companyId) ownerMap.set(m.companyId, { id: m.id, name: m.name, email: m.email, phone: m.phone });
+      }
     }
 
-    const items = rows.map((r) => ({
-      ...r,
-      totalEmployees: employeesCountMap.get(r.id) ?? 0,
-      totalClients: clientsCountMap.get(r.id) ?? 0,
-      isDeleted: Boolean(r.deletedAt),
-    }));
+    const items = compRows.map((r) => {
+      const owner = ownerMap.get(r.id);
+      return {
+        ...r,
+        ownerId: owner?.id ?? null,
+        ownerName: owner?.name ?? null,
+        ownerEmail: owner?.email ?? null,
+        ownerPhone: owner?.phone ?? null,
+        primaryOwner: owner ? { id: owner.id, name: owner.name, email: owner.email, phone: owner.phone } : null,
+        totalEmployees: employeesCountMap.get(r.id) ?? 0,
+        totalClients: clientsCountMap.get(r.id) ?? 0,
+        isDeleted: Boolean(r.deletedAt),
+      };
+    });
 
     return {
+      data: items,
       items,
       pagination: {
         page,
@@ -189,17 +300,45 @@ export class AdminService {
     const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!company) return null;
 
-    // Find owner user
+    // Find owner user checking both memberships and direct association
+    let primaryUser: any = null;
     const [ownerMembership] = await db
       .select({
         membershipId: companyMemberships.id,
         role: companyMemberships.role,
-        user: users,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          role: users.role,
+          active: users.active,
+          createdAt: users.createdAt,
+        },
       })
       .from(companyMemberships)
       .innerJoin(users, eq(users.id, companyMemberships.userId))
       .where(and(eq(companyMemberships.companyId, companyId), eq(companyMemberships.role, "owner")))
       .limit(1);
+
+    if (ownerMembership?.user) {
+      primaryUser = ownerMembership.user;
+    } else {
+      const [directUser] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          role: users.role,
+          active: users.active,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(and(eq(users.companyId, companyId), eq(users.role, "owner")))
+        .limit(1);
+      if (directUser) primaryUser = directUser;
+    }
 
     // Subscription & Plan
     const [subscription] = await db
@@ -211,6 +350,9 @@ export class AdminService {
     let plan = null;
     if (subscription?.planId) {
       const [p] = await db.select().from(saasPlans).where(eq(saasPlans.id, subscription.planId)).limit(1);
+      plan = p ?? null;
+    } else if (subscription?.plan) {
+      const [p] = await db.select().from(saasPlans).where(eq(saasPlans.slug, subscription.plan)).limit(1);
       plan = p ?? null;
     }
 
@@ -224,20 +366,42 @@ export class AdminService {
           .limit(20)
       : [];
 
-    // Employees
-    const empList = await db
-      .select()
-      .from(employees)
-      .where(and(eq(employees.companyId, companyId), isNull(employees.deletedAt)))
-      .orderBy(desc(employees.createdAt));
-
-    // Clients
-    const clientList = await db
-      .select()
-      .from(clients)
-      .where(and(eq(clients.companyId, companyId), isNull(clients.deletedAt)))
-      .orderBy(desc(clients.createdAt))
-      .limit(50);
+    // Counts & lists
+    const [empList, clientList, [servicesCountRes], [appointmentsCountRes]] = await Promise.all([
+      db
+        .select({
+          id: employees.id,
+          name: employees.name,
+          phone: employees.phone,
+          jobTitle: employees.jobTitle,
+          active: employees.active,
+          createdAt: employees.createdAt,
+        })
+        .from(employees)
+        .where(and(eq(employees.companyId, companyId), isNull(employees.deletedAt)))
+        .orderBy(desc(employees.createdAt)),
+      db
+        .select({
+          id: clients.id,
+          name: clients.name,
+          email: clients.email,
+          phone: clients.phone,
+          active: clients.active,
+          createdAt: clients.createdAt,
+        })
+        .from(clients)
+        .where(and(eq(clients.companyId, companyId), isNull(clients.deletedAt)))
+        .orderBy(desc(clients.createdAt))
+        .limit(50),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(services)
+        .where(eq(services.companyId, companyId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(appointments)
+        .where(eq(appointments.companyId, companyId)),
+    ]);
 
     // Origin Coupon
     let originCoupon = null;
@@ -253,8 +417,12 @@ export class AdminService {
       .where(
         or(
           and(eq(adminAuditLogs.entity, "company"), eq(adminAuditLogs.entityId, companyId)),
-          ownerMembership?.user?.id ? and(eq(adminAuditLogs.entity, "user"), eq(adminAuditLogs.entityId, ownerMembership.user.id)) : undefined,
-          subscription ? and(eq(adminAuditLogs.entity, "subscription"), eq(adminAuditLogs.entityId, subscription.id)) : undefined
+          primaryUser?.id
+            ? and(eq(adminAuditLogs.entity, "user"), eq(adminAuditLogs.entityId, primaryUser.id))
+            : undefined,
+          subscription
+            ? and(eq(adminAuditLogs.entity, "subscription"), eq(adminAuditLogs.entityId, subscription.id))
+            : undefined
         )
       )
       .orderBy(desc(adminAuditLogs.createdAt))
@@ -262,13 +430,15 @@ export class AdminService {
 
     return {
       company,
-      primaryOwner: ownerMembership?.user ?? null,
-      owner: ownerMembership?.user ?? null,
+      primaryOwner: primaryUser,
+      owner: primaryUser,
       subscription,
       plan,
       invoices,
       employees: empList,
       clients: clientList,
+      totalServices: Number(servicesCountRes?.count ?? 0),
+      totalAppointments: Number(appointmentsCountRes?.count ?? 0),
       originCoupon,
       auditLogs: auditHistory,
       auditHistory,
@@ -276,7 +446,7 @@ export class AdminService {
   }
 
   /**
-   * Create an owner and company manually from Super Admin
+   * Create an owner and company manually from Super Admin with full MySQL transaction
    */
   static async createOwnerManual(
     input: CreateOwnerManualInput,
@@ -284,18 +454,36 @@ export class AdminService {
     request?: Request
   ) {
     const cleanEmail = input.email.trim().toLowerCase();
-    const cleanSlug = input.name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 50) || `negocio-${Date.now()}`;
+
+    // 1. Check email uniqueness across users
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, cleanEmail))
+      .limit(1);
+
+    if (existingUser) {
+      throw new Error(`O e-mail '${cleanEmail}' já está cadastrado no sistema.`);
+    }
+
+    const cleanSlug =
+      input.name
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 50) || `negocio-${Date.now()}`;
 
     // Ensure unique slug
     let finalSlug = cleanSlug;
-    const [existingSlug] = await db.select({ id: companies.id }).from(companies).where(eq(companies.publicSlug, finalSlug)).limit(1);
+    const [existingSlug] = await db
+      .select({ id: companies.id })
+      .from(companies)
+      .where(eq(companies.publicSlug, finalSlug))
+      .limit(1);
+
     if (existingSlug) {
       finalSlug = `${cleanSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
     }
@@ -307,46 +495,18 @@ export class AdminService {
     // Origin coupon check
     let originCouponId: string | null = null;
     if (input.couponCode) {
-      const [cp] = await db.select().from(saasCoupons).where(eq(saasCoupons.code, input.couponCode.trim().toUpperCase())).limit(1);
+      const [cp] = await db
+        .select()
+        .from(saasCoupons)
+        .where(eq(saasCoupons.code, input.couponCode.trim().toUpperCase()))
+        .limit(1);
       if (cp) originCouponId = cp.id;
     }
 
     const companyId = crypto.randomUUID();
     const userId = crypto.randomUUID();
+    const subId = crypto.randomUUID();
 
-    await db.insert(companies).values({
-      id: companyId,
-      name: input.name,
-      businessType: input.businessType ?? "Geral",
-      email: cleanEmail,
-      phone: input.phone ?? null,
-      cnpjOrCpf: input.cnpjOrCpf ?? null,
-      publicSlug: finalSlug,
-      publicEnabled: true,
-      onboarded: true,
-      originCouponId,
-    });
-
-    await db.insert(users).values({
-      id: userId,
-      companyId,
-      name: input.ownerName || input.name,
-      email: cleanEmail,
-      phone: input.phone ?? null,
-      passwordHash,
-      role: "owner",
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    });
-
-    await db.insert(companyMemberships).values({
-      userId,
-      companyId,
-      role: "owner",
-      active: true,
-    });
-
-    // Create Subscription
     const planSlug = input.planSlug || "trial";
     let planId: string | null = null;
     if (planSlug !== "trial") {
@@ -354,50 +514,144 @@ export class AdminService {
       if (p) planId = p.id;
     }
 
-    const subId = crypto.randomUUID();
     const now = new Date();
+    const isCourtesy =
+      input.accessType === "courtesy" ||
+      Boolean(input.grantCourtesy) ||
+      (Boolean(input.reason) && /cortesia/i.test(input.reason || ""));
+    const isPending = input.accessType === "pending";
+
+    let initialSubStatus = "trialing";
+    let subOrigin = "checkout";
     const trialEnds = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const periodEnds = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    await db.insert(subscriptions).values({
-      id: subId,
-      companyId,
-      plan: planSlug,
-      planId,
-      status: planSlug === "trial" ? "trialing" : "active",
-      origin: "manual_courtesy",
-      grantedByAdminId: adminUser.id,
-      grantReason: input.reason || "Criação manual pelo Super Admin",
-      trialStartedAt: now,
-      trialEndsAt: trialEnds,
-      currentPeriodStart: now,
-      currentPeriodEnd: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
-    });
+    if (isCourtesy) {
+      if (!input.reason || !input.reason.trim()) {
+        throw new Error("Justificativa obrigatória para concessão de cortesia administrativa.");
+      }
+      initialSubStatus = "active";
+      subOrigin = "manual_courtesy";
+    } else if (isPending) {
+      initialSubStatus = "pending";
+    }
 
-    await logAdminAction({
-      adminUserId: adminUser.id,
-      adminEmail: adminUser.email,
-      action: "CREATE_OWNER_MANUAL",
-      entity: "company",
-      entityId: companyId,
-      entityName: input.name,
-      reason: input.reason || "Criação manual pelo Super Admin",
-      afterState: {
-        companyId,
-        userId,
+    // Execute atomic transaction
+    await db.transaction(async (tx) => {
+      // 1. Create company
+      await tx.insert(companies).values({
+        id: companyId,
+        name: input.name,
+        businessType: input.businessType ?? "Geral",
         email: cleanEmail,
+        phone: input.phone ?? null,
+        cnpjOrCpf: input.cnpjOrCpf ?? null,
+        publicSlug: finalSlug,
+        publicEnabled: true,
+        onboarded: true,
+        originCouponId,
+      });
+
+      // 2. Create user (owner)
+      await tx.insert(users).values({
+        id: userId,
+        companyId,
+        name: input.ownerName || input.name,
+        email: cleanEmail,
+        phone: input.phone ?? null,
+        passwordHash,
+        role: "owner",
+        emailVerified: true,
+        emailVerifiedAt: now,
+      });
+
+      // 3. Create membership link
+      await tx.insert(companyMemberships).values({
+        userId,
+        companyId,
+        role: "owner",
+        active: true,
+      });
+
+      // 4. Create subscription
+      await tx.insert(subscriptions).values({
+        id: subId,
+        companyId,
         plan: planSlug,
-        slug: finalSlug,
-      },
-      request,
+        planId,
+        status: initialSubStatus,
+        origin: subOrigin,
+        grantedByAdminId: isCourtesy ? adminUser.id : null,
+        grantReason: isCourtesy ? input.reason : null,
+        trialStartedAt: now,
+        trialEndsAt: trialEnds,
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnds,
+      });
+
+      // 5. Audit log
+      await logAdminAction({
+        adminUserId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: "CREATE_OWNER_MANUAL",
+        entity: "company",
+        entityId: companyId,
+        entityName: input.name,
+        reason: input.reason || "Criação manual pelo Super Admin",
+        afterState: {
+          companyId,
+          userId,
+          email: cleanEmail,
+          plan: planSlug,
+          slug: finalSlug,
+          accessType: input.accessType || (isCourtesy ? "courtesy" : "trial"),
+        },
+        request,
+      });
     });
 
     return {
       companyId,
       userId,
+      ownerId: userId,
       email: cleanEmail,
       slug: finalSlug,
       temporaryPassword: rawPassword,
     };
+  }
+
+  /**
+   * Alias for creating an owner with company
+   */
+  static async createOwnerWithCompany(input: {
+    ownerName: string;
+    ownerEmail: string;
+    ownerPhone?: string;
+    companyName: string;
+    companySlug?: string;
+    category?: string;
+    planSlug: string;
+    accessType?: "trial" | "courtesy" | "pending";
+    periodDays?: number;
+    reason?: string;
+    adminUser: { id: string; email: string };
+    request?: Request;
+  }) {
+    return this.createOwnerManual(
+      {
+        name: input.companyName,
+        businessType: input.category,
+        phone: input.ownerPhone,
+        ownerName: input.ownerName,
+        email: input.ownerEmail,
+        planSlug: input.planSlug,
+        accessType: input.accessType,
+        periodDays: input.periodDays,
+        reason: input.reason,
+      },
+      input.adminUser,
+      input.request
+    );
   }
 
   /**
@@ -427,23 +681,39 @@ export class AdminService {
     if (data.email !== undefined) companyUpdates.email = data.email.trim().toLowerCase();
     if (data.phone !== undefined) companyUpdates.phone = data.phone;
     if (data.cnpjOrCpf !== undefined) companyUpdates.cnpjOrCpf = data.cnpjOrCpf;
-    if (data.active !== undefined) companyUpdates.onboarded = data.active;
+    if (data.active !== undefined) {
+      companyUpdates.onboarded = data.active;
+      companyUpdates.publicEnabled = data.active;
+    }
 
     await db.update(companies).set(companyUpdates).where(eq(companies.id, companyId));
 
     // Update owner user if owner fields provided
     if (data.ownerName !== undefined || data.ownerPhone !== undefined) {
-      const [ownerMembership] = await db
+      // Look in companyMemberships first, then direct
+      let targetUserId: string | null = null;
+      const [membership] = await db
         .select({ userId: companyMemberships.userId })
         .from(companyMemberships)
         .where(and(eq(companyMemberships.companyId, companyId), eq(companyMemberships.role, "owner")))
         .limit(1);
 
-      if (ownerMembership) {
+      if (membership) {
+        targetUserId = membership.userId;
+      } else {
+        const [direct] = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(and(eq(users.companyId, companyId), eq(users.role, "owner")))
+          .limit(1);
+        if (direct) targetUserId = direct.id;
+      }
+
+      if (targetUserId) {
         const userUpdates: Record<string, unknown> = { updatedAt: new Date() };
         if (data.ownerName !== undefined) userUpdates.name = data.ownerName;
         if (data.ownerPhone !== undefined) userUpdates.phone = data.ownerPhone;
-        await db.update(users).set(userUpdates).where(eq(users.id, ownerMembership.userId));
+        await db.update(users).set(userUpdates).where(eq(users.id, targetUserId));
       }
     }
 
@@ -460,6 +730,118 @@ export class AdminService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Suspend company access
+   */
+  static async suspendCompany(
+    companyId: string,
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    if (!reason || !reason.trim()) {
+      throw new Error("O motivo da suspensão é obrigatório para auditoria.");
+    }
+
+    const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    if (!company) throw new Error("Empresa não encontrada.");
+
+    const now = new Date();
+
+    await db
+      .update(companies)
+      .set({
+        publicEnabled: false,
+        onboarded: false,
+        updatedAt: now,
+      })
+      .where(eq(companies.id, companyId));
+
+    await db
+      .update(subscriptions)
+      .set({
+        status: "suspended",
+        revokedByAdminId: adminUser.id,
+        revokeReason: reason,
+        updatedAt: now,
+      })
+      .where(eq(subscriptions.companyId, companyId));
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "SUSPEND_COMPANY",
+      entity: "company",
+      entityId: companyId,
+      entityName: company.name,
+      reason,
+      afterState: { publicEnabled: false, onboarded: false, subscriptionStatus: "suspended" },
+      request,
+    });
+
+    return { success: true, message: `Empresa '${company.name}' suspensa com sucesso.` };
+  }
+
+  /**
+   * Reactivate company access
+   */
+  static async reactivateCompany(
+    companyId: string,
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
+    if (!company) throw new Error("Empresa não encontrada.");
+
+    const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.companyId, companyId)).limit(1);
+
+    const now = new Date();
+    let restoredSubStatus = "active";
+    if (sub) {
+      if (sub.trialEndsAt && sub.trialEndsAt > now) {
+        restoredSubStatus = "trialing";
+      } else if (sub.currentPeriodEnd && sub.currentPeriodEnd > now) {
+        restoredSubStatus = "active";
+      } else {
+        restoredSubStatus = "past_due";
+      }
+    }
+
+    await db
+      .update(companies)
+      .set({
+        publicEnabled: true,
+        onboarded: true,
+        updatedAt: now,
+      })
+      .where(eq(companies.id, companyId));
+
+    if (sub && sub.status === "suspended") {
+      await db
+        .update(subscriptions)
+        .set({
+          status: restoredSubStatus,
+          updatedAt: now,
+        })
+        .where(eq(subscriptions.companyId, companyId));
+    }
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "REACTIVATE_COMPANY",
+      entity: "company",
+      entityId: companyId,
+      entityName: company.name,
+      reason: reason || "Reativação administrativa",
+      afterState: { publicEnabled: true, onboarded: true, subscriptionStatus: restoredSubStatus },
+      request,
+    });
+
+    return { success: true, message: `Empresa '${company.name}' reativada com sucesso.` };
   }
 
   /**
@@ -483,6 +865,7 @@ export class AdminService {
         deletedAt: now,
         deletedBy: adminUser.id,
         publicEnabled: false,
+        onboarded: false,
         updatedAt: now,
       })
       .where(eq(companies.id, companyId));
@@ -504,6 +887,16 @@ export class AdminService {
           updatedAt: now,
         })
         .where(eq(users.id, ownerMembership.userId));
+    } else {
+      await db
+        .update(users)
+        .set({
+          deletedAt: now,
+          deletedBy: adminUser.id,
+          active: false,
+          updatedAt: now,
+        })
+        .where(and(eq(users.companyId, companyId), eq(users.role, "owner")));
     }
 
     // Suspend subscription
@@ -534,7 +927,7 @@ export class AdminService {
   }
 
   /**
-   * Hard delete owner / company (Definitive removal with name confirmation)
+   * Hard delete owner / company (Definitive removal with exact name confirmation)
    */
   static async hardDeleteOwner(
     companyId: string,
@@ -570,9 +963,147 @@ export class AdminService {
   }
 
   /**
+   * List subscriptions across the platform with company & owner details
+   */
+  static async listSubscriptions(
+    params: {
+      q?: string;
+      search?: string;
+      status?: string;
+      plan?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+
+    if (params.status && params.status !== "all") {
+      conditions.push(eq(subscriptions.status, params.status));
+    }
+    if (params.plan && params.plan !== "all") {
+      conditions.push(eq(subscriptions.plan, params.plan));
+    }
+
+    const queryTerm = (params.q || params.search || "").trim();
+    if (queryTerm) {
+      const q = `%${queryTerm}%`;
+      conditions.push(
+        or(
+          like(companies.name, q),
+          like(companies.email, q),
+          like(subscriptions.plan, q),
+          like(subscriptions.status, q)
+        )
+      );
+    }
+
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    const [countRes] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(subscriptions)
+      .leftJoin(companies, eq(companies.id, subscriptions.companyId))
+      .where(whereClause);
+
+    const total = Number(countRes?.count ?? 0);
+
+    const rows = await db
+      .select({
+        id: subscriptions.id,
+        companyId: subscriptions.companyId,
+        companyName: companies.name,
+        companySlug: companies.publicSlug,
+        plan: subscriptions.plan,
+        status: subscriptions.status,
+        billingInterval: subscriptions.billingInterval,
+        amount: subscriptions.amount,
+        origin: subscriptions.origin,
+        paymentMethod: subscriptions.paymentMethod,
+        trialStartedAt: subscriptions.trialStartedAt,
+        trialEndsAt: subscriptions.trialEndsAt,
+        currentPeriodStart: subscriptions.currentPeriodStart,
+        currentPeriodEnd: subscriptions.currentPeriodEnd,
+        nextPaymentAt: subscriptions.nextPaymentAt,
+        grantReason: subscriptions.grantReason,
+        createdAt: subscriptions.createdAt,
+      })
+      .from(subscriptions)
+      .leftJoin(companies, eq(companies.id, subscriptions.companyId))
+      .where(whereClause)
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Resolve owner users
+    const companyIds = rows.map((r) => r.companyId);
+    const ownerMap = new Map<string, { name: string; email: string }>();
+
+    if (companyIds.length > 0) {
+      const [memberships, directUsers] = await Promise.all([
+        db
+          .select({
+            companyId: companyMemberships.companyId,
+            name: users.name,
+            email: users.email,
+          })
+          .from(companyMemberships)
+          .innerJoin(users, eq(users.id, companyMemberships.userId))
+          .where(and(inArray(companyMemberships.companyId, companyIds), eq(companyMemberships.role, "owner"))),
+        db
+          .select({
+            companyId: users.companyId,
+            name: users.name,
+            email: users.email,
+          })
+          .from(users)
+          .where(and(inArray(users.companyId, companyIds), eq(users.role, "owner"))),
+      ]);
+
+      for (const d of directUsers) {
+        if (d.companyId) ownerMap.set(d.companyId, { name: d.name, email: d.email });
+      }
+      for (const m of memberships) {
+        if (m.companyId) ownerMap.set(m.companyId, { name: m.name, email: m.email });
+      }
+    }
+
+    const items = rows.map((r) => {
+      const owner = ownerMap.get(r.companyId);
+      return {
+        ...r,
+        ownerName: owner?.name ?? "—",
+        ownerEmail: owner?.email ?? "—",
+      };
+    });
+
+    return {
+      data: items,
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  /**
    * List global clients across the platform
    */
-  static async listClients(params: { q?: string; companyId?: string; page?: number; limit?: number } = {}) {
+  static async listClients(
+    params: {
+      q?: string;
+      search?: string;
+      companyId?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ) {
     const page = Math.max(1, Number(params.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
     const offset = (page - 1) * limit;
@@ -583,8 +1114,9 @@ export class AdminService {
       conditions.push(eq(clients.companyId, params.companyId));
     }
 
-    if (params.q && params.q.trim()) {
-      const q = `%${params.q.trim()}%`;
+    const queryTerm = (params.q || params.search || "").trim();
+    if (queryTerm) {
+      const q = `%${queryTerm}%`;
       conditions.push(
         or(
           like(clients.name, q),
@@ -606,7 +1138,7 @@ export class AdminService {
 
     const total = Number(countResult?.count ?? 0);
 
-    const items = await db
+    const rawClients = await db
       .select({
         id: clients.id,
         name: clients.name,
@@ -626,7 +1158,42 @@ export class AdminService {
       .limit(limit)
       .offset(offset);
 
+    // Batch enrich with appointments count and last appointment date
+    const clientIds = rawClients.map((c) => c.id);
+    let aptStatsMap = new Map<string, { totalBookings: number; lastBookingAt: Date | null }>();
+
+    if (clientIds.length > 0) {
+      const aptStats = await db
+        .select({
+          clientId: appointments.clientId,
+          count: sql<number>`count(*)`,
+          lastAppointment: sql<Date | null>`max(${appointments.appointmentDate})`,
+        })
+        .from(appointments)
+        .where(inArray(appointments.clientId, clientIds))
+        .groupBy(appointments.clientId);
+
+      aptStatsMap = new Map(
+        aptStats.map((a) => [
+          a.clientId!,
+          { totalBookings: Number(a.count), lastBookingAt: a.lastAppointment },
+        ])
+      );
+    }
+
+    const items = rawClients.map((c) => {
+      const stats = aptStatsMap.get(c.id);
+      return {
+        ...c,
+        totalBookings: stats?.totalBookings ?? 0,
+        totalAppointments: stats?.totalBookings ?? 0,
+        lastBookingAt: stats?.lastBookingAt ?? null,
+        lastAppointment: stats?.lastBookingAt ?? null,
+      };
+    });
+
     return {
+      data: items,
       items,
       pagination: {
         page,
@@ -640,7 +1207,12 @@ export class AdminService {
   /**
    * Soft delete client
    */
-  static async softDeleteClient(clientId: string, reason: string, adminUser: { id: string; email: string }, request?: Request) {
+  static async softDeleteClient(
+    clientId: string,
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
     const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
     if (!client) throw new Error("Cliente não encontrado.");
 
@@ -674,7 +1246,12 @@ export class AdminService {
   /**
    * Hard delete client
    */
-  static async hardDeleteClient(clientId: string, reason: string, adminUser: { id: string; email: string }, request?: Request) {
+  static async hardDeleteClient(
+    clientId: string,
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
     const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
     if (!client) throw new Error("Cliente não encontrado.");
 
@@ -811,7 +1388,11 @@ export class AdminService {
     const now = new Date();
     const periodEnd = new Date(now.getTime() + periodDays * 24 * 60 * 60 * 1000);
 
-    const [existingSub] = await db.select().from(subscriptions).where(eq(subscriptions.companyId, companyId)).limit(1);
+    const [existingSub] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.companyId, companyId))
+      .limit(1);
 
     const beforeState = existingSub ? (existingSub as any) : null;
 
@@ -851,7 +1432,7 @@ export class AdminService {
       });
     }
 
-    // Record invoice receipt if courtesy
+    // Record invoice receipt
     const invoiceId = crypto.randomUUID();
     await db.insert(subscriptionInvoices).values({
       id: invoiceId,
@@ -959,5 +1540,240 @@ export class AdminService {
 
     return { success: true, immediately };
   }
-}
 
+  /**
+   * System overview metrics with period filtering and revenue segregation
+   */
+  static async getSystemOverviewMetrics(params: {
+    period?: "today" | "7d" | "30d" | "all" | "custom";
+    startDate?: string | null;
+    endDate?: string | null;
+  }) {
+    const period = params.period || "30d";
+    const now = new Date();
+    let startDate: Date | null = null;
+    let endDate: Date | null = now;
+
+    if (period === "today") {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    } else if (period === "7d") {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (period === "30d") {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (period === "custom" && params.startDate) {
+      startDate = new Date(params.startDate);
+      if (params.endDate) {
+        endDate = new Date(params.endDate);
+        endDate.setHours(23, 59, 59, 999);
+      }
+    } else if (period === "all") {
+      startDate = null;
+    }
+
+    // 1. Ecosystem Entities counts
+    const [
+      [totalCompaniesRes],
+      [activeCompaniesRes],
+      [periodCompaniesRes],
+      [totalOwnersRes],
+      [activeEmployeesRes],
+      [totalClientsRes],
+      [totalAppointmentsRes],
+      [periodAppointmentsRes],
+    ] = await Promise.all([
+      db.select({ count: count() }).from(companies),
+      db
+        .select({ count: count() })
+        .from(companies)
+        .where(and(isNull(companies.deletedAt), eq(companies.publicEnabled, true), eq(companies.onboarded, true))),
+      startDate
+        ? db
+            .select({ count: count() })
+            .from(companies)
+            .where(and(gte(companies.createdAt, startDate), endDate ? lte(companies.createdAt, endDate) : undefined))
+        : db.select({ count: count() }).from(companies),
+      db.select({ count: count() }).from(users).where(eq(users.role, "owner")),
+      db.select({ count: count() }).from(employees).where(and(isNull(employees.deletedAt), eq(employees.active, true))),
+      db.select({ count: count() }).from(clients).where(isNull(clients.deletedAt)),
+      db.select({ count: count() }).from(appointments),
+      startDate
+        ? db
+            .select({ count: count() })
+            .from(appointments)
+            .where(and(gte(appointments.createdAt, startDate), endDate ? lte(appointments.createdAt, endDate) : undefined))
+        : db.select({ count: count() }).from(appointments),
+    ]);
+
+    // 2. Subscriptions & SaaS breakdown
+    const allSubs = await db
+      .select({
+        status: subscriptions.status,
+        billingInterval: subscriptions.billingInterval,
+        amount: subscriptions.amount,
+        finalPriceSnapshot: subscriptions.finalPriceSnapshot,
+        trialEndsAt: subscriptions.trialEndsAt,
+      })
+      .from(subscriptions);
+
+    let mrr = 0;
+    let activeSubscribers = 0;
+    let trialingCount = 0;
+    let expiredTrialsCount = 0;
+    let pendingSubsCount = 0;
+    let cancelledSubsCount = 0;
+
+    for (const sub of allSubs) {
+      if (sub.status === "active") {
+        activeSubscribers++;
+        const price = Number(sub.finalPriceSnapshot || sub.amount || 0);
+        if (sub.billingInterval === "yearly") {
+          mrr += price / 12;
+        } else {
+          mrr += price;
+        }
+      } else if (sub.status === "trialing") {
+        if (sub.trialEndsAt && sub.trialEndsAt < now) {
+          expiredTrialsCount++;
+        } else {
+          trialingCount++;
+        }
+      } else if (sub.status === "expired") {
+        expiredTrialsCount++;
+      } else if (sub.status === "pending" || sub.status === "past_due") {
+        pendingSubsCount++;
+      } else if (sub.status === "cancelled") {
+        cancelledSubsCount++;
+      }
+    }
+
+    const churnedCount = cancelledSubsCount + expiredTrialsCount;
+    const churnRate =
+      activeSubscribers + churnedCount > 0
+        ? Number(((churnedCount / (activeSubscribers + churnedCount)) * 100).toFixed(1))
+        : 0;
+
+    // 3. Platform SaaS Revenue
+    const saasRevenueConditions = [eq(subscriptionInvoices.status, "paid")];
+    if (startDate) {
+      saasRevenueConditions.push(gte(subscriptionInvoices.createdAt, startDate));
+      if (endDate) saasRevenueConditions.push(lte(subscriptionInvoices.createdAt, endDate));
+    }
+    const [saasRevRes] = await db
+      .select({ total: sql<string>`coalesce(sum(${subscriptionInvoices.amount}), 0)` })
+      .from(subscriptionInvoices)
+      .where(and(...saasRevenueConditions));
+
+    const platformRevenue = Number(saasRevRes?.total ?? 0);
+
+    // 4. Businesses Service Revenue
+    const bookingRevenueConditions = [
+      or(eq(payments.status, "confirmed"), eq(payments.status, "approved")),
+    ];
+    if (startDate) {
+      bookingRevenueConditions.push(gte(payments.createdAt, startDate));
+      if (endDate) bookingRevenueConditions.push(lte(payments.createdAt, endDate));
+    }
+    const [bookingRevRes] = await db
+      .select({ total: sql<string>`coalesce(sum(${payments.amount}), 0)` })
+      .from(payments)
+      .where(and(...bookingRevenueConditions));
+
+    const establishmentsRevenue = Number(bookingRevRes?.total ?? 0);
+
+    // 5. Pending & failures
+    const [pendingInvoicesRes, pendingPaymentsRes, failedInvoicesRes, failedPaymentsRes] = await Promise.all([
+      db.select({ count: count() }).from(subscriptionInvoices).where(eq(subscriptionInvoices.status, "pending")),
+      db.select({ count: count() }).from(payments).where(eq(payments.status, "pending")),
+      db.select({ count: count() }).from(subscriptionInvoices).where(eq(subscriptionInvoices.status, "failed")),
+      db.select({ count: count() }).from(payments).where(or(eq(payments.status, "rejected"), eq(payments.status, "cancelled"))),
+    ]);
+
+    const totalPendingPayments = Number(pendingInvoicesRes[0]?.count ?? 0) + Number(pendingPaymentsRes[0]?.count ?? 0);
+    const totalPaymentFailures = Number(failedInvoicesRes[0]?.count ?? 0) + Number(failedPaymentsRes[0]?.count ?? 0);
+
+    // 6. Top Coupons
+    const topCoupons = await db
+      .select({
+        couponId: saasCoupons.id,
+        code: saasCoupons.code,
+        name: saasCoupons.name,
+        influencerName: saasCoupons.influencerName,
+        totalUses: count(saasCouponRedemptions.id),
+        convertedUses: sql<number>`sum(case when ${saasCouponRedemptions.isConverted} = true or ${saasCouponRedemptions.status} = 'confirmed' then 1 else 0 end)`,
+      })
+      .from(saasCoupons)
+      .leftJoin(saasCouponRedemptions, eq(saasCoupons.id, saasCouponRedemptions.couponId))
+      .groupBy(saasCoupons.id, saasCoupons.code, saasCoupons.name, saasCoupons.influencerName)
+      .orderBy(desc(count(saasCouponRedemptions.id)))
+      .limit(5);
+
+    // 7. Recent Audit
+    const recentAudit = await db
+      .select({
+        id: adminAuditLogs.id,
+        action: adminAuditLogs.action,
+        entity: adminAuditLogs.entity,
+        entityName: adminAuditLogs.entityName,
+        adminEmail: adminAuditLogs.adminEmail,
+        createdAt: adminAuditLogs.createdAt,
+      })
+      .from(adminAuditLogs)
+      .orderBy(desc(adminAuditLogs.createdAt))
+      .limit(6);
+
+    return {
+      period,
+      filterPeriod: period,
+      startDate: startDate ? startDate.toISOString() : null,
+      endDate: endDate ? endDate.toISOString() : null,
+      companies: {
+        total: Number(totalCompaniesRes?.count ?? 0),
+        active: Number(activeCompaniesRes?.count ?? 0),
+        newInPeriod: Number(periodCompaniesRes?.count ?? 0),
+      },
+      revenue: {
+        totalPlatformRevenue: Number(platformRevenue.toFixed(2)),
+        totalEstablishmentsGrossRevenue: Number(establishmentsRevenue.toFixed(2)),
+        mrr: Number(mrr.toFixed(2)),
+      },
+      subscriptions: {
+        active: activeSubscribers,
+        trialing: trialingCount,
+        expiredTrials: expiredTrialsCount,
+        pending: pendingSubsCount,
+        cancelled: cancelledSubsCount,
+        churned: churnedCount,
+        churnRate,
+      },
+      totalCompanies: Number(totalCompaniesRes?.count ?? 0),
+      activeCompanies: Number(activeCompaniesRes?.count ?? 0),
+      newCompaniesInPeriod: Number(periodCompaniesRes?.count ?? 0),
+      totalOwners: Number(totalOwnersRes?.count ?? 0),
+      activeEmployees: Number(activeEmployeesRes?.count ?? 0),
+      totalClients: Number(totalClientsRes?.count ?? 0),
+      totalAppointments: Number(totalAppointmentsRes?.count ?? 0),
+      newAppointmentsInPeriod: Number(periodAppointmentsRes?.count ?? 0),
+      activeSubscribers,
+      trialingCount,
+      expiredTrialsCount,
+      pendingSubsCount,
+      cancelledSubsCount,
+      churnedCount,
+      churnRate,
+      mrr: Number(mrr.toFixed(2)),
+      platformRevenue: Number(platformRevenue.toFixed(2)),
+      establishmentsRevenue: Number(establishmentsRevenue.toFixed(2)),
+      totalPendingPayments,
+      totalPaymentFailures,
+      topCoupons: topCoupons.map((c) => ({
+        ...c,
+        convertedUses: Number(c.convertedUses || 0),
+        conversionRate:
+          Number(c.totalUses) > 0
+            ? Number(((Number(c.convertedUses || 0) / Number(c.totalUses)) * 100).toFixed(1))
+            : 0,
+      })),
+      recentAudit,
+    };
+  }
+}
