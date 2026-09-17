@@ -281,7 +281,7 @@ export function ReportsView() {
 
       {/* Loading Skeleton */}
       {loading && (
-        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 16 }}>
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -338,7 +338,7 @@ export function ReportsView() {
       {data && !loading && (
         <>
           {/* 3. Top 4 Metric Cards (Uniform Solid Green Style) */}
-          <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+          <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: 16 }}>
             {/* KPI 1: Receita Realizada */}
             <div className="metric-card">
               <div className="metric-icon metric-teal">
@@ -395,7 +395,7 @@ export function ReportsView() {
             className="reports-analytics-grid"
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))",
               gap: 20,
             }}
           >
@@ -769,7 +769,7 @@ export function ReportsView() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
                   gap: 14,
                 }}
               >
