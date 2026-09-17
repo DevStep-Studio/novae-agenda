@@ -517,4 +517,83 @@ test.describe("Narrow Viewport Deep Audit (iPhone SE 320px)", () => {
       }
     }
   });
+
+  test("Service editor: Cancelar/Salvar footer has bottom breathing room and stacks", async ({ page }) => {
+    await page.goto("/gestao/servicos", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Novo serviço" }).first().click();
+    await page.getByLabel("Nome do serviço").waitFor({ state: "visible", timeout: 10000 });
+
+    const cancelBtn = page.getByRole("button", { name: "Cancelar" });
+    const saveBtn = page.getByRole("button", { name: "Salvar serviço" });
+    await expect(cancelBtn).toBeVisible();
+    await expect(saveBtn).toBeVisible();
+
+    const cancelBox = await cancelBtn.boundingBox();
+    const viewportHeight = page.viewportSize()?.height ?? 667;
+    if (cancelBox) {
+      // The footer must leave real breathing room below the last button
+      // instead of sitting flush against the screen edge (previously 0px).
+      expect(viewportHeight - (cancelBox.y + cancelBox.height), "Cancelar button has no bottom breathing room").toBeGreaterThan(8);
+    }
+    // Stacked (column) layout means Cancelar sits below Salvar, not beside it.
+    const saveBox = await saveBtn.boundingBox();
+    if (saveBox && cancelBox) {
+      expect(cancelBox.y, "Cancelar/Salvar should stack vertically, not sit side by side").toBeGreaterThan(saveBox.y);
+    }
+  });
+
+  test("Service editor: pricing mode toggle stacks instead of wrapping mid-label", async ({ page }) => {
+    await page.goto("/gestao/servicos", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Novo serviço" }).first().click();
+    const quoteBtn = page.getByRole("button", { name: "Orçamento direto (Sob consulta)" });
+    await expect(quoteBtn).toBeVisible({ timeout: 10000 });
+    const box = await quoteBtn.boundingBox();
+    // A single-line label (with this button's padding) is ~34px tall; wrapped
+    // to 2 lines (the original bug) it was closer to 50-60px.
+    expect(box && box.height).toBeLessThan(40);
+  });
+
+  test("Shared identity notice never orphans a lone period on its own line", async ({ page }) => {
+    await page.goto("/gestao/perfil", { waitUntil: "domcontentloaded" });
+    const notice = page.getByText("Identidade Visual Compartilhada");
+    await expect(notice).toBeVisible({ timeout: 10000 });
+    const paragraphs = await page.locator(".profile-identity-notice-banner .notice-content p").allInnerTexts();
+    for (const text of paragraphs) {
+      for (const line of text.split("\n")) {
+        expect(line.trim().startsWith("."), `Orphaned leading period in: "${line}"`).toBe(false);
+      }
+    }
+  });
+
+  test("Branding Studio embedded preview never leaks a fixed CTA bar over the admin nav", async ({ page }) => {
+    await page.goto("/gestao/link-agendamento", { waitUntil: "domcontentloaded" });
+    // Scroll to the preview's own sticky CTA bar specifically — scrolling to
+    // an unrelated anchor point can put a `position: fixed` descendant that's
+    // correctly contained by a transformed ancestor at coordinates that
+    // coincidentally look like a viewport-bottom overlap without one being
+    // visually true; checking at the bar itself avoids that false positive.
+    await page.locator('[class*="mobileBottomBar"]').first().scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+
+    const nav = page.locator(".mobile-bottom-nav");
+    const navBox = await nav.boundingBox();
+    // Nothing besides the real nav/sidebar/toast should claim a fixed position
+    // reaching the bottom 100px of the real viewport — the embedded booking
+    // preview's own sticky CTA bar must stay contained inside its frame.
+    const offenders = await page.evaluate(() => {
+      const allowed = ["mobile-bottom-nav", "sidebar", "toast-stack", "sidebar-backdrop"];
+      const found: string[] = [];
+      document.querySelectorAll("*").forEach((el) => {
+        const cs = getComputedStyle(el);
+        if (cs.position !== "fixed") return;
+        if (el.getBoundingClientRect().bottom < window.innerHeight - 100) return;
+        const cls = (el as HTMLElement).className?.toString() ?? "";
+        if (allowed.some((a) => cls.includes(a))) return;
+        found.push(`${el.tagName}.${cls.slice(0, 60)}`);
+      });
+      return found;
+    });
+    expect(offenders, `Unexpected fixed-position elements reaching the bottom nav area: ${offenders.join(", ")}`).toEqual([]);
+    expect(navBox).toBeTruthy();
+  });
 });
