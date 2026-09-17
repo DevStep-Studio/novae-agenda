@@ -147,19 +147,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const reloadCategories = useCallback(async () => {
     try {
-      const res = await api<{ data: ServiceCategoryDTO[] }>("/api/categories");
-      setCategories(res.data);
+      const data = await api<ServiceCategoryDTO[]>("/api/categories");
+      setCategories(Array.isArray(data) ? data : ((data as any)?.data ?? []));
     } catch {
-      // ignore
+      setCategories([]);
     }
   }, []);
 
   const reloadServices = useCallback(async () => {
-    const data = await api<ServiceDTO[]>("/api/services");
-    setServices(data);
     try {
-      const res = await api<{ data: ServiceCategoryDTO[] }>("/api/categories");
-      setCategories(res.data);
+      const data = await api<ServiceDTO[]>("/api/services");
+      setServices(Array.isArray(data) ? data : ((data as any)?.data ?? []));
+    } catch {
+      setServices([]);
+    }
+    try {
+      const catData = await api<ServiceCategoryDTO[]>("/api/categories");
+      setCategories(Array.isArray(catData) ? catData : ((catData as any)?.data ?? []));
     } catch {
       // ignore
     }

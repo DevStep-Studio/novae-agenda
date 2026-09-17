@@ -239,10 +239,31 @@ test.describe("Authenticated Dashboard, Calendar & Management Responsive Suite",
       });
       expect(agendaOverflow.hasOverflow, `Agenda overflow on ${device.name}`).toBe(false);
 
-      // 4. Save screenshot
-      const dir = path.join(process.cwd(), "test-results", "responsive", "gestao-agenda");
-      fs.mkdirSync(dir, { recursive: true });
-      await page.screenshot({ path: path.join(dir, `${device.slug}.png`), fullPage: true });
+      // 4. Navigate to Serviços View and verify catalog loads cleanly without errors
+      await page.goto("/gestao/servicos", { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(600);
+
+      const servicosOverflow = await page.evaluate(() => {
+        const doc = document.documentElement;
+        return {
+          hasOverflow: doc.scrollWidth > doc.clientWidth + 1 || document.body.scrollWidth > doc.clientWidth + 1,
+          scrollWidth: doc.scrollWidth,
+          clientWidth: doc.clientWidth,
+        };
+      });
+      expect(servicosOverflow.hasOverflow, `Serviços overflow on ${device.name}`).toBe(false);
+      await expect(page.getByRole("heading", { name: "Serviços Avulsos" })).toBeVisible();
+
+      // Open "Novo serviço" modal
+      const novoServicoBtn = page.getByRole("button", { name: "Novo serviço" }).first();
+      await expect(novoServicoBtn).toBeVisible();
+      await novoServicoBtn.click();
+      await expect(page.getByLabel("Nome do serviço")).toBeVisible();
+
+      // 5. Save screenshot
+      const servicosDir = path.join(process.cwd(), "test-results", "responsive", "gestao-servicos");
+      fs.mkdirSync(servicosDir, { recursive: true });
+      await page.screenshot({ path: path.join(servicosDir, `${device.slug}.png`), fullPage: true });
 
       expect(pageErrors).toEqual([]);
     });

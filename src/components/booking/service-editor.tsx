@@ -166,10 +166,11 @@ export function ServiceEditor({
     }
   }
 
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const allCategories = [
-    ...categories,
+    ...safeCategories,
     ...extraCategories.filter(
-      (c) => !categories.some((x) => x.id === c.id),
+      (c) => !safeCategories.some((x) => x.id === c.id),
     ),
   ];
   const currentCategory = allCategories.find((c) => c.id === category);

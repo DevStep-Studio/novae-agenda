@@ -39,6 +39,7 @@ import { MembershipPlansView } from "@/components/membership/membership-plans-vi
 import { CustomerMembershipCard } from "@/components/membership/customer-membership-card";
 import { useRouter } from "next/navigation";
 import { managementPath, type ManagementView } from "@/lib/management-routes";
+import { ViewErrorBoundary } from "@/components/ui/view-error-boundary";
 
 type ViewKey = ManagementView;
 type CalendarMode = "day" | "week" | "month";
@@ -1778,7 +1779,9 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
   const [editing, setEditing] = useState<ServiceDTO | null>(null);
   const [filter, setFilter] = useState("Todos");
 
-  const visible = services.filter((service) => filter === "Todos" || (service.active === (filter === "Ativos")));
+  const safeServices = Array.isArray(services) ? services : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const visible = safeServices.filter((service) => filter === "Todos" || (service.active === (filter === "Ativos")));
 
   return (
     <div className="page-content">
@@ -1801,7 +1804,7 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
       </div>
 
       {subTab === "memberships" ? (
-        <MembershipPlansView services={services} employees={employees} notify={notify} />
+        <MembershipPlansView services={safeServices} employees={employees || []} notify={notify} />
       ) : (
         <>
           <div className="page-intro">
@@ -1812,7 +1815,7 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
             </div>
             <Button onClick={onNew}><Plus size={17} /> Novo serviço</Button>
           </div>
-          {categories.length > 0 && (
+          {(safeCategories.length > 0 || safeServices.length > 0) && (
             <div className="category-tabs">
               {["Todos", "Ativos", "Inativos"].map((tab) => (
                 <button
@@ -1828,6 +1831,8 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
           <div className="service-grid">
             {visible.map((service) => {
               const bgImg = getServiceImage(service);
+              const duration = Number(service.durationMinutes) || 0;
+              const numericPrice = Number(service.price) || 0;
               return (
                 <article className={`service-card ${!service.active ? "inactive" : ""}`} key={service.id}>
                   <div className="service-card-bg" style={{ backgroundImage: `url(${bgImg})` }} />
@@ -1853,20 +1858,20 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
                       {service.description ? (
                         <p>{service.description}</p>
                       ) : (
-                        <p className="service-desc-fallback">Duração de {service.durationMinutes} min</p>
+                        <p className="service-desc-fallback">Duração de {duration} min</p>
                       )}
                     </div>
                     <div className="service-card-footer">
                       <div>
-                        {service.paymentType === "QUOTE" || Number(service.price) === 0 ? (
+                        {service.paymentType === "QUOTE" || numericPrice === 0 ? (
                           <strong className="service-price-tag" style={{ color: "#38bdf8", fontSize: "13px" }}>
                             Sob consulta
                           </strong>
                         ) : (
-                          <strong className="service-price-tag">{formatCurrency(service.price)}</strong>
+                          <strong className="service-price-tag">{formatCurrency(numericPrice)}</strong>
                         )}
                         <span className="service-duration-badge">
-                          <Clock3 size={13} /> {service.durationMinutes < 60 ? `${service.durationMinutes} min` : service.durationMinutes % 60 === 0 ? `${service.durationMinutes / 60}h` : `${Math.floor(service.durationMinutes / 60)}h ${service.durationMinutes % 60}min`}
+                          <Clock3 size={13} /> {duration < 60 ? `${duration} min` : duration % 60 === 0 ? `${duration / 60}h` : `${Math.floor(duration / 60)}h ${duration % 60}min`}
                         </span>
                       </div>
                       <button
@@ -6791,7 +6796,9 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
           </div>
         </header>
 
-        {render()}
+        <ViewErrorBoundary currentView={view} onReset={() => navigate("dashboard")}>
+          {render()}
+        </ViewErrorBoundary>
       </main>
 
       <nav className="mobile-bottom-nav">
