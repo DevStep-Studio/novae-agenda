@@ -415,6 +415,10 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
         const updatedSession = store ? await store.reloadSession() : null;
 
+        const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const returnTo = urlParams?.get("returnTo");
+        const safeReturnTo = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : null;
+
         if (
           mode === "reservas" ||
           response.data?.targetPortal === "/minhas-reservas" ||
@@ -425,6 +429,16 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
           } else {
             window.location.assign("/minhas-reservas");
           }
+          return;
+        }
+
+        if (safeReturnTo) {
+          window.location.assign(safeReturnTo);
+          return;
+        }
+
+        if (typeof window !== "undefined" && window.location.pathname === "/login") {
+          window.location.assign(response.data?.targetPortal || "/gestao");
           return;
         }
 

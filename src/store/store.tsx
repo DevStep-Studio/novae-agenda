@@ -470,8 +470,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await api("/api/auth/logout", { method: "POST" });
-    window.location.reload();
+    try {
+      await api("/api/auth/logout", { method: "POST" });
+    } catch {}
+    window.location.href = "/login";
   }, []);
 
   // Bootstrap session + data

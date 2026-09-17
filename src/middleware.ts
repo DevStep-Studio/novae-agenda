@@ -72,6 +72,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
+  // Redirecionamento automático de rotas restritas para /login quando não autenticado
+  const hasSessionCookie = Boolean(request.cookies.get("agenda_session")?.value);
+  if (
+    !hasSessionCookie &&
+    (pathname.startsWith("/gestao") ||
+      pathname.startsWith("/notificacoes") ||
+      pathname.startsWith("/profissional"))
+  ) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    loginUrl.search = "";
+    loginUrl.searchParams.set("returnTo", pathname + (search || ""));
+    return NextResponse.redirect(loginUrl);
+  }
+
   return NextResponse.next();
 }
 
@@ -90,5 +105,10 @@ export const config = {
     "/minha-assinatura",
     "/configuracoes",
     "/link-agendamento",
+    "/gestao/:path*",
+    "/gestao",
+    "/notificacoes",
+    "/profissional/:path*",
+    "/profissional",
   ],
 };

@@ -61,6 +61,41 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
     );
   }
 
+  // Redireciona para /login se tentar acessar /gestao, /notificacoes ou /profissional sem sessão
+  useEffect(() => {
+    if (!loading && !session && typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      if (
+        pathname.startsWith("/gestao") ||
+        pathname.startsWith("/notificacoes") ||
+        pathname.startsWith("/profissional")
+      ) {
+        const returnTo = encodeURIComponent(pathname + window.location.search);
+        window.location.replace(`/login?returnTo=${returnTo}`);
+      }
+    }
+  }, [loading, session]);
+
+  // Se estiver na rota /login e já possuir sessão ativa, redireciona para o destino ou painel
+  useEffect(() => {
+    if (!loading && session && typeof window !== "undefined") {
+      if (window.location.pathname === "/login") {
+        const params = new URLSearchParams(window.location.search);
+        const returnTo = params.get("returnTo");
+        const destination =
+          returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
+            ? returnTo
+            : session.targetPortal ||
+              (session.primaryRole === "employee"
+                ? "/profissional"
+                : session.primaryRole === "superadmin"
+                ? "/admin"
+                : "/gestao");
+        window.location.replace(destination);
+      }
+    }
+  }, [loading, session]);
+
   if (loading) {
     return (
       <div className="boot-screen">
@@ -71,8 +106,34 @@ export function AppGate({ initialView }: { initialView?: ManagementView } = {}) 
     );
   }
 
+  // Previne exibir a tela de login mantendo a URL de rotas internas no navegador
   if (!session) {
+    if (
+      typeof window !== "undefined" &&
+      (window.location.pathname.startsWith("/gestao") ||
+        window.location.pathname.startsWith("/notificacoes") ||
+        window.location.pathname.startsWith("/profissional"))
+    ) {
+      return (
+        <div className="boot-screen">
+          <ReserveiLogo size={36} priority />
+          <span className="boot-spinner" />
+          <p style={{ margin: 0, fontSize: "13px", fontWeight: 500 }}>Redirecionando para o login...</p>
+        </div>
+      );
+    }
     return <AuthScreen onAuthenticated={(needs) => setNeedsOnboarding(needs)} />;
+  }
+
+  // Se já estiver logado na página /login, aguarda redirecionamento para o dashboard
+  if (typeof window !== "undefined" && window.location.pathname === "/login") {
+    return (
+      <div className="boot-screen">
+        <ReserveiLogo size={36} priority />
+        <span className="boot-spinner" />
+        <p style={{ margin: 0, fontSize: "13px", fontWeight: 500 }}>Acessando seu painel...</p>
+      </div>
+    );
   }
 
   if (!session.emailVerified) {
