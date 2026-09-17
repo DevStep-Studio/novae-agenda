@@ -31,6 +31,12 @@ export async function GET() {
     linksByEmployee.set(link.employeeId, list);
   }
 
+  const loginUserIds = rows.map((row) => row.userId).filter((id): id is string => id !== null);
+  const loginRows = loginUserIds.length
+    ? await db.select({ id: users.id, email: users.email }).from(users).where(inArray(users.id, loginUserIds))
+    : [];
+  const emailByUserId = new Map(loginRows.map((u) => [u.id, u.email]));
+
   const dto: EmployeeDTO[] = rows.map((row) => {
     const serviceIds = linksByEmployee.get(row.id) ?? [];
     return {
@@ -48,6 +54,7 @@ export async function GET() {
       services: serviceIds.map((id) => servicesMap.get(id) ?? "Serviço").sort(),
       serviceIds,
       hasLogin: row.userId !== null,
+      loginEmail: row.userId ? emailByUserId.get(row.userId) ?? null : null,
     };
   });
 

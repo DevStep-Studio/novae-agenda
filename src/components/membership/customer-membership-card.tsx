@@ -259,7 +259,6 @@ export function CustomerMembershipCard({
           <div className="modal" style={{ maxWidth: 420 }}>
             <div className="modal-header">
               <div>
-                <span className="modal-eyebrow">Financeiro</span>
                 <h3 className="modal-title">Registrar Mensalidade Paga</h3>
               </div>
               <button

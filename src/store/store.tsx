@@ -62,7 +62,7 @@ type Store = DataState & {
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
   createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; bannerUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
-  updateEmployee: (id: string, input: { name?: string; jobTitle?: string | null; phone?: string | null; active?: boolean; commissionType?: "none" | "percentage" | "fixed"; commissionValue?: number; photoUrl?: string | null; bannerUrl?: string | null; serviceIds?: string[] }) => Promise<void>;
+  updateEmployee: (id: string, input: { name?: string; jobTitle?: string | null; phone?: string | null; active?: boolean; commissionType?: "none" | "percentage" | "fixed"; commissionValue?: number; photoUrl?: string | null; bannerUrl?: string | null; serviceIds?: string[]; grantAccess?: boolean; email?: string; newPassword?: string }) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
   createAppointment: (input: { clientId: string; employeeId: string; serviceIds: string[]; date: string; startTime: string; locationId?: string; notes?: string; allowConflict?: boolean }) => Promise<void>;
   updateAppointmentStatus: (id: string, status: AppointmentStatus, reason?: string) => Promise<void>;
@@ -319,6 +319,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     photoUrl?: string | null;
     bannerUrl?: string | null;
     serviceIds?: string[];
+    grantAccess?: boolean;
+    email?: string;
+    newPassword?: string;
   }) => {
     await api(`/api/employees/${id}`, { method: "PATCH", body: JSON.stringify(input) });
     await Promise.all([reloadEmployees(), reloadStats()]);

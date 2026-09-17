@@ -261,12 +261,6 @@ function Modal({
       <section className={`modal ${wide ? "modal-wide" : ""} ${headerVariant === "primary" ? "modal-has-primary-header" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className={`modal-header ${headerVariant === "primary" ? "modal-header-primary" : ""}`}>
           <div>
-            {eyebrow && (
-              <p className="modal-eyebrow">
-                <Sparkles size={11} />
-                <span>{eyebrow}</span>
-              </p>
-            )}
             <h2>
               {Icon && <Icon size={20} className="modal-title-icon" />}
               <span>{title}</span>
@@ -4962,6 +4956,12 @@ function EditEmployeeModal({
   const bannerInput = useRef<HTMLInputElement>(null);
   const [preparingBanner, setPreparingBanner] = useState(false);
 
+  // Login access: grant it now (employee didn't have one yet) or manage an existing one.
+  const [grantAccess, setGrantAccess] = useState(false);
+  const [loginEmail, setLoginEmail] = useState(employee.loginEmail ?? "");
+  const [newPassword, setNewPassword] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+
   const handleBannerFile = async (file?: File) => {
     if (!file) return;
     setPreparingBanner(true);
@@ -5003,6 +5003,9 @@ function EditEmployeeModal({
         serviceIds,
         photoUrl,
         bannerUrl: bannerUrl.trim() || null,
+        ...(!employee.hasLogin && grantAccess ? { grantAccess: true, email: loginEmail, newPassword } : {}),
+        ...(employee.hasLogin && loginEmail !== (employee.loginEmail ?? "") ? { email: loginEmail } : {}),
+        ...(employee.hasLogin && showResetPassword && newPassword ? { newPassword } : {}),
       });
       notify("Dados do profissional atualizados com sucesso!");
       onClose();
@@ -5099,6 +5102,104 @@ function EditEmployeeModal({
               <option value="inactive">Inativo (oculto na agenda)</option>
             </SelectField>
           </Field>
+        </div>
+
+        <div className="modal-form-grid" style={{ paddingTop: 0 }}>
+          <div className="field field-full access-toggle-section">
+            {employee.hasLogin ? (
+              <>
+                <label className="access-toggle-header" style={{ cursor: "default" }}>
+                  <span className="access-toggle-icon"><ShieldCheck size={16} /></span>
+                  <span className="access-toggle-copy">
+                    <strong>Acesso ao sistema</strong>
+                    <span>Este profissional já tem login próprio. Caso ele esqueça a senha, defina uma nova aqui.</span>
+                  </span>
+                </label>
+                <div className="access-toggle-fields">
+                  <Field label="E-mail de acesso" icon={Mail}>
+                    <div className="modal-input-wrap">
+                      <Mail size={17} className="modal-input-icon" />
+                      <input
+                        className="input"
+                        type="email"
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="profissional@empresa.com"
+                        required
+                      />
+                    </div>
+                  </Field>
+                  {showResetPassword ? (
+                    <Field label="Nova senha" icon={Lock}>
+                      <div className="modal-input-wrap">
+                        <Lock size={17} className="modal-input-icon" />
+                        <input
+                          className="input"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Mínimo 8 caracteres"
+                          minLength={8}
+                          required
+                        />
+                      </div>
+                      <span className="field-hint">Compartilhe a nova senha com o profissional com segurança.</span>
+                    </Field>
+                  ) : (
+                    <Button type="button" variant="secondary" onClick={() => setShowResetPassword(true)}>
+                      <Lock size={14} /> Definir nova senha
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="access-toggle-header">
+                  <span className="access-toggle-icon"><ShieldCheck size={16} /></span>
+                  <span className="access-toggle-copy">
+                    <strong>Acesso ao sistema</strong>
+                    <span>Permite que este profissional acesse o sistema com login próprio.</span>
+                  </span>
+                  <span className="switch-control">
+                    <input type="checkbox" checked={grantAccess} onChange={(e) => setGrantAccess(e.target.checked)} />
+                    <span className="switch-slider" />
+                  </span>
+                </label>
+                {grantAccess && (
+                  <div className="access-toggle-fields">
+                    <Field label="E-mail de acesso" icon={Mail}>
+                      <div className="modal-input-wrap">
+                        <Mail size={17} className="modal-input-icon" />
+                        <input
+                          className="input"
+                          type="email"
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          placeholder="profissional@empresa.com"
+                          required={grantAccess}
+                        />
+                      </div>
+                    </Field>
+                    <Field label="Senha inicial" icon={Lock}>
+                      <div className="modal-input-wrap">
+                        <Lock size={17} className="modal-input-icon" />
+                        <input
+                          className="input"
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Mínimo 8 caracteres"
+                          minLength={8}
+                          required={grantAccess}
+                        />
+                      </div>
+                      <span className="field-hint">O profissional poderá trocar a senha depois. Compartilhe com segurança.</span>
+                    </Field>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="modal-form-grid" style={{ paddingTop: 0 }}>

@@ -359,7 +359,6 @@ export function MembershipPlansView({
           <div className="modal modal-wide">
             <div className="modal-header">
               <div>
-                <span className="modal-eyebrow">Novo Plano</span>
                 <h3 className="modal-title">Cadastrar Plano Mensal Recorrente</h3>
               </div>
               <button
@@ -400,7 +399,6 @@ export function MembershipPlansView({
           <div className="modal modal-wide">
             <div className="modal-header">
               <div>
-                <span className="modal-eyebrow">Editar Plano</span>
                 <h3 className="modal-title">{editingPlan.name}</h3>
               </div>
               <button

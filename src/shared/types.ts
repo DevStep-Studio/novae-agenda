@@ -109,6 +109,7 @@ export type EmployeeDTO = {
   serviceIds: string[];
   locationIds?: string[];
   hasLogin: boolean;
+  loginEmail?: string | null;
 };
 
 export type ServiceDTO = {

@@ -132,7 +132,6 @@ export function AssignMembershipModal({
       <div className="modal" style={{ maxWidth: 540 }}>
         <div className="modal-header">
           <div>
-            <span className="modal-eyebrow">Mensalista</span>
             <h3 className="modal-title">Vincular Plano Mensal</h3>
             <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--text-secondary)" }}>
               Cliente: <strong>{clientName}</strong>

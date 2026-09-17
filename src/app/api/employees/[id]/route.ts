@@ -1,8 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { employeeSchedules, employeeServices, employees, services } from "@/db/schema";
-import { requireAuth, requireRole, unauthorized } from "@/lib/auth";
+import { employeeSchedules, employeeServices, employees, services, users } from "@/db/schema";
+import { hashPassword, normalizeEmail, requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import { PlanLimitService } from "@/lib/saas/plan-limits";
 import { deleteProfessionalImage, saveProfessionalImage } from "@/lib/storage";
@@ -23,6 +23,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .limit(1);
 
   if (!employee) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+
+  let loginEmail: string | null = null;
+  if (employee.userId) {
+    const [loginUser] = await db.select({ email: users.email }).from(users).where(eq(users.id, employee.userId)).limit(1);
+    loginEmail = loginUser?.email ?? null;
+  }
 
   const schedules = await db
     .select()
@@ -66,6 +72,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     services: serviceNames,
     serviceIds,
     hasLogin: employee.userId !== null,
+    loginEmail,
   };
 
   return Response.json({ data: { ...dto, schedules: scheduleDto } });
@@ -81,6 +88,11 @@ const updateSchema = z.object({
   photoUrl: z.string().max(8_000_000).nullable().optional(),
   bannerUrl: z.string().max(8_000_000).nullable().optional(),
   serviceIds: z.array(z.string()).optional(),
+  // Login management: grant access to an employee who doesn't have one yet,
+  // change the login e-mail of one who does, or reset their password.
+  grantAccess: z.boolean().optional(),
+  email: z.string().email("Informe um e-mail válido.").optional(),
+  newPassword: z.string().min(8, "A senha deve ter ao menos 8 caracteres.").optional(),
 });
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -98,11 +110,56 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const data = parsed.data;
 
   const [current] = await db
-    .select({ photoUrl: employees.photoUrl, active: employees.active })
+    .select({ photoUrl: employees.photoUrl, active: employees.active, userId: employees.userId, name: employees.name })
     .from(employees)
     .where(and(eq(employees.id, id), eq(employees.companyId, auth.user.companyId)))
     .limit(1);
   if (!current) return Response.json({ error: "Profissional não encontrado." }, { status: 404 });
+
+  if (data.grantAccess && !current.userId) {
+    if (!data.email || !data.newPassword) {
+      return Response.json({ error: "Informe e-mail e senha para liberar o acesso ao sistema." }, { status: 400 });
+    }
+    const normalizedEmail = normalizeEmail(data.email);
+    const [existingUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.companyId, auth.user.companyId), eq(users.email, normalizedEmail)));
+    if (existingUser) {
+      return Response.json({ error: "Já existe um usuário com este e-mail nesta empresa." }, { status: 409 });
+    }
+    const newUserId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: newUserId,
+      companyId: auth.user.companyId,
+      name: (data.name ?? current.name).trim(),
+      email: normalizedEmail,
+      passwordHash: await hashPassword(data.newPassword),
+      role: "employee",
+      active: true,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    });
+    await db.update(employees).set({ userId: newUserId }).where(eq(employees.id, id));
+  } else if (current.userId) {
+    if (data.email) {
+      const normalizedEmail = normalizeEmail(data.email);
+      const [existingUser] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(eq(users.companyId, auth.user.companyId), eq(users.email, normalizedEmail)));
+      if (existingUser && existingUser.id !== current.userId) {
+        return Response.json({ error: "Já existe um usuário com este e-mail nesta empresa." }, { status: 409 });
+      }
+      await db.update(users).set({ email: normalizedEmail }).where(eq(users.id, current.userId));
+    }
+    if (data.newPassword) {
+      await db
+        .update(users)
+        .set({ passwordHash: await hashPassword(data.newPassword) })
+        .where(eq(users.id, current.userId));
+    }
+  }
 
   if (data.active === true && !current.active) {
     try {
