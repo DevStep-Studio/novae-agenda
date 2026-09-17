@@ -23,6 +23,7 @@ import {
   Download,
   Zap,
   Upload,
+  Monitor,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
@@ -88,6 +89,15 @@ export function BookingSettings() {
   const [color, setColor] = useState("#234e3d");
   const [activeTab, setActiveTab] = useState<"branding" | "link" | "schedules" | "extras">("branding");
   const [showPageBuilder, setShowPageBuilder] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767.98px)");
+    setIsMobileViewport(mql.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobileViewport(e.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
 
   // State for toggles
   const [publicEnabled, setPublicEnabled] = useState(true);
@@ -329,10 +339,50 @@ export function BookingSettings() {
           backgroundColor: "#09090b",
         }}
       >
-        <PageBuilderEditor
-          onExit={() => setShowPageBuilder(false)}
-          onSaved={() => void load()}
-        />
+        {isMobileViewport ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 16,
+              height: "100%",
+              padding: "32px 24px",
+              textAlign: "center",
+              color: "#f2f7f4",
+            }}
+          >
+            <Monitor size={40} style={{ color: "#dcff4c" }} />
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Disponível apenas no computador</h2>
+            <p style={{ margin: 0, maxWidth: 320, fontSize: 14, color: "#a3a3a3", lineHeight: 1.5 }}>
+              O construtor visual de páginas precisa de mais espaço de tela para arrastar e organizar blocos. Acesse pelo navegador do seu computador para personalizar sua página.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowPageBuilder(false)}
+              style={{
+                marginTop: 8,
+                minHeight: 44,
+                padding: "0 20px",
+                borderRadius: 8,
+                border: "1px solid #333",
+                background: "transparent",
+                color: "#f2f7f4",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              Voltar
+            </button>
+          </div>
+        ) : (
+          <PageBuilderEditor
+            onExit={() => setShowPageBuilder(false)}
+            onSaved={() => void load()}
+          />
+        )}
       </div>
     );
   }
