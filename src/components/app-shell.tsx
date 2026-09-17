@@ -400,7 +400,7 @@ function DashboardPage({
       )}
 
       {prefs.showKpis && (
-        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))" }}>
           <div className="metric-card">
             <div className="metric-icon metric-teal"><CalendarDays size={18} /></div>
             <div className="metric-copy">
@@ -3245,7 +3245,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
 
               <section className="settings-section">
                 <SectionHeading title="Aparência" description="A Agenda se adapta ao seu jeito de trabalhar." />
-                <div className="theme-options" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+                <div className="theme-options" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))" }}>
                   <button type="button" className={theme === "light" ? "theme-option active" : "theme-option"} onClick={() => setTheme("light")}>
                     <span className="theme-preview light-preview"><Sun size={17} /></span>
                     <span className="theme-copy"><strong>Claro</strong><small>Leve e arejado</small></span>
@@ -3638,7 +3638,7 @@ function SettingsPage({ theme, setTheme, onNewLocation }: { theme: Theme; setThe
           {activeTab === "ajuda" && (
             <section className="settings-section">
               <SectionHeading title="Central de Ajuda e Tutoriais" description="Guias práticos para dominar o seu Reservei." />
-              <div className="help-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+              <div className="help-cards-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "14px" }}>
                 <div className="help-card" style={{ padding: "16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px" }}>
                   <div className="help-icon" style={{ color: "var(--primary)", marginBottom: "8px" }}><Clock3 size={20} /></div>
                   <strong style={{ fontSize: "14px", display: "block", marginBottom: "4px" }}>1. Como configurar a agenda</strong>
@@ -7088,7 +7088,7 @@ function ProfilePage({
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               <Button variant="secondary" onClick={() => onNavigate("link-agendamento")}>
                 <Globe size={15} />
                 <span>Página de Agendamento</span>
@@ -7420,7 +7420,7 @@ function ProfilePage({
               Escolha quais seções e blocos devem ser visíveis no Dashboard geral da empresa.
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "16px" }}>
               {[
                 { key: "showBanner", label: "Banner e Saudação no Topo", desc: "Exibe a imagem de capa e cumprimento diário" },
                 { key: "showChecklist", label: "Checklist de Primeiros Passos", desc: "Guia interativo para configurar a agenda" },
