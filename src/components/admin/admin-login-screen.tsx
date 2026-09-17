@@ -87,8 +87,15 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
           <div className={styles.logoRow}>
             <ReserveiLogo size={36} />
           </div>
-          <div className={styles.badge}>
-            <ShieldCheck size={14} />
+          <div
+            className={styles.badge}
+            style={{
+              backgroundColor: "rgba(220, 255, 76, 0.08)",
+              color: "#dcff4c",
+              borderColor: "rgba(220, 255, 76, 0.25)",
+            }}
+          >
+            <ShieldCheck size={14} style={{ color: "#dcff4c" }} />
             <span>Acesso Super Admin</span>
           </div>
           <h1 className={styles.title}>Portal do Administrador</h1>
@@ -170,10 +177,20 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
             </div>
           </div>
 
-          <button type="submit" className={styles.submitBtn} disabled={loading}>
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={loading}
+            style={{
+              backgroundColor: "#dcff4c",
+              color: "#0a0a0a",
+              border: "none",
+              boxShadow: "none",
+            }}
+          >
             {loading ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={16} className="animate-spin" style={{ color: "#0a0a0a" }} />
                 <span>Autenticando...</span>
               </>
             ) : (
@@ -189,7 +206,16 @@ export function AdminLoginScreen({ currentSession, onAuthenticated }: AdminLogin
           <div className={styles.quickFillTitle}>Acesso Master Criado</div>
           <div className={styles.quickFillRow}>
             <span className={styles.quickFillText}>admin@reservei.com.br</span>
-            <button type="button" onClick={fillDefaultAdmin} className={styles.quickFillBtn}>
+            <button
+              type="button"
+              onClick={fillDefaultAdmin}
+              className={styles.quickFillBtn}
+              style={{
+                backgroundColor: "rgba(220, 255, 76, 0.1)",
+                color: "#dcff4c",
+                borderColor: "rgba(220, 255, 76, 0.25)",
+              }}
+            >
               Preencher dados
             </button>
           </div>

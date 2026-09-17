@@ -184,9 +184,9 @@
 .submitBtn {
   margin-top: 8px;
   height: 44px;
-  background: #dcff4c;
-  color: #0a0a0a;
-  border: none;
+  background: #dcff4c !important;
+  color: #0a0a0a !important;
+  border: none !important;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
@@ -195,12 +195,12 @@
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  box-shadow: none;
+  box-shadow: none !important;
   transition: background-color 0.15s ease;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #c8ed32;
+  background: #c8ed32 !important;
 }
 
 .submitBtn:disabled {
