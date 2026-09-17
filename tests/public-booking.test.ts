@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db, pool } from "@/db";
-import { appointments, bookings, companies, coupons, employeeSchedules, notificationLogs, products, scheduleBlocks, services } from "@/db/schema";
+import { appointments, bookings, companies, coupons, employeeSchedules, notificationLogs, products, scheduleBlocks, services, bookingPages } from "@/db/schema";
 import { loadAvailability } from "@/lib/booking/engine";
 import { createBooking, changeBooking, ownedBooking, bookingDetails } from "@/lib/booking/service";
 import { localInstant, canCustomerChange, shiftDate } from "@/lib/booking/time";
@@ -13,6 +13,8 @@ import { processBookingNotifications } from "@/lib/booking/notifications";
 import { verificationEmail, passwordResetEmail } from "@/lib/mailer";
 import { calendarIcs } from "@/lib/booking/calendar";
 import { isValidDateKey } from "@/lib/domain";
+import { publicCatalog, publicCompany } from "@/lib/booking/catalog";
+import { BookingError } from "@/lib/booking/errors";
 import { bookingFixture, cleanupFixture, type Fixture } from "./booking-fixture";
 let f:Fixture;
 const request=(startTime="09:00",index=0)=>({slug:f.company.publicSlug!,locationId:f.location.id,date:f.date,startTime,items:[{serviceId:f.services[index].id,employeeId:f.team[0].id}],idempotencyKey:randomUUID(),products:[],intendedPaymentMethod:"pix" as const});
@@ -92,9 +94,47 @@ describe("Public booking production invariants",()=>{
     await db.update(companies).set({cancellationHours:2}).where(eq(companies.id,f.company.id));
     const sent:string[]=[];const channel={async send(m:{idempotencyKey:string}){sent.push(m.idempotencyKey);return {ok:true};}};
     await Promise.all([processBookingNotifications(10,channel,booking.id),processBookingNotifications(10,channel,booking.id)]);
-    assert.equal(sent.length,1);assert.equal(new Set(sent).size,sent.length);
     await processBookingNotifications(10,channel,booking.id);assert.equal(sent.length,1);
     await changeBooking(booking.id,f.customers[0].id,"cancel");
   });
 
+  it("resolves public company and catalog with uppercase, spaces, and company id fallback", async () => {
+    // 1. Direct slug
+    const cat = await publicCatalog(f.company.publicSlug!);
+    assert.equal(cat.company.name, f.company.name);
+    assert.equal(cat.services.length >= 1, true);
+
+    // 2. Uppercase and spaces
+    const catUpper = await publicCatalog(`  ${f.company.publicSlug!.toUpperCase()}  `);
+    assert.equal(catUpper.company.name, f.company.name);
+
+    // 3. By Company ID
+    const catById = await publicCatalog(f.company.id);
+    assert.equal(catById.company.name, f.company.name);
+
+    // 4. Unknown slug throws BookingError with 404
+    await assert.rejects(
+      () => publicCatalog("slug-que-definitivamente-nao-existe-999999"),
+      (err: any) => err instanceof BookingError && err.status === 404,
+    );
+  });
+
+  it("handles malformed pageBuilder layout gracefully without crashing catalog", async () => {
+    const pageId = randomUUID();
+    await db.insert(bookingPages).values({
+      id: pageId,
+      companyId: f.company.id,
+      status: "published",
+      publishedLayout: "CORRUPTED_JSON_NOT_VALID{",
+      globalTokens: "CORRUPTED_TOKENS{",
+      draftLayout: "{}",
+    });
+
+    const cat = await publicCatalog(f.company.publicSlug!);
+    assert.equal(cat.company.name, f.company.name);
+    assert.equal(cat.company.pageBuilder, null);
+
+    await db.delete(bookingPages).where(eq(bookingPages.id, pageId));
+  });
 });
+

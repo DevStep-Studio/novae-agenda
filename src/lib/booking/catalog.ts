@@ -24,25 +24,34 @@ import { getCompanySettings } from "@/lib/settings";
 import { localDate } from "./time";
 
 export async function publicCompany(slug: string, executor: DbExecutor = db) {
-  const normalizedSlug = slug.toLowerCase().trim();
+  let decodedSlug = slug;
+  try {
+    decodedSlug = decodeURIComponent(slug);
+  } catch {}
 
-  // Try finding with explicit publicEnabled = true first
+  const normalizedSlug = slug.toLowerCase().trim();
+  const normalizedDecoded = decodedSlug.toLowerCase().trim();
+  const cleanSlug = normalizedSlug.replace(/[^a-z0-9-_]/g, "");
+
+  // 1. Try finding with explicit publicSlug match
   let [company] = await executor
     .select()
     .from(companies)
     .where(
       and(
-        sql`lower(trim(${companies.publicSlug})) = ${normalizedSlug}`,
+        sql`lower(trim(${companies.publicSlug})) IN (${normalizedSlug}, ${normalizedDecoded}, ${cleanSlug})`,
         eq(companies.publicEnabled, true)
       )
     );
 
-  // If not found, check if company exists with matching slug and enable it
+  // 2. If not found, check if company exists with matching slug (regardless of publicEnabled) and auto-enable
   if (!company) {
     const [existing] = await executor
       .select()
       .from(companies)
-      .where(sql`lower(trim(${companies.publicSlug})) = ${normalizedSlug}`);
+      .where(
+        sql`lower(trim(${companies.publicSlug})) IN (${normalizedSlug}, ${normalizedDecoded}, ${cleanSlug})`
+      );
 
     if (existing) {
       try {
@@ -53,6 +62,47 @@ export async function publicCompany(slug: string, executor: DbExecutor = db) {
         existing.publicEnabled = true;
       } catch {}
       company = existing;
+    }
+  }
+
+  // 3. Fallback: match by company ID (UUID or custom ID)
+  if (!company) {
+    const [existingById] = await executor
+      .select()
+      .from(companies)
+      .where(eq(companies.id, normalizedSlug));
+
+    if (existingById) {
+      try {
+        await executor
+          .update(companies)
+          .set({ publicEnabled: true, updatedAt: new Date() })
+          .where(eq(companies.id, existingById.id));
+        existingById.publicEnabled = true;
+      } catch {}
+      company = existingById;
+    }
+  }
+
+  // 4. Fallback: match normalized slug with hyphens/spaces replaced
+  if (!company) {
+    const [existingNormalized] = await executor
+      .select()
+      .from(companies)
+      .where(
+        sql`lower(replace(trim(${companies.publicSlug}), ' ', '-')) = ${normalizedSlug}
+            OR lower(replace(replace(trim(${companies.name}), ' ', '-'), '_', '-')) = ${normalizedSlug}`
+      );
+
+    if (existingNormalized) {
+      try {
+        await executor
+          .update(companies)
+          .set({ publicEnabled: true, updatedAt: new Date() })
+          .where(eq(companies.id, existingNormalized.id));
+        existingNormalized.publicEnabled = true;
+      } catch {}
+      company = existingNormalized;
     }
   }
 
@@ -227,17 +277,24 @@ export async function publicCatalog(slug: string) {
       photos: company.publicPhotos,
       timezone: company.timezone,
       cancellationHours: company.cancellationHours,
-      pageBuilder:
-        publishedPage?.status === "published" && publishedPage?.publishedLayout
-          ? {
-              layout: (typeof publishedPage.publishedLayout === "string"
-                ? JSON.parse(publishedPage.publishedLayout)
-                : publishedPage.publishedLayout) as PageBuilderDocument,
-              tokens: (typeof publishedPage.globalTokens === "string"
-                ? JSON.parse(publishedPage.globalTokens)
-                : (publishedPage.globalTokens || null)) as any,
-            }
-          : null,
+      pageBuilder: (() => {
+        if (publishedPage?.status !== "published" || !publishedPage?.publishedLayout) {
+          return null;
+        }
+        try {
+          const layout =
+            typeof publishedPage.publishedLayout === "string"
+              ? (JSON.parse(publishedPage.publishedLayout) as PageBuilderDocument)
+              : (publishedPage.publishedLayout as PageBuilderDocument);
+          const tokens =
+            typeof publishedPage.globalTokens === "string"
+              ? (JSON.parse(publishedPage.globalTokens) as any)
+              : (publishedPage.globalTokens || null);
+          return { layout, tokens };
+        } catch {
+          return null;
+        }
+      })(),
     },
     services: serviceRows.map((s) => ({
       ...s,

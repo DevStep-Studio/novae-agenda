@@ -163,3 +163,20 @@ test("HTTP concurrency and professional reschedule/completion update the custome
     expect(JSON.stringify(publicData)).not.toContain("commission");
   }finally{await customerA.dispose();await customerB.dispose();await staff.dispose();}
 });
+
+test("direct navigation to /agendar/[slug] loads public booking interface without crashing", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (e) => pageErrors.push(e.message));
+
+  // 1. Valid public slug renders booking interface
+  const response = await page.goto(`/agendar/${f.company.publicSlug}`);
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole("heading", { name: "Escolha seu serviço", exact: true })).toBeVisible();
+  expect(pageErrors.length).toBe(0);
+
+  // 2. Non-existent slug renders clean not-found screen rather than crashing error boundary
+  const notFoundResponse = await page.goto("/agendar/slug-inexistente-xyz-999");
+  expect([200, 404]).toContain(notFoundResponse?.status());
+  await expect(page.getByRole("heading", { name: "Estabelecimento não encontrado", exact: true })).toBeVisible();
+});
+
