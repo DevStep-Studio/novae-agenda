@@ -7043,7 +7043,7 @@ function ProfilePage({
           <div className="notice-content">
             <strong>Identidade Visual Compartilhada para Toda a Equipe</strong>
             <p>
-              Você está editando as preferências visuais de <strong>{session?.company.name}</strong>. Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
+              Você está editando as preferências visuais de <strong>{session?.company.name}.</strong> Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
             </p>
           </div>
         </div>
