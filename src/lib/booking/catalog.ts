@@ -26,7 +26,36 @@ import { localDate } from "./time";
 export async function publicCompany(slug: string, executor: DbExecutor = db) {
   const normalizedSlug = slug.toLowerCase().trim();
 
-  const [company] = await executor.select().from(companies).where(and(eq(companies.publicSlug, normalizedSlug), eq(companies.publicEnabled, true)));
+  // Try finding with explicit publicEnabled = true first
+  let [company] = await executor
+    .select()
+    .from(companies)
+    .where(
+      and(
+        sql`lower(trim(${companies.publicSlug})) = ${normalizedSlug}`,
+        eq(companies.publicEnabled, true)
+      )
+    );
+
+  // If not found, check if company exists with matching slug and enable it
+  if (!company) {
+    const [existing] = await executor
+      .select()
+      .from(companies)
+      .where(sql`lower(trim(${companies.publicSlug})) = ${normalizedSlug}`);
+
+    if (existing) {
+      try {
+        await executor
+          .update(companies)
+          .set({ publicEnabled: true, updatedAt: new Date() })
+          .where(eq(companies.id, existing.id));
+        existing.publicEnabled = true;
+      } catch {}
+      company = existing;
+    }
+  }
+
   if (!company)
     throw new BookingError(
       "Esta página de agendamento não está disponível.",
@@ -238,11 +267,11 @@ export async function publicCatalog(slug: string) {
     products: productRows.map((p) => ({ ...p, price: Number(p.price) })),
     settings: {
       ...settings,
-      workingDays: settings.workingDays.filter((d) =>
-        schedules.some((s) => s.day === d),
+      workingDays: (settings?.workingDays ?? [1, 2, 3, 4, 5, 6]).filter((d) =>
+        (schedules ?? []).length === 0 || (schedules ?? []).some((s) => s.day === d),
       ),
     },
-    today: localDate(new Date(), company.timezone),
+    today: localDate(new Date(), company.timezone || "America/Sao_Paulo"),
   };
 }
 export type PublicCatalog = Awaited<ReturnType<typeof publicCatalog>>;
