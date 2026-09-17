@@ -115,12 +115,18 @@ function MyBookingsAccessModal({
 const darkSchemeQuery = "(prefers-color-scheme: dark)";
 
 function subscribeToColorScheme(onChange: () => void) {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return () => {};
+  }
   const mediaQuery = window.matchMedia(darkSchemeQuery);
   mediaQuery.addEventListener("change", onChange);
   return () => mediaQuery.removeEventListener("change", onChange);
 }
 
 function prefersDarkScheme() {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return true;
+  }
   return window.matchMedia(darkSchemeQuery).matches;
 }
 

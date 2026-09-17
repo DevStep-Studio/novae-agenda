@@ -72,7 +72,7 @@ export function PageBuilderRenderer({
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-  const tokens = document.globalTokens || {};
+  const tokens = document?.globalTokens || {};
 
   // Build CSS custom properties from global tokens
   const themeStyles: React.CSSProperties = {

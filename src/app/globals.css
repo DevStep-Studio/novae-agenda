@@ -8269,19 +8269,17 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     touch-action: pan-y pinch-zoom;
   }
   .topbar {
-    height: calc(60px + env(safe-area-inset-top, 0px)) !important;
+    height: calc(58px + env(safe-area-inset-top, 0px)) !important;
     padding: env(safe-area-inset-top, 0px) 16px 0 !important;
-    background: rgba(13, 15, 20, 0.88) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: var(--surface) !important;
+    border-bottom: 1px solid var(--border) !important;
     position: sticky !important;
     top: 0 !important;
     z-index: 90 !important;
   }
   :root:not([data-theme="dark"]) .topbar {
-    background: rgba(255, 255, 255, 0.92) !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid var(--border) !important;
   }
   .breadcrumb {
     display: none !important;
@@ -8298,7 +8296,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     font-weight: 700 !important;
     letter-spacing: -0.02em !important;
     color: var(--text-primary) !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
@@ -8307,34 +8305,30 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     font-size: 11px !important;
     font-weight: 500 !important;
     color: var(--text-muted) !important;
-    line-height: 1.1 !important;
+    line-height: 1.15 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
-    opacity: 0.85;
   }
   .mobile-menu-button {
     display: inline-grid !important;
     place-items: center !important;
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    border-radius: 10px !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 9px !important;
+    background: transparent !important;
+    border: none !important;
     color: var(--text-primary) !important;
-    margin-right: 10px !important;
+    margin-right: 8px !important;
     flex-shrink: 0 !important;
-    transition: all 0.15s ease !important;
+    transition: background 0.15s ease, transform 0.15s ease !important;
   }
-  :root:not([data-theme="dark"]) .mobile-menu-button {
-    background: rgba(0, 0, 0, 0.03) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  }
+  .mobile-menu-button:hover,
   .mobile-menu-button:active {
-    transform: scale(0.95);
-    background: rgba(255, 255, 255, 0.08) !important;
+    background: var(--surface-secondary) !important;
+    transform: scale(0.96);
   }
   .topbar-actions {
     gap: 8px !important;
@@ -8347,43 +8341,40 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     display: none !important;
   }
   .notification-button {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    border-radius: 10px !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 9px !important;
+    background: transparent !important;
+    border: none !important;
     color: var(--text-secondary) !important;
     position: relative !important;
     display: grid !important;
     place-items: center !important;
-    transition: all 0.15s ease !important;
+    transition: background 0.15s ease, transform 0.15s ease !important;
   }
-  :root:not([data-theme="dark"]) .notification-button {
-    background: rgba(0, 0, 0, 0.03) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  }
+  .notification-button:hover,
   .notification-button:active {
-    transform: scale(0.95);
+    background: var(--surface-secondary) !important;
+    transform: scale(0.96);
   }
   .topbar-notification-badge {
     position: absolute !important;
-    top: 3px !important;
-    right: 3px !important;
-    min-width: 16px !important;
-    height: 16px !important;
-    padding: 0 4px !important;
-    border-radius: 8px !important;
+    top: 2px !important;
+    right: 2px !important;
+    min-width: 15px !important;
+    height: 15px !important;
+    padding: 0 3px !important;
+    border-radius: 999px !important;
     background: #ef4444 !important;
     color: #ffffff !important;
-    font-size: 9.5px !important;
+    font-size: 9px !important;
     font-weight: 800 !important;
     border: 1.5px solid var(--surface) !important;
     display: grid !important;
     place-items: center !important;
     line-height: 1 !important;
-    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.45) !important;
   }
   .topbar-profile-button {
     padding: 0 !important;
@@ -8404,21 +8395,18 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     place-items: center !important;
     border-radius: 50% !important;
     overflow: hidden !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-  }
-  :root:not([data-theme="dark"]) .topbar-avatar {
-    border-color: rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface-secondary) !important;
   }
   .topbar-online-dot {
     position: absolute !important;
-    bottom: -1px !important;
-    right: -1px !important;
-    width: 8.5px !important;
-    height: 8.5px !important;
+    bottom: 0px !important;
+    right: 0px !important;
+    width: 8px !important;
+    height: 8px !important;
     border-radius: 50% !important;
     background: #10b981 !important;
-    border: 2px solid var(--surface) !important;
+    border: 1.5px solid var(--surface) !important;
     z-index: 2 !important;
   }
 
@@ -8536,117 +8524,6 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 @media (max-width: 680px) {
-  .topbar {
-    height: 60px !important;
-    padding: 0 16px !important;
-    gap: 8px !important;
-  }
-  .breadcrumb {
-    display: none !important;
-  }
-  .mobile-topbar-brand {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    min-width: 0 !important;
-    gap: 1px !important;
-  }
-  .mobile-topbar-title {
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.02em !important;
-    color: var(--text-primary) !important;
-    line-height: 1.2 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-  .mobile-topbar-company {
-    font-size: 11px !important;
-    font-weight: 500 !important;
-    color: var(--text-muted) !important;
-    line-height: 1.1 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    opacity: 0.85;
-  }
-  .topbar-actions {
-    gap: 8px !important;
-    align-items: center !important;
-    flex-shrink: 0 !important;
-  }
-  .topbar-actions .global-search,
-  .theme-button,
-  .topbar-quick-add-btn {
-    display: none !important;
-  }
-  .notification-button {
-    width: 36px !important;
-    height: 36px !important;
-    border-radius: 10px !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    color: var(--text-secondary) !important;
-    position: relative !important;
-    display: grid !important;
-    place-items: center !important;
-  }
-  :root:not([data-theme="dark"]) .notification-button {
-    background: rgba(0, 0, 0, 0.03) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  }
-  .topbar-notification-badge {
-    position: absolute !important;
-    top: 3px !important;
-    right: 3px !important;
-    min-width: 16px !important;
-    height: 16px !important;
-    padding: 0 4px !important;
-    border-radius: 8px !important;
-    background: #ef4444 !important;
-    color: #ffffff !important;
-    font-size: 9.5px !important;
-    font-weight: 800 !important;
-    border: 1.5px solid var(--surface) !important;
-    display: grid !important;
-    place-items: center !important;
-    line-height: 1 !important;
-    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.45) !important;
-  }
-  .topbar-profile-button {
-    padding: 0 !important;
-    display: grid !important;
-    place-items: center !important;
-  }
-  .topbar-avatar-wrap {
-    display: inline-flex !important;
-    position: relative !important;
-  }
-  .topbar-avatar {
-    width: 34px !important;
-    height: 34px !important;
-    display: grid !important;
-    place-items: center !important;
-    border-radius: 50% !important;
-    overflow: hidden !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-  }
-  :root:not([data-theme="dark"]) .topbar-avatar {
-    border-color: rgba(0, 0, 0, 0.1) !important;
-  }
-  .topbar-online-dot {
-    position: absolute !important;
-    bottom: -1px !important;
-    right: -1px !important;
-    width: 8.5px !important;
-    height: 8.5px !important;
-    border-radius: 50% !important;
-    background: #10b981 !important;
-    border: 2px solid var(--surface) !important;
-    z-index: 2 !important;
-  }
   .popover-dropdown {
     width: min(340px, calc(100vw - 20px)) !important;
     right: -10px !important;
@@ -8655,12 +8532,31 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   /* Page Layout & Headings */
   .page-intro {
     flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 10px !important;
-    margin-bottom: 16px !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding-top: 4px !important;
+    margin-bottom: 20px !important;
   }
   .page-intro h1 {
-    font-size: 20px !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.25 !important;
+    margin: 2px 0 0 !important;
+    color: var(--text-primary) !important;
+  }
+  .page-intro .eyebrow {
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: var(--primary) !important;
+  }
+  .page-intro .intro-copy {
+    font-size: 12.5px !important;
+    color: var(--text-muted) !important;
+    line-height: 1.45 !important;
+    margin: 4px 0 0 !important;
   }
   .dashboard-header-actions {
     display: grid !important;

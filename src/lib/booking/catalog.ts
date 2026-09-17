@@ -208,7 +208,7 @@ export async function publicCatalog(slug: string) {
   return {
     company: {
       name: company.name,
-      slug: company.publicSlug!,
+      slug: company.publicSlug || slug,
       description: company.publicDescription,
       category: company.businessType,
       logoUrl: company.logoUrl,
@@ -230,8 +230,12 @@ export async function publicCatalog(slug: string) {
       pageBuilder:
         publishedPage?.status === "published" && publishedPage?.publishedLayout
           ? {
-              layout: publishedPage.publishedLayout as PageBuilderDocument,
-              tokens: (publishedPage.globalTokens || null) as any,
+              layout: (typeof publishedPage.publishedLayout === "string"
+                ? JSON.parse(publishedPage.publishedLayout)
+                : publishedPage.publishedLayout) as PageBuilderDocument,
+              tokens: (typeof publishedPage.globalTokens === "string"
+                ? JSON.parse(publishedPage.globalTokens)
+                : (publishedPage.globalTokens || null)) as any,
             }
           : null,
     },
