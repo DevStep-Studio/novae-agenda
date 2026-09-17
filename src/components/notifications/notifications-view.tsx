@@ -394,17 +394,19 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
         </div>
 
         <div className="notif-header-actions">
-          {/* Simulate Action Button */}
-          <button
-            type="button"
-            className="notif-action-btn simulate"
-            onClick={() => handleSimulate("reminder_2h")}
-            disabled={simulating}
-            title="Disparar lembrete de teste"
-          >
-            {simulating ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
-            <span>{simulating ? "Simulando..." : "Simular Lembrete"}</span>
-          </button>
+          {/* Simulate Action Button — dev-only: the API blocks this in production */}
+          {process.env.NODE_ENV !== "production" && (
+            <button
+              type="button"
+              className="notif-action-btn simulate"
+              onClick={() => handleSimulate("reminder_2h")}
+              disabled={simulating}
+              title="Disparar lembrete de teste"
+            >
+              {simulating ? <Loader2 size={13} className="spin" /> : <Sparkles size={13} />}
+              <span>{simulating ? "Simulando..." : "Simular Lembrete"}</span>
+            </button>
+          )}
 
           {/* Mark All Read Button */}
           {counts.unread > 0 && (
@@ -565,15 +567,17 @@ export function NotificationsView({ onNavigateToAppointment, onNavigateToAgenda 
                 ? "Você já visualizou todas as notificações recentes."
                 : "Quando ocorrerem agendamentos, pagamentos ou novidades no sistema, eles aparecerão aqui."}
             </p>
-            <button
-              type="button"
-              className="notif-action-btn simulate"
-              onClick={() => handleSimulate("reminder_2h")}
-              disabled={simulating}
-            >
-              <Sparkles size={13} />
-              <span>Simular Notificação de Teste</span>
-            </button>
+            {process.env.NODE_ENV !== "production" && (
+              <button
+                type="button"
+                className="notif-action-btn simulate"
+                onClick={() => handleSimulate("reminder_2h")}
+                disabled={simulating}
+              >
+                <Sparkles size={13} />
+                <span>Simular Notificação de Teste</span>
+              </button>
+            )}
           </div>
         )}
       </div>
