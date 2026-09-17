@@ -168,25 +168,12 @@ export async function loadAvailability(
             executor
               .select()
               .from(employeeServices)
-              .where(
-                and(
-                  inArray(employeeServices.employeeId, empIds),
-                  inArray(
-                    employeeServices.serviceId,
-                    defs.map((s) => s.id),
-                  ),
-                ),
-              ),
+              .where(inArray(employeeServices.employeeId, empIds)),
           () =>
             executor
               .select()
               .from(employeeLocations)
-              .where(
-                and(
-                  inArray(employeeLocations.employeeId, empIds),
-                  eq(employeeLocations.locationId, effectiveLocationId),
-                ),
-              ),
+              .where(inArray(employeeLocations.employeeId, empIds)),
           () =>
             executor
               .select()
@@ -249,19 +236,26 @@ export async function loadAvailability(
     : [[], [], [], [], []];
   const ordered = selection.map((item) => {
     const service = defs.find((s) => s.id === item.serviceId)!;
-    const hasServiceLinks = links.some((l) => l.serviceId === service.id);
-    const candidates = team.filter(
-      (e) =>
-        (!item.employeeId || e.id === item.employeeId) &&
-        (!e.locationId ||
+    const candidates = team.filter((e) => {
+      if (item.employeeId && e.id !== item.employeeId) return false;
+
+      const empUnitLinks = unitLinks.filter((l) => l.employeeId === e.id);
+      const hasLocRestriction = empUnitLinks.length > 0 || Boolean(e.locationId);
+      if (hasLocRestriction) {
+        const matchesLoc =
           e.locationId === effectiveLocationId ||
-          unitLinks.some(
-            (l) =>
-              l.employeeId === e.id && l.locationId === effectiveLocationId,
-          )) &&
-        (!hasServiceLinks ||
-          links.some((l) => l.employeeId === e.id && l.serviceId === service.id)),
-    );
+          empUnitLinks.some((l) => l.locationId === effectiveLocationId);
+        if (!matchesLoc) return false;
+      }
+
+      const empSvcLinks = links.filter((l) => l.employeeId === e.id);
+      if (empSvcLinks.length > 0) {
+        const matchesSvc = empSvcLinks.some((l) => l.serviceId === service.id);
+        if (!matchesSvc) return false;
+      }
+
+      return true;
+    });
     if (!candidates.length) {
       if (item.employeeId) {
         throw new BookingError(
@@ -299,15 +293,20 @@ export async function loadAvailability(
       if (busyForDay.length >= settings.dailyBookingLimit) return [];
     }
 
+    const currentDayOfWeek = dayOfWeek(date, company.timezone);
     const gaps = new Map<string, Interval[]>();
     for (const e of team) {
-      const work = scheduleWindows(
-        schedules.filter(
-          (s) =>
-            s.employeeId === e.id &&
-            s.dayOfWeek === dayOfWeek(date, company.timezone),
-        ),
-      )
+      const allEmpSchedules = schedules.filter((s) => s.employeeId === e.id);
+      const daySchedules = allEmpSchedules.filter(
+        (s) => s.dayOfWeek === currentDayOfWeek,
+      );
+
+      const rawWindows =
+        allEmpSchedules.length === 0
+          ? [{ start: open, end: close }]
+          : scheduleWindows(daySchedules);
+
+      const work = rawWindows
         .map((w) => ({
           start: Math.max(w.start, open),
           end: Math.min(w.end, close),

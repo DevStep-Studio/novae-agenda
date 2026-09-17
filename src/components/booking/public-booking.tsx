@@ -344,7 +344,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   });
 
   useEffect(() => {
-    if (step !== 2 || !items.length) return;
+    if (step !== 3 || !items.length) return;
     const controller = new AbortController();
     setQuoteLoading(true);
     setQuote(null);
@@ -461,7 +461,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         body: JSON.stringify({ token }),
       })
         .then(() => {
-          setStep(2);
+          setStep(3);
           window.history.replaceState({}, "", window.location.pathname);
         })
         .catch((e) => setError(e.message));
@@ -482,19 +482,19 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       const ids = again.split(",");
       setItems(
         ids
-          .filter((id) => services.some((s) => s.id === id))
-          .slice(0, 8)
-          .map((serviceId) => ({
-            serviceId,
-            employeeId: params.get("professional") || null,
-          })),
+            .filter((id) => services.some((s) => s.id === id))
+            .slice(0, 8)
+            .map((serviceId) => ({
+              serviceId,
+              employeeId: params.get("professional") || null,
+            })),
       );
-      setStep(1);
+      setStep(params.get("professional") ? 2 : 1);
     }
   }, [company.slug, locations, services, storageKey]);
 
   useEffect(() => {
-    if (ready && !bookingId && step < 3) {
+    if (ready && !bookingId && step < 4) {
       try {
         sessionStorage.setItem(
           storageKey,
@@ -598,8 +598,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     setBottomSheetOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" });
 
-    if (next === 1) event("date_selected");
-    if (next === 2) event("booking_confirmation_viewed");
+    if (next === 1) event("professional_step_viewed");
+    if (next === 2) event("date_selected");
+    if (next === 3) event("booking_confirmation_viewed");
   }
 
   async function confirm(e?: FormEvent) {
@@ -643,7 +644,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       setBookingId(result.id);
       event("booking_completed");
       sessionStorage.removeItem(storageKey);
-      setStep(3); // Show rich in-page confirmation screen
+      setStep(4); // Show rich in-page confirmation screen
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setError((e as Error).message);
@@ -652,7 +653,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           "Este horário acabou de ser reservado por outro cliente. Por favor, escolha outro horário para continuar.",
         );
         setSlot(null);
-        setStep(1);
+        setStep(2);
         setRequestId(crypto.randomUUID());
       }
     } finally {
@@ -664,7 +665,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   const renderSummaryContent = (isMobileSheet = false) => (
     <>
       <p className={b.eyebrow}>
-        {step === 2 ? "Revise sua reserva" : "Seu agendamento"}
+        {step === 3 ? "Revise sua reserva" : "Seu agendamento"}
       </p>
       <h2>Seu agendamento</h2>
 
@@ -748,23 +749,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   )}
                 </div>
 
-                {/* Visual professional selector */}
-                {step < 2 ? (
-                  <ProfessionalSelector
-                    slug={company.slug}
-                    locationId={locationId}
-                    serviceId={service.id}
-                    today={today}
-                    professionals={eligibleProfs}
-                    value={item.employeeId ?? null}
-                    onChange={(employeeId) => {
-                      changeItems(items.map((selection) => selection.serviceId === service.id ? { ...selection, employeeId } : selection));
-                      if (employeeId) event("professional_selected");
-                    }}
-                  />
-                ) : (
+                {step >= 2 && (
                   <ProfessionalIdentity
-                    professional={eligibleProfs.find(professional => professional.id === planned?.employeeId)}
+                    professional={eligibleProfs.find(professional => professional.id === (planned?.employeeId || item.employeeId))}
                     fallbackName={planned?.employeeName || "Qualquer profissional disponível"}
                   />
                 )}
@@ -825,17 +812,17 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             Sob consulta
           </strong>
         ) : (
-          <strong><Price amount={step === 2 && quote ? quote.total : price} /></strong>
+          <strong><Price amount={step === 3 && quote ? quote.total : price} /></strong>
         )}
       </div>
 
-      {step === 2 && quoteLoading && (
+      {step === 3 && quoteLoading && (
         <p className={b.muted} style={{ fontSize: 12, marginTop: 4 }}>
           Conferindo valores…
         </p>
       )}
 
-      {step === 2 && quote && quote.discount > 0 && (
+      {step === 3 && quote && quote.discount > 0 && (
         <p className={b.muted} style={{ fontSize: 12, color: "var(--accent, #3b82f6)" }}>
           Desconto aplicado: −{money(quote.discount)}
         </p>
@@ -849,8 +836,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           disabled={
             !selected.length ||
             !locationId ||
-            (step === 1 && !slot) ||
-            (step === 2 &&
+            (step === 2 && !slot) ||
+            (step === 3 &&
               (busy ||
                 !slot ||
                 quoteLoading ||
@@ -860,7 +847,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           }
           onClick={() => {
             if (isMobileSheet) setBottomSheetOpen(false);
-            if (step === 2) {
+            if (step === 3) {
               void confirm();
             } else {
               go(step + 1);
@@ -869,7 +856,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         >
           {busy
             ? "Processando…"
-            : step === 2
+            : step === 3
               ? (!customer
                   ? "Informe seus dados para agendar"
                   : !customer.hasPin
@@ -906,10 +893,10 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       }}
     >
       <main className={b.main}>
-        {/* Step Progress Bar (Only steps 0, 1, 2) */}
-        {step < 3 && (
+        {/* Step Progress Bar (Only steps 0, 1, 2, 3) */}
+        {step < 4 && (
           <ol className={b.progress} aria-label="Progresso do agendamento">
-            {["Serviços", "Data e horário", "Confirmação"].map((label, i) => (
+            {["Serviços", "Profissional", "Data e horário", "Confirmação"].map((label, i) => (
               <li
                 key={label}
                 className={i === step ? b.current : ""}
@@ -924,8 +911,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
         <ErrorMessage message={error} />
 
-        {/* STEP 3: SUCCESS CONFIRMATION VIEW */}
-        {step === 3 && (
+        {/* STEP 4: SUCCESS CONFIRMATION VIEW */}
+        {step === 4 && (
           <div className={b.successCard}>
             <div className={b.successIconWrap}>
               <CheckCircle2 size={32} />
@@ -1279,8 +1266,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
           </div>
         )}
 
-        {/* STEPS 0, 1, 2: FLOW LAYOUT */}
-        {step < 3 && (
+        {/* STEPS 0, 1, 2, 3: FLOW LAYOUT */}
+        {step < 4 && (
           <div className={b.layout}>
             <div className={b.content}>
               {step > 0 && (
@@ -1293,17 +1280,21 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               )}
 
               <p className={b.eyebrow}>
-                {step === 0
-                  ? "Escolha seu serviço"
-                  : step === 1
-                    ? "ESCOLHA QUANDO VOCÊ QUER IR"
-                    : "Finalize seu agendamento"}
+                {
+                  [
+                    "Escolha seu serviço",
+                    "ESCOLHA O PROFISSIONAL",
+                    "ESCOLHA QUANDO VOCÊ QUER IR",
+                    "Finalize seu agendamento",
+                  ][step]
+                }
               </p>
 
               <h1 className={b.title}>
                 {
                   [
                     "Escolha seu serviço",
+                    "Escolha o profissional",
                     "Escolha a data e o horário",
                     "Revise seu agendamento",
                   ][step]
@@ -1314,6 +1305,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 {
                   [
                     resolveCopy(company.copyOverrides, "heroSubtitle"),
+                    "Selecione o profissional de sua preferência para realizar o atendimento.",
                     friendlyTimezone(company.timezone),
                     "Confira os detalhes para garantir a reserva.",
                   ][step]
@@ -1728,8 +1720,133 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 </>
               ))}
 
-              {/* STEP 1: DATE & TIME PICKER */}
-              {step === 1 && items.length > 0 && (
+              {/* STEP 1: PROFESSIONAL SELECTION */}
+              {step === 1 && items.length > 0 && (() => {
+                const matchedProfs = professionals.filter((p) => {
+                  const matchesServices = items.every(
+                    (it) => p.serviceIds.length === 0 || p.serviceIds.includes(it.serviceId)
+                  );
+                  const matchesLocation =
+                    p.locationIds.length === 0 || p.locationIds.includes(locationId);
+                  return matchesServices && matchesLocation;
+                });
+                const eligibleProfs = matchedProfs.length > 0 ? matchedProfs : professionals;
+                const currentSelectedId = items[0]?.employeeId ?? null;
+
+                return (
+                  <section className={b.professionalSection} aria-label="Seleção de profissional">
+                    <div className={b.professionalListGrid}>
+                      {/* Option 1: Any professional (Fastest) */}
+                      <button
+                        type="button"
+                        className={`${b.professionalSelectCard} ${
+                          !currentSelectedId ? b.professionalSelectCardActive : ""
+                        }`}
+                        onClick={() => {
+                          changeItems(items.map((i) => ({ ...i, employeeId: null })));
+                          event("professional_selected");
+                        }}
+                      >
+                        <div className={b.professionalCardAvatarWrap}>
+                          <span className={`${b.professionalAvatar} ${b.professionalAvatarAny}`}>
+                            <Sparkles size={22} />
+                          </span>
+                        </div>
+                        <div className={b.professionalCardInfo}>
+                          <div className={b.professionalCardHeaderRow}>
+                            <strong>Qualquer profissional disponível</strong>
+                            <span className={b.professionalBadgeFast}>Mais rápido</span>
+                          </div>
+                          <p className={b.professionalCardSubtitle}>
+                            Encontre o primeiro horário livre entre todos os profissionais da equipe.
+                          </p>
+                        </div>
+                        <div className={b.professionalCardAction}>
+                          {!currentSelectedId ? (
+                            <span className={b.professionalSelectedCheck}>
+                              <Check size={16} />
+                            </span>
+                          ) : (
+                            <span className={b.professionalRadioCircle} />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Option 2..N: Specific professionals */}
+                      {eligibleProfs.map((professional) => {
+                        const isSelected = currentSelectedId === professional.id;
+                        return (
+                          <button
+                            key={professional.id}
+                            type="button"
+                            className={`${b.professionalSelectCard} ${
+                              isSelected ? b.professionalSelectCardActive : ""
+                            }`}
+                            onClick={() => {
+                              changeItems(items.map((i) => ({ ...i, employeeId: professional.id })));
+                              event("professional_selected");
+                            }}
+                          >
+                            <div className={b.professionalCardAvatarWrap}>
+                              <span className={b.professionalAvatar}>
+                                {professional.photoUrl ? (
+                                  <Image
+                                    src={professional.photoUrl}
+                                    alt={professional.name}
+                                    width={48}
+                                    height={48}
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <span>
+                                    {professional.name
+                                      .split(" ")
+                                      .filter(Boolean)
+                                      .slice(0, 2)
+                                      .map((part) => part[0]?.toUpperCase())
+                                      .join("")}
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className={b.professionalCardInfo}>
+                              <div className={b.professionalCardHeaderRow}>
+                                <strong>{professional.name}</strong>
+                              </div>
+                              <p className={b.professionalCardSubtitle}>
+                                {professional.jobTitle || "Profissional especializado"}
+                              </p>
+                            </div>
+                            <div className={b.professionalCardAction}>
+                              {isSelected ? (
+                                <span className={b.professionalSelectedCheck}>
+                                  <Check size={16} />
+                                </span>
+                              ) : (
+                                <span className={b.professionalRadioCircle} />
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        className={`${b.button} ${b.wide}`}
+                        onClick={() => go(2)}
+                      >
+                        Continuar para data e horário
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </section>
+                );
+              })()}
+
+              {/* STEP 2: DATE & TIME PICKER */}
+              {step === 2 && items.length > 0 && (
                 <AvailabilityPicker
                   slug={company.slug}
                   locationId={locationId}
@@ -1744,14 +1861,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   selected={slot}
                   onSelect={(s) => {
                     setSlot(s);
-                    if (s) { event("time_selected"); go(2); }
+                    if (s) { event("time_selected"); go(3); }
                   }}
                   waitlistStatus={waitlistStatus}
                   onWaitlist={() => { setWaitlistDate(date || today); setWaitlistOpen(true); }}
                 />
               )}
 
-              {step === 1 && waitlistOpen && <section className={b.detail} aria-label="Lista de espera">
+              {step === 2 && waitlistOpen && <section className={b.detail} aria-label="Lista de espera">
                 <h2>Avise-me se surgir uma vaga</h2>
                 <label className={b.field}>Dia<input type="date" min={today} value={waitlistDate} onChange={e => setWaitlistDate(e.target.value)} /></label>
                 <label className={b.field}>Parte do dia<select value={waitlistPeriod} onChange={e => setWaitlistPeriod(e.target.value)}><option value="any">Qualquer horário</option><option value="morning">Manhã</option><option value="afternoon">Tarde</option><option value="evening">Noite</option></select></label>
@@ -1766,8 +1883,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 <p className={b.muted}>O estabelecimento poderá entrar em contato se surgir uma vaga. Nenhum horário será reservado automaticamente.</p>
               </section>}
 
-              {/* STEP 2: IDENTIFICATION & CONFIRMATION */}
-              {step === 2 && (
+              {/* STEP 3: IDENTIFICATION & CONFIRMATION */}
+              {step === 3 && (
                 <>
                   {customer ? (
                     <div className={b.note}>
@@ -2363,7 +2480,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         )}
 
         {/* MOBILE STICKY BOTTOM BAR (Viewports < 768px) */}
-        {step < 3 && selected.length > 0 && (
+        {step < 4 && selected.length > 0 && (
           <div className={b.mobileBottomBar}>
             <div className={b.mobileBottomBarInner}>
               <button
@@ -2382,7 +2499,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                   <ChevronUp size={14} />
                 </div>
                 <div className={b.mobileSummaryPrice}>
-                  <Price amount={step === 2 && quote ? quote.total : price} />
+                  <Price amount={step === 3 && quote ? quote.total : price} />
                 </div>
               </button>
 
@@ -2391,8 +2508,8 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 disabled={
                   !selected.length ||
                   !locationId ||
-                  (step === 1 && !slot) ||
-                  (step === 2 &&
+                  (step === 2 && !slot) ||
+                  (step === 3 &&
                     (busy ||
                       !slot ||
                       quoteLoading ||
@@ -2401,7 +2518,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       !paymentMethod))
                 }
                 onClick={() => {
-                  if (step === 2) {
+                  if (step === 3) {
                     void confirm();
                   } else {
                     go(step + 1);
@@ -2410,7 +2527,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               >
                 {busy
                   ? "Aguarde…"
-                  : step === 2
+                  : step === 3
                     ? (!customer
                         ? "Identifique-se"
                         : !customer.hasPin

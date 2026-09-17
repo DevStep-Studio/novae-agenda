@@ -3691,6 +3691,139 @@
 .professionalIdentity strong { overflow: hidden; color: var(--ink); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .professionalIdentity small { color: var(--muted); font-size: 10.5px; }
 
+/* Dedicated Professional Step Grid & Cards */
+.professionalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.professionalListGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.professionalSelectCard {
+  width: 100%;
+  min-height: 80px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--booking-border);
+  border-radius: var(--booking-radius-md);
+  background: var(--booking-surface);
+  color: var(--booking-text);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.professionalSelectCard:hover {
+  border-color: var(--booking-border-strong);
+  background: var(--booking-surface-hover);
+  transform: translateY(-1px);
+}
+
+.professionalSelectCardActive {
+  border-color: var(--accent) !important;
+  background: var(--booking-surface-elevated) !important;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.professionalCardAvatarWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.professionalCardAvatarWrap .professionalAvatar {
+  width: 48px;
+  height: 48px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.professionalCardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.professionalCardHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.professionalCardHeaderRow strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--booking-text);
+  line-height: 1.3;
+}
+
+.professionalBadgeFast {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(220, 255, 76, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 255, 76, 0.25);
+}
+
+.professionalCardSubtitle {
+  font-size: 13px;
+  color: var(--booking-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.professionalCardAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.professionalSelectedCheck {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+.professionalRadioCircle {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--booking-border-strong);
+  background: transparent;
+  transition: border-color 0.2s ease;
+}
+
+.professionalSelectCard:hover .professionalRadioCircle {
+  border-color: var(--accent);
+}
+
+
 @media (max-width: 980px) {
   .quickNextSlotsGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }

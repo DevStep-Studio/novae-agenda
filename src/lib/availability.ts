@@ -108,13 +108,12 @@ export async function getEmployeeDayWindows(
   executor: DbExecutor = db,
   locationId?: string,
 ) {
-  const rows = await executor
+  const allRows = await executor
     .select()
     .from(employeeSchedules)
     .where(
       and(
         eq(employeeSchedules.employeeId, employeeId),
-        eq(employeeSchedules.dayOfWeek, dayOfWeek(date, timezone)),
         eq(employeeSchedules.active, true),
         locationId
           ? or(
@@ -124,7 +123,16 @@ export async function getEmployeeDayWindows(
           : undefined,
       ),
     );
-  return { hasSchedule: rows.length > 0, windows: scheduleWindows(rows) };
+  if (allRows.length === 0) {
+    return { hasSchedule: false, hasCustomConfig: false, windows: [] };
+  }
+  const targetDay = dayOfWeek(date, timezone);
+  const dayRows = allRows.filter((s) => s.dayOfWeek === targetDay);
+  return {
+    hasSchedule: dayRows.length > 0,
+    hasCustomConfig: true,
+    windows: scheduleWindows(dayRows),
+  };
 }
 export async function getAppointmentBusyIntervals(
   companyId: string,
@@ -237,13 +245,14 @@ export async function getAvailabilitySlotGaps(
       ),
     );
   if (!employee) return [];
-  const { windows } = await getEmployeeDayWindows(
-    employeeId,
-    date,
-    timezone,
-    executor,
-    locationId,
-  );
+  const { hasSchedule, hasCustomConfig, windows } =
+    await getEmployeeDayWindows(
+      employeeId,
+      date,
+      timezone,
+      executor,
+      locationId,
+    );
   let open = timeToMinutes(settings.openTime),
     close = timeToMinutes(settings.closeTime);
   const targetLocation = locationId ?? employee.locationId;
@@ -262,7 +271,10 @@ export async function getAvailabilitySlotGaps(
     open = Math.max(open, timeToMinutes(loc.openTime));
     close = Math.min(close, timeToMinutes(loc.closeTime));
   }
-  const working = windows
+  const rawWindows = hasCustomConfig
+    ? (hasSchedule ? windows : [])
+    : [{ start: open, end: close }];
+  const working = rawWindows
     .map((w) => ({
       start: Math.max(w.start, open),
       end: Math.min(w.end, close),
