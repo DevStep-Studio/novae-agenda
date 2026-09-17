@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useSyncExternalStore, type ReactNode } from "react";
-import { KeyRound, Moon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
+import { AlertCircle, KeyRound, Moon, ShieldCheck, Sun, UserRound, X } from "lucide-react";
 import { createBrandPalette } from "@/lib/branding";
 import { resolveCopy, type CopyOverrides } from "@/lib/booking/customization";
 import { resolveFontPack } from "./font-packs";
@@ -421,7 +421,8 @@ export const dateLabelShort = (date: string) => {
 export function ErrorMessage({ message }: { message: string }) {
   return message ? (
     <div className={styles.error} role="alert">
-      {message}
+      <AlertCircle size={17} style={{ flexShrink: 0 }} />
+      <span>{message}</span>
     </div>
   ) : null;
 }

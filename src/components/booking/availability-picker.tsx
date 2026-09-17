@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ArrowRight, Clock, CalendarDays, Sparkles, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Clock, CalendarDays, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api-client";
 import type { AvailableSlot } from "@/lib/booking/engine";
 import type { Selection } from "@/lib/booking/validation";
@@ -291,11 +291,48 @@ export function AvailabilityPicker({
 
       {loadingNextDays && <Skeleton label="Buscando próximos horários…" />}
       {!loadingNextDays && nextDays.length === 0 && (
-        <div className={b.empty}>
-          <p>{error ? "Tente novamente para consultar vagas reais." : "Nenhuma vaga nos próximos 14 dias."}</p>
-          {error && <button className={b.textButton} onClick={() => setReload(v => v + 1)}>Tentar novamente</button>}
-          <button className={b.textButton} onClick={() => setShowFullCalendar(true)}>Ver calendário completo</button>
-          {onWaitlist && <button className={b.button} disabled={waitlistStatus === "loading" || waitlistStatus === "success"} onClick={onWaitlist}>{waitlistStatus === "success" ? "Interesse registrado" : "Avise-me se surgir uma vaga"}</button>}
+        <div className={b.emptyStateCard}>
+          <div className={b.emptyStateIcon}>
+            <CalendarDays size={26} />
+          </div>
+          <h3 className={b.emptyStateTitle}>
+            {error ? "Não foi possível carregar os horários" : "Nenhum horário livre nos próximos dias"}
+          </h3>
+          <p className={b.emptyStateText}>
+            {error
+              ? "Tente recarregar para consultar vagas em tempo real ou consulte o calendário completo."
+              : "Não encontramos vagas automáticas imediatas. Você pode explorar outras datas ou registrar interesse."}
+          </p>
+
+          <div className={b.emptyStateActions}>
+            {error && (
+              <button
+                type="button"
+                className={`${b.button} ${b.outline}`}
+                onClick={() => setReload((v) => v + 1)}
+              >
+                <RefreshCw size={14} /> Tentar novamente
+              </button>
+            )}
+            <button
+              type="button"
+              className={`${b.button} ${b.outline}`}
+              onClick={() => setShowFullCalendar(true)}
+            >
+              <CalendarDays size={14} /> Ver calendário completo
+            </button>
+            {onWaitlist && (
+              <button
+                type="button"
+                className={b.button}
+                disabled={waitlistStatus === "loading" || waitlistStatus === "success"}
+                onClick={onWaitlist}
+              >
+                <Clock size={14} />
+                {waitlistStatus === "success" ? "Interesse registrado" : "Avise-me se surgir uma vaga"}
+              </button>
+            )}
+          </div>
         </div>
       )}
       {/* Full Month Calendar (Rendered when toggled or when no quick slots found) */}
