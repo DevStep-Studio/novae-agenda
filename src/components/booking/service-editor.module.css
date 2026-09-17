@@ -53,6 +53,16 @@
   .grid2, .grid3 {
     grid-template-columns: 1fr;
   }
+  /* "Orçamento direto (Sob consulta)" wraps to 2 lines while its 50%-width
+     sibling "Preço fixo" stays on 1, stretching both to an uneven, oddly
+     tall shared height. Stack the two options instead of splitting the row. */
+  .pricingModeToggle {
+    flex-direction: column;
+  }
+  .pricingModeBtn {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .field {
@@ -652,10 +662,23 @@
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  padding: 16px 0 0;
+  padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
   margin-top: 6px;
   border-top: 1px solid var(--border);
   box-shadow: 0 -8px 16px -8px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 640px) {
+  .footer {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .cancelBtn,
+  .submitBtn {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
 }
 
 .cancelBtn {
