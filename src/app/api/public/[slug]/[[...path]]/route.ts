@@ -186,17 +186,19 @@ export async function POST(request: Request, { params }: Context) {
     if (path.join("/") === "events") {
       const data = z
         .object({
-          sessionId: z.uuid(),
-          event: z.enum([
-            "public_profile_view",
-            "service_selected",
-            "date_selected",
-            "time_selected",
-            "checkout_started",
-          ]),
+          sessionId: z.string().min(1).max(100),
+          event: z.string().min(1).max(50),
         })
         .parse(body);
-      await db.insert(bookingEvents).values({ ...data, companyId: company.id });
+
+      // Normalize event names if necessary
+      const normalizedEvent = data.event === "booking_page_view" ? "public_profile_view" : data.event;
+
+      await db.insert(bookingEvents).values({
+        sessionId: data.sessionId,
+        event: normalizedEvent,
+        companyId: company.id,
+      });
     } else if (path.join("/") === "waitlist") {
       const user = await getIdentity();
       if (!user) throw new BookingError("Entre na sua conta para registrar seu interesse.", 401);
