@@ -126,22 +126,21 @@ export function AdminDashboard() {
           </button>
         </nav>
 
-        <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "1px solid #222222" }}>
-          <div style={{ fontSize: 11, color: "#a3a3a3", marginBottom: 8, paddingLeft: 4 }}>
-            Conectado como: <strong style={{ color: "#ffffff" }}>{session?.email || "Super Admin"}</strong>
+        <div className={styles.sidebarFooter}>
+          <div className={styles.sidebarUserText}>
+            Conectado como: <strong>{session?.email || "Super Admin"}</strong>
           </div>
           <Link href="/gestao" className={styles.portalSwitchBtn}>
             <ExternalLink size={13} />
-            Painel da Empresa
+            <span>Painel da Empresa</span>
           </Link>
           <button
             type="button"
-            onClick={logout}
-            className={styles.portalSwitchBtn}
-            style={{ color: "#f87171" }}
+            onClick={() => void logout()}
+            className={styles.sidebarExitBtn}
           >
             <LogOut size={13} />
-            Sair do Painel
+            <span>Sair do Painel</span>
           </button>
         </div>
       </aside>
@@ -162,6 +161,34 @@ export function AdminDashboard() {
               <h1>Painel de Super Admin Reservei</h1>
               <p>Acesso e gestão operacional direta ao ecossistema multi-tenant.</p>
             </div>
+          </div>
+
+          <div className={styles.topbarRight}>
+            <div className={styles.topbarUserChip}>
+              <span className={styles.userStatusDot} />
+              <span className={styles.topbarUserEmail}>
+                {session?.email || "Super Admin"}
+              </span>
+            </div>
+
+            <Link
+              href="/gestao"
+              className={styles.topbarBtn}
+              title="Ir para o Painel da Empresa"
+            >
+              <ExternalLink size={14} />
+              <span>Painel da Empresa</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className={styles.topbarLogoutBtn}
+              title="Sair do Painel de Administrador"
+            >
+              <LogOut size={14} />
+              <span>Sair</span>
+            </button>
           </div>
         </header>
 

@@ -220,14 +220,11 @@ export function UsersTab() {
     if (user.isSuperadmin || user.role === "superadmin") {
       return (
         <span
-          className={styles.badge}
+          className={`${styles.statusPill} ${styles.statusActive}`}
           style={{
             background: "rgba(220, 255, 76, 0.15)",
             color: "#dcff4c",
             borderColor: "rgba(220, 255, 76, 0.4)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
             fontWeight: 700,
           }}
         >
@@ -240,14 +237,11 @@ export function UsersTab() {
     if (user.role === "owner") {
       return (
         <span
-          className={styles.badge}
+          className={styles.statusPill}
           style={{
             background: "rgba(34, 197, 94, 0.12)",
             color: "#4ade80",
             borderColor: "rgba(34, 197, 94, 0.3)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
             fontWeight: 600,
           }}
         >
@@ -260,14 +254,11 @@ export function UsersTab() {
     if (user.role === "employee" || user.role === "manager" || user.role === "admin") {
       return (
         <span
-          className={styles.badge}
+          className={styles.statusPill}
           style={{
             background: "rgba(59, 130, 246, 0.12)",
             color: "#60a5fa",
             borderColor: "rgba(59, 130, 246, 0.3)",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "5px",
             fontWeight: 500,
           }}
         >
@@ -279,14 +270,11 @@ export function UsersTab() {
 
     return (
       <span
-        className={styles.badge}
+        className={styles.statusPill}
         style={{
           background: "rgba(163, 163, 163, 0.1)",
           color: "#d4d4d4",
           borderColor: "rgba(163, 163, 163, 0.25)",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "5px",
         }}
       >
         <User size={12} />
@@ -298,58 +286,71 @@ export function UsersTab() {
   return (
     <div className={styles.tabContent}>
       {/* Top action & Filter bar */}
-      <div className={styles.filterBar}>
-        <div className={styles.searchWrap}>
-          <Search size={16} />
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder="Buscar usuário por nome, e-mail, telefone ou empresa..."
-            value={search}
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <Search
+              size={15}
+              style={{
+                position: "absolute",
+                left: 12,
+                color: "#737373",
+                pointerEvents: "none",
+              }}
+            />
+            <input
+              type="text"
+              className={styles.searchInput}
+              style={{ paddingLeft: 36 }}
+              placeholder="Buscar usuário por nome, e-mail, telefone..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <select
+            className={styles.filterSelect}
+            value={roleFilter}
             onChange={(e) => {
-              setSearch(e.target.value);
+              setRoleFilter(e.target.value);
               setPage(1);
             }}
-          />
+          >
+            <option value="all">Todos os Níveis</option>
+            <option value="superadmin">🛡️ Super Admin</option>
+            <option value="owner">👑 Proprietário</option>
+            <option value="employee">💼 Colaborador / Profissional</option>
+            <option value="customer">👤 Cliente</option>
+          </select>
+
+          <select
+            className={styles.filterSelect}
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">Todos os Status</option>
+            <option value="active">Ativos</option>
+            <option value="inactive">Inativos</option>
+          </select>
         </div>
 
-        <select
-          className={styles.selectInput}
-          value={roleFilter}
-          onChange={(e) => {
-            setRoleFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="all">Todos os Níveis</option>
-          <option value="superadmin">🛡️ Super Admin</option>
-          <option value="owner">👑 Proprietário</option>
-          <option value="employee">💼 Colaborador / Profissional</option>
-          <option value="customer">👤 Cliente</option>
-        </select>
-
-        <select
-          className={styles.selectInput}
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="all">Todos os Status</option>
-          <option value="active">Ativos</option>
-          <option value="inactive">Inativos</option>
-        </select>
-
-        <button
-          type="button"
-          className={styles.btnPrimary}
-          onClick={() => setCreateModalOpen(true)}
-          style={{ whiteSpace: "nowrap" }}
-        >
-          <Plus size={16} />
-          Criar Usuário no Banco
-        </button>
+        <div className={styles.toolbarRight}>
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => setCreateModalOpen(true)}
+            style={{ whiteSpace: "nowrap" }}
+          >
+            <Plus size={16} />
+            Criar Usuário no Banco
+          </button>
+        </div>
       </div>
 
       {fetchError && (
@@ -372,9 +373,9 @@ export function UsersTab() {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className={styles.tableWrap}>
-        <table className={styles.table}>
+      {/* Users Table Desktop */}
+      <div className={styles.tableWrapper}>
+        <table className={styles.dataTable}>
           <thead>
             <tr>
               <th>USUÁRIO</th>
@@ -449,8 +450,8 @@ export function UsersTab() {
                     {user.subscription ? (
                       <div>
                         <span
-                          className={`${styles.badge} ${
-                            user.subscription.status === "active" ? styles.badgeSuccess : styles.badgeWarning
+                          className={`${styles.statusPill} ${
+                            user.subscription.status === "active" ? styles.statusActive : styles.statusTrial
                           }`}
                         >
                           {user.subscription.plan.toUpperCase()} • {user.subscription.status}
@@ -463,7 +464,7 @@ export function UsersTab() {
 
                   <td>
                     <span
-                      className={`${styles.badge} ${user.active ? styles.badgeSuccess : styles.badgeDanger}`}
+                      className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
                     >
                       {user.active ? "Ativo" : "Inativo"}
                     </span>
@@ -555,6 +556,108 @@ export function UsersTab() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Cards List */}
+      <div className={styles.mobileCardsList}>
+        {!loading &&
+          usersList.map((user) => (
+            <div key={user.id} className={styles.mobileCard}>
+              <div className={styles.mobileCardHeader}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 8,
+                      background: user.isSuperadmin ? "#262b14" : "#1f1f23",
+                      border: user.isSuperadmin ? "1px solid #dcff4c" : "1px solid #333338",
+                      color: user.isSuperadmin ? "#dcff4c" : "#e5e5e5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 700,
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {user.name?.slice(0, 2).toUpperCase() || "US"}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>{user.name}</div>
+                    <div style={{ fontSize: 11, color: "#737373" }}>{user.email}</div>
+                  </div>
+                </div>
+                <span
+                  className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
+                >
+                  {user.active ? "Ativo" : "Inativo"}
+                </span>
+              </div>
+
+              <div className={styles.mobileCardBody}>
+                <div>
+                  <span style={{ color: "#737373" }}>Nível:</span> {renderLevelBadge(user)}
+                </div>
+                <div>
+                  <span style={{ color: "#737373" }}>Telefone:</span> {user.phone || "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#737373" }}>Empresa:</span> {user.company?.name || "Global"}
+                </div>
+                <div>
+                  <span style={{ color: "#737373" }}>Plano:</span>{" "}
+                  {user.subscription ? user.subscription.plan.toUpperCase() : "—"}
+                </div>
+              </div>
+
+              <div className={styles.mobileCardActions}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => {
+                    setUserToEdit(user);
+                    setEditForm({
+                      name: user.name || "",
+                      phone: user.phone || "",
+                      role: user.role || "customer",
+                      isSuperadmin: Boolean(user.isSuperadmin),
+                      active: Boolean(user.active),
+                      password: "",
+                    });
+                    setEditModalOpen(true);
+                  }}
+                >
+                  <Edit2 size={14} /> Editar
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnGhost}
+                  style={{ color: "#f87171" }}
+                  onClick={() => {
+                    setUserToDelete(user);
+                    setDeleteMode("soft");
+                    setDeleteReason("Exclusão solicitada no Super Admin");
+                    setDeleteModalOpen(true);
+                  }}
+                >
+                  <Trash2 size={14} /> Excluir
+                </button>
+              </div>
+            </div>
+          ))}
+
+        {!loading && usersList.length === 0 && (
+          <div className={styles.mobileCard} style={{ textAlign: "center", color: "#a3a3a3" }}>
+            Nenhum usuário encontrado para os filtros selecionados.
+          </div>
+        )}
+
+        {loading && (
+          <div className={styles.mobileCard} style={{ textAlign: "center", color: "#a3a3a3" }}>
+            Carregando usuários do MySQL...
+          </div>
+        )}
       </div>
 
       {/* MODAL: CRIAR NOVO USUÁRIO */}
