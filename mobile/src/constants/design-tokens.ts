@@ -204,6 +204,19 @@ export const typography = {
   servicePrice: { fontFamily: fontFamily.bodyBold, fontSize: 20, letterSpacing: -0.4, lineHeight: 24 },
   // .service-duration-badge, globals.css:4657-4665
   serviceDuration: { fontFamily: fontFamily.bodyMedium, fontSize: 12, lineHeight: 15 },
+  // .section-heading h2/p, globals.css:636-637
+  sectionTitle: { fontFamily: fontFamily.displaySemibold, fontSize: 15, letterSpacing: -0.2, lineHeight: 19 },
+  sectionDescription: { fontFamily: fontFamily.body, fontSize: 12, lineHeight: 17 },
+  // .rank-podium, globals.css:11299-11315
+  rankPodium: { fontFamily: fontFamily.bodyBold, fontSize: 11.5, lineHeight: 14 },
+  // .team-rank-info strong/small, globals.css:11347-11366
+  rankName: { fontFamily: fontFamily.bodySemibold, fontSize: 13.5, lineHeight: 17 },
+  rankSub: { fontFamily: fontFamily.body, fontSize: 11.5, lineHeight: 15 },
+  // .team-rank-meta / .commission-text, globals.css:11400-11412
+  rankMeta: { fontFamily: fontFamily.body, fontSize: 11, lineHeight: 14 },
+  // .team-rank-revenue / -net, globals.css:11429-11443
+  rankRevenue: { fontFamily: fontFamily.bodyBold, fontSize: 14.5, lineHeight: 18 },
+  rankNet: { fontFamily: fontFamily.body, fontSize: 10.5, lineHeight: 13 },
 } as const;
 
 /**
@@ -346,4 +359,18 @@ export const serviceCard = {
   // .service-toggle-btn/-thumb, globals.css:4666-4697 (distinct from the
   // generic `toggle` tokens above — this one is specific to this card).
   toggle: { trackWidth: 44, trackHeight: 24, thumbSize: 18, thumbInset: 3, offColor: "rgba(255, 255, 255, 0.22)" },
+} as const;
+
+/**
+ * .team-rank-item and children, globals.css:11239-11443 — the ranking row
+ * used by Financeiro's "Profissionais que mais trabalharam".
+ */
+export const rankRow = {
+  background: colors.surfaceSecondary,
+  border: colors.border,
+  podium: { background: "rgba(255, 255, 255, 0.04)", border: colors.border, color: colors.textMuted },
+  podiumFirst: { background: "rgba(245, 158, 11, 0.12)", color: "#f59e0b", border: "rgba(245, 158, 11, 0.25)" },
+  barTrack: "rgba(255, 255, 255, 0.08)",
+  barFill: colors.primary,
+  commissionText: "#f59e0b",
 } as const;

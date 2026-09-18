@@ -297,6 +297,18 @@ component actually imports from `lucide-react` and use the same name from
   (`.service-card.inactive .service-card-bg`); RN has no CSS-filter
   equivalent for a remote image without a shader library, so only the
   card-level dimming (`opacity: 0.65`) is ported.
+- **Financeiro** (`(owner)/financeiro.tsx`, "month" period only) — mirrors
+  `FinancialPage` (`app-shell.tsx:2540-2813`): header, the 4-card KPI grid
+  (Receita realizada/prevista, Comissões a pagar, Lucro líquido — same
+  `metric-teal` icon variant throughout), then "Profissionais que mais
+  trabalharam" (`TeamRankRow`, citing `.team-rank-item` and children,
+  globals.css:11239-11443: rank badge, avatar, progress bar sized to the
+  top earner, appointments + commission text, revenue + net). Computed
+  straight from the month's real appointments (`completed`/`pending` by
+  status, commission per employee incl. the 30% default rate) — the same
+  primary computation path the web itself uses, not the `/api/stats`
+  fallback path, since `stats.month` has no forecast-vs-realized split to
+  fall back to beyond "today".
 
 ### Intentionally not ported (with reasons — not oversights)
 
@@ -343,6 +355,11 @@ component actually imports from `lucide-react` and use the same name from
   editing/creation needs a full form that doesn't exist in mobile yet;
   deleting is destructive and needs a confirm dialog. Only the active
   toggle is real, per its own citation above.
+- **Financeiro's period tabs** (today/week/month/all — "month" is hardcoded
+  for now), the **7-day revenue bar chart** (a real charting component —
+  reach for the `dataviz` skill when this gets built, don't improvise axes/
+  bars from scratch), the **services ranking**, and the **payment-method
+  breakdown**. All real, deferred sections, not placeholders shown as done.
 
 ## Verification (this round)
 
