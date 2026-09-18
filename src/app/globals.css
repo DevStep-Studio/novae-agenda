@@ -160,9 +160,37 @@ body {
   touch-action: pan-y pinch-zoom;
 }
 button, input, select, textarea { font: inherit; }
-button { cursor: pointer; }
+button { cursor: pointer; white-space: nowrap; }
+button span { white-space: nowrap; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, h4, h5, h6 { text-wrap: balance; }
+
+/* Global Button & Pill Anti-Wrap: Action buttons must never break text or letters across lines */
+button,
+input[type="button"],
+input[type="submit"],
+.button,
+.btn,
+.modern-team-btn,
+.client-action-btn,
+.service-edit-pill,
+.service-category-badge,
+.filter-button,
+.today-button,
+.link-button,
+.icon-button {
+  white-space: nowrap !important;
+}
+
+button span,
+.button span,
+.btn span,
+.modern-team-btn span,
+.client-action-btn span,
+.service-edit-pill span,
+.service-category-badge span {
+  white-space: nowrap !important;
+}
 
 /* Prevent iOS Safari automatic zooming on inputs with font-size < 16px */
 @media (max-width: 768px) {
@@ -3645,6 +3673,8 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
 }
 .client-action-btn {
   display: inline-flex;
@@ -3659,7 +3689,12 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   font-weight: 500;
   cursor: pointer;
   box-shadow: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.client-action-btn span {
+  white-space: nowrap !important;
 }
 .client-action-btn:hover {
   background: var(--surface);
@@ -3677,6 +3712,9 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   background: var(--surface-secondary);
   color: var(--text-secondary);
   box-shadow: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  min-width: max-content !important;
 }
 .client-action-btn.schedule:hover {
   background: var(--surface);
@@ -3696,12 +3734,22 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   padding: 0;
   color: var(--text-muted);
   box-shadow: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 .client-action-btn.view:hover {
   color: var(--text-primary);
   background: var(--surface);
   border-color: var(--border-strong);
   box-shadow: none !important;
+}
+
+.client-data-table th.actions-header,
+.client-data-table td:last-child {
+  white-space: nowrap !important;
+  min-width: 135px !important;
+  width: 135px;
+  text-align: right;
 }
 
 /* Legacy table helpers preserved */
@@ -4479,7 +4527,11 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   font-weight: 500;
   cursor: pointer;
   box-shadow: none !important;
+  white-space: nowrap !important;
   transition: all 0.15s ease;
+}
+.service-edit-pill span {
+  white-space: nowrap !important;
 }
 .service-edit-pill:hover {
   background: rgba(255, 255, 255, 0.15);
@@ -4500,6 +4552,10 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   color: rgba(255, 255, 255, 0.85);
   font-size: 11px;
   font-weight: 500;
+  white-space: nowrap !important;
+}
+.service-category-badge span {
+  white-space: nowrap !important;
 }
 .service-card-body {
   flex: 1;
@@ -8984,9 +9040,19 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
      available vs. label + native select intrinsic width); the label had no
      white-space/flex-shrink protection, so it was shrunk and broken mid-word
      ("Or/de/na/r:") by the project's word-break reset. Stack them instead. */
+  .client-toolbar-right {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
   .client-sort-group {
     width: 100% !important;
-    flex-wrap: wrap !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
   }
   .sort-label {
     white-space: nowrap !important;
@@ -8995,7 +9061,32 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   .client-sort-select {
     flex: 1 !important;
     min-width: 0 !important;
-    width: auto !important;
+    width: 100% !important;
+    white-space: nowrap !important;
+  }
+  .client-results-count {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    align-self: flex-start !important;
+  }
+
+  /* Team Card Footer Actions on Mobile: 2x2 grid to prevent any text wrapping */
+  .modern-team-footer {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .modern-team-btn {
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+  .modern-team-btn span {
+    white-space: nowrap !important;
   }
   .service-grid, .team-grid {
     grid-template-columns: 1fr !important;
@@ -11670,10 +11761,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+  width: 100%;
 }
 .modern-team-btn {
   flex: 1;
-  height: 34px;
+  height: 36px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -11685,6 +11778,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   transition: all 0.15s ease;
   border: 1px solid var(--border);
   box-shadow: none !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis;
+  padding: 0 8px;
+}
+.modern-team-btn span {
+  white-space: nowrap !important;
 }
 .modern-team-btn.schedule {
   background: var(--primary-soft);
