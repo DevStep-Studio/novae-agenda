@@ -20,6 +20,7 @@ import { useStore } from "@/store/store";
 import { Toasts } from "@/components/ui/toast";
 import { ConfirmModalHost } from "@/components/ui/confirm-modal";
 import { MetricsTab } from "./tabs/metrics-tab";
+import { UsersTab } from "./tabs/users-tab";
 import { OwnersTab } from "./tabs/owners-tab";
 import { SubscriptionsTab } from "./tabs/subscriptions-tab";
 import { ClientsTab } from "./tabs/clients-tab";
@@ -27,7 +28,7 @@ import { CouponsTab } from "./tabs/coupons-tab";
 import { AuditTab } from "./tabs/audit-tab";
 import styles from "./admin-dashboard.module.css";
 
-type Tab = "dashboard" | "proprietarios" | "assinaturas" | "clientes" | "cupons" | "logs";
+type Tab = "dashboard" | "usuarios" | "proprietarios" | "assinaturas" | "clientes" | "cupons" | "logs";
 
 export function AdminDashboard() {
   const { session, logout, toasts, dismissToast } = useStore();
@@ -68,6 +69,15 @@ export function AdminDashboard() {
           >
             <LayoutDashboard size={18} />
             Dashboard
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.navItem} ${activeTab === "usuarios" ? styles.active : ""}`}
+            onClick={() => handleSelectTab("usuarios")}
+          >
+            <Users size={18} />
+            Usuários & Níveis
           </button>
 
           <button
@@ -157,6 +167,7 @@ export function AdminDashboard() {
 
         <div className={styles.contentBody}>
           {activeTab === "dashboard" && <MetricsTab />}
+          {activeTab === "usuarios" && <UsersTab />}
           {activeTab === "proprietarios" && <OwnersTab />}
           {activeTab === "assinaturas" && <SubscriptionsTab />}
           {activeTab === "clientes" && <ClientsTab />}

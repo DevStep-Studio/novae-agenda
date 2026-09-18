@@ -58,6 +58,31 @@ export interface CreateOwnerManualInput {
   reason?: string;
 }
 
+export interface ListUsersParams {
+  q?: string;
+  search?: string;
+  role?: "all" | "superadmin" | "owner" | "employee" | "customer" | "admin" | "manager" | "client";
+  status?: "all" | "active" | "inactive";
+  companyId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateUserManualInput {
+  name: string;
+  email: string;
+  phone?: string;
+  password?: string;
+  role: "superadmin" | "owner" | "employee" | "customer";
+  companyId?: string;
+  companyName?: string;
+  businessType?: string;
+  planSlug?: string;
+  accessType?: "trial" | "courtesy" | "pending";
+  grantCourtesy?: boolean;
+  reason?: string;
+}
+
 export class AdminService {
   /**
    * List companies/owners with pagination, rich multi-field search and filters
@@ -620,6 +645,393 @@ export class AdminService {
       slug: finalSlug,
       temporaryPassword: rawPassword,
     };
+  }
+
+  /**
+   * List all system users with role/level, active status, linked company and subscription
+   */
+  static async listUsers(params: ListUsersParams = {}) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const conditions = [];
+
+    // Role filter
+    if (params.role && params.role !== "all") {
+      if (params.role === "superadmin") {
+        conditions.push(or(eq(users.isSuperadmin, true), eq(users.role, "superadmin")));
+      } else if (params.role === "customer" || params.role === "client") {
+        conditions.push(or(eq(users.role, "customer"), eq(users.role, "client")));
+      } else {
+        conditions.push(eq(users.role, params.role));
+      }
+    }
+
+    // Status filter
+    if (params.status && params.status !== "all") {
+      if (params.status === "active") {
+        conditions.push(and(eq(users.active, true), isNull(users.deletedAt)));
+      } else if (params.status === "inactive") {
+        conditions.push(or(eq(users.active, false), isNotNull(users.deletedAt)));
+      }
+    }
+
+    // Company filter
+    if (params.companyId) {
+      conditions.push(eq(users.companyId, params.companyId));
+    }
+
+    // Search query
+    const queryTerm = (params.q || params.search || "").trim();
+    if (queryTerm) {
+      const q = `%${queryTerm}%`;
+      conditions.push(
+        or(
+          like(users.name, q),
+          like(users.email, q),
+          like(users.phone, q),
+          like(companies.name, q)
+        )
+      );
+    }
+
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    // Total count
+    const [countRes] = await db
+      .select({ count: sql<number>`count(distinct ${users.id})` })
+      .from(users)
+      .leftJoin(companies, eq(companies.id, users.companyId))
+      .where(whereClause);
+
+    const total = Number(countRes?.count ?? 0);
+
+    // Users list
+    const userRows = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        role: users.role,
+        isSuperadmin: users.isSuperadmin,
+        adminRole: users.adminRole,
+        active: users.active,
+        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
+        companyId: users.companyId,
+        companyName: companies.name,
+        companySlug: companies.publicSlug,
+        subscriptionPlan: subscriptions.plan,
+        subscriptionStatus: subscriptions.status,
+        trialEndsAt: subscriptions.trialEndsAt,
+      })
+      .from(users)
+      .leftJoin(companies, eq(companies.id, users.companyId))
+      .leftJoin(subscriptions, eq(subscriptions.companyId, companies.id))
+      .where(whereClause)
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const items = userRows.map((u) => {
+      const level = u.isSuperadmin || u.role === "superadmin"
+        ? "superadmin"
+        : u.role === "owner"
+        ? "owner"
+        : u.role === "employee"
+        ? "employee"
+        : "customer";
+
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
+        level,
+        isSuperadmin: Boolean(u.isSuperadmin),
+        adminRole: u.adminRole,
+        active: Boolean(u.active),
+        emailVerified: Boolean(u.emailVerified),
+        createdAt: u.createdAt,
+        company: u.companyId
+          ? {
+              id: u.companyId,
+              name: u.companyName || "Empresa",
+              slug: u.companySlug || "",
+            }
+          : null,
+        subscription: u.subscriptionPlan
+          ? {
+              plan: u.subscriptionPlan,
+              status: u.subscriptionStatus || "active",
+              trialEndsAt: u.trialEndsAt,
+            }
+          : null,
+      };
+    });
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  /**
+   * Create any user (Super Admin, Owner, Employee, Customer) directly in MySQL
+   */
+  static async createUserManual(
+    input: CreateUserManualInput,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const cleanEmail = input.email.trim().toLowerCase();
+
+    // Check unique email
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, cleanEmail))
+      .limit(1);
+
+    if (existing) {
+      throw new Error(`O e-mail '${cleanEmail}' já está cadastrado no sistema.`);
+    }
+
+    const rawPassword = input.password || `Reservei@${Math.floor(1000 + Math.random() * 9000)}`;
+    const passwordHash = await hashPassword(rawPassword);
+    const userId = crypto.randomUUID();
+    const now = new Date();
+
+    const isSuperadmin = input.role === "superadmin";
+    let targetCompanyId: string | null = input.companyId || null;
+
+    await db.transaction(async (tx) => {
+      // If role is owner and companyName provided, create company & subscription
+      if (input.role === "owner" && input.companyName && !targetCompanyId) {
+        const companyId = crypto.randomUUID();
+        const cleanSlug =
+          input.companyName
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "")
+            .slice(0, 50) || `empresa-${Date.now()}`;
+
+        let finalSlug = cleanSlug;
+        const [existingSlug] = await tx
+          .select({ id: companies.id })
+          .from(companies)
+          .where(eq(companies.publicSlug, finalSlug))
+          .limit(1);
+
+        if (existingSlug) {
+          finalSlug = `${cleanSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        await tx.insert(companies).values({
+          id: companyId,
+          name: input.companyName,
+          businessType: input.businessType ?? "Geral",
+          email: cleanEmail,
+          phone: input.phone ?? null,
+          publicSlug: finalSlug,
+          publicEnabled: true,
+          onboarded: true,
+        });
+
+        const subId = crypto.randomUUID();
+        const isCourtesy = input.accessType === "courtesy" || Boolean(input.grantCourtesy);
+        const initialStatus = isCourtesy ? "active" : input.accessType === "pending" ? "pending" : "trialing";
+        const trialEnds = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const periodEnds = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        await tx.insert(subscriptions).values({
+          id: subId,
+          companyId,
+          plan: input.planSlug || "trial",
+          status: initialStatus,
+          origin: isCourtesy ? "manual_courtesy" : "checkout",
+          grantedByAdminId: isCourtesy ? adminUser.id : null,
+          grantReason: isCourtesy ? input.reason || "Cortesia Super Admin" : null,
+          trialStartedAt: now,
+          trialEndsAt: trialEnds,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnds,
+        });
+
+        targetCompanyId = companyId;
+      }
+
+      // Insert User
+      await tx.insert(users).values({
+        id: userId,
+        companyId: targetCompanyId,
+        name: input.name,
+        email: cleanEmail,
+        phone: input.phone ?? null,
+        passwordHash,
+        role: isSuperadmin ? "superadmin" : input.role,
+        isSuperadmin,
+        adminRole: isSuperadmin ? "super_admin" : null,
+        active: true,
+        emailVerified: true,
+        emailVerifiedAt: now,
+      });
+
+      // Insert membership if associated with a company
+      if (targetCompanyId) {
+        await tx.insert(companyMemberships).values({
+          userId,
+          companyId: targetCompanyId,
+          role: input.role === "superadmin" ? "owner" : input.role,
+          active: true,
+        });
+
+        if (input.role === "employee") {
+          await tx.insert(employees).values({
+            id: crypto.randomUUID(),
+            companyId: targetCompanyId,
+            userId,
+            name: input.name,
+            phone: input.phone ?? null,
+            active: true,
+          });
+        }
+      }
+
+      // Audit Log
+      await logAdminAction({
+        adminUserId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: "CREATE_USER_MANUAL",
+        entity: "user",
+        entityId: userId,
+        entityName: input.name,
+        reason: input.reason || `Criação manual do usuário (${input.role}) pelo Super Admin`,
+        afterState: {
+          id: userId,
+          name: input.name,
+          email: cleanEmail,
+          role: input.role,
+          isSuperadmin,
+          companyId: targetCompanyId,
+        },
+        request,
+      });
+    });
+
+    return {
+      userId,
+      name: input.name,
+      email: cleanEmail,
+      role: input.role,
+      isSuperadmin,
+      temporaryPassword: rawPassword,
+      companyId: targetCompanyId,
+    };
+  }
+
+  /**
+   * Update user level/role, active status or reset password
+   */
+  static async updateUserRoleAndStatus(
+    userId: string,
+    input: {
+      role?: string;
+      isSuperadmin?: boolean;
+      active?: boolean;
+      name?: string;
+      phone?: string;
+      password?: string;
+    },
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    const updateData: any = {};
+    if (typeof input.name === "string") updateData.name = input.name.trim();
+    if (typeof input.phone === "string") updateData.phone = input.phone.trim();
+    if (typeof input.role === "string") updateData.role = input.role;
+    if (typeof input.isSuperadmin === "boolean") {
+      updateData.isSuperadmin = input.isSuperadmin;
+      updateData.adminRole = input.isSuperadmin ? "super_admin" : null;
+    }
+    if (typeof input.active === "boolean") updateData.active = input.active;
+    if (input.password && input.password.length >= 6) {
+      updateData.passwordHash = await hashPassword(input.password);
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await db.update(users).set(updateData).where(eq(users.id, userId));
+
+      await logAdminAction({
+        adminUserId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: "UPDATE_USER",
+        entity: "user",
+        entityId: userId,
+        entityName: user.name,
+        reason: "Atualização de dados/nível do usuário pelo Super Admin",
+        beforeState: { role: user.role, isSuperadmin: user.isSuperadmin, active: user.active },
+        afterState: updateData,
+        request,
+      });
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Delete or deactivate user
+   */
+  static async deleteUser(
+    userId: string,
+    mode: "soft" | "hard" = "soft",
+    reason = "Exclusão administrativa",
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    if (userId === adminUser.id) {
+      throw new Error("Você não pode excluir sua própria conta de Super Admin.");
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    if (mode === "hard") {
+      await db.delete(users).where(eq(users.id, userId));
+    } else {
+      await db
+        .update(users)
+        .set({ active: false, deletedAt: new Date(), deletedBy: adminUser.id })
+        .where(eq(users.id, userId));
+    }
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "DELETE_USER",
+      entity: "user",
+      entityId: userId,
+      entityName: user.name,
+      reason,
+      afterState: { deleted: true, mode },
+      request,
+    });
+
+    return { success: true };
   }
 
   /**
