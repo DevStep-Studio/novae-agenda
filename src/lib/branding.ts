@@ -122,7 +122,7 @@ export function createBrandPalette(
   const accessibleOnDark =
     luminance < 0.12 ? rgbToHex(r + 60, g + 60, b + 60) : brand;
   const accessibleOnLight =
-    luminance > 0.85 ? rgbToHex(r - 50, g - 50, b - 50) : brand;
+    luminance > 0.35 ? darkForeground : brand;
 
   const cssVariables: Record<string, string> = {
     "--brand": brand,
@@ -136,6 +136,7 @@ export function createBrandPalette(
     "--accent": brand,
     "--accent-hover": brandHover,
     "--accent-contrast": brandContrast,
+    "--accent-on-light": accessibleOnLight,
   };
 
   return {

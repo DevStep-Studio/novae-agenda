@@ -246,7 +246,7 @@
 
 .pageLight .groupTitle span {
   background: #f1f5f9;
-  color: var(--accent);
+  color: var(--booking-text);
   border: 1px solid var(--line);
 }
 
@@ -291,14 +291,68 @@
 .pageLight .serviceImagePlaceholder {
   background: #f1f5f9;
   border-color: var(--line);
-  color: var(--accent);
+  color: var(--booking-text-secondary);
 }
 
 .pageLight .bookingAvatar {
   background: #f1f5f9;
   border-color: #cbd5e1;
-  color: var(--accent);
+  color: var(--booking-text);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Modo Claro: Botões claros SEMPRE com texto escuro e borda nítida */
+.pageLight .outline,
+.page[data-theme="light"] .outline,
+.pageLight a.outline,
+.page[data-theme="light"] a.outline,
+.pageLight button.outline,
+.page[data-theme="light"] button.outline,
+.pageLight .button.outline,
+.page[data-theme="light"] .button.outline,
+.pageLight .actionBtnRow .outline,
+.page[data-theme="light"] .actionBtnRow .outline,
+.pageLight .serviceTopButtons .outline,
+.page[data-theme="light"] .serviceTopButtons .outline {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.pageLight .outline svg,
+.page[data-theme="light"] .outline svg,
+.pageLight .button.outline svg,
+.page[data-theme="light"] .button.outline svg,
+.pageLight .actionBtnRow .outline svg,
+.page[data-theme="light"] .actionBtnRow .outline svg,
+.pageLight .serviceTopButtons .outline svg,
+.page[data-theme="light"] .serviceTopButtons .outline svg {
+  color: #0f172a !important;
+  stroke: currentColor !important;
+}
+
+.pageLight .outline:hover:not(:disabled),
+.page[data-theme="light"] .outline:hover:not(:disabled),
+.pageLight a.outline:hover:not(:disabled),
+.page[data-theme="light"] a.outline:hover:not(:disabled),
+.pageLight button.outline:hover:not(:disabled),
+.page[data-theme="light"] button.outline:hover:not(:disabled),
+.pageLight .button.outline:hover:not(:disabled),
+.page[data-theme="light"] .button.outline:hover:not(:disabled),
+.pageLight .actionBtnRow .outline:hover:not(:disabled),
+.page[data-theme="light"] .actionBtnRow .outline:hover:not(:disabled),
+.pageLight .serviceTopButtons .outline:hover:not(:disabled),
+.page[data-theme="light"] .serviceTopButtons .outline:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  color: #09090b !important;
+  border-color: #94a3b8 !important;
+}
+
+.pageLight .button:not(.outline),
+.page[data-theme="light"] .button:not(.outline) {
+  border-color: color-mix(in srgb, var(--accent) 70%, #000000 30%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .pageLight .summaryItem {
@@ -723,7 +777,7 @@
   box-sizing: border-box;
 }
 
-.page a {
+.page a:not(.button):not(.headerLink):not(.textButton) {
   color: inherit;
   text-decoration: none;
 }
@@ -1561,7 +1615,11 @@
   white-space: nowrap;
 }
 
-.serviceWhatsappBtn {
+.serviceWhatsappBtn,
+a.serviceWhatsappBtn,
+button.serviceWhatsappBtn,
+.pageLight .serviceWhatsappBtn,
+.page[data-theme="light"] .serviceWhatsappBtn {
   width: 100% !important;
   display: inline-flex;
   align-items: center;
@@ -1569,6 +1627,18 @@
   gap: 6px;
   min-height: 40px;
   font-weight: 600;
+  border-color: #25D366 !important;
+  color: #25D366 !important;
+  background: transparent !important;
+}
+
+.serviceWhatsappBtn svg,
+a.serviceWhatsappBtn svg,
+button.serviceWhatsappBtn svg,
+.pageLight .serviceWhatsappBtn svg,
+.page[data-theme="light"] .serviceWhatsappBtn svg {
+  color: #25D366 !important;
+  stroke: currentColor !important;
 }
 
 .badge {
@@ -1588,11 +1658,15 @@
 /* =========================================================
    BUTTONS
    ========================================================= */
-.button {
+.button,
+a.button,
+button.button,
+.page a.button,
+.page button.button {
   min-height: 44px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: var(--accent-contrast);
+  color: var(--accent-contrast) !important;
   border-radius: var(--booking-radius-sm);
   padding: 9px 18px;
   font: inherit;
@@ -1610,9 +1684,23 @@
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.button:hover:not(:disabled) {
+.button svg,
+a.button svg,
+button.button svg,
+.page a.button svg,
+.page button.button svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.button:hover:not(:disabled),
+a.button:hover:not(:disabled),
+button.button:hover:not(:disabled),
+.page a.button:hover:not(:disabled),
+.page button.button:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+  color: var(--accent-contrast) !important;
 }
 
 .button:disabled {
@@ -1622,15 +1710,31 @@
   cursor: not-allowed;
 }
 
-.outline {
+.outline,
+a.outline,
+button.outline,
+.button.outline,
+.page a.button.outline,
+.page button.button.outline {
   background: var(--paper-hover);
-  color: var(--accent);
+  color: var(--booking-text-primary) !important;
   border-color: var(--booking-border-strong);
 }
 
-.outline:hover:not(:disabled) {
+.outline svg,
+a.outline svg,
+button.outline svg,
+.button.outline svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.outline:hover:not(:disabled),
+a.outline:hover:not(:disabled),
+button.outline:hover:not(:disabled),
+.button.outline:hover:not(:disabled) {
   background: var(--accent);
-  color: var(--accent-contrast);
+  color: var(--accent-contrast) !important;
   border-color: var(--accent);
 }
 
