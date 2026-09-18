@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Ban,
   ExternalLink,
+  Edit2,
+  Sparkles,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/client-utils";
 import styles from "../admin-dashboard.module.css";
@@ -43,6 +45,21 @@ export function SubscriptionsTab() {
     immediately: true,
     reason: "",
   });
+
+  // Edit Subscription Modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [subToEdit, setSubToEdit] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    plan: "profissional",
+    status: "active",
+    billingInterval: "monthly" as "monthly" | "yearly",
+    amount: "0.00",
+    origin: "manual_courtesy" as "manual_courtesy" | "manual_paid" | "checkout",
+    paymentMethod: "pix",
+    endDate: "",
+    reason: "Ajuste administrativo de assinatura via Super Admin",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const loadSubscriptions = useCallback(async () => {
     try {
@@ -142,6 +159,83 @@ export function SubscriptionsTab() {
       void loadSubscriptions();
     } catch (err: any) {
       alert("Erro ao revogar assinatura: " + err.message);
+    }
+  };
+
+  const handleOpenEdit = (sub: any) => {
+    setSubToEdit(sub);
+    const rawDate = sub.nextPaymentAt || sub.currentPeriodEnd || sub.trialEndsAt;
+    let formattedDate = "";
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        formattedDate = d.toISOString().split("T")[0];
+      }
+    }
+    setEditForm({
+      plan: sub.plan || "trial",
+      status: sub.status || "active",
+      billingInterval: (sub.billingInterval === "yearly" ? "yearly" : "monthly") as "monthly" | "yearly",
+      amount: sub.amount !== null && sub.amount !== undefined ? String(Number(sub.amount).toFixed(2)) : "0.00",
+      origin: (sub.origin || "manual_courtesy") as any,
+      paymentMethod: sub.paymentMethod || "pix",
+      endDate: formattedDate,
+      reason: "Ajuste administrativo de assinatura via Super Admin",
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleExtendDays = (days: number) => {
+    const base = editForm.endDate ? new Date(editForm.endDate + "T12:00:00") : new Date();
+    const newDate = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+    setEditForm((prev) => ({
+      ...prev,
+      endDate: newDate.toISOString().split("T")[0],
+    }));
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subToEdit) return;
+    if (!editForm.reason.trim()) {
+      alert("Informe a justificativa para auditoria.");
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/superadmin/subscriptions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: subToEdit.id,
+          plan: editForm.plan,
+          status: editForm.status,
+          billingInterval: editForm.billingInterval,
+          amount: editForm.amount,
+          origin: editForm.origin,
+          paymentMethod: editForm.paymentMethod,
+          nextPaymentAt: editForm.endDate ? new Date(editForm.endDate + "T23:59:59") : null,
+          currentPeriodEnd: editForm.endDate ? new Date(editForm.endDate + "T23:59:59") : null,
+          trialEndsAt: editForm.endDate ? new Date(editForm.endDate + "T23:59:59") : undefined,
+          reason: editForm.reason,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Erro ao atualizar assinatura.");
+        return;
+      }
+
+      alert("Assinatura atualizada com sucesso!");
+      setEditModalOpen(false);
+      setSubToEdit(null);
+      void loadSubscriptions();
+    } catch (err: any) {
+      alert("Erro ao atualizar assinatura: " + err.message);
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -304,11 +398,23 @@ export function SubscriptionsTab() {
                 </td>
                 <td style={{ textAlign: "right" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      style={{ padding: "6px 10px", fontSize: 11 }}
+                      title="Editar Assinatura"
+                      onClick={() => handleOpenEdit(sub)}
+                    >
+                      <Edit2 size={13} style={{ color: "#dcff4c" }} />
+                      Editar
+                    </button>
+
                     {sub.status !== "cancelled" && sub.status !== "suspended" && (
                       <button
                         type="button"
                         className={styles.btnSecondary}
                         style={{ padding: "6px 10px", fontSize: 11 }}
+                        title="Revogar Assinatura"
                         onClick={() => {
                           setSelectedSub(sub);
                           setRevokeModalOpen(true);
@@ -407,22 +513,30 @@ export function SubscriptionsTab() {
               </div>
             </div>
 
-            {sub.status !== "cancelled" && sub.status !== "suspended" && (
-              <div className={styles.mobileCardActions}>
+            <div className={styles.mobileCardActions} style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                style={{ flex: 1, justifyContent: "center", fontSize: 12 }}
+                onClick={() => handleOpenEdit(sub)}
+              >
+                <Edit2 size={14} style={{ color: "#dcff4c" }} />
+                Editar Assinatura
+              </button>
+              {sub.status !== "cancelled" && sub.status !== "suspended" && (
                 <button
                   type="button"
-                  className={styles.btnSecondary}
-                  style={{ width: "100%", justifyContent: "center" }}
+                  className={styles.btnGhost}
+                  style={{ color: "#f87171", fontSize: 12 }}
                   onClick={() => {
                     setSelectedSub(sub);
                     setRevokeModalOpen(true);
                   }}
                 >
-                  <Ban size={14} style={{ color: "#f87171" }} />
-                  Revogar / Cancelar Assinatura
+                  <Ban size={14} /> Revogar
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -609,6 +723,224 @@ export function SubscriptionsTab() {
                 </button>
                 <button type="submit" className={styles.btnDanger}>
                   Confirmar Revogação
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Subscription Modal */}
+      {editModalOpen && subToEdit && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalDialog} style={{ maxWidth: 580 }}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Edit2 size={20} color="#dcff4c" />
+                <div>
+                  <h2 style={{ fontSize: 17, margin: 0 }}>Editar Assinatura</h2>
+                  <div style={{ fontSize: 12, color: "#a3a3a3", marginTop: 2 }}>
+                    {subToEdit.companyName} • {subToEdit.ownerName || subToEdit.ownerEmail || "Sem proprietário"}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setEditModalOpen(false)}
+                disabled={savingEdit}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit}>
+              <div className={styles.modalBody}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Plano Contratado *</label>
+                    <select
+                      className={styles.select}
+                      value={editForm.plan}
+                      onChange={(e) => setEditForm({ ...editForm, plan: e.target.value })}
+                      disabled={savingEdit}
+                    >
+                      <option value="trial">Trial (Teste Gratuito)</option>
+                      <option value="essencial">Essencial</option>
+                      <option value="profissional">Profissional</option>
+                      <option value="equipe">Equipe</option>
+                      <option value="negocio">Negócio</option>
+                      <option value="empresa">Empresa / Enterprise</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Status da Assinatura *</label>
+                    <select
+                      className={styles.select}
+                      value={editForm.status}
+                      onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                      disabled={savingEdit}
+                    >
+                      <option value="active">Ativa</option>
+                      <option value="trialing">Teste Gratuito (Trialing)</option>
+                      <option value="pending">Pagamento Pendente</option>
+                      <option value="past_due">Vencida / Atrasada (Past Due)</option>
+                      <option value="suspended">Suspensa Administrativamente</option>
+                      <option value="cancelled">Cancelada</option>
+                      <option value="expired">Expirada</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Periodicidade *</label>
+                    <select
+                      className={styles.select}
+                      value={editForm.billingInterval}
+                      onChange={(e) => setEditForm({ ...editForm, billingInterval: e.target.value as any })}
+                      disabled={savingEdit}
+                    >
+                      <option value="monthly">Mensal</option>
+                      <option value="yearly">Anual</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Origem da Assinatura *</label>
+                    <select
+                      className={styles.select}
+                      value={editForm.origin}
+                      onChange={(e) => setEditForm({ ...editForm, origin: e.target.value as any })}
+                      disabled={savingEdit}
+                    >
+                      <option value="manual_courtesy">Cortesia Admin (Gratuito)</option>
+                      <option value="manual_paid">Cobrança Manual (PIX/Boleto)</option>
+                      <option value="checkout">Checkout Online (Mercado Pago)</option>
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Valor Contratado (R$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className={styles.input}
+                      value={editForm.amount}
+                      onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                      disabled={savingEdit}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Método de Pagamento</label>
+                    <select
+                      className={styles.select}
+                      value={editForm.paymentMethod}
+                      onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}
+                      disabled={savingEdit}
+                    >
+                      <option value="pix">PIX</option>
+                      <option value="card">Cartão de Crédito</option>
+                      <option value="manual">Manual</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Vencimento / Próxima Cobrança */}
+                <div className={styles.formGroup} style={{ marginTop: 6 }}>
+                  <label className={styles.label} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Data de Vencimento / Próxima Cobrança</span>
+                    <span style={{ color: "#a3a3a3", fontSize: 11 }}>Estender vigência rapidamente:</span>
+                  </label>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+                    <input
+                      type="date"
+                      className={styles.input}
+                      style={{ flex: 1 }}
+                      value={editForm.endDate}
+                      onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                      disabled={savingEdit}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => handleExtendDays(7)}
+                      disabled={savingEdit}
+                    >
+                      +7 dias
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => handleExtendDays(15)}
+                      disabled={savingEdit}
+                    >
+                      +15 dias
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => handleExtendDays(30)}
+                      disabled={savingEdit}
+                    >
+                      +30 dias
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => handleExtendDays(90)}
+                      disabled={savingEdit}
+                    >
+                      +3 meses
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      style={{ fontSize: 11, padding: "4px 8px" }}
+                      onClick={() => handleExtendDays(365)}
+                      disabled={savingEdit}
+                    >
+                      +1 ano
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.formGroup} style={{ marginTop: 12 }}>
+                  <label className={styles.label}>Motivo / Justificativa para Auditoria *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Upgrade negociado, prorrogação de prazo, etc."
+                    className={styles.input}
+                    value={editForm.reason}
+                    onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })}
+                    disabled={savingEdit}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.modalFooter}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => setEditModalOpen(false)}
+                  disabled={savingEdit}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={styles.btnPrimary}
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? "Salvando..." : "Salvar Alterações"}
                 </button>
               </div>
             </form>

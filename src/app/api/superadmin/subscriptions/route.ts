@@ -35,3 +35,32 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "Erro ao listar assinaturas." }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  const gate = await requireSuperadmin();
+  if (gate.response) return gate.response;
+
+  try {
+    const body = await request.json();
+    const subscriptionId = body.id || body.subscriptionId;
+
+    if (!subscriptionId) {
+      return Response.json({ error: "ID da assinatura é obrigatório." }, { status: 400 });
+    }
+
+    const result = await AdminService.updateSubscription(
+      subscriptionId,
+      body,
+      { id: gate.auth.user.userId, email: gate.auth.user.email },
+      request
+    );
+
+    return Response.json({
+      ...result,
+      message: "Assinatura atualizada com sucesso.",
+    });
+  } catch (error: any) {
+    console.error("[Superadmin Update Subscription] Error:", error);
+    return Response.json({ error: error.message || "Erro ao atualizar assinatura." }, { status: 400 });
+  }
+}

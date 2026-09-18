@@ -2398,6 +2398,142 @@ export class AdminService {
   }
 
   /**
+   * Update subscription details directly (plan, status, interval, amount, origin, dates)
+   */
+  static async updateSubscription(
+    subscriptionId: string,
+    data: {
+      plan?: string;
+      status?: string;
+      billingInterval?: "monthly" | "yearly";
+      amount?: string | number;
+      origin?: "checkout" | "manual_courtesy" | "manual_paid";
+      paymentMethod?: string;
+      nextPaymentAt?: string | Date | null;
+      trialEndsAt?: string | Date | null;
+      currentPeriodEnd?: string | Date | null;
+      reason: string;
+    },
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const { reason } = data;
+    if (!reason || !reason.trim()) {
+      throw new Error("Justificativa para auditoria é obrigatória.");
+    }
+
+    const [sub] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.id, subscriptionId))
+      .limit(1);
+
+    if (!sub) {
+      throw new Error("Assinatura não encontrada.");
+    }
+
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, sub.companyId))
+      .limit(1);
+
+    const beforeState = { ...sub };
+    const now = new Date();
+    const updatePayload: Record<string, any> = {
+      updatedAt: now,
+    };
+
+    // Plan update
+    if (data.plan && data.plan !== sub.plan) {
+      updatePayload.plan = data.plan;
+      if (data.plan !== "trial") {
+        const [planRow] = await db
+          .select()
+          .from(saasPlans)
+          .where(eq(saasPlans.slug, data.plan))
+          .limit(1);
+        updatePayload.planId = planRow?.id ?? null;
+      } else {
+        updatePayload.planId = null;
+      }
+    }
+
+    // Status update
+    if (data.status && data.status !== sub.status) {
+      updatePayload.status = data.status;
+      if (data.status === "cancelled") {
+        updatePayload.cancelledAt = now;
+      } else if (sub.status === "cancelled") {
+        updatePayload.cancelledAt = null;
+      }
+    }
+
+    // Billing interval update
+    if (data.billingInterval && (data.billingInterval === "monthly" || data.billingInterval === "yearly")) {
+      updatePayload.billingInterval = data.billingInterval;
+    }
+
+    // Amount update
+    if (data.amount !== undefined && data.amount !== null) {
+      const num = Number(data.amount);
+      if (!isNaN(num) && num >= 0) {
+        updatePayload.amount = num.toFixed(2);
+      }
+    }
+
+    // Origin update
+    if (data.origin) {
+      updatePayload.origin = data.origin;
+    }
+
+    // Payment method update
+    if (data.paymentMethod) {
+      updatePayload.paymentMethod = data.paymentMethod;
+    }
+
+    // Next payment / period dates update
+    if (data.nextPaymentAt !== undefined) {
+      updatePayload.nextPaymentAt = data.nextPaymentAt ? new Date(data.nextPaymentAt) : null;
+    }
+    if (data.trialEndsAt !== undefined) {
+      updatePayload.trialEndsAt = data.trialEndsAt ? new Date(data.trialEndsAt) : sub.trialEndsAt;
+    }
+    if (data.currentPeriodEnd !== undefined) {
+      updatePayload.currentPeriodEnd = data.currentPeriodEnd ? new Date(data.currentPeriodEnd) : null;
+    }
+
+    await db
+      .update(subscriptions)
+      .set(updatePayload)
+      .where(eq(subscriptions.id, subscriptionId));
+
+    const [afterSub] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.id, subscriptionId))
+      .limit(1);
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "UPDATE_SUBSCRIPTION",
+      entity: "subscription",
+      entityId: subscriptionId,
+      entityName: `${company?.name || "Empresa"} (${sub.plan} -> ${data.plan || sub.plan})`,
+      reason,
+      beforeState,
+      afterState: afterSub,
+      request,
+    });
+
+    return {
+      success: true,
+      subscription: afterSub,
+    };
+  }
+
+  /**
    * System overview metrics with period filtering and revenue segregation
    */
   static async getSystemOverviewMetrics(params: {
