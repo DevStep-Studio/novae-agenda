@@ -338,6 +338,11 @@ component actually imports from `lucide-react` and use the same name from
   that doesn't exist yet (appointment creation, a schedule editor, an
   employee-filtered agenda, an employee edit form). "Adicionar profissional"
   is the same story.
+- **Serviços' "Planos Mensais" sub-tab** (a membership-plan feature, separate
+  data model), its **Editar/Excluir pills**, and **"Novo serviço"** — service
+  editing/creation needs a full form that doesn't exist in mobile yet;
+  deleting is destructive and needs a confirm dialog. Only the active
+  toggle is real, per its own citation above.
 
 ## Verification (this round)
 
