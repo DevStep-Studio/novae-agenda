@@ -40,6 +40,14 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalOwners: 0,
+    totalEmployees: 0,
+    totalCustomers: 0,
+    totalSuperadmins: 0,
+    totalActive: 0,
+  });
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -101,6 +109,9 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
       setUsersList(json.data || json.items || []);
       setTotalPages(json.pagination?.totalPages || 1);
       setTotalCount(json.pagination?.total || 0);
+      if (json.stats) {
+        setStats(json.stats);
+      }
     } catch (err: any) {
       console.error("Erro ao carregar usuários:", err);
       setFetchError(err.message || "Erro de conexão ao banco de dados.");
@@ -220,17 +231,23 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
     }
   };
 
-  // Helper badge renderers
+  // Helper badge & avatar renderers
+  const getAvatarClass = (user: any) => {
+    if (user.isSuperadmin || user.role === "superadmin") return styles.userAvatarSuperadmin;
+    if (user.role === "owner") return styles.userAvatarOwner;
+    if (user.role === "employee" || user.role === "manager" || user.role === "admin") return styles.userAvatarEmployee;
+    return styles.userAvatarCustomer;
+  };
+
   const renderLevelBadge = (user: any) => {
     if (user.isSuperadmin || user.role === "superadmin") {
       return (
         <span
-          className={`${styles.statusPill} ${styles.statusActive}`}
+          className={styles.statusPill}
           style={{
-            background: "rgba(220, 255, 76, 0.15)",
+            background: "rgba(220, 255, 76, 0.12)",
             color: "#dcff4c",
-            borderColor: "rgba(220, 255, 76, 0.4)",
-            fontWeight: 700,
+            border: "1px solid rgba(220, 255, 76, 0.35)",
           }}
         >
           <ShieldAlert size={12} />
@@ -246,8 +263,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
           style={{
             background: "rgba(34, 197, 94, 0.12)",
             color: "#4ade80",
-            borderColor: "rgba(34, 197, 94, 0.3)",
-            fontWeight: 600,
+            border: "1px solid rgba(34, 197, 94, 0.3)",
           }}
         >
           <Crown size={12} />
@@ -263,8 +279,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
           style={{
             background: "rgba(59, 130, 246, 0.12)",
             color: "#60a5fa",
-            borderColor: "rgba(59, 130, 246, 0.3)",
-            fontWeight: 500,
+            border: "1px solid rgba(59, 130, 246, 0.3)",
           }}
         >
           <Briefcase size={12} />
@@ -277,9 +292,9 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
       <span
         className={styles.statusPill}
         style={{
-          background: "rgba(163, 163, 163, 0.1)",
-          color: "#d4d4d4",
-          borderColor: "rgba(163, 163, 163, 0.25)",
+          background: "rgba(161, 161, 170, 0.1)",
+          color: "#d4d4d8",
+          border: "1px solid rgba(161, 161, 170, 0.25)",
         }}
       >
         <User size={12} />
@@ -290,30 +305,81 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
 
   return (
     <div className={styles.tabContent}>
-      {/* Top action & Filter bar */}
+      {/* 4 KPI Summary Cards */}
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statTitle}>Total de Usuários</span>
+            <div className={styles.statIcon} style={{ background: "rgba(220, 255, 76, 0.12)", color: "#dcff4c" }}>
+              <Users size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{stats.totalUsers || totalCount}</div>
+          <div className={styles.statSubtext}>{stats.totalActive || 0} usuários ativos na plataforma</div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statTitle}>Proprietários</span>
+            <div className={styles.statIcon} style={{ background: "rgba(34, 197, 94, 0.12)", color: "#4ade80" }}>
+              <Crown size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{stats.totalOwners || 0}</div>
+          <div className={styles.statSubtext}>Gestores de estabelecimentos</div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statTitle}>Colaboradores</span>
+            <div className={styles.statIcon} style={{ background: "rgba(59, 130, 246, 0.12)", color: "#60a5fa" }}>
+              <Briefcase size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{stats.totalEmployees || 0}</div>
+          <div className={styles.statSubtext}>Profissionais de atendimento</div>
+        </div>
+
+        <div className={styles.statCard}>
+          <div className={styles.statHeader}>
+            <span className={styles.statTitle}>Clientes Finais</span>
+            <div className={styles.statIcon} style={{ background: "rgba(168, 85, 247, 0.12)", color: "#c084fc" }}>
+              <User size={18} />
+            </div>
+          </div>
+          <div className={styles.statValue}>{stats.totalCustomers || 0}</div>
+          <div className={styles.statSubtext}>Consumidores cadastrados</div>
+        </div>
+      </div>
+
+      {/* Modern Filter & Action Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
-          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-            <Search
-              size={15}
-              style={{
-                position: "absolute",
-                left: 12,
-                color: "#737373",
-                pointerEvents: "none",
-              }}
-            />
+          <div className={styles.searchWrapper}>
+            <Search size={16} className={styles.searchIcon} />
             <input
               type="text"
               className={styles.searchInput}
-              style={{ paddingLeft: 36 }}
-              placeholder="Buscar usuário por nome, e-mail, telefone..."
+              placeholder="Buscar por nome, e-mail, telefone..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
             />
+            {search && (
+              <button
+                type="button"
+                className={styles.searchClearBtn}
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
+                title="Limpar busca"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           <select
@@ -343,6 +409,11 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
             <option value="active">Ativos</option>
             <option value="inactive">Inativos</option>
           </select>
+
+          <div className={styles.resultsCountPill}>
+            <span>Usuários:</span>
+            <strong className={styles.resultsCountNumber}>{totalCount}</strong>
+          </div>
         </div>
 
         <div className={styles.toolbarRight}>
@@ -350,10 +421,9 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
             type="button"
             className={styles.btnPrimary}
             onClick={() => setCreateModalOpen(true)}
-            style={{ whiteSpace: "nowrap" }}
           >
             <Plus size={16} />
-            Criar Usuário no Banco
+            <span>Criar Usuário no Banco</span>
           </button>
         </div>
       </div>
@@ -365,7 +435,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
             border: "1px solid rgba(239, 68, 68, 0.3)",
             color: "#f87171",
             padding: "12px 16px",
-            borderRadius: "8px",
+            borderRadius: "10px",
             marginBottom: "16px",
             fontSize: "13px",
             display: "flex",
@@ -383,13 +453,13 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
         <table className={styles.dataTable}>
           <thead>
             <tr>
-              <th>USUÁRIO</th>
-              <th>E-MAIL & TELEFONE</th>
-              <th>NÍVEL / PAPEL</th>
-              <th>EMPRESA VINCULADA</th>
-              <th>ASSINATURA / PLANO</th>
-              <th>STATUS</th>
-              <th style={{ textAlign: "right" }}>AÇÕES</th>
+              <th style={{ minWidth: 220 }}>USUÁRIO</th>
+              <th style={{ minWidth: 200 }}>CONTATO</th>
+              <th style={{ minWidth: 140 }}>NÍVEL / PAPEL</th>
+              <th style={{ minWidth: 160 }}>EMPRESA VINCULADA</th>
+              <th style={{ minWidth: 150 }}>ASSINATURA / PLANO</th>
+              <th style={{ minWidth: 100 }}>STATUS</th>
+              <th style={{ minWidth: 120, textAlign: "right" }}>AÇÕES</th>
             </tr>
           </thead>
           <tbody>
@@ -398,27 +468,12 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                 <tr key={user.id}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 8,
-                          background: user.isSuperadmin ? "#262b14" : "#1f1f23",
-                          border: user.isSuperadmin ? "1px solid #dcff4c" : "1px solid #333338",
-                          color: user.isSuperadmin ? "#dcff4c" : "#e5e5e5",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          flexShrink: 0,
-                        }}
-                      >
+                      <div className={`${styles.userAvatar} ${getAvatarClass(user)}`}>
                         {user.name?.slice(0, 2).toUpperCase() || "US"}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, color: "#ffffff" }}>{user.name}</div>
-                        <div style={{ fontSize: 11, color: "#737373" }}>
+                        <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "13.5px" }}>{user.name}</div>
+                        <div style={{ fontSize: 11, color: "#71717a", marginTop: 2 }}>
                           Cadastrado em {new Date(user.createdAt).toLocaleDateString("pt-BR")}
                         </div>
                       </div>
@@ -426,8 +481,10 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                   </td>
 
                   <td>
-                    <div style={{ fontSize: 13, color: "#e5e5e5" }}>{user.email}</div>
-                    <div style={{ fontSize: 11, color: "#a3a3a3" }}>{user.phone || "Sem telefone"}</div>
+                    <div style={{ fontSize: 13, color: "#f4f4f5", fontWeight: 500 }}>{user.email}</div>
+                    <div style={{ fontSize: 11.5, color: "#a1a1aa", marginTop: 2 }}>
+                      {user.phone || "Sem telefone"}
+                    </div>
                   </td>
 
                   <td>{renderLevelBadge(user)}</td>
@@ -436,34 +493,54 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                     {user.company ? (
                       <span
                         style={{
-                          fontSize: 12,
-                          color: "#d4d4d4",
+                          fontSize: 12.5,
+                          color: "#e4e4e7",
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 5,
+                          gap: 6,
                         }}
                       >
-                        <Building2 size={13} style={{ color: "#a3a3a3" }} />
+                        <Building2 size={14} style={{ color: "#a1a1aa" }} />
                         {user.company.name}
                       </span>
                     ) : (
-                      <span style={{ fontSize: 12, color: "#525252" }}>Nenhuma (Global)</span>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          color: "#71717a",
+                          background: "#18181c",
+                          padding: "3px 8px",
+                          borderRadius: 6,
+                          border: "1px solid #282830",
+                        }}
+                      >
+                        Global (Sem empresa)
+                      </span>
                     )}
                   </td>
 
                   <td>
                     {user.subscription ? (
-                      <div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#ffffff", letterSpacing: "0.03em" }}>
+                          {user.subscription.plan.toUpperCase()}
+                        </span>
                         <span
                           className={`${styles.statusPill} ${
                             user.subscription.status === "active" ? styles.statusActive : styles.statusTrial
                           }`}
+                          style={{ fontSize: 10, padding: "2px 8px" }}
                         >
-                          {user.subscription.plan.toUpperCase()} • {user.subscription.status}
+                          <span className={styles.statusDot} />
+                          {user.subscription.status === "active"
+                            ? "Ativa"
+                            : user.subscription.status === "trialing"
+                            ? "Trial"
+                            : user.subscription.status}
                         </span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: 12, color: "#525252" }}>—</span>
+                      <span style={{ fontSize: 12, color: "#52525b" }}>—</span>
                     )}
                   </td>
 
@@ -471,26 +548,27 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                     <span
                       className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
                     >
+                      <span className={styles.statusDot} />
                       {user.active ? "Ativo" : "Inativo"}
                     </span>
                   </td>
 
                   <td style={{ textAlign: "right" }}>
-                    <div style={{ display: "inline-flex", gap: 6 }}>
+                    <div className={styles.actionBtnGroup}>
                       {onSwitchToPins && (
                         <button
                           type="button"
-                          className={styles.btnGhost}
+                          className={`${styles.actionBtn} ${styles.actionBtnPin}`}
                           title="Gerenciar / Redefinir PIN"
                           onClick={onSwitchToPins}
                         >
-                          <KeyRound size={15} style={{ color: "#dcff4c" }} />
+                          <KeyRound size={15} />
                         </button>
                       )}
 
                       <button
                         type="button"
-                        className={styles.btnGhost}
+                        className={`${styles.actionBtn} ${styles.actionBtnEdit}`}
                         title="Editar Nível / Papel"
                         onClick={() => {
                           setUserToEdit(user);
@@ -510,8 +588,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
 
                       <button
                         type="button"
-                        className={styles.btnGhost}
-                        style={{ color: "#f87171" }}
+                        className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
                         title="Excluir Usuário"
                         onClick={() => {
                           setUserToDelete(user);
@@ -529,16 +606,45 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
 
             {!loading && usersList.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
-                  Nenhum usuário encontrado para os filtros selecionados.
+                <td colSpan={7} style={{ textAlign: "center", padding: "48px 24px", color: "#a1a1aa" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                    <Users size={32} style={{ color: "#52525b" }} />
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>Nenhum usuário encontrado para os filtros selecionados.</span>
+                    {search && (
+                      <button
+                        type="button"
+                        className={styles.btnSecondary}
+                        onClick={() => {
+                          setSearch("");
+                          setRoleFilter("all");
+                          setStatusFilter("all");
+                        }}
+                        style={{ marginTop: 6 }}
+                      >
+                        Limpar Filtros
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             )}
 
             {loading && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
-                  Carregando usuários do MySQL...
+                <td colSpan={7} style={{ textAlign: "center", padding: "48px 24px", color: "#a1a1aa" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        border: "2px solid #dcff4c",
+                        borderTopColor: "transparent",
+                        borderRadius: "50%",
+                        animation: "spin 0.8s linear infinite",
+                      }}
+                    />
+                    <span style={{ fontSize: 13.5 }}>Carregando usuários do sistema...</span>
+                  </div>
                 </td>
               </tr>
             )}
@@ -548,7 +654,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
         {/* Pagination */}
         <div className={styles.pagination}>
           <span>
-            Mostrando {usersList.length} de {totalCount} usuários cadastrados
+            Mostrando <strong>{usersList.length}</strong> de <strong>{totalCount}</strong> usuários cadastrados
           </span>
           <div className={styles.paginationBtns}>
             <button
@@ -559,7 +665,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
             >
               Anterior
             </button>
-            <span style={{ padding: "0 8px" }}>
+            <span style={{ padding: "0 10px", fontSize: "12.5px", fontWeight: 600, color: "#d4d4d8" }}>
               Página {page} de {totalPages}
             </span>
             <button
@@ -581,49 +687,39 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
             <div key={user.id} className={styles.mobileCard}>
               <div className={styles.mobileCardHeader}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 8,
-                      background: user.isSuperadmin ? "#262b14" : "#1f1f23",
-                      border: user.isSuperadmin ? "1px solid #dcff4c" : "1px solid #333338",
-                      color: user.isSuperadmin ? "#dcff4c" : "#e5e5e5",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div className={`${styles.userAvatar} ${getAvatarClass(user)}`} style={{ width: 34, height: 34, fontSize: 12 }}>
                     {user.name?.slice(0, 2).toUpperCase() || "US"}
                   </div>
                   <div>
                     <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>{user.name}</div>
-                    <div style={{ fontSize: 11, color: "#737373" }}>{user.email}</div>
+                    <div style={{ fontSize: 11.5, color: "#a1a1aa" }}>{user.email}</div>
                   </div>
                 </div>
                 <span
                   className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
                 >
+                  <span className={styles.statusDot} />
                   {user.active ? "Ativo" : "Inativo"}
                 </span>
               </div>
 
               <div className={styles.mobileCardBody}>
                 <div>
-                  <span style={{ color: "#737373" }}>Nível:</span> {renderLevelBadge(user)}
+                  <span style={{ color: "#71717a" }}>Nível:</span> {renderLevelBadge(user)}
                 </div>
                 <div>
-                  <span style={{ color: "#737373" }}>Telefone:</span> {user.phone || "—"}
+                  <span style={{ color: "#71717a" }}>Telefone:</span> {user.phone || "—"}
                 </div>
                 <div>
-                  <span style={{ color: "#737373" }}>Empresa:</span> {user.company?.name || "Global"}
+                  <span style={{ color: "#71717a" }}>Empresa:</span> {user.company?.name || "Global"}
                 </div>
                 <div>
-                  <span style={{ color: "#737373" }}>Plano:</span>{" "}
-                  {user.subscription ? user.subscription.plan.toUpperCase() : "—"}
+                  <span style={{ color: "#71717a" }}>Plano:</span>{" "}
+                  {user.subscription ? (
+                    <strong style={{ color: "#ffffff" }}>{user.subscription.plan.toUpperCase()}</strong>
+                  ) : (
+                    "—"
+                  )}
                 </div>
               </div>
 
@@ -634,7 +730,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                     className={styles.btnSecondary}
                     onClick={onSwitchToPins}
                   >
-                    <KeyRound size={14} /> PINs
+                    <KeyRound size={14} style={{ color: "#dcff4c" }} /> PINs
                   </button>
                 )}
                 <button
@@ -657,8 +753,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                 </button>
                 <button
                   type="button"
-                  className={styles.btnGhost}
-                  style={{ color: "#f87171" }}
+                  className={styles.btnDanger}
                   onClick={() => {
                     setUserToDelete(user);
                     setDeleteMode("soft");

@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: result.items,
       items: result.items,
+      stats: result.stats,
       pagination: result.pagination,
     });
   } catch (error: any) {

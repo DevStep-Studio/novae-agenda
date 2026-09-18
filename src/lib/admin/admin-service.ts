@@ -773,7 +773,6 @@ export class AdminService {
         adminRole: u.adminRole,
         active: Boolean(u.active),
         emailVerified: Boolean(u.emailVerified),
-        createdAt: u.createdAt,
         company: u.companyId
           ? {
               id: u.companyId,
@@ -791,8 +790,30 @@ export class AdminService {
       };
     });
 
+    // Compute system-wide user stats for dashboard cards
+    const [statsRes] = await db
+      .select({
+        totalUsers: sql<number>`count(*)`,
+        totalOwners: sql<number>`sum(case when ${users.role} = 'owner' then 1 else 0 end)`,
+        totalEmployees: sql<number>`sum(case when ${users.role} in ('employee', 'professional', 'manager', 'admin') and (${users.isSuperadmin} is false or ${users.isSuperadmin} is null) then 1 else 0 end)`,
+        totalCustomers: sql<number>`sum(case when ${users.role} in ('customer', 'client') then 1 else 0 end)`,
+        totalSuperadmins: sql<number>`sum(case when ${users.isSuperadmin} is true or ${users.role} = 'superadmin' then 1 else 0 end)`,
+        totalActive: sql<number>`sum(case when ${users.active} is true and ${users.deletedAt} is null then 1 else 0 end)`,
+      })
+      .from(users);
+
+    const stats = {
+      totalUsers: Number(statsRes?.totalUsers ?? 0),
+      totalOwners: Number(statsRes?.totalOwners ?? 0),
+      totalEmployees: Number(statsRes?.totalEmployees ?? 0),
+      totalCustomers: Number(statsRes?.totalCustomers ?? 0),
+      totalSuperadmins: Number(statsRes?.totalSuperadmins ?? 0),
+      totalActive: Number(statsRes?.totalActive ?? 0),
+    };
+
     return {
       items,
+      stats,
       pagination: {
         page,
         limit,

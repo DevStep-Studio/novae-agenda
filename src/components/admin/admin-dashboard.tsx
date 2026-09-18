@@ -32,6 +32,41 @@ import styles from "./admin-dashboard.module.css";
 
 type Tab = "dashboard" | "usuarios" | "proprietarios" | "assinaturas" | "clientes" | "pins" | "cupons" | "logs";
 
+const TAB_TITLES: Record<Tab, { title: string; subtitle: string }> = {
+  dashboard: {
+    title: "Dashboard Executivo",
+    subtitle: "Visão consolidada de métricas, receita e atividade do ecossistema.",
+  },
+  usuarios: {
+    title: "Usuários & Níveis de Acesso",
+    subtitle: "Gestão de permissões, papéis e credenciais de todos os usuários.",
+  },
+  proprietarios: {
+    title: "Proprietários & Estabelecimentos",
+    subtitle: "Gestão das empresas parceiras, donos e limites operacionais.",
+  },
+  assinaturas: {
+    title: "Planos & Assinaturas SaaS",
+    subtitle: "Gestão de planos comerciais, cobranças e upgrades no ecossistema.",
+  },
+  clientes: {
+    title: "Base de Clientes",
+    subtitle: "Consumidores finais cadastrados e histórico de agendamentos.",
+  },
+  pins: {
+    title: "PINs de Acesso",
+    subtitle: "Controle de segurança, credenciais de PIN e redefinições administrativas.",
+  },
+  cupons: {
+    title: "Cupons & Influenciadores",
+    subtitle: "Campanhas promocionais, comissionamento e aquisição de clientes.",
+  },
+  logs: {
+    title: "Logs de Auditoria",
+    subtitle: "Rastreabilidade e histórico de todas as operações administrativas.",
+  },
+};
+
 export function AdminDashboard() {
   const { session, logout, toasts, dismissToast } = useStore();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
@@ -169,8 +204,8 @@ export function AdminDashboard() {
               {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
             <div className={styles.topbarTitle}>
-              <h1>Painel de Super Admin Reservei</h1>
-              <p>Acesso e gestão operacional direta ao ecossistema multi-tenant.</p>
+              <h1>{TAB_TITLES[activeTab].title}</h1>
+              <p>{TAB_TITLES[activeTab].subtitle}</p>
             </div>
           </div>
 
