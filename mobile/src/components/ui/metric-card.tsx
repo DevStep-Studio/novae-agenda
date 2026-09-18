@@ -8,26 +8,31 @@ export interface MetricCardProps {
   label: string;
   value: string;
   detail?: string;
+  /** .metric-{teal,lilac,amber,rose} — see metricIcon.variants in design-tokens.ts. */
+  variant?: keyof typeof metricIcon.variants;
 }
 
-// .metric-card / .metric-icon / .metric-teal / .metric-copy, globals.css:644-668
-// and 853-866, at the mobile breakpoint (globals.css:8832-8864).
-export function MetricCard({ icon: Icon, label, value, detail }: MetricCardProps) {
+// .metric-card / .metric-icon / .metric-copy, globals.css:644-668 and
+// 853-866, at the mobile breakpoint (globals.css:8832-8864).
+export function MetricCard({ icon: Icon, label, value, detail, variant = "teal" }: MetricCardProps) {
+  const tone = metricIcon.variants[variant];
+
   return (
     <View
       className="flex-row items-start gap-3 rounded-md border p-3.5"
       style={{ backgroundColor: colors.surface, borderColor: colors.border, minHeight: 84, flexBasis: "47%", flexGrow: 1 }}
     >
       <View
-        className="items-center justify-center rounded-sm border"
+        className="items-center justify-center rounded-sm"
         style={{
           width: metricIcon.size,
           height: metricIcon.size,
-          backgroundColor: colors.primarySoft,
-          borderColor: colors.border,
+          backgroundColor: tone.background,
+          borderWidth: tone.border ? 1 : 0,
+          borderColor: tone.border,
         }}
       >
-        <Icon size={16} color={colors.primary} />
+        <Icon size={16} color={tone.color} />
       </View>
       <View className="shrink gap-1">
         <Text style={{ color: colors.textSecondary, ...typography.metricLabel }}>{label}</Text>

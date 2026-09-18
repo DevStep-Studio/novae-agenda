@@ -179,6 +179,31 @@ export const typography = {
   clientSpendingDetail: { fontFamily: fontFamily.body, fontSize: 10, lineHeight: 13 },
   // .client-badge, globals.css:3455-3466
   clientBadgeLabel: { fontFamily: fontFamily.bodySemibold, fontSize: 10, letterSpacing: 0.3, lineHeight: 13 },
+  // .team-status-badge / .team-commission-badge, globals.css:11672-11712
+  teamStatusBadge: { fontFamily: fontFamily.bodyBold, fontSize: 10, letterSpacing: 0.4, lineHeight: 13 },
+  teamCommissionBadge: { fontFamily: fontFamily.bodySemibold, fontSize: 10, lineHeight: 13 },
+  // .modern-team-name / .modern-team-role, globals.css:11730-11741
+  teamName: { fontFamily: fontFamily.bodyBold, fontSize: 15, letterSpacing: -0.2, lineHeight: 18 },
+  teamRole: { fontFamily: fontFamily.bodyMedium, fontSize: 11.5, lineHeight: 14 },
+  // .team-stat-label / .team-stat-val, globals.css:11761-11773
+  teamStatLabel: { fontFamily: fontFamily.bodySemibold, fontSize: 9, letterSpacing: 0.45, lineHeight: 12 },
+  teamStatValue: { fontFamily: fontFamily.bodyBold, fontSize: 12, lineHeight: 15 },
+  // .modern-service-chip / .modern-service-more, globals.css:11788-11809
+  serviceChip: { fontFamily: fontFamily.bodyMedium, fontSize: 10.5, lineHeight: 13 },
+  serviceMore: { fontFamily: fontFamily.bodyBold, fontSize: 9.5, lineHeight: 12 },
+  // .service-card-body h3, globals.css:4613-4621 — the web asks for
+  // font-weight 650; RN's cross-platform-reliable weights are the standard
+  // 100-900 multiples of 100, so this uses 700 (bodyBold) as the nearest one
+  // rather than an unreliable literal "650".
+  serviceCardTitle: { fontFamily: fontFamily.bodyBold, fontSize: 18.5, letterSpacing: -0.25, lineHeight: 23 },
+  // .service-card-desc, globals.css:4623-4635
+  serviceCardDesc: { fontFamily: fontFamily.body, fontSize: 12.5, lineHeight: 18 },
+  // .service-category-badge, globals.css:4578-4595
+  serviceCategoryBadge: { fontFamily: fontFamily.bodyMedium, fontSize: 11, lineHeight: 14 },
+  // .service-price-tag, globals.css:4649-4656
+  servicePrice: { fontFamily: fontFamily.bodyBold, fontSize: 20, letterSpacing: -0.4, lineHeight: 24 },
+  // .service-duration-badge, globals.css:4657-4665
+  serviceDuration: { fontFamily: fontFamily.bodyMedium, fontSize: 12, lineHeight: 15 },
 } as const;
 
 /**
@@ -231,12 +256,22 @@ export const avatar = {
 } as const;
 
 /**
- * .metric-icon / .metric-teal, globals.css:853-861 at the mobile breakpoint
- * (globals.css:8838-8842 shrinks the icon badge from 34 to 28).
+ * .metric-icon / .metric-{teal,lilac,amber,rose}, globals.css:853-862, at
+ * the mobile breakpoint (globals.css:8838-8842 shrinks the badge 34->28).
+ * `teal` (the default, used by every metric card so far) is the only
+ * variant with a border — `.metric-teal` adds one explicitly, the other
+ * three inherit the base `.metric-icon` rule, which has none. Not an
+ * oversight to replicate: it's what the literal CSS does.
  */
 export const metricIcon = {
   size: 28,
   radius: radius.sm,
+  variants: {
+    teal: { color: colors.primary, background: colors.primarySoft, border: colors.border as string | undefined },
+    lilac: { color: colors.purple, background: colors.purpleSoft, border: undefined as string | undefined },
+    amber: { color: colors.warning, background: colors.warningSoft, border: undefined as string | undefined },
+    rose: { color: colors.danger, background: colors.dangerSoft, border: undefined as string | undefined },
+  },
 } as const;
 
 /**
@@ -265,4 +300,50 @@ export const bottomNav = {
   indicatorHeight: 2.5,
   iconSize: 20,
   addButtonSize: 48,
+} as const;
+
+/**
+ * .modern-team-card and its children, globals.css:11581-11876 — a real card
+ * grid on web already (unlike Clientes' table), so this ports directly
+ * rather than needing an adaptation.
+ */
+export const teamCard = {
+  coverHeight: 84,
+  coverOverlay: "rgba(0, 0, 0, 0.45)",
+  avatarRingColor: colors.surface,
+  activeDot: { online: "#22c55e", offline: colors.textMuted },
+  statusBadge: {
+    active: { background: "rgba(22, 101, 52, 0.85)", color: "#86efac", border: "rgba(74, 222, 128, 0.35)" },
+    inactive: { background: "rgba(24, 24, 27, 0.85)", color: "#a1a1aa", border: "rgba(255, 255, 255, 0.15)" },
+  },
+  commissionBadge: { background: "rgba(120, 53, 15, 0.85)", color: "#fde68a", border: "rgba(251, 191, 36, 0.35)" },
+  statsStrip: { background: colors.surfaceSecondary, border: colors.border },
+  serviceChip: { background: colors.surfaceSecondary, border: colors.border, color: colors.textSecondary },
+  serviceMore: { background: colors.primarySoft, color: colors.primary },
+} as const;
+
+/**
+ * .service-card and its children, globals.css:4452-4700 — another real card
+ * grid on web (like Equipe, unlike Clientes' table).
+ */
+export const serviceCard = {
+  minHeight: 260,
+  // .service-card-overlay's 4-stop gradient, globals.css:4483-4494.
+  gradient: {
+    colors: ["rgba(8, 8, 10, 0.45)", "rgba(10, 10, 14, 0.68)", "rgba(12, 12, 16, 0.88)", "rgba(10, 10, 14, 0.98)"] as [
+      string,
+      string,
+      string,
+      string,
+    ],
+    locations: [0, 0.35, 0.65, 1] as [number, number, number, number],
+  },
+  categoryBadge: { background: "rgba(0, 0, 0, 0.5)", border: "rgba(255, 255, 255, 0.16)", color: "rgba(255, 255, 255, 0.85)" },
+  editPill: { background: "rgba(18, 18, 18, 0.75)", border: "rgba(255, 255, 255, 0.2)", color: "#ffffff" },
+  deletePill: { background: "rgba(239, 68, 68, 0.2)", border: "rgba(239, 68, 68, 0.4)", color: "#ff6b6b" },
+  descriptionColor: "rgba(255, 255, 255, 0.88)",
+  footerBorder: "rgba(255, 255, 255, 0.14)",
+  // .service-toggle-btn/-thumb, globals.css:4666-4697 (distinct from the
+  // generic `toggle` tokens above — this one is specific to this card).
+  toggle: { trackWidth: 44, trackHeight: 24, thumbSize: 18, thumbInset: 3, offColor: "rgba(255, 255, 255, 0.22)" },
 } as const;

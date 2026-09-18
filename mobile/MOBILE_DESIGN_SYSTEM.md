@@ -260,6 +260,25 @@ component actually imports from `lucide-react` and use the same name from
   `clientTier()`) is stricter than the page-level "Clientes frequentes" KPI
   threshold (visits≥2 or spent≥200, `isFrequentOrVip()`) — the two numbers
   on screen legitimately won't line up with each other, on web or here.
+- **Equipe** (`(owner)/equipe.tsx`) — mirrors `TeamPage`
+  (`app-shell.tsx:2101-2260`): header, a 4-card `MetricCard` grid (Total de
+  profissionais / Atendimentos no mês / Faturamento da equipe / Comissões
+  calculadas — the last uses the `rose` icon variant, `.metric-rose`, not
+  the usual `teal`; see `MetricCard`'s new `variant` prop), then a card per
+  employee. Unlike Clientes, the web's team list **is already a card grid**
+  (`.modern-team-card`) — no table-to-card adaptation needed here, `EmployeeCard`
+  ports it directly: cover photo with dark overlay, status pill
+  ("Ativo"/"Inativo"), commission pill, avatar overlapping the cover with a
+  ring border + online/offline dot, name/role, a 3-column stats strip
+  (Hoje/Este mês/Faturamento), service chips (max 3 + "+N mais"). Per-employee
+  metrics (today/month counts, month revenue, commission) match
+  `employeeMetrics` in `app-shell.tsx:2121-2154` exactly, including the 30%
+  default commission rate used when an employee has no explicit commission
+  rule. **Equipe is not a bottom tab** — the web's own `.mobile-bottom-nav`
+  only ever has Início/Agenda/[+Novo]/Clientes/Menu; every other sidebar
+  section (Equipe, Serviços, ...) is reached through the web's mobile
+  hamburger menu, so this is reached from the "Mais" tab instead, which now
+  has a real navigable row for it above the "Em construção" list.
 
 ### Intentionally not ported (with reasons — not oversights)
 
@@ -296,6 +315,11 @@ component actually imports from `lucide-react` and use the same name from
   agendamento/Sem retorno), its **sort dropdown**, and **"Novo cliente"** —
   the list is fixed to the web's default sort (visits desc) and unfiltered
   beyond the search box; client creation doesn't exist in mobile yet.
+- **Equipe's 4-way segment tabs**, **sort dropdown**, and every card footer
+  action (Agendar/Horários/Agenda/Editar) — each footer button opens a flow
+  that doesn't exist yet (appointment creation, a schedule editor, an
+  employee-filtered agenda, an employee edit form). "Adicionar profissional"
+  is the same story.
 
 ## Verification (this round)
 

@@ -1,16 +1,25 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ChevronRight } from "lucide-react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
-import { useTheme } from "@/hooks/use-theme";
+import { colors } from "@/constants/design-tokens";
 import { useSession } from "@/lib/session-context";
 
-// Everything below "Início" is not built yet — listed honestly rather than faked.
+// Real screens are surfaced here rather than in the bottom tab bar, matching
+// the web: `.mobile-bottom-nav` only ever has Início/Agenda/[+Novo]/
+// Clientes/Menu (globals.css:8589-8704) — every other section (Equipe,
+// Serviços, ...) lives in the sidebar and is reached through the mobile
+// "Menu" button, which this tab stands in for.
+const BUILT_SECTIONS: Array<{ label: string; href: "/(owner)/equipe" | "/(owner)/servicos" }> = [
+  { label: "Equipe e permissões", href: "/(owner)/equipe" },
+  { label: "Serviços", href: "/(owner)/servicos" },
+];
+
+// Everything below is not built yet — listed honestly rather than faked.
 // See the engagement report for the phased plan (Section 13 of the build prompt).
 const PENDING_SECTIONS = [
-  "Equipe e permissões",
-  "Serviços",
   "Financeiro e relatórios",
   "Link de agendamento público",
   "Identidade / branding (somente leitura — o Page Builder visual é exclusivo da web)",
@@ -18,20 +27,33 @@ const PENDING_SECTIONS = [
 ];
 
 export default function OwnerMoreScreen() {
-  const { colors } = useTheme();
   const { session, signOut } = useSession();
 
   return (
-    <Screen style={styles.screen}>
-      <View style={styles.profile}>
-        <Text style={[styles.name, { color: colors.text }]}>{session?.name}</Text>
-        <Text style={[styles.email, { color: colors.textSecondary }]}>{session?.email}</Text>
+    <Screen style={{ paddingTop: 8, gap: 20 }}>
+      <View className="gap-0.5">
+        <Text style={{ color: colors.textPrimary, fontSize: 20, fontWeight: "700" }}>{session?.name}</Text>
+        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{session?.email}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.list}>
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Em construção</Text>
+      <ScrollView contentContainerClassName="gap-2.5 pb-3">
+        {BUILT_SECTIONS.map((section) => (
+          <Pressable
+            key={section.label}
+            className="h-12 flex-row items-center justify-between rounded-md border px-3.5"
+            style={{ borderColor: colors.border }}
+            onPress={() => router.push(section.href)}
+          >
+            <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "500" }}>{section.label}</Text>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </Pressable>
+        ))}
+
+        <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700", textTransform: "uppercase", marginTop: 8, marginBottom: 2 }}>
+          Em construção
+        </Text>
         {PENDING_SECTIONS.map((section) => (
-          <View key={section} style={[styles.row, { borderColor: colors.border }]}>
+          <View key={section} className="rounded-md border px-3.5 py-3" style={{ borderColor: colors.border }}>
             <Text style={{ color: colors.textSecondary }}>{section}</Text>
           </View>
         ))}
@@ -48,13 +70,3 @@ export default function OwnerMoreScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { paddingTop: 8, gap: 20 },
-  profile: { gap: 2 },
-  name: { fontSize: 20, fontWeight: "700" },
-  email: { fontSize: 13 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", marginBottom: 8 },
-  list: { gap: 10, paddingBottom: 12 },
-  row: { borderWidth: 1, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14 },
-});
