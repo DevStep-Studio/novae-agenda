@@ -869,6 +869,41 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
         )}
       </div>
 
+      {/* Floating Bulk Action Bar */}
+      {selectedUserIds.length > 0 && (
+        <div className={styles.bulkActionBar}>
+          <div className={styles.bulkActionInfo}>
+            <span className={styles.bulkActionCount}>{selectedUserIds.length}</span>
+            <span>
+              {selectedUserIds.length === 1
+                ? "usuário selecionado"
+                : "usuários selecionados"}
+            </span>
+          </div>
+          <div className={styles.bulkActionBtns}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => setSelectedUserIds([])}
+            >
+              Cancelar Seleção
+            </button>
+            <button
+              type="button"
+              className={styles.btnDanger}
+              onClick={() => {
+                setBulkDeleteMode("soft");
+                setBulkDeleteReason("Exclusão em massa via Super Admin");
+                setBulkDeleteModalOpen(true);
+              }}
+            >
+              <Trash2 size={14} />
+              Excluir Selecionados ({selectedUserIds.length})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: CRIAR NOVO USUÁRIO */}
       {createModalOpen && (
         <div className={styles.modalOverlay}>
