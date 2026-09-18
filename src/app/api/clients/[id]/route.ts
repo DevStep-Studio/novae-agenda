@@ -1,7 +1,23 @@
 import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { appointments, clients, employees, locations, services, appointmentServices, payments } from "@/db/schema";
+import {
+  appointments,
+  appointmentServices,
+  bookingMembershipUsage,
+  bookingProducts,
+  bookings,
+  clients,
+  customerMembershipPayments,
+  customerMemberships,
+  employees,
+  locations,
+  membershipPeriods,
+  notificationLogs,
+  payments,
+  reviews,
+  services,
+} from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { centsToNumber, isUuid, normalizeTime } from "@/lib/domain";
 import { deleteClientImage, saveClientImage } from "@/lib/storage";
@@ -20,7 +36,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const [client] = await db
     .select()
     .from(clients)
-    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)))
+    .where(
+      and(
+        eq(clients.id, id),
+        eq(clients.companyId, auth.user.companyId),
+        sql`(${clients.name} IS NULL OR ${clients.name} != 'Cliente removido')`
+      )
+    )
     .limit(1);
 
   if (!client) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
@@ -248,28 +270,67 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   if (!existing) return Response.json({ error: "Cliente não encontrado." }, { status: 404 });
 
-  // Anonymize rather than hard-delete: appointment/payment history stays intact
-  // for financial/fiscal continuity, but every personal-data field is scrubbed
-  // (LGPD right-to-erasure). `userId` is only unlinked here, never touched on
-  // the shared `users`/`customerCredentials` rows — that identity (and its PIN)
-  // may still be legitimately in use by this same person at another company.
   if (existing.photoUrl) {
-    await deleteClientImage(existing.photoUrl);
+    try {
+      await deleteClientImage(existing.photoUrl);
+    } catch {
+      // Falhas no storage de imagem não devem impedir a exclusão do banco
+    }
   }
 
-  await db
-    .update(clients)
-    .set({
-      name: "Cliente removido",
-      phone: `anonimizado-${id.slice(0, 8)}`,
-      email: null,
-      photoUrl: null,
-      notes: null,
-      internalNotes: null,
-      userId: null,
-      active: false,
-    })
-    .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
+  // Exclusão definitiva no banco de dados (Hard Delete) com limpeza de dependências
+  await db.transaction(async (tx) => {
+    // 1. Avaliações (reviews) associadas ao cliente
+    await tx
+      .delete(reviews)
+      .where(and(eq(reviews.clientId, id), eq(reviews.companyId, auth.user.companyId)))
+      .catch(() => {});
+
+    // 2. Planos recorrentes de membros (customerMemberships) e tabelas filhas
+    const clientMemberships = await tx
+      .select({ id: customerMemberships.id })
+      .from(customerMemberships)
+      .where(and(eq(customerMemberships.clientId, id), eq(customerMemberships.companyId, auth.user.companyId)));
+
+    if (clientMemberships.length > 0) {
+      const membershipIds = clientMemberships.map((m) => m.id);
+      await tx.delete(bookingMembershipUsage).where(inArray(bookingMembershipUsage.customerMembershipId, membershipIds)).catch(() => {});
+      await tx.delete(customerMembershipPayments).where(inArray(customerMembershipPayments.customerMembershipId, membershipIds)).catch(() => {});
+      await tx.delete(membershipPeriods).where(inArray(membershipPeriods.customerMembershipId, membershipIds)).catch(() => {});
+      await tx.delete(customerMemberships).where(and(eq(customerMemberships.clientId, id), eq(customerMemberships.companyId, auth.user.companyId))).catch(() => {});
+    }
+
+    // 3. Agendamentos (appointments) e tabelas filhas
+    const clientAppts = await tx
+      .select({ id: appointments.id })
+      .from(appointments)
+      .where(and(eq(appointments.clientId, id), eq(appointments.companyId, auth.user.companyId)));
+
+    if (clientAppts.length > 0) {
+      const apptIds = clientAppts.map((a) => a.id);
+      await tx.delete(appointmentServices).where(inArray(appointmentServices.appointmentId, apptIds)).catch(() => {});
+      await tx.delete(payments).where(inArray(payments.appointmentId, apptIds)).catch(() => {});
+      await tx.delete(appointments).where(and(eq(appointments.clientId, id), eq(appointments.companyId, auth.user.companyId))).catch(() => {});
+    }
+
+    // 4. Reservas públicas (bookings) e dependências
+    const clientBookings = await tx
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(and(eq(bookings.clientId, id), eq(bookings.companyId, auth.user.companyId)));
+
+    if (clientBookings.length > 0) {
+      const bIds = clientBookings.map((b) => b.id);
+      await tx.delete(bookingProducts).where(inArray(bookingProducts.bookingId, bIds)).catch(() => {});
+      await tx.delete(notificationLogs).where(inArray(notificationLogs.bookingId, bIds)).catch(() => {});
+      await tx.delete(bookings).where(and(eq(bookings.clientId, id), eq(bookings.companyId, auth.user.companyId))).catch(() => {});
+    }
+
+    // 5. Exclui o cliente permanentemente do banco de dados
+    await tx
+      .delete(clients)
+      .where(and(eq(clients.id, id), eq(clients.companyId, auth.user.companyId)));
+  });
 
   return Response.json({ data: { id: existing.id } });
 }

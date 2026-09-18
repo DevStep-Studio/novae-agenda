@@ -24,9 +24,22 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("q") ?? "").trim();
 
+  const baseCondition = and(
+    eq(clients.companyId, auth.user.companyId),
+    sql`(${clients.name} IS NULL OR ${clients.name} != 'Cliente removido')`,
+    sql`(${clients.phone} IS NULL OR ${clients.phone} NOT LIKE 'anonimizado-%')`
+  );
+
   const where = query
-    ? and(eq(clients.companyId, auth.user.companyId), or(sql`lower(${clients.name}) LIKE ${`%${query.toLowerCase()}%`}`, sql`${clients.phone} LIKE ${`%${query}%`}`, sql`lower(${clients.email}) LIKE ${`%${query.toLowerCase()}%`}`))
-    : eq(clients.companyId, auth.user.companyId);
+    ? and(
+        baseCondition,
+        or(
+          sql`lower(${clients.name}) LIKE ${`%${query.toLowerCase()}%`}`,
+          sql`${clients.phone} LIKE ${`%${query}%`}`,
+          sql`lower(${clients.email}) LIKE ${`%${query.toLowerCase()}%`}`
+        )
+      )
+    : baseCondition;
 
   const rows = await db
     .select({
