@@ -384,8 +384,7 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
 
   it("9. IDOR Protection: Customer A cannot access or view Customer B bookings", async () => {
     // Cria uma reserva de Customer A
-    const today = new Date().toISOString().slice(0, 10);
-    const bookingDate = shiftDate(today, 2);
+    const bookingDate = shiftDate(f.date, 1);
 
     const bookingA = await createBooking(f.customers[0], {
       slug: f.company.publicSlug!,

@@ -270,6 +270,8 @@ export class AdminService {
       const owner = ownerMap.get(r.id);
       return {
         ...r,
+        plan: r.subscriptionPlan || "trial",
+        status: r.subscriptionStatus || (r.publicEnabled ? "active" : "inactive"),
         ownerId: owner?.id ?? null,
         ownerName: owner?.name ?? null,
         ownerEmail: owner?.email ?? null,
