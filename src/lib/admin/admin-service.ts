@@ -1736,6 +1736,89 @@ export class AdminService {
   }
 
   /**
+   * Bulk delete owners / companies (Soft or Hard)
+   */
+  static async bulkDeleteOwners(
+    companyIds: string[],
+    mode: "soft" | "hard",
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    if (!companyIds.length) return { success: true, deletedCount: 0, totalRequested: 0 };
+
+    let deletedCount = 0;
+    for (const id of companyIds) {
+      try {
+        if (mode === "hard") {
+          await this.hardDeleteOwner(id, undefined, reason, adminUser, request);
+        } else {
+          await this.softDeleteOwner(id, reason, adminUser, request);
+        }
+        deletedCount++;
+      } catch (err) {
+        console.error(`[bulkDeleteOwners] Failed to delete company ${id}:`, err);
+      }
+    }
+
+    return { success: true, deletedCount, totalRequested: companyIds.length };
+  }
+
+  /**
+   * Bulk delete clients (Soft or Hard)
+   */
+  static async bulkDeleteClients(
+    clientIds: string[],
+    mode: "soft" | "hard",
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    if (!clientIds.length) return { success: true, deletedCount: 0, totalRequested: 0 };
+
+    let deletedCount = 0;
+    for (const id of clientIds) {
+      try {
+        if (mode === "hard") {
+          await this.hardDeleteClient(id, reason, adminUser, request);
+        } else {
+          await this.softDeleteClient(id, reason, adminUser, request);
+        }
+        deletedCount++;
+      } catch (err) {
+        console.error(`[bulkDeleteClients] Failed to delete client ${id}:`, err);
+      }
+    }
+
+    return { success: true, deletedCount, totalRequested: clientIds.length };
+  }
+
+  /**
+   * Bulk delete users (Soft or Hard)
+   */
+  static async bulkDeleteUsers(
+    userIds: string[],
+    mode: "soft" | "hard",
+    reason: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    if (!userIds.length) return { success: true, deletedCount: 0, totalRequested: 0 };
+
+    let deletedCount = 0;
+    for (const id of userIds) {
+      try {
+        await this.deleteUser(id, mode, reason, adminUser, request);
+        deletedCount++;
+      } catch (err) {
+        console.error(`[bulkDeleteUsers] Failed to delete user ${id}:`, err);
+      }
+    }
+
+    return { success: true, deletedCount, totalRequested: userIds.length };
+  }
+
+  /**
    * List subscriptions across the platform with company & owner details
    */
   static async listSubscriptions(

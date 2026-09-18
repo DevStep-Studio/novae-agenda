@@ -82,3 +82,35 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: error.message || "Erro ao criar proprietário." }, { status: 400 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  const gate = await requireSuperadmin();
+  if (gate.response) return gate.response;
+
+  try {
+    const body = await request.json();
+    const ids = Array.isArray(body.ids) ? body.ids : [];
+    const mode = body.mode === "hard" ? "hard" : "soft";
+    const reason = body.reason || "Exclusão em massa via Super Admin";
+
+    if (!ids.length) {
+      return Response.json({ error: "Nenhum estabelecimento selecionado para exclusão." }, { status: 400 });
+    }
+
+    const result = await AdminService.bulkDeleteOwners(
+      ids,
+      mode,
+      reason,
+      { id: gate.auth.user.userId, email: gate.auth.user.email },
+      request
+    );
+
+    return Response.json({
+      ...result,
+      message: `${result.deletedCount} estabelecimentos ${mode === "hard" ? "excluídos definitivamente" : "desativados"} com sucesso.`,
+    });
+  } catch (error: any) {
+    console.error("[Superadmin API Bulk Delete Owners] Error:", error);
+    return Response.json({ error: error.message || "Erro ao excluir estabelecimentos em massa." }, { status: 500 });
+  }
+}

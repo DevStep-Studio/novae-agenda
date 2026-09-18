@@ -756,6 +756,65 @@
   gap: 8px;
 }
 
+/* Bulk Action Bar & Checkboxes */
+.tableCheckbox {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  accent-color: #dcff4c;
+  cursor: pointer;
+  display: block;
+  margin: 0 auto;
+}
+
+.bulkActionBar {
+  position: sticky;
+  bottom: 24px;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #18181f;
+  border: 1px solid rgba(220, 255, 76, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+  margin-top: 14px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.bulkActionInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f4f4f5;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.bulkActionCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #dcff4c;
+  color: #0a0a0a;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.bulkActionBtns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rowSelected td {
+  background: rgba(220, 255, 76, 0.04) !important;
+}
+
 /* Modals */
 .modalBackdrop {
   position: fixed;
