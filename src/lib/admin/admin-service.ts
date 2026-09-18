@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lte, notInArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   adminAuditLogs,
@@ -6,6 +6,7 @@ import {
   clients,
   companies,
   companyMemberships,
+  customerCredentials,
   employees,
   payments,
   saasCouponRedemptions,
@@ -17,6 +18,8 @@ import {
   users,
 } from "@/db/schema";
 import { hashPassword } from "@/lib/auth";
+import { generateRandomPin, hashPinLookup, isWeakPin } from "@/lib/customer-access/service";
+import { normalizePhoneDigits } from "@/lib/domain";
 import { logAdminAction } from "./audit";
 
 export interface ListOwnersParams {
@@ -81,6 +84,21 @@ export interface CreateUserManualInput {
   accessType?: "trial" | "courtesy" | "pending";
   grantCourtesy?: boolean;
   reason?: string;
+}
+
+export interface ListUserPinsParams {
+  q?: string;
+  search?: string;
+  role?: "all" | "superadmin" | "owner" | "employee" | "customer" | "admin" | "manager" | "client";
+  pinStatus?: "all" | "configured" | "not_configured" | "locked";
+  page?: number;
+  limit?: number;
+}
+
+export interface ResetUserPinInput {
+  pin?: string;
+  newPhone?: string;
+  unlock?: boolean;
 }
 
 export class AdminService {
@@ -1028,6 +1046,326 @@ export class AdminService {
       entityName: user.name,
       reason,
       afterState: { deleted: true, mode },
+      request,
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * List users with their PIN credential status, lock indicators and metrics
+   */
+  static async listUserPins(params: ListUserPinsParams = {}) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
+    const offset = (page - 1) * limit;
+    const now = new Date();
+
+    const conditions = [];
+
+    // Role filter
+    if (params.role && params.role !== "all") {
+      if (params.role === "superadmin") {
+        conditions.push(or(eq(users.isSuperadmin, true), eq(users.role, "superadmin")));
+      } else if (params.role === "customer" || params.role === "client") {
+        conditions.push(or(eq(users.role, "customer"), eq(users.role, "client")));
+      } else {
+        conditions.push(eq(users.role, params.role));
+      }
+    }
+
+    // Pre-fetch credentials for PIN status filtering to prevent MySQL collation mismatch
+    if (params.pinStatus && params.pinStatus !== "all") {
+      if (params.pinStatus === "configured") {
+        const creds = await db.select({ userId: customerCredentials.userId }).from(customerCredentials);
+        const userIdsWithCreds = creds.map((c) => c.userId);
+        if (userIdsWithCreds.length > 0) {
+          conditions.push(inArray(users.id, userIdsWithCreds));
+        } else {
+          conditions.push(sql`1=0`);
+        }
+      } else if (params.pinStatus === "not_configured") {
+        const creds = await db.select({ userId: customerCredentials.userId }).from(customerCredentials);
+        const userIdsWithCreds = creds.map((c) => c.userId);
+        if (userIdsWithCreds.length > 0) {
+          conditions.push(notInArray(users.id, userIdsWithCreds));
+        }
+      } else if (params.pinStatus === "locked") {
+        const creds = await db
+          .select({ userId: customerCredentials.userId })
+          .from(customerCredentials)
+          .where(and(isNotNull(customerCredentials.lockedUntil), gt(customerCredentials.lockedUntil, now)));
+        const userIdsLocked = creds.map((c) => c.userId);
+        if (userIdsLocked.length > 0) {
+          conditions.push(inArray(users.id, userIdsLocked));
+        } else {
+          conditions.push(sql`1=0`);
+        }
+      }
+    }
+
+    // Search query on users and companies (same collation)
+    const queryTerm = (params.q || params.search || "").trim();
+    if (queryTerm) {
+      const q = `%${queryTerm}%`;
+      conditions.push(
+        or(
+          like(users.name, q),
+          like(users.email, q),
+          like(users.phone, q),
+          like(companies.name, q)
+        )
+      );
+    }
+
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    // Total count for current filter
+    const [countRes] = await db
+      .select({ count: sql<number>`count(distinct ${users.id})` })
+      .from(users)
+      .leftJoin(companies, eq(companies.id, users.companyId))
+      .where(whereClause);
+
+    const total = Number(countRes?.count ?? 0);
+
+    // Global summary counts (across all users)
+    const [totalUsersRes] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const allCreds = await db.select().from(customerCredentials);
+    const totalUsers = Number(totalUsersRes?.count ?? 0);
+    const lockedPins = allCreds.filter((c) => c.lockedUntil && new Date(c.lockedUntil) > now).length;
+    const configuredPins = allCreds.length - lockedPins;
+    const unconfiguredPins = Math.max(0, totalUsers - allCreds.length);
+
+    // Rows from users & companies
+    const userRows = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phone: users.phone,
+        role: users.role,
+        isSuperadmin: users.isSuperadmin,
+        active: users.active,
+        createdAt: users.createdAt,
+        companyId: users.companyId,
+        companyName: companies.name,
+      })
+      .from(users)
+      .leftJoin(companies, eq(companies.id, users.companyId))
+      .where(whereClause)
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    // Fetch credentials only for the returned user rows
+    const pageUserIds = userRows.map((u) => u.id);
+    const pageCreds = pageUserIds.length > 0
+      ? await db
+          .select()
+          .from(customerCredentials)
+          .where(inArray(customerCredentials.userId, pageUserIds))
+      : [];
+
+    const credsMap = new Map(pageCreds.map((c) => [c.userId, c]));
+
+    const items = userRows.map((r) => {
+      const cred = credsMap.get(r.id);
+      const isLocked = Boolean(cred?.lockedUntil && new Date(cred.lockedUntil) > now);
+      const hasPin = Boolean(cred?.id);
+      return {
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        phone: r.phone,
+        role: r.role,
+        isSuperadmin: r.isSuperadmin,
+        active: r.active,
+        createdAt: r.createdAt,
+        companyId: r.companyId,
+        companyName: r.companyName || "Global / Sem Empresa",
+        hasPin,
+        pinUpdatedAt: cred?.pinUpdatedAt || null,
+        pinCreatedAt: cred?.pinCreatedAt || null,
+        failedAttempts: cred?.failedAttempts ?? 0,
+        lockedUntil: cred?.lockedUntil || null,
+        isLocked,
+        lastLoginAt: cred?.lastLoginAt || null,
+      };
+    });
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+      stats: {
+        totalUsers,
+        configuredPins,
+        unconfiguredPins,
+        lockedPins,
+      },
+    };
+  }
+
+  /**
+   * Reset or set a user's 6-digit PIN (admin override)
+   */
+  static async resetUserPin(
+    userId: string,
+    input: ResetUserPinInput,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    let finalPin = input.pin?.trim();
+    if (finalPin) {
+      if (!/^\d{4,6}$/.test(finalPin)) {
+        throw new Error("O PIN deve conter exatamente 4 a 6 dígitos numéricos.");
+      }
+      if (isWeakPin(finalPin)) {
+        throw new Error("Este PIN é muito fraco (sequência óbvia ou repetitiva). Escolha outro.");
+      }
+    } else {
+      finalPin = generateRandomPin();
+    }
+
+    let phoneToUse = user.phone || "";
+    if (input.newPhone && input.newPhone.trim()) {
+      phoneToUse = input.newPhone.trim();
+      await db.update(users).set({ phone: phoneToUse, updatedAt: new Date() }).where(eq(users.id, userId));
+      await db.update(clients).set({ phone: phoneToUse, updatedAt: new Date() }).where(eq(clients.userId, userId));
+    }
+
+    const phoneNorm = phoneToUse.trim()
+      ? normalizePhoneDigits(phoneToUse)
+      : `u_${user.id.replace(/-/g, "").slice(0, 18)}`;
+
+    const pinHash = await hashPassword(finalPin);
+    const pinLookupHash = hashPinLookup(finalPin);
+
+    const [existingCred] = await db
+      .select()
+      .from(customerCredentials)
+      .where(eq(customerCredentials.userId, userId))
+      .limit(1);
+
+    if (existingCred) {
+      await db
+        .update(customerCredentials)
+        .set({
+          pinHash,
+          pinLookupHash,
+          phoneNormalized: phoneNorm,
+          pinUpdatedAt: new Date(),
+          failedAttempts: 0,
+          lockedUntil: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(customerCredentials.id, existingCred.id));
+    } else {
+      await db.insert(customerCredentials).values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        phoneNormalized: phoneNorm,
+        pinHash,
+        pinLookupHash,
+        pinCreatedAt: new Date(),
+        pinUpdatedAt: new Date(),
+        failedAttempts: 0,
+        lockedUntil: null,
+      });
+    }
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "RESET_USER_PIN",
+      entity: "user",
+      entityId: userId,
+      entityName: user.name,
+      reason: "Redefinição de PIN pelo Super Admin",
+      afterState: {
+        userId: user.id,
+        phone: phoneToUse,
+        pinGenerated: !input.pin,
+        unlocked: true,
+      },
+      request,
+    });
+
+    return {
+      success: true,
+      pin: finalPin,
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      userPhone: phoneToUse,
+    };
+  }
+
+  /**
+   * Unlock a user whose PIN was locked after failed attempts
+   */
+  static async unlockUserPin(
+    userId: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    await db
+      .update(customerCredentials)
+      .set({
+        failedAttempts: 0,
+        lockedUntil: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(customerCredentials.userId, userId));
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "UNLOCK_USER_PIN",
+      entity: "user",
+      entityId: userId,
+      entityName: user.name,
+      reason: "Desbloqueio de tentativas de PIN pelo Super Admin",
+      afterState: { unlocked: true },
+      request,
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Remove a user's PIN credential
+   */
+  static async removeUserPin(
+    userId: string,
+    adminUser: { id: string; email: string },
+    request?: Request
+  ) {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new Error("Usuário não encontrado.");
+
+    await db.delete(customerCredentials).where(eq(customerCredentials.userId, userId));
+
+    await logAdminAction({
+      adminUserId: adminUser.id,
+      adminEmail: adminUser.email,
+      action: "REMOVE_USER_PIN",
+      entity: "user",
+      entityId: userId,
+      entityName: user.name,
+      reason: "Remoção de credencial PIN pelo Super Admin",
+      afterState: { removed: true },
       request,
     });
 

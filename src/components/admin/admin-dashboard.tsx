@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Menu,
   X,
+  KeyRound,
 } from "lucide-react";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
@@ -24,11 +25,12 @@ import { UsersTab } from "./tabs/users-tab";
 import { OwnersTab } from "./tabs/owners-tab";
 import { SubscriptionsTab } from "./tabs/subscriptions-tab";
 import { ClientsTab } from "./tabs/clients-tab";
+import { PinsTab } from "./tabs/pins-tab";
 import { CouponsTab } from "./tabs/coupons-tab";
 import { AuditTab } from "./tabs/audit-tab";
 import styles from "./admin-dashboard.module.css";
 
-type Tab = "dashboard" | "usuarios" | "proprietarios" | "assinaturas" | "clientes" | "cupons" | "logs";
+type Tab = "dashboard" | "usuarios" | "proprietarios" | "assinaturas" | "clientes" | "pins" | "cupons" | "logs";
 
 export function AdminDashboard() {
   const { session, logout, toasts, dismissToast } = useStore();
@@ -105,6 +107,15 @@ export function AdminDashboard() {
           >
             <Users size={18} />
             Clientes
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.navItem} ${activeTab === "pins" ? styles.active : ""}`}
+            onClick={() => handleSelectTab("pins")}
+          >
+            <KeyRound size={18} />
+            PINs de Acesso
           </button>
 
           <button
@@ -194,12 +205,15 @@ export function AdminDashboard() {
 
         <div className={styles.contentBody}>
           {activeTab === "dashboard" && <MetricsTab />}
-          {activeTab === "usuarios" && <UsersTab />}
+          {activeTab === "usuarios" && (
+            <UsersTab onSwitchToPins={() => handleSelectTab("pins")} />
+          )}
           {activeTab === "proprietarios" && (
             <OwnersTab onSwitchToUsers={() => handleSelectTab("usuarios")} />
           )}
           {activeTab === "assinaturas" && <SubscriptionsTab />}
           {activeTab === "clientes" && <ClientsTab />}
+          {activeTab === "pins" && <PinsTab />}
           {activeTab === "cupons" && <CouponsTab />}
           {activeTab === "logs" && <AuditTab />}
         </div>

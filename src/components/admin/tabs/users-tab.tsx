@@ -22,10 +22,15 @@ import {
   Sparkles,
   Ban,
   RotateCcw,
+  KeyRound,
 } from "lucide-react";
 import styles from "../admin-dashboard.module.css";
 
-export function UsersTab() {
+export interface UsersTabProps {
+  onSwitchToPins?: () => void;
+}
+
+export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -472,6 +477,17 @@ export function UsersTab() {
 
                   <td style={{ textAlign: "right" }}>
                     <div style={{ display: "inline-flex", gap: 6 }}>
+                      {onSwitchToPins && (
+                        <button
+                          type="button"
+                          className={styles.btnGhost}
+                          title="Gerenciar / Redefinir PIN"
+                          onClick={onSwitchToPins}
+                        >
+                          <KeyRound size={15} style={{ color: "#dcff4c" }} />
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         className={styles.btnGhost}
@@ -612,6 +628,15 @@ export function UsersTab() {
               </div>
 
               <div className={styles.mobileCardActions}>
+                {onSwitchToPins && (
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={onSwitchToPins}
+                  >
+                    <KeyRound size={14} /> PINs
+                  </button>
+                )}
                 <button
                   type="button"
                   className={styles.btnSecondary}
