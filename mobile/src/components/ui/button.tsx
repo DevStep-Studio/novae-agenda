@@ -1,22 +1,36 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from "react-native";
+import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from "react-native";
 
-import { useTheme } from "@/hooks/use-theme";
+import { colors } from "@/constants/design-tokens";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
 
-export interface ButtonProps extends Omit<PressableProps, "children"> {
+export interface ButtonProps {
   label: string;
   variant?: ButtonVariant;
   loading?: boolean;
+  disabled?: boolean;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function Button({ label, variant = "primary", loading, disabled, style, ...rest }: ButtonProps) {
-  const { colors } = useTheme();
+// .auth-split-primary-btn, globals.css:9644-9660: height 48, radius 10,
+// font 15px/700 — the one concrete button spec found on the real web app so
+// far, used as the app-wide primitive. Also comfortably clears the 44px
+// accessible touch-target minimum, unlike the desktop `.button`/`.btn`
+// primitives (36-38px) — see MOBILE_DESIGN_SYSTEM.md for why those aren't
+// ported as-is to a touch surface.
+//
+// Note: `style` here is intentionally always a plain array/object, never the
+// `(state) => ...` function form Pressable also accepts — NativeWind's babel
+// plugin merges `className` into `style` at the props level, and doesn't
+// resolve a function-valued `style`, so the background color silently never
+// applied when this used that form (Button rendered as a transparent box).
+export function Button({ label, variant = "primary", loading, disabled, onPress, style }: ButtonProps) {
   const isDisabled = disabled || loading;
 
   const backgroundColor =
-    variant === "primary" ? colors.primary : variant === "secondary" ? colors.backgroundElement : "transparent";
-  const textColor = variant === "primary" ? colors.primaryForeground : colors.text;
+    variant === "primary" ? colors.primary : variant === "secondary" ? colors.surfaceSecondary : "transparent";
+  const textColor = variant === "primary" ? colors.primaryForeground : colors.textPrimary;
   const borderColor = variant === "ghost" ? colors.border : "transparent";
 
   return (
@@ -24,31 +38,19 @@ export function Button({ label, variant = "primary", loading, disabled, style, .
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled }}
       disabled={isDisabled}
-      style={(state) => [
-        styles.base,
+      onPress={onPress}
+      className="h-12 flex-row items-center justify-center gap-2 rounded-[10px] px-4"
+      style={[
         { backgroundColor, borderColor, borderWidth: variant === "ghost" ? 1 : 0 },
-        isDisabled && styles.disabled,
-        typeof style === "function" ? style(state) : style,
+        isDisabled ? { opacity: 0.55 } : null,
+        style,
       ]}
-      {...rest}
     >
       {loading ? (
         <ActivityIndicator color={textColor} />
       ) : (
-        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+        <Text style={{ color: textColor, fontSize: 15, fontWeight: "700" }}>{label}</Text>
       )}
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    height: 50,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-  },
-  disabled: { opacity: 0.5 },
-  label: { fontSize: 15, fontWeight: "700" },
-});

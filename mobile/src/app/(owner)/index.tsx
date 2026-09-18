@@ -1,15 +1,20 @@
+import { CalendarDays, CircleDollarSign, TrendingUp, Users, WalletCards } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 
+import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
-import { StatCard } from "@/components/ui/stat-card";
-import { useTheme } from "@/hooks/use-theme";
+import { TopBar } from "@/components/ui/top-bar";
+import { colors, typography } from "@/constants/design-tokens";
 import { ApiError } from "@/lib/api-client";
 import { formatBRL, getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 
+// KPI set, order, icons and copy mirror app-shell.tsx:417-458 (`.metrics-grid`)
+// exactly — including "Receita pendente", which the web computes client-side
+// as max(0, forecast - realized) (app-shell.tsx:318) rather than reading it
+// from the API, so this screen does the same instead of calling a new endpoint.
 export default function OwnerHomeScreen() {
-  const { colors } = useTheme();
   const { session } = useSession();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -44,43 +49,72 @@ export default function OwnerHomeScreen() {
     setRefreshing(false);
   }
 
-  return (
-    <Screen style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={[styles.greeting, { color: colors.textSecondary }]}>Olá,</Text>
-        <Text style={[styles.company, { color: colors.text }]}>{session?.company.name ?? "—"}</Text>
-      </View>
+  const forecast = stats?.today.forecast ?? 0;
+  const realized = stats?.today.realized ?? 0;
+  const pendingAmount = Math.max(0, forecast - realized);
 
+  return (
+    <Screen header={<TopBar title="Visão geral" company={session?.company.name} />} style={{ paddingTop: 16 }}>
       {loading ? (
-        <View style={styles.center}>
+        <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View style={styles.center}>
+        <View className="flex-1 items-center justify-center">
           <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={styles.grid}
+          className="flex-1"
+          contentContainerClassName="gap-5 pb-6"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
-          <StatCard label="Atendimentos hoje" value={String(stats?.today.appointments ?? 0)} />
-          <StatCard label="Clientes atendidos" value={String(stats?.today.clientsServed ?? 0)} />
-          <StatCard label="Receita prevista" value={formatBRL(stats?.today.forecast ?? 0)} hint="para hoje" />
-          <StatCard label="Receita realizada" value={formatBRL(stats?.today.realized ?? 0)} hint="já recebida hoje" />
-          <StatCard label="Cancelamentos" value={String(stats?.today.cancelled ?? 0)} />
-          <StatCard label="Ticket médio" value={formatBRL(stats?.today.averageTicket ?? 0)} />
+          {/* .page-intro / .eyebrow / .intro-copy, globals.css:8727-8770.
+              The web also shows two action buttons here ("Personalizar
+              início" / "Novo agendamento") and, for trial accounts, a
+              subscription countdown card — both omitted: they'd open a
+              dashboard-customization modal and an appointment-creation flow
+              that don't exist in the mobile app yet, and IAP/paywall is a
+              deliberately later phase (see MOBILE_DESIGN_SYSTEM.md). */}
+          <View>
+            <Text style={{ color: colors.primary, ...typography.eyebrow }}>ACOMPANHE O DIA DE HOJE</Text>
+            <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>
+              Olá! Aqui está seu dia
+            </Text>
+            <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
+              Acompanhe os atendimentos e a receita do seu estabelecimento hoje.
+            </Text>
+          </View>
+
+          <View className="flex-row flex-wrap gap-3">
+            <MetricCard
+              icon={CalendarDays}
+              label="Atendimentos hoje"
+              value={String(stats?.today.appointments ?? 0)}
+              detail="agendados para hoje"
+            />
+            <MetricCard icon={TrendingUp} label="Receita prevista" value={formatBRL(forecast)} detail="para hoje" />
+            <MetricCard
+              icon={WalletCards}
+              label="Receita realizada"
+              value={formatBRL(realized)}
+              detail="já recebida hoje"
+            />
+            <MetricCard
+              icon={CircleDollarSign}
+              label="Receita pendente"
+              value={formatBRL(pendingAmount)}
+              detail="a receber hoje"
+            />
+            <MetricCard
+              icon={Users}
+              label="Clientes atendidos"
+              value={String(stats?.today.clientsServed ?? 0)}
+              detail="finalizados hoje"
+            />
+          </View>
         </ScrollView>
       )}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { paddingTop: 8, gap: 20 },
-  header: { gap: 2 },
-  greeting: { fontSize: 14 },
-  company: { fontSize: 24, fontWeight: "700" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, paddingBottom: 24 },
-});

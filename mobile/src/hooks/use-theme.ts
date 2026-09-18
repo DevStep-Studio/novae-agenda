@@ -13,6 +13,5 @@ import { Colors } from '@/constants/theme';
 // user-facing toggle (backed by persisted storage, not useColorScheme()) is
 // implemented — see the "Em construção" list on each role's Mais tab.
 export function useTheme() {
-  const colorScheme = 'dark' as const;
-  return { colors: Colors[colorScheme], colorScheme };
+  return { colors: Colors.dark, colorScheme: 'dark' as const };
 }

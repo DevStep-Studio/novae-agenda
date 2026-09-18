@@ -57,10 +57,13 @@ export function todayKey(): string {
   return `${y}-${m}-${d}`;
 }
 
+// Mirrors STATUS_LABELS in src/lib/client-utils.ts (root project) verbatim —
+// this previously said "Agendado"/"Aguardando", which don't match the web's
+// real copy ("Aguardando confirmação"/"Cliente chegou").
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: "Agendado",
+  scheduled: "Aguardando confirmação",
   confirmed: "Confirmado",
-  waiting: "Aguardando",
+  waiting: "Cliente chegou",
   in_progress: "Em atendimento",
   completed: "Finalizado",
   cancelled: "Cancelado",

@@ -7,49 +7,34 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
-// Reservei brand tokens — copied verbatim from the web app's `--primary`/`.auth-shell`
-// tokens in src/app/globals.css (root project) so the mobile app matches the same
-// dark + lime identity used on /login, /admin and /gestao. Do not invent new values
-// here; if the web tokens change, re-sync from globals.css.
+import { colors as darkTokens } from './design-tokens';
+
+// Reservei brand tokens, re-exported from design-tokens.ts (the shared source
+// also consumed by tailwind.config.ts) for call sites that need a raw value
+// instead of a NativeWind className — icon `color=`, ActivityIndicator,
+// StatusBar. See MOBILE_DESIGN_SYSTEM.md for what each token maps to on the
+// web. Single palette — lime is the app-wide primary, confirmed by the
+// product owner (see the comment on `colors.primary` in design-tokens.ts).
 export const Colors = {
-  light: {
-    text: '#0f172a',
-    textSecondary: '#475569',
-    textMuted: '#64748b',
-    background: '#f8fafc',
-    backgroundElement: '#f1f5f9',
-    backgroundSelected: '#e2e8f0',
-    surface: '#ffffff',
-    surfaceElevated: '#ffffff',
-    border: '#e2e8f0',
-    // Raw lime (#dcff4c) has poor contrast on light backgrounds; the web app swaps
-    // to this dark-olive tone for accent text/icons in light mode (see .auth-shell
-    // light-mode overrides) while keeping lime as the solid button fill below.
-    accentText: '#3f6212',
-    primary: '#dcff4c',
-    primaryHover: '#c8ed32',
-    primarySoft: 'rgba(220, 255, 76, 0.16)',
-    primaryForeground: '#0a0a0a',
-  },
   dark: {
-    text: '#f5f5f5',
-    textSecondary: '#a3a3a3',
-    textMuted: '#737373',
-    background: '#080808',
-    backgroundElement: '#181818',
-    backgroundSelected: '#222222',
-    surface: '#121212',
-    surfaceElevated: '#1a1a1a',
-    border: '#222222',
-    accentText: '#dcff4c',
-    primary: '#dcff4c',
-    primaryHover: '#c8ed32',
-    primarySoft: 'rgba(220, 255, 76, 0.16)',
-    primaryForeground: '#0a0a0a',
+    text: darkTokens.textPrimary,
+    textSecondary: darkTokens.textSecondary,
+    textMuted: darkTokens.textMuted,
+    background: darkTokens.background,
+    backgroundElement: darkTokens.surfaceSecondary,
+    backgroundSelected: darkTokens.surfaceHover,
+    surface: darkTokens.surface,
+    surfaceElevated: darkTokens.surfaceTertiary,
+    border: darkTokens.border,
+    primary: darkTokens.primary,
+    primaryHover: darkTokens.primaryHover,
+    primarySoft: darkTokens.primarySoft,
+    primaryForeground: darkTokens.primaryForeground,
+    danger: darkTokens.danger,
   },
 } as const;
 
-export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+export type ThemeColor = keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {

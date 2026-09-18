@@ -9,8 +9,6 @@ import { useSession } from "@/lib/session-context";
 // Everything below "Início" is not built yet — listed honestly rather than faked.
 // See the engagement report for the phased plan (Section 13 of the build prompt).
 const PENDING_SECTIONS = [
-  "Agenda / calendário",
-  "Clientes",
   "Equipe e permissões",
   "Serviços",
   "Financeiro e relatórios",
