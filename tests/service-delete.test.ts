@@ -111,7 +111,6 @@ describe("Service Deletion Test Suite (Direct MySQL & API)", () => {
 
     // 2. Link to employee
     await db.insert(employeeServices).values({
-      id: randomUUID(),
       employeeId: testEmployeeId,
       serviceId: serviceId,
     });

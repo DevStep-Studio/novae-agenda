@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { authRateLimits } from "@/db/schema";
 
@@ -48,14 +48,31 @@ export async function consumeRateLimit(bucket: string, rule: RateLimitRule): Pro
   const windowThreshold = new Date(now - rule.windowMs);
 
   if (!existing) {
-    await db.insert(authRateLimits).values({
-      id: crypto.randomUUID(),
-      bucket,
-      hits: 1,
-      windowStartedAt: new Date(),
-      blockedUntil: null,
-    });
-    return { ok: true, retryAfterSeconds: 0 };
+    try {
+      await db.insert(authRateLimits).values({
+        id: crypto.randomUUID(),
+        bucket,
+        hits: 1,
+        windowStartedAt: new Date(),
+        blockedUntil: null,
+      });
+      return { ok: true, retryAfterSeconds: 0 };
+    } catch (err: any) {
+      const isDup =
+        err?.code === "ER_DUP_ENTRY" ||
+        err?.errno === 1062 ||
+        err?.cause?.code === "ER_DUP_ENTRY" ||
+        err?.cause?.errno === 1062 ||
+        String(err?.message || "").includes("ER_DUP_ENTRY");
+      if (isDup) {
+        await db
+          .update(authRateLimits)
+          .set({ hits: sql`${authRateLimits.hits} + 1` })
+          .where(eq(authRateLimits.bucket, bucket));
+        return { ok: true, retryAfterSeconds: 0 };
+      }
+      throw err;
+    }
   }
 
   if (new Date(existing.windowStartedAt) < windowThreshold) {
