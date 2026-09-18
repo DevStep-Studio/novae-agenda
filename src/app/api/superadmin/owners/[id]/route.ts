@@ -83,10 +83,6 @@ export async function DELETE(
     const reason = searchParams.get("reason") || "Exclusão solicitada via Superadmin";
 
     if (isHard) {
-      if (!confirmedName) {
-        return Response.json({ error: "Nome de confirmação é obrigatório para exclusão definitiva." }, { status: 400 });
-      }
-
       await AdminService.hardDeleteOwner(
         id,
         confirmedName,

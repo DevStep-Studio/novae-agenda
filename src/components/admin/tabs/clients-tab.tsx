@@ -44,7 +44,6 @@ export function ClientsTab() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<any | null>(null);
   const [deleteMode, setDeleteMode] = useState<"soft" | "hard">("soft");
-  const [confirmationName, setConfirmationName] = useState("");
 
   const loadClients = useCallback(async () => {
     try {
@@ -121,13 +120,9 @@ export function ClientsTab() {
 
   const handleExecuteDelete = async () => {
     if (!clientToDelete) return;
-    if (deleteMode === "hard" && confirmationName.trim() !== clientToDelete.name.trim()) {
-      alert(`Para exclusão definitiva, digite exatamente o nome "${clientToDelete.name}".`);
-      return;
-    }
 
     try {
-      const params = deleteMode === "hard" ? `?hard=true&confirmationName=${encodeURIComponent(confirmationName)}` : "";
+      const params = deleteMode === "hard" ? "?hard=true" : "";
       const res = await fetch(`/api/superadmin/clients/${clientToDelete.id}${params}`, {
         method: "DELETE",
       });
@@ -141,7 +136,6 @@ export function ClientsTab() {
       );
       setDeleteModalOpen(false);
       setClientToDelete(null);
-      setConfirmationName("");
       void loadClients();
     } catch (err: any) {
       alert("Erro ao excluir: " + err.message);
@@ -257,7 +251,6 @@ export function ClientsTab() {
                       onClick={() => {
                         setClientToDelete(client);
                         setDeleteMode("soft");
-                        setConfirmationName("");
                         setDeleteModalOpen(true);
                       }}
                     >
@@ -370,7 +363,6 @@ export function ClientsTab() {
                 onClick={() => {
                   setClientToDelete(client);
                   setDeleteMode("soft");
-                  setConfirmationName("");
                   setDeleteModalOpen(true);
                 }}
               >
@@ -575,17 +567,10 @@ export function ClientsTab() {
               </div>
 
               {deleteMode === "hard" && (
-                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: 12, borderRadius: 8 }}>
-                  <p style={{ margin: 0, fontSize: 12, color: "#fca5a5" }}>
-                    Para confirmar a exclusão definitiva, digite o nome exato: <strong>{clientToDelete.name}</strong>
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8 }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
+                    ⚠️ <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente o cliente <strong>{clientToDelete.name}</strong> e todos os seus registros associados. Esta ação não poderá ser desfeita.
                   </p>
-                  <input
-                    type="text"
-                    style={{ marginTop: 8, borderColor: "#ef4444" }}
-                    className={styles.input}
-                    value={confirmationName}
-                    onChange={(e) => setConfirmationName(e.target.value)}
-                  />
                 </div>
               )}
             </div>

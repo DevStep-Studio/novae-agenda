@@ -72,7 +72,6 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
   const [ownerToDelete, setOwnerToDelete] = useState<any | null>(null);
   const [deleteMode, setDeleteMode] = useState<"soft" | "hard">("soft");
   const [deleteReason, setDeleteReason] = useState("Exclusão administrativa");
-  const [confirmationName, setConfirmationName] = useState("");
 
   // New Owner Form
   const [newOwnerForm, setNewOwnerForm] = useState({
@@ -309,21 +308,16 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
     }
   };
 
-  // Delete Owner
   const handleExecuteDeleteOwner = async () => {
     if (!ownerToDelete) return;
-    if (deleteMode === "hard" && confirmationName.trim() !== ownerToDelete.name.trim()) {
-      alert(`Para exclusão definitiva, digite exatamente o nome "${ownerToDelete.name}".`);
-      return;
-    }
 
     try {
       const params = new URLSearchParams();
       if (deleteMode === "hard") {
         params.set("hard", "true");
-        params.set("confirmedName", confirmationName);
+        params.set("confirmedName", ownerToDelete.name);
       }
-      params.set("reason", deleteReason);
+      params.set("reason", deleteReason || "Exclusão solicitada via Super Admin");
 
       const res = await fetch(`/api/superadmin/owners/${ownerToDelete.id}?${params.toString()}`, {
         method: "DELETE",
@@ -338,7 +332,6 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
       );
       setDeleteOwnerModalOpen(false);
       setOwnerToDelete(null);
-      setConfirmationName("");
       if (detailsModalOpen) setDetailsModalOpen(false);
       void loadOwners();
     } catch (err: any) {
@@ -637,7 +630,6 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
                       onClick={() => {
                         setOwnerToDelete(owner);
                         setDeleteMode("soft");
-                        setConfirmationName("");
                         setDeleteReason("Exclusão solicitada via Super Admin");
                         setDeleteOwnerModalOpen(true);
                       }}
@@ -1343,23 +1335,13 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
               </div>
 
               {deleteMode === "hard" && (
-                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: 14, borderRadius: 8 }}>
-                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "14px 16px", borderRadius: 8 }}>
+                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
                     ⚠️ ATENÇÃO: Esta ação é irreversível!
                   </div>
-                  <p style={{ margin: 0, fontSize: 12, color: "#fca5a5", lineHeight: 1.4 }}>
-                    Para prosseguir com a exclusão física definitiva no banco de dados, digite exatamente o nome da empresa abaixo:
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
+                    A exclusão definitiva removerá permanentemente a empresa <strong>{ownerToDelete.name}</strong> e todos os seus registros vinculados do banco de dados.
                   </p>
-                  <div style={{ marginTop: 10 }}>
-                    <input
-                      type="text"
-                      placeholder={ownerToDelete.name}
-                      value={confirmationName}
-                      onChange={(e) => setConfirmationName(e.target.value)}
-                      className={styles.input}
-                      style={{ borderColor: "#ef4444" }}
-                    />
-                  </div>
                 </div>
               )}
 

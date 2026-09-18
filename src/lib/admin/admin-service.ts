@@ -1704,7 +1704,7 @@ export class AdminService {
    */
   static async hardDeleteOwner(
     companyId: string,
-    confirmedName: string,
+    confirmedName: string | undefined,
     reason: string,
     adminUser: { id: string; email: string },
     request?: Request
@@ -1712,7 +1712,7 @@ export class AdminService {
     const [company] = await db.select().from(companies).where(eq(companies.id, companyId)).limit(1);
     if (!company) throw new Error("Empresa não encontrada.");
 
-    if (company.name.trim().toLowerCase() !== confirmedName.trim().toLowerCase()) {
+    if (confirmedName && company.name.trim().toLowerCase() !== confirmedName.trim().toLowerCase()) {
       throw new Error("O nome informado para confirmação não confere com o nome da empresa.");
     }
 
