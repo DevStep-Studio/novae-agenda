@@ -160,10 +160,10 @@ export async function getOrCreateBookingPage(companyId: string) {
     companyId,
     schemaVersion: 2,
     draftLayout: initialDoc,
-    publishedLayout: initialDoc, // Auto-publish migrated layout so existing links immediately work
+    publishedLayout: null,
     globalTokens: initialDoc.globalTokens,
-    status: "published",
-    publishedAt: new Date(),
+    status: "draft",
+    publishedAt: null,
   });
 
   // Record version 1
@@ -181,11 +181,11 @@ export async function getOrCreateBookingPage(companyId: string) {
   return {
     id: newId,
     companyId,
-    status: "published" as const,
+    status: "draft" as const,
     draftLayout: initialDoc,
-    publishedLayout: initialDoc,
+    publishedLayout: null,
     globalTokens: initialDoc.globalTokens,
-    publishedAt: new Date().toISOString(),
+    publishedAt: null,
     publishedBy: null,
     lastEditedBy: null,
     createdAt: new Date().toISOString(),
