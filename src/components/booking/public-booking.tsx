@@ -876,6 +876,31 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     </>
   );
 
+  // If Page Builder is published and active, render it directly as the root view on Step 0
+  if (step === 0 && (company as any).pageBuilder?.layout) {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: (company as any).pageBuilder.layout.globalTokens?.backgroundColor || "#09090b" }}>
+        <PageBuilderRenderer
+          document={(company as any).pageBuilder.layout}
+          mode="public"
+          catalog={catalog}
+          selectedServiceIds={items.map((i) => i.serviceId)}
+          onToggleService={(serviceId) => {
+            if (items.some((i) => i.serviceId === serviceId)) {
+              changeItems(items.filter((i) => i.serviceId !== serviceId));
+            } else {
+              changeItems([...items, { serviceId, employeeId: null }]);
+            }
+          }}
+          onContinueBooking={() => {
+            if (items.length > 0) go(1);
+          }}
+        />
+        <ClientNoticeModal />
+      </div>
+    );
+  }
+
   return (
     <PublicFrame
       color={company.color}
@@ -1322,26 +1347,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
               {/* STEP 0: SERVICES SELECTION */}
               {step === 0 && (
-                (company as any).pageBuilder?.layout ? (
-                  <div style={{ width: "100%", margin: "0 auto" }}>
-                    <PageBuilderRenderer
-                      document={(company as any).pageBuilder.layout}
-                      mode="public"
-                      catalog={catalog}
-                      selectedServiceIds={items.map((i) => i.serviceId)}
-                      onToggleService={(serviceId) => {
-                        if (items.some((i) => i.serviceId === serviceId)) {
-                          changeItems(items.filter((i) => i.serviceId !== serviceId));
-                        } else {
-                          changeItems([...items, { serviceId, employeeId: null }]);
-                        }
-                      }}
-                      onContinueBooking={() => {
-                        if (items.length > 0) go(1);
-                      }}
-                    />
-                  </div>
-                ) : (
                 <>
                   {/* Establishment Hero Info */}
                   <div className={b.profile}>
@@ -1722,7 +1727,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </div>
                   )}
                 </>
-              ))}
+              )}
 
               {/* STEP 1: PROFESSIONAL SELECTION */}
               {step === 1 && items.length > 0 && (() => {
