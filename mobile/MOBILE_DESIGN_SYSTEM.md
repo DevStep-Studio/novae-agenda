@@ -279,6 +279,24 @@ component actually imports from `lucide-react` and use the same name from
   section (Equipe, Serviços, ...) is reached through the web's mobile
   hamburger menu, so this is reached from the "Mais" tab instead, which now
   has a real navigable row for it above the "Em construção" list.
+- **Serviços** (`(owner)/servicos.tsx`, "Serviços Avulsos" sub-tab only) —
+  mirrors `ServicesPage` (`app-shell.tsx:1914-2096`): header, the
+  Todos/Ativos/Inativos filter (`.category-tabs`' underline-active style),
+  then the real `.service-card` image-grid (`ServiceCard`): photo + 4-stop
+  gradient overlay (ported with `expo-linear-gradient`, added as a
+  dependency — RN has no CSS `linear-gradient`), category pill, title,
+  description, price/duration, and the active toggle. Also ported verbatim,
+  not re-derived: `getServiceImage`/`getServiceDescription` from
+  `app-shell.tsx`/`client-utils.ts` — the keyword-matched Unsplash photo and
+  copy fallbacks a service gets when it has none of its own set. **The
+  active/inactive toggle actually works** — `PATCH /api/services/[id]`
+  already accepts a bare `{ active }` update, so this is a real mutation,
+  not a static switch. "Planos Mensais" (the other sub-tab — a membership
+  plan feature, different data model) isn't ported. One known simplification:
+  an inactive service also grayscales its photo on web
+  (`.service-card.inactive .service-card-bg`); RN has no CSS-filter
+  equivalent for a remote image without a shader library, so only the
+  card-level dimming (`opacity: 0.65`) is ported.
 
 ### Intentionally not ported (with reasons — not oversights)
 
