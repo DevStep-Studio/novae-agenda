@@ -7,7 +7,7 @@ import {
   AlertTriangle, ArrowRight, ArrowUpDown, Ban, BarChart3, Bell, Briefcase, Building2, Calendar, CalendarCheck, CalendarDays, CalendarPlus,
   Check, CheckCheck, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleAlert, CircleDollarSign, CircleHelp,
   Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
-  ImagePlus, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
+  ImagePlus, Loader2, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
   Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon, Lightbulb,
 } from "lucide-react";
@@ -1910,14 +1910,35 @@ function getServiceImage(service: { name: string; imageUrl?: string | null }): s
 }
 
 function ServicesPage({ onNew }: { onNew: () => void }) {
-  const { services, toggleService, categories, employees, notify } = useStore();
+  const { services, toggleService, categories, employees, notify, deleteService, confirm } = useStore();
   const [subTab, setSubTab] = useState<"services" | "memberships">("services");
   const [editing, setEditing] = useState<ServiceDTO | null>(null);
   const [filter, setFilter] = useState("Todos");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const safeServices = Array.isArray(services) ? services : [];
   const safeCategories = Array.isArray(categories) ? categories : [];
   const visible = safeServices.filter((service) => filter === "Todos" || (service.active === (filter === "Ativos")));
+
+  const handleDeleteService = async (service: ServiceDTO) => {
+    if (deletingId) return;
+    const ok = await confirm({
+      title: "Excluir serviço",
+      description: `Tem certeza que deseja excluir permanentemente o serviço "${service.name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir serviço",
+      danger: true,
+    });
+    if (!ok) return;
+    setDeletingId(service.id);
+    try {
+      await deleteService(service.id);
+      notify(`Serviço "${service.name}" excluído com sucesso.`);
+    } catch (err) {
+      notify((err as Error).message || "Erro ao excluir serviço.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="page-content">
@@ -1975,15 +1996,34 @@ function ServicesPage({ onNew }: { onNew: () => void }) {
                   <div className="service-card-overlay" />
                   <div className="service-card-content">
                     <div className="service-card-head">
-                      <button
-                        type="button"
-                        className="service-edit-pill"
-                        aria-label={`Editar ${service.name}`}
-                        onClick={() => setEditing(service)}
-                      >
-                        <Pencil size={13} />
-                        <span>Editar</span>
-                      </button>
+                      <div className="service-card-actions-left">
+                        <button
+                          type="button"
+                          className="service-edit-pill"
+                          aria-label={`Editar ${service.name}`}
+                          onClick={() => setEditing(service)}
+                        >
+                          <Pencil size={13} />
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="service-delete-pill"
+                          aria-label={`Excluir ${service.name}`}
+                          title="Excluir serviço"
+                          disabled={deletingId === service.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteService(service);
+                          }}
+                        >
+                          {deletingId === service.id ? (
+                            <Loader2 size={13} className="spin" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                        </button>
+                      </div>
                       <span className="service-category-badge">
                         <Tag size={12} />
                         <span>{service.categoryName ?? "Sem categoria"}</span>

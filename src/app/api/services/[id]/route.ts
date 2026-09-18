@@ -4,7 +4,16 @@ import { lockCompany } from "@/lib/booking/service";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { employeeServices, employees, serviceCategories, services } from "@/db/schema";
+import {
+  appointmentServices,
+  bookingMembershipUsage,
+  employeeServices,
+  employees,
+  membershipPlanServices,
+  reviews,
+  serviceCategories,
+  services,
+} from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { centsToNumber, isUuid } from "@/lib/domain";
 import { saveServiceImage, deleteServiceImage } from "@/lib/storage";
@@ -120,4 +129,51 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   };
 
   return Response.json({ data: dto });
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const gate = await requireRole("manager");
+  if (gate.response) return gate.response;
+  const { auth } = gate;
+  const { id } = await params;
+  if (!isUuid(id)) return Response.json({ error: "Serviço não encontrado." }, { status: 404 });
+
+  const [existing] = await db
+    .select({ id: services.id, imageUrl: services.imageUrl })
+    .from(services)
+    .where(and(eq(services.id, id), eq(services.companyId, auth.user.companyId)));
+
+  if (!existing) return Response.json({ error: "Serviço não encontrado." }, { status: 404 });
+
+  if (existing.imageUrl) {
+    try {
+      await deleteServiceImage(existing.imageUrl);
+    } catch {
+      // Ignora falha de exclusão do arquivo no storage
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    await lockCompany(tx, auth.user.companyId);
+
+    // 1. Remove vinculos com profissionais
+    await tx.delete(employeeServices).where(eq(employeeServices.serviceId, id)).catch(() => {});
+
+    // 2. Remove vinculos com planos de mensalidade/assinatura
+    await tx.delete(membershipPlanServices).where(eq(membershipPlanServices.serviceId, id)).catch(() => {});
+
+    // 3. Remove consumo de membership associado
+    await tx.delete(bookingMembershipUsage).where(eq(bookingMembershipUsage.serviceId, id)).catch(() => {});
+
+    // 4. Anula referencia do servico em reviews
+    await tx.update(reviews).set({ serviceId: null }).where(eq(reviews.serviceId, id)).catch(() => {});
+
+    // 5. Remove ligacoes em agendamentos
+    await tx.delete(appointmentServices).where(eq(appointmentServices.serviceId, id)).catch(() => {});
+
+    // 6. Exclui o registro principal da tabela services
+    await tx.delete(services).where(and(eq(services.id, id), eq(services.companyId, auth.user.companyId)));
+  });
+
+  return Response.json({ data: { id: existing.id } });
 }

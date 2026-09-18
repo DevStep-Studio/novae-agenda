@@ -70,6 +70,7 @@ type Store = DataState & {
   deleteClient: (id: string) => Promise<void>;
   createService: (input: { name: string; price: number; durationMinutes: number; categoryId?: string | null; description?: string }) => Promise<void>;
   toggleService: (id: string, active: boolean) => Promise<void>;
+  deleteService: (id: string) => Promise<void>;
   createEmployee: (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; bannerUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => Promise<void>;
   updateEmployee: (id: string, input: { name?: string; jobTitle?: string | null; phone?: string | null; active?: boolean; commissionType?: "none" | "percentage" | "fixed"; commissionValue?: number; photoUrl?: string | null; bannerUrl?: string | null; serviceIds?: string[]; grantAccess?: boolean; email?: string; newPassword?: string }) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
@@ -329,6 +330,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [notify]);
 
+  const deleteService = useCallback(async (id: string) => {
+    await api(`/api/services/${id}`, { method: "DELETE" });
+    await reloadServices();
+    await reloadEmployees();
+  }, [reloadServices, reloadEmployees]);
+
   const createEmployee = useCallback(async (input: { name: string; jobTitle?: string; phone?: string; serviceIds?: string[]; photoUrl?: string | null; bannerUrl?: string | null; grantAccess?: boolean; email?: string; password?: string }) => {
     await api("/api/employees", { method: "POST", body: JSON.stringify(input) });
     await reloadEmployees();
@@ -575,6 +582,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteClient,
     createService,
     toggleService,
+    deleteService,
     createEmployee,
     updateEmployee,
     deleteEmployee,
@@ -597,7 +605,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }), [
     session, booting, locations, activeLocationId, clients, services, categories, employees, appointments, blocks, notifications, unreadCount, settings, stats, toasts,
     setActiveLocationId, reloadSession, reloadLocations, reloadClients, reloadServices, reloadCategories, reloadEmployees, reloadAppointments, reloadBlocks, reloadNotifications, reloadSettings, reloadStats, refreshAll,
-    createLocation, updateLocation, createClient, updateClient, deleteClient, createService, toggleService, createEmployee, updateEmployee, deleteEmployee, createAppointment,
+    createLocation, updateLocation, createClient, updateClient, deleteClient, createService, toggleService, deleteService, createEmployee, updateEmployee, deleteEmployee, createAppointment,
     updateAppointmentStatus, rescheduleAppointment, finishAppointment, createBlock, deleteBlock, markNotificationRead, markAllNotificationsRead, updateSettings, updateProfile, updateDashboardPreferences, notify, dismissToast, confirm, confirmRequest, logout,
   ]);
 

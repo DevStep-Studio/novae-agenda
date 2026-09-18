@@ -81,9 +81,10 @@ export function ServiceEditor({
   service?: ServiceDTO;
   onDone: () => void;
 }) {
-  const { employees, categories, reloadServices, reloadCategories, reloadEmployees, notify, confirm } =
+  const { employees, categories, reloadServices, reloadCategories, reloadEmployees, notify, confirm, deleteService } =
     useStore();
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [category, setCategory] = useState(service?.categoryId ?? "");
   const [extraCategories, setExtraCategories] = useState<
@@ -225,6 +226,27 @@ export function ServiceEditor({
       setError((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleDeleteService() {
+    if (!service || busy || deleting) return;
+    const ok = await confirm({
+      title: "Excluir serviço",
+      description: `Tem certeza que deseja excluir permanentemente o serviço "${service.name}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: "Excluir serviço",
+      danger: true,
+    });
+    if (!ok) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteService(service.id);
+      notify(`Serviço "${service.name}" excluído com sucesso.`);
+      onDone();
+    } catch (err) {
+      setError((err as Error).message || "Erro ao excluir serviço.");
+      setDeleting(false);
     }
   }
 
@@ -944,17 +966,38 @@ export function ServiceEditor({
 
         {/* Rodapé / Ações */}
         <div className={styles.footer}>
+          {Boolean(service) && (
+            <button
+              type="button"
+              className={styles.deleteBtn}
+              onClick={handleDeleteService}
+              disabled={busy || deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 size={16} className={styles.spin} />
+                  <span>Excluindo…</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} />
+                  <span>Excluir serviço</span>
+                </>
+              )}
+            </button>
+          )}
           <button
             type="button"
             className={styles.cancelBtn}
             onClick={onDone}
+            disabled={busy || deleting}
           >
             Cancelar
           </button>
           <button
             type="submit"
             className={styles.submitBtn}
-            disabled={busy}
+            disabled={busy || deleting}
           >
             {busy ? (
               <>
