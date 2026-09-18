@@ -347,4 +347,66 @@ test("Super Admin 2.0 — Comprehensive Features, Queries, Transactions & Segreg
     const checkHard = await db.select().from(companies).where(eq(companies.id, c1));
     assert.equal(checkHard.length, 0);
   });
+
+  // -------------------------------------------------------------------------
+  // 7. EDIT SUBSCRIPTION DETAILS & AUDIT LOGGING
+  // -------------------------------------------------------------------------
+  await t.test("7. updateSubscription updates plan, status, amount, dates and writes audit logs", async () => {
+    const s = crypto.randomUUID().slice(0, 6);
+    const compId = crypto.randomUUID();
+    const subId = crypto.randomUUID();
+    createdCompanyIds.push(compId);
+
+    await db.insert(companies).values({
+      id: compId,
+      name: `Empresa Sub Edit ${s}`,
+    });
+
+    await db.insert(subscriptions).values({
+      id: subId,
+      companyId: compId,
+      plan: "trial",
+      status: "trialing",
+      billingInterval: "monthly",
+      amount: "0.00",
+      origin: "checkout",
+      trialStartedAt: new Date(),
+      trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    const newDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+
+    const updateRes = await AdminService.updateSubscription(
+      subId,
+      {
+        plan: "profissional",
+        status: "active",
+        billingInterval: "yearly",
+        amount: 399.00,
+        origin: "manual_paid",
+        paymentMethod: "card",
+        nextPaymentAt: newDate,
+        currentPeriodEnd: newDate,
+        reason: "Upgrade anual negociado via suporte",
+      },
+      { id: adminId, email: adminEmail }
+    );
+
+    assert.equal(updateRes.success, true);
+    assert.equal(updateRes.subscription.plan, "profissional");
+    assert.equal(updateRes.subscription.status, "active");
+    assert.equal(updateRes.subscription.billingInterval, "yearly");
+    assert.equal(updateRes.subscription.amount, "399.00");
+    assert.equal(updateRes.subscription.origin, "manual_paid");
+    assert.equal(updateRes.subscription.paymentMethod, "card");
+
+    // Verify in database
+    const [subInDb] = await db.select().from(subscriptions).where(eq(subscriptions.id, subId)).limit(1);
+    assert.equal(subInDb.plan, "profissional");
+    assert.equal(subInDb.status, "active");
+    assert.equal(subInDb.billingInterval, "yearly");
+
+    // Clean up
+    await db.delete(subscriptions).where(eq(subscriptions.id, subId));
+  });
 });
