@@ -7,6 +7,7 @@ import { employeeSchedules, employees } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { requireRole } from "@/lib/auth";
 import { isUuid, isValidTime } from "@/lib/domain";
+import { sanitizeLunch } from "@/lib/schedule-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -79,16 +80,31 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  for (const w of parsed.data.schedules) {
-    if (Boolean(w.breakStart) !== Boolean(w.breakEnd) || (w.breakStart && w.breakEnd && (!isValidTime(w.breakStart) || !isValidTime(w.breakEnd) || w.breakStart >= w.breakEnd || w.breakStart < w.startTime || w.breakEnd > w.endTime))) return Response.json({error:"Intervalo de almoço inválido."},{status:400});
-    if (w.active && parsed.data.schedules.some(other => other !== w && other.active && other.dayOfWeek === w.dayOfWeek && other.startTime < w.endTime && other.endTime > w.startTime)) return Response.json({error:"Períodos de trabalho sobrepostos."},{status:400});
+  const sanitizedWindows = parsed.data.schedules.map((w) => {
+    const lunch = sanitizeLunch(w.startTime, w.endTime, w.breakStart, w.breakEnd);
+    return {
+      ...w,
+      breakStart: lunch.breakStart,
+      breakEnd: lunch.breakEnd,
+    };
+  });
+
+  for (const w of sanitizedWindows) {
+    if (w.breakStart && w.breakEnd) {
+      if (!isValidTime(w.breakStart) || !isValidTime(w.breakEnd) || w.breakStart >= w.breakEnd || w.breakStart < w.startTime || w.breakEnd > w.endTime) {
+        return Response.json({ error: "Intervalo de almoço inválido." }, { status: 400 });
+      }
+    }
+    if (w.active && sanitizedWindows.some(other => other !== w && other.active && other.dayOfWeek === w.dayOfWeek && other.startTime < w.endTime && other.endTime > w.startTime)) {
+      return Response.json({ error: "Períodos de trabalho sobrepostos." }, { status: 400 });
+    }
   }
   try { await db.transaction(async tx => {
   await lockCompany(tx, auth.user.companyId);
   await tx.delete(employeeSchedules).where(eq(employeeSchedules.employeeId, id));
 
   await tx.insert(employeeSchedules).values(
-    parsed.data.schedules.map((window) => ({
+    sanitizedWindows.map((window) => ({
       employeeId: id,
       dayOfWeek: window.dayOfWeek,
       startTime: `${window.startTime}:00`,

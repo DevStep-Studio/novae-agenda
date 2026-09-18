@@ -24,6 +24,7 @@ import {
   Zap,
   Upload,
   Monitor,
+  Coffee,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { api } from "@/lib/api-client";
@@ -33,6 +34,7 @@ import { ErrorMessage, money, Skeleton } from "./primitives";
 import { BrandingStudio } from "./branding-studio";
 import { LocationMapCard } from "./location-map-card";
 import { PageBuilderEditor } from "./page-builder/page-builder-editor";
+import { getDefaultLunch, isLunchActive, sanitizeLunch } from "@/lib/schedule-utils";
 import type { companies, coupons, products } from "@/db/schema";
 import styles from "./booking-settings.module.css";
 
@@ -222,23 +224,147 @@ export function BookingSettings() {
     }
   }
 
+  const handleToggleLunch = (index: number, enable: boolean) => {
+    setSchedule((prev) =>
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        if (!enable) {
+          return { ...s, breakStart: null, breakEnd: null };
+        }
+        const def = getDefaultLunch(s.startTime, s.endTime);
+        return { ...s, breakStart: def.breakStart, breakEnd: def.breakEnd };
+      }),
+    );
+  };
+
+  const handleLunchStartChange = (index: number, val: string) => {
+    setSchedule((prev) =>
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        const newStart = val || null;
+        if (!newStart) {
+          return { ...s, breakStart: null, breakEnd: null };
+        }
+        let newEnd = s.breakEnd;
+        if (!newEnd || newEnd <= newStart) {
+          const [sh, sm] = newStart.split(":").map(Number);
+          const startMins = (sh || 0) * 60 + (sm || 0);
+          const [eh, em] = s.endTime.split(":").map(Number);
+          const endShiftMins = (eh || 0) * 60 + (em || 0);
+          const targetEndMins = Math.min(endShiftMins, startMins + 60);
+          const h = String(Math.floor(targetEndMins / 60)).padStart(2, "0");
+          const m = String(targetEndMins % 60).padStart(2, "0");
+          newEnd = `${h}:${m}`;
+        }
+        return { ...s, breakStart: newStart, breakEnd: newEnd };
+      }),
+    );
+  };
+
+  const handleLunchEndChange = (index: number, val: string) => {
+    setSchedule((prev) =>
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        return { ...s, breakEnd: val || null };
+      }),
+    );
+  };
+
+  const handleStartTimeChange = (index: number, val: string) => {
+    setSchedule((prev) =>
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        let bs = s.breakStart;
+        let be = s.breakEnd;
+        if (bs && bs < val) {
+          const def = getDefaultLunch(val, s.endTime);
+          bs = def.breakStart;
+          be = def.breakEnd;
+        }
+        return { ...s, startTime: val, breakStart: bs, breakEnd: be };
+      }),
+    );
+  };
+
+  const handleEndTimeChange = (index: number, val: string) => {
+    setSchedule((prev) =>
+      prev.map((s, i) => {
+        if (i !== index) return s;
+        let bs = s.breakStart;
+        let be = s.breakEnd;
+        if (bs && val <= bs) {
+          bs = null;
+          be = null;
+        } else if (be && be > val) {
+          be = val;
+          if (bs && bs >= be) {
+            bs = null;
+            be = null;
+          }
+        }
+        return { ...s, endTime: val, breakStart: bs, breakEnd: be };
+      }),
+    );
+  };
+
+  const handleApplyNoLunchAll = () => {
+    setSchedule((prev) =>
+      prev.map((s) => ({
+        ...s,
+        breakStart: null,
+        breakEnd: null,
+      })),
+    );
+  };
+
+  const handleApplyStandardLunchAll = () => {
+    setSchedule((prev) =>
+      prev.map((s) => {
+        if (!s.active) return s;
+        const def = getDefaultLunch(s.startTime, s.endTime);
+        return {
+          ...s,
+          breakStart: def.breakStart,
+          breakEnd: def.breakEnd,
+        };
+      }),
+    );
+  };
+
   async function saveSchedule() {
     setBusy(true);
     setError("");
     try {
+      const payload = (schedule.length
+        ? schedule
+        : [
+            {
+              employeeId,
+              dayOfWeek: 0,
+              startTime: "08:00",
+              endTime: "18:00",
+              breakStart: null,
+              breakEnd: null,
+              active: false,
+            },
+          ]
+      ).map((s) => {
+        const lunch = sanitizeLunch(s.startTime, s.endTime, s.breakStart, s.breakEnd);
+        return {
+          employeeId: ("employeeId" in s ? s.employeeId : employeeId) || employeeId,
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          breakStart: lunch.breakStart,
+          breakEnd: lunch.breakEnd,
+          active: s.active,
+        };
+      });
+
       await api(`/api/employees/${employeeId}/schedules`, {
         method: "PUT",
         body: JSON.stringify({
-          schedules: schedule.length
-            ? schedule
-            : [
-                {
-                  dayOfWeek: 0,
-                  startTime: "08:00",
-                  endTime: "18:00",
-                  active: false,
-                },
-              ],
+          schedules: payload,
         }),
       });
       await updateSettings({ slotIntervalMinutes: interval });
@@ -1248,6 +1374,22 @@ export function BookingSettings() {
                   <Zap size={13} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
                   Quinta só até 12:00
                 </button>
+                <button
+                  type="button"
+                  className={styles.quickPresetBtn}
+                  onClick={handleApplyNoLunchAll}
+                  title="Remove intervalo de almoço de todos os dias (jornada contínua)"
+                >
+                  Sem almoço (todos)
+                </button>
+                <button
+                  type="button"
+                  className={styles.quickPresetBtn}
+                  onClick={handleApplyStandardLunchAll}
+                  title="Aplica intervalo de almoço padrão (12:00 às 13:00)"
+                >
+                  Almoço 12h-13h (todos)
+                </button>
               </div>
             </div>
 
@@ -1310,13 +1452,7 @@ export function BookingSettings() {
                             className={styles.input}
                             value={s.startTime}
                             style={{ padding: "6px 10px", width: 110, height: 38, fontSize: "13px" }}
-                            onChange={(e) =>
-                              setSchedule(
-                                schedule.map((r, n) =>
-                                  n === i ? { ...r, startTime: e.target.value } : r,
-                                ),
-                              )
-                            }
+                            onChange={(e) => handleStartTimeChange(i, e.target.value)}
                           />
                         </td>
                         <td>
@@ -1325,51 +1461,52 @@ export function BookingSettings() {
                             className={styles.input}
                             value={s.endTime}
                             style={{ padding: "6px 10px", width: 110, height: 38, fontSize: "13px" }}
-                            onChange={(e) =>
-                              setSchedule(
-                                schedule.map((r, n) =>
-                                  n === i ? { ...r, endTime: e.target.value } : r,
-                                ),
-                              )
-                            }
+                            onChange={(e) => handleEndTimeChange(i, e.target.value)}
                           />
                         </td>
                         <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                            <input
-                              type="time"
-                              className={styles.input}
-                              placeholder="Início"
-                              value={s.breakStart ?? ""}
-                              style={{ padding: "6px 10px", width: 100, height: 38, fontSize: "13px" }}
-                              onChange={(e) =>
-                                setSchedule(
-                                  schedule.map((r, n) =>
-                                    n === i
-                                      ? { ...r, breakStart: e.target.value || null }
-                                      : r,
-                                  ),
-                                )
-                              }
-                            />
-                            <span style={{ color: "var(--text-muted)", fontSize: 12 }}>até</span>
-                            <input
-                              type="time"
-                              className={styles.input}
-                              placeholder="Fim"
-                              value={s.breakEnd ?? ""}
-                              style={{ padding: "6px 10px", width: 100, height: 38, fontSize: "13px" }}
-                              onChange={(e) =>
-                                setSchedule(
-                                  schedule.map((r, n) =>
-                                    n === i
-                                      ? { ...r, breakEnd: e.target.value || null }
-                                      : r,
-                                  ),
-                                )
-                              }
-                            />
-                          </div>
+                          {isLunchActive(s.breakStart, s.breakEnd) ? (
+                            <div className={styles.desktopLunchRow}>
+                              <input
+                                type="time"
+                                className={styles.input}
+                                aria-label="Início do almoço"
+                                value={s.breakStart ?? ""}
+                                style={{ padding: "6px 10px", width: 96, height: 38, fontSize: "13px" }}
+                                onChange={(e) => handleLunchStartChange(i, e.target.value)}
+                              />
+                              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>até</span>
+                              <input
+                                type="time"
+                                className={styles.input}
+                                aria-label="Fim do almoço"
+                                value={s.breakEnd ?? ""}
+                                style={{ padding: "6px 10px", width: 96, height: 38, fontSize: "13px" }}
+                                onChange={(e) => handleLunchEndChange(i, e.target.value)}
+                              />
+                              <button
+                                type="button"
+                                className={styles.btnRemoveLunch}
+                                onClick={() => handleToggleLunch(i, false)}
+                                title="Remover intervalo de almoço (trabalho contínuo)"
+                              >
+                                <span>Sem almoço</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className={styles.desktopNoLunchRow}>
+                              <span className={styles.noLunchBadge}>Jornada contínua</span>
+                              <button
+                                type="button"
+                                className={styles.btnAddLunch}
+                                onClick={() => handleToggleLunch(i, true)}
+                                title="Adicionar pausa para almoço"
+                              >
+                                <Plus size={13} />
+                                <span>Adicionar almoço</span>
+                              </button>
+                            </div>
+                          )}
                         </td>
                         <td>
                           <button
@@ -1458,14 +1595,8 @@ export function BookingSettings() {
                         type="time"
                         className={styles.input}
                         value={s.startTime}
-                        style={{ height: 42, fontSize: "14px", width: "100%" }}
-                        onChange={(e) =>
-                          setSchedule(
-                            schedule.map((r, n) =>
-                              n === i ? { ...r, startTime: e.target.value } : r,
-                            ),
-                          )
-                        }
+                        style={{ height: 44, fontSize: "15px", width: "100%" }}
+                        onChange={(e) => handleStartTimeChange(i, e.target.value)}
                       />
                     </div>
                     <div className={styles.mobileFieldGroup}>
@@ -1474,57 +1605,79 @@ export function BookingSettings() {
                         type="time"
                         className={styles.input}
                         value={s.endTime}
-                        style={{ height: 42, fontSize: "14px", width: "100%" }}
-                        onChange={(e) =>
-                          setSchedule(
-                            schedule.map((r, n) =>
-                              n === i ? { ...r, endTime: e.target.value } : r,
-                            ),
-                          )
-                        }
+                        style={{ height: 44, fontSize: "15px", width: "100%" }}
+                        onChange={(e) => handleEndTimeChange(i, e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className={styles.mobileTimeGrid}>
-                    <div className={styles.mobileFieldGroup}>
-                      <label className={styles.mobileFieldLabel}>Almoço início</label>
-                      <input
-                        type="time"
-                        className={styles.input}
-                        placeholder="Início"
-                        value={s.breakStart ?? ""}
-                        style={{ height: 42, fontSize: "14px", width: "100%" }}
-                        onChange={(e) =>
-                          setSchedule(
-                            schedule.map((r, n) =>
-                              n === i
-                                ? { ...r, breakStart: e.target.value || null }
-                                : r,
-                            ),
-                          )
-                        }
-                      />
+                  {/* Mobile Lunch Control */}
+                  <div className={styles.mobileLunchSection}>
+                    <div className={styles.mobileLunchHeader}>
+                      <div className={styles.mobileLunchTitleGroup}>
+                        <Coffee size={15} className={styles.mobileLunchIcon} />
+                        <span className={styles.mobileLunchTitle}>Intervalo de almoço</span>
+                      </div>
+                      <label className={styles.mobileLunchSwitch}>
+                        <input
+                          type="checkbox"
+                          checked={isLunchActive(s.breakStart, s.breakEnd)}
+                          onChange={(e) => handleToggleLunch(i, e.target.checked)}
+                        />
+                        <span className={styles.mobileLunchSwitchLabel}>
+                          {isLunchActive(s.breakStart, s.breakEnd) ? "Com almoço" : "Sem almoço"}
+                        </span>
+                      </label>
                     </div>
-                    <div className={styles.mobileFieldGroup}>
-                      <label className={styles.mobileFieldLabel}>Almoço fim</label>
-                      <input
-                        type="time"
-                        className={styles.input}
-                        placeholder="Fim"
-                        value={s.breakEnd ?? ""}
-                        style={{ height: 42, fontSize: "14px", width: "100%" }}
-                        onChange={(e) =>
-                          setSchedule(
-                            schedule.map((r, n) =>
-                              n === i
-                                ? { ...r, breakEnd: e.target.value || null }
-                                : r,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
+
+                    {isLunchActive(s.breakStart, s.breakEnd) ? (
+                      <div className={styles.mobileLunchContent}>
+                        <div className={styles.mobileTimeGrid}>
+                          <div className={styles.mobileFieldGroup}>
+                            <label className={styles.mobileFieldLabel}>Almoço início</label>
+                            <input
+                              type="time"
+                              className={styles.input}
+                              value={s.breakStart ?? ""}
+                              style={{ height: 44, fontSize: "15px", width: "100%" }}
+                              onChange={(e) => handleLunchStartChange(i, e.target.value)}
+                            />
+                          </div>
+                          <div className={styles.mobileFieldGroup}>
+                            <label className={styles.mobileFieldLabel}>Almoço fim</label>
+                            <input
+                              type="time"
+                              className={styles.input}
+                              value={s.breakEnd ?? ""}
+                              style={{ height: 44, fontSize: "15px", width: "100%" }}
+                              onChange={(e) => handleLunchEndChange(i, e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.mobileRemoveLunchAction}
+                          onClick={() => handleToggleLunch(i, false)}
+                        >
+                          <Trash2 size={13} />
+                          <span>Remover almoço (atender direto)</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className={styles.mobileNoLunchNotice}>
+                        <span className={styles.mobileNoLunchText}>
+                          Jornada contínua neste dia (sem bloqueio de almoço).
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.mobileAddLunchAction}
+                          onClick={() => handleToggleLunch(i, true)}
+                        >
+                          <Plus size={14} />
+                          <span>Ativar pausa para almoço</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1542,8 +1695,8 @@ export function BookingSettings() {
                       dayOfWeek: 1,
                       startTime: "09:00",
                       endTime: "18:00",
-                      breakStart: null,
-                      breakEnd: null,
+                      breakStart: "12:00",
+                      breakEnd: "13:00",
                       active: true,
                     },
                   ])

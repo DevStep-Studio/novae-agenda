@@ -9305,6 +9305,29 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     flex: 1 !important;
     width: auto !important;
     max-width: 120px !important;
+    min-height: 42px !important;
+  }
+  .employee-schedule-lunch-wrap {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding-top: 8px !important;
+    border-top: 1px dashed var(--border) !important;
+  }
+  .employee-schedule-lunch-wrap > div {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .employee-schedule-lunch-wrap input[type="time"] {
+    min-height: 40px !important;
+    max-width: 105px !important;
+  }
+  .employee-schedule-lunch-wrap button {
+    min-height: 38px !important;
+    padding: 6px 10px !important;
   }
 
   /* Universal Container & Card Bounds Protection */

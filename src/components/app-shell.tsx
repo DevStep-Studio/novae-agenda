@@ -28,6 +28,7 @@ import { QuickStatus, OperationsAvailability, type QuickPrefill } from "@/compon
 import { ClientPicker } from "@/components/operations/client-picker";
 import { localDate, localTime } from "@/lib/booking/time";
 import { BookingSettings } from "@/components/booking/booking-settings";
+import { getDefaultLunch, isLunchActive, sanitizeLunch } from "@/lib/schedule-utils";
 import { ServiceEditor } from "@/components/booking/service-editor";
 import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { ReportsView } from "@/components/reports/reports-view";
@@ -5416,7 +5417,7 @@ function EmployeeScheduleModal({
     );
   };
 
-  const applyPreset = (preset: "seg-sex" | "seg-sab" | "quinta-reduzida") => {
+  const applyPreset = (preset: "seg-sex" | "seg-sab" | "quinta-reduzida" | "sem-almoco" | "com-almoco") => {
     if (preset === "seg-sex") {
       setSchedules((prev) =>
         prev.map((s) => ({
@@ -5441,7 +5442,110 @@ function EmployeeScheduleModal({
       );
     } else if (preset === "quinta-reduzida") {
       updateDay(4, { active: true, startTime: "08:00", endTime: "12:00", breakStart: null, breakEnd: null });
+    } else if (preset === "sem-almoco") {
+      setSchedules((prev) =>
+        prev.map((s) => ({
+          ...s,
+          breakStart: null,
+          breakEnd: null,
+        })),
+      );
+    } else if (preset === "com-almoco") {
+      setSchedules((prev) =>
+        prev.map((s) => {
+          if (!s.active) return s;
+          const def = getDefaultLunch(s.startTime, s.endTime);
+          return {
+            ...s,
+            breakStart: def.breakStart,
+            breakEnd: def.breakEnd,
+          };
+        }),
+      );
     }
+  };
+
+  const handleStartTime = (dayOfWeek: number, startTime: string) => {
+    setSchedules((prev) =>
+      prev.map((s) => {
+        if (s.dayOfWeek !== dayOfWeek) return s;
+        let bs = s.breakStart;
+        let be = s.breakEnd;
+        if (bs && bs < startTime) {
+          const def = getDefaultLunch(startTime, s.endTime);
+          bs = def.breakStart;
+          be = def.breakEnd;
+        }
+        return { ...s, startTime, breakStart: bs, breakEnd: be };
+      }),
+    );
+  };
+
+  const handleEndTime = (dayOfWeek: number, endTime: string) => {
+    setSchedules((prev) =>
+      prev.map((s) => {
+        if (s.dayOfWeek !== dayOfWeek) return s;
+        let bs = s.breakStart;
+        let be = s.breakEnd;
+        if (bs && endTime <= bs) {
+          bs = null;
+          be = null;
+        } else if (be && be > endTime) {
+          be = endTime;
+          if (bs && bs >= be) {
+            bs = null;
+            be = null;
+          }
+        }
+        return { ...s, endTime, breakStart: bs, breakEnd: be };
+      }),
+    );
+  };
+
+  const handleToggleLunch = (dayOfWeek: number, enable: boolean) => {
+    setSchedules((prev) =>
+      prev.map((s) => {
+        if (s.dayOfWeek !== dayOfWeek) return s;
+        if (!enable) {
+          return { ...s, breakStart: null, breakEnd: null };
+        }
+        const def = getDefaultLunch(s.startTime, s.endTime);
+        return { ...s, breakStart: def.breakStart, breakEnd: def.breakEnd };
+      }),
+    );
+  };
+
+  const handleLunchStart = (dayOfWeek: number, val: string) => {
+    setSchedules((prev) =>
+      prev.map((s) => {
+        if (s.dayOfWeek !== dayOfWeek) return s;
+        const newStart = val || null;
+        if (!newStart) {
+          return { ...s, breakStart: null, breakEnd: null };
+        }
+        let newEnd = s.breakEnd;
+        if (!newEnd || newEnd <= newStart) {
+          const [sh, sm] = newStart.split(":").map(Number);
+          const startMins = (sh || 0) * 60 + (sm || 0);
+          const [eh, em] = s.endTime.split(":").map(Number);
+          const endShiftMins = (eh || 0) * 60 + (em || 0);
+          const targetEndMins = Math.min(endShiftMins, startMins + 60);
+          const h = String(Math.floor(targetEndMins / 60)).padStart(2, "0");
+          const m = String(targetEndMins % 60).padStart(2, "0");
+          newEnd = `${h}:${m}`;
+        }
+        return { ...s, breakStart: newStart, breakEnd: newEnd };
+      }),
+    );
+  };
+
+  const handleLunchEnd = (dayOfWeek: number, val: string) => {
+    setSchedules((prev) =>
+      prev.map((s) => {
+        if (s.dayOfWeek !== dayOfWeek) return s;
+        return { ...s, breakEnd: val || null };
+      }),
+    );
   };
 
   const submit = async (event: FormEvent) => {
@@ -5450,14 +5554,17 @@ function EmployeeScheduleModal({
     setError("");
 
     try {
-      const payload = schedules.map((s) => ({
-        dayOfWeek: s.dayOfWeek,
-        startTime: s.startTime,
-        endTime: s.endTime,
-        breakStart: s.breakStart || null,
-        breakEnd: s.breakEnd || null,
-        active: s.active,
-      }));
+      const payload = schedules.map((s) => {
+        const lunch = sanitizeLunch(s.startTime, s.endTime, s.breakStart, s.breakEnd);
+        return {
+          dayOfWeek: s.dayOfWeek,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          breakStart: lunch.breakStart,
+          breakEnd: lunch.breakEnd,
+          active: s.active,
+        };
+      });
 
       await api(`/api/employees/${employee.id}/schedules`, {
         method: "PUT",
@@ -5514,6 +5621,24 @@ function EmployeeScheduleModal({
               >
                 <Zap size={13} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
                 Quinta só até 12:00
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                onClick={() => applyPreset("sem-almoco")}
+                title="Remove intervalo de almoço de todos os dias"
+              >
+                Sem almoço (todos)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ fontSize: "12px", padding: "5px 10px", height: "auto" }}
+                onClick={() => applyPreset("com-almoco")}
+                title="Aplica intervalo de almoço padrão (12:00 às 13:00)"
+              >
+                Almoço 12h-13h (todos)
               </button>
             </div>
           </div>
@@ -5578,7 +5703,7 @@ function EmployeeScheduleModal({
                             type="time"
                             className="input"
                             value={s.startTime}
-                            onChange={(e) => updateDay(day, { startTime: e.target.value })}
+                            onChange={(e) => handleStartTime(day, e.target.value)}
                             style={{ padding: "6px 8px", width: "95px", fontSize: "13px" }}
                             required
                           />
@@ -5590,31 +5715,61 @@ function EmployeeScheduleModal({
                             type="time"
                             className="input"
                             value={s.endTime}
-                            onChange={(e) => updateDay(day, { endTime: e.target.value })}
+                            onChange={(e) => handleEndTime(day, e.target.value)}
                             style={{ padding: "6px 8px", width: "95px", fontSize: "13px" }}
                             required
                           />
                         </div>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "auto" }}>
-                          <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Almoço:</span>
-                          <input
-                            type="time"
-                            className="input"
-                            placeholder="Início"
-                            value={s.breakStart ?? ""}
-                            onChange={(e) => updateDay(day, { breakStart: e.target.value || null })}
-                            style={{ padding: "6px 8px", width: "90px", fontSize: "12px" }}
-                          />
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>às</span>
-                          <input
-                            type="time"
-                            className="input"
-                            placeholder="Fim"
-                            value={s.breakEnd ?? ""}
-                            onChange={(e) => updateDay(day, { breakEnd: e.target.value || null })}
-                            style={{ padding: "6px 8px", width: "90px", fontSize: "12px" }}
-                          />
+                        <div className="employee-schedule-lunch-wrap" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginLeft: "auto" }}>
+                          {isLunchActive(s.breakStart, s.breakEnd) ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>Almoço:</span>
+                              <input
+                                type="time"
+                                className="input"
+                                aria-label="Início do almoço"
+                                placeholder="Início"
+                                value={s.breakStart ?? ""}
+                                onChange={(e) => handleLunchStart(day, e.target.value)}
+                                style={{ padding: "6px 8px", width: "90px", fontSize: "12.5px" }}
+                              />
+                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>às</span>
+                              <input
+                                type="time"
+                                className="input"
+                                aria-label="Fim do almoço"
+                                placeholder="Fim"
+                                value={s.breakEnd ?? ""}
+                                onChange={(e) => handleLunchEnd(day, e.target.value)}
+                                style={{ padding: "6px 8px", width: "90px", fontSize: "12.5px" }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ fontSize: "11px", padding: "4px 7px", height: "auto", color: "var(--text-muted)" }}
+                                onClick={() => handleToggleLunch(day, false)}
+                                title="Remover intervalo de almoço (trabalho contínuo)"
+                              >
+                                Sem almoço
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ fontSize: "11.5px", color: "var(--text-muted)", background: "var(--surface-secondary)", border: "1px dashed var(--border)", padding: "3px 6px", borderRadius: "5px" }}>
+                                Sem almoço
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                style={{ fontSize: "11.5px", padding: "4px 8px", height: "auto", color: "var(--primary)" }}
+                                onClick={() => handleToggleLunch(day, true)}
+                                title="Adicionar pausa de almoço neste dia"
+                              >
+                                + Adicionar almoço
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
