@@ -73,6 +73,13 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
   const [deleteMode, setDeleteMode] = useState<"soft" | "hard">("soft");
   const [deleteReason, setDeleteReason] = useState("Exclusão administrativa");
 
+  // Bulk selection state
+  const [selectedOwnerIds, setSelectedOwnerIds] = useState<string[]>([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteMode, setBulkDeleteMode] = useState<"soft" | "hard">("soft");
+  const [bulkDeleteReason, setBulkDeleteReason] = useState("Exclusão em massa via Super Admin");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   // New Owner Form
   const [newOwnerForm, setNewOwnerForm] = useState({
     name: "",
@@ -339,6 +346,53 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
     }
   };
 
+  // Bulk Select Handlers
+  const handleToggleSelectAll = () => {
+    if (owners.length === 0) return;
+    const allIds = owners.map((o) => o.id);
+    const allSelected = allIds.every((id) => selectedOwnerIds.includes(id));
+    if (allSelected) {
+      setSelectedOwnerIds((prev) => prev.filter((id) => !allIds.includes(id)));
+    } else {
+      setSelectedOwnerIds((prev) => Array.from(new Set([...prev, ...allIds])));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedOwnerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleExecuteBulkDelete = async () => {
+    if (selectedOwnerIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const res = await fetch("/api/superadmin/owners", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: selectedOwnerIds,
+          mode: bulkDeleteMode,
+          reason: bulkDeleteReason || "Exclusão em massa via Super Admin",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Erro ao excluir proprietários selecionados.");
+        return;
+      }
+      alert(json.message || `${selectedOwnerIds.length} proprietário(s) processado(s) com sucesso!`);
+      setSelectedOwnerIds([]);
+      setBulkDeleteModalOpen(false);
+      void loadOwners();
+    } catch (err: any) {
+      alert("Erro ao excluir em massa: " + err.message);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const renderStatusBadge = (owner: any) => {
     const isDeleted = Boolean(owner.deletedAt);
     const subStatus = owner.subscriptionStatus || owner.subscription?.status;
@@ -523,6 +577,15 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
         <table className={styles.dataTable}>
           <thead>
             <tr>
+              <th style={{ width: 44, textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  className={styles.tableCheckbox}
+                  checked={owners.length > 0 && owners.every((o) => selectedOwnerIds.includes(o.id))}
+                  onChange={handleToggleSelectAll}
+                  aria-label="Selecionar todos os proprietários da página"
+                />
+              </th>
               <th>Empresa / Proprietário</th>
               <th>Contato & E-mail</th>
               <th>Documento</th>
@@ -533,123 +596,135 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
             </tr>
           </thead>
           <tbody>
-            {owners.map((owner) => (
-              <tr key={owner.id}>
-                <td>
-                  <div style={{ fontWeight: 700, color: "#ffffff" }}>{owner.name}</div>
-                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>
-                    {owner.ownerName || owner.primaryOwner?.name || "Sem proprietário vinculado"}
-                  </div>
-                </td>
-                <td>
-                  <div>{owner.ownerEmail || owner.primaryOwner?.email || owner.email || "—"}</div>
-                  <div style={{ fontSize: 12, color: "#a3a3a3" }}>
-                    {owner.ownerPhone || owner.phone || "—"}
-                  </div>
-                </td>
-                <td>
-                  <span style={{ fontFamily: "monospace", fontSize: 12 }}>
-                    {owner.cnpjOrCpf || "—"}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ fontWeight: 600, textTransform: "capitalize" }}>
-                    {owner.subscriptionPlan || owner.subscription?.plan || "Trial"}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#a3a3a3" }}>
-                    {owner.subscriptionOrigin === "manual_courtesy"
-                      ? "Cortesia Admin"
-                      : owner.subscriptionOrigin === "manual_paid"
-                      ? "Cobrança Manual"
-                      : "Checkout Padrão"}
-                  </div>
-                </td>
-                <td>{renderStatusBadge(owner)}</td>
-                <td style={{ fontSize: 12, color: "#a3a3a3" }}>
-                  {new Date(owner.createdAt).toLocaleDateString("pt-BR")}
-                </td>
-                <td style={{ textAlign: "right" }}>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <button
-                      type="button"
-                      className={styles.btnGhost}
-                      title="Ver Detalhes 360°"
-                      onClick={() => handleOpenDetails(owner.id)}
-                    >
-                      <Eye size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.btnGhost}
-                      title="Editar Dados"
-                      onClick={() => handleOpenEdit(owner)}
-                    >
-                      <Edit2 size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.btnGhost}
-                      style={{ color: "#dcff4c" }}
-                      title="Acessar Painel da Empresa"
-                      onClick={() => handleImpersonate(owner.id, owner.name)}
-                    >
-                      <LogIn size={15} />
-                    </button>
-
-                    {owner.publicEnabled === false || owner.subscriptionStatus === "suspended" ? (
+            {owners.map((owner) => {
+              const isSelected = selectedOwnerIds.includes(owner.id);
+              return (
+                <tr key={owner.id} className={isSelected ? styles.rowSelected : ""}>
+                  <td style={{ width: 44, textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      className={styles.tableCheckbox}
+                      checked={isSelected}
+                      onChange={() => handleToggleSelectOne(owner.id)}
+                      aria-label={`Selecionar empresa ${owner.name}`}
+                    />
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: "#ffffff" }}>{owner.name}</div>
+                    <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                      {owner.ownerName || owner.primaryOwner?.name || "Sem proprietário vinculado"}
+                    </div>
+                  </td>
+                  <td>
+                    <div>{owner.ownerEmail || owner.primaryOwner?.email || owner.email || "—"}</div>
+                    <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                      {owner.ownerPhone || owner.phone || "—"}
+                    </div>
+                  </td>
+                  <td>
+                    <span style={{ fontFamily: "monospace", fontSize: 12 }}>
+                      {owner.cnpjOrCpf || "—"}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600, textTransform: "capitalize" }}>
+                      {owner.subscriptionPlan || owner.subscription?.plan || "Trial"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#a3a3a3" }}>
+                      {owner.subscriptionOrigin === "manual_courtesy"
+                        ? "Cortesia Admin"
+                        : owner.subscriptionOrigin === "manual_paid"
+                        ? "Cobrança Manual"
+                        : "Checkout Padrão"}
+                    </div>
+                  </td>
+                  <td>{renderStatusBadge(owner)}</td>
+                  <td style={{ fontSize: 12, color: "#a3a3a3" }}>
+                    {new Date(owner.createdAt).toLocaleDateString("pt-BR")}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       <button
                         type="button"
                         className={styles.btnGhost}
-                        style={{ color: "#10b981" }}
-                        title="Reativar Empresa"
-                        onClick={() => handleReactivate(owner)}
+                        title="Ver Detalhes 360°"
+                        onClick={() => handleOpenDetails(owner.id)}
                       >
-                        <RotateCcw size={15} />
+                        <Eye size={15} />
                       </button>
-                    ) : (
                       <button
                         type="button"
                         className={styles.btnGhost}
-                        style={{ color: "#fbbf24" }}
-                        title="Suspender Empresa"
+                        title="Editar Dados"
+                        onClick={() => handleOpenEdit(owner)}
+                      >
+                        <Edit2 size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        style={{ color: "#dcff4c" }}
+                        title="Acessar Painel da Empresa"
+                        onClick={() => handleImpersonate(owner.id, owner.name)}
+                      >
+                        <LogIn size={15} />
+                      </button>
+
+                      {owner.publicEnabled === false || owner.subscriptionStatus === "suspended" ? (
+                        <button
+                          type="button"
+                          className={styles.btnGhost}
+                          style={{ color: "#10b981" }}
+                          title="Reativar Empresa"
+                          onClick={() => handleReactivate(owner)}
+                        >
+                          <RotateCcw size={15} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.btnGhost}
+                          style={{ color: "#fbbf24" }}
+                          title="Suspender Empresa"
+                          onClick={() => {
+                            setOwnerToSuspend(owner);
+                            setSuspendReason("");
+                            setSuspendModalOpen(true);
+                          }}
+                        >
+                          <Ban size={15} />
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        style={{ color: "#f87171" }}
+                        title="Excluir / Desativar"
                         onClick={() => {
-                          setOwnerToSuspend(owner);
-                          setSuspendReason("");
-                          setSuspendModalOpen(true);
+                          setOwnerToDelete(owner);
+                          setDeleteMode("soft");
+                          setDeleteReason("Exclusão solicitada via Super Admin");
+                          setDeleteOwnerModalOpen(true);
                         }}
                       >
-                        <Ban size={15} />
+                        <Trash2 size={15} />
                       </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className={styles.btnGhost}
-                      style={{ color: "#f87171" }}
-                      title="Excluir / Desativar"
-                      onClick={() => {
-                        setOwnerToDelete(owner);
-                        setDeleteMode("soft");
-                        setDeleteReason("Exclusão solicitada via Super Admin");
-                        setDeleteOwnerModalOpen(true);
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {!loading && owners.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
                   Nenhum proprietário encontrado para os filtros selecionados.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
+                <td colSpan={8} style={{ textAlign: "center", padding: 36, color: "#a3a3a3" }}>
                   Carregando lista de proprietários do MySQL...
                 </td>
               </tr>
@@ -688,67 +763,117 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
 
       {/* Mobile Cards List */}
       <div className={styles.mobileCardsList}>
-        {owners.map((owner) => (
-          <div key={owner.id} className={styles.mobileCard}>
-            <div className={styles.mobileCardHeader}>
-              <div>
-                <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>
-                  {owner.name}
+        {owners.map((owner) => {
+          const isSelected = selectedOwnerIds.includes(owner.id);
+          return (
+            <div
+              key={owner.id}
+              className={`${styles.mobileCard} ${isSelected ? styles.rowSelected : ""}`}
+            >
+              <div className={styles.mobileCardHeader}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    className={styles.tableCheckbox}
+                    checked={isSelected}
+                    onChange={() => handleToggleSelectOne(owner.id)}
+                    aria-label={`Selecionar empresa ${owner.name}`}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>
+                      {owner.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#a3a3a3" }}>
+                      {owner.ownerName || owner.primaryOwner?.name || "Sem proprietário"}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, color: "#a3a3a3" }}>
-                  {owner.ownerName || owner.primaryOwner?.name || "Sem proprietário"}
+                {renderStatusBadge(owner)}
+              </div>
+
+              <div className={styles.mobileCardBody}>
+                <div>
+                  <span style={{ color: "#737373" }}>E-mail:</span>{" "}
+                  {owner.ownerEmail || owner.email || "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#737373" }}>Telefone:</span>{" "}
+                  {owner.ownerPhone || owner.phone || "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#737373" }}>Plano:</span>{" "}
+                  <strong style={{ color: "#ffffff", textTransform: "capitalize" }}>
+                    {owner.subscriptionPlan || "Trial"}
+                  </strong>
+                </div>
+                <div>
+                  <span style={{ color: "#737373" }}>Cadastro:</span>{" "}
+                  {new Date(owner.createdAt).toLocaleDateString("pt-BR")}
                 </div>
               </div>
-              {renderStatusBadge(owner)}
-            </div>
 
-            <div className={styles.mobileCardBody}>
-              <div>
-                <span style={{ color: "#737373" }}>E-mail:</span>{" "}
-                {owner.ownerEmail || owner.email || "—"}
-              </div>
-              <div>
-                <span style={{ color: "#737373" }}>Telefone:</span>{" "}
-                {owner.ownerPhone || owner.phone || "—"}
-              </div>
-              <div>
-                <span style={{ color: "#737373" }}>Plano:</span>{" "}
-                <strong style={{ color: "#ffffff", textTransform: "capitalize" }}>
-                  {owner.subscriptionPlan || "Trial"}
-                </strong>
-              </div>
-              <div>
-                <span style={{ color: "#737373" }}>Cadastro:</span>{" "}
-                {new Date(owner.createdAt).toLocaleDateString("pt-BR")}
+              <div className={styles.mobileCardActions}>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => handleOpenDetails(owner.id)}
+                >
+                  <Eye size={14} /> Detalhes
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={() => handleOpenEdit(owner)}
+                >
+                  <Edit2 size={14} /> Editar
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => handleImpersonate(owner.id, owner.name)}
+                >
+                  <LogIn size={14} /> Acessar
+                </button>
               </div>
             </div>
-
-            <div className={styles.mobileCardActions}>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={() => handleOpenDetails(owner.id)}
-              >
-                <Eye size={14} /> Detalhes
-              </button>
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={() => handleOpenEdit(owner)}
-              >
-                <Edit2 size={14} /> Editar
-              </button>
-              <button
-                type="button"
-                className={styles.btnPrimary}
-                onClick={() => handleImpersonate(owner.id, owner.name)}
-              >
-                <LogIn size={14} /> Acessar
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Floating Bulk Action Bar */}
+      {selectedOwnerIds.length > 0 && (
+        <div className={styles.bulkActionBar}>
+          <div className={styles.bulkActionInfo}>
+            <span className={styles.bulkActionCount}>{selectedOwnerIds.length}</span>
+            <span>
+              {selectedOwnerIds.length === 1
+                ? "proprietário selecionado"
+                : "proprietários selecionados"}
+            </span>
+          </div>
+          <div className={styles.bulkActionBtns}>
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={() => setSelectedOwnerIds([])}
+            >
+              Cancelar Seleção
+            </button>
+            <button
+              type="button"
+              className={styles.btnDanger}
+              onClick={() => {
+                setBulkDeleteMode("soft");
+                setBulkDeleteReason("Exclusão em massa via Super Admin");
+                setBulkDeleteModalOpen(true);
+              }}
+            >
+              <Trash2 size={14} />
+              Excluir Selecionados ({selectedOwnerIds.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Criar Proprietário Manualmente */}
       {createModalOpen && (
@@ -1370,6 +1495,95 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
                 onClick={handleExecuteDeleteOwner}
               >
                 {deleteMode === "hard" ? "Excluir Definitivamente" : "Desativar (Soft Delete)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Exclusão em Massa */}
+      {bulkDeleteModalOpen && (
+        <div className={styles.modalBackdrop}>
+          <div className={styles.modalDialog}>
+            <div className={styles.modalHeader}>
+              <h2 style={{ color: "#f87171", display: "flex", alignItems: "center", gap: 8 }}>
+                <Trash2 size={18} />
+                Excluir {selectedOwnerIds.length} {selectedOwnerIds.length === 1 ? "Proprietário" : "Proprietários"}
+              </h2>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => setBulkDeleteModalOpen(false)}
+                disabled={bulkDeleting}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Tipo de Exclusão em Massa</label>
+                <select
+                  value={bulkDeleteMode}
+                  onChange={(e) => setBulkDeleteMode(e.target.value as any)}
+                  className={styles.select}
+                  disabled={bulkDeleting}
+                >
+                  <option value="soft">Soft Delete (Recomendado — Desativação segura com retenção de histórico)</option>
+                  <option value="hard">Hard Delete (Exclusão Definitiva no MySQL com cascata)</option>
+                </select>
+              </div>
+
+              {bulkDeleteMode === "hard" && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "14px 16px", borderRadius: 8 }}>
+                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+                    ⚠️ ATENÇÃO: Esta ação é irreversível!
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
+                    A exclusão definitiva removerá permanentemente os <strong>{selectedOwnerIds.length}</strong> estabelecimentos selecionados e todos os seus vínculos (profissionais, serviços, agendamentos, clientes) do banco de dados MySQL.
+                  </p>
+                </div>
+              )}
+
+              {bulkDeleteMode === "soft" && (
+                <div style={{ background: "rgba(234, 179, 8, 0.1)", border: "1px solid rgba(234, 179, 8, 0.3)", padding: "14px 16px", borderRadius: 8 }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#fde047", lineHeight: 1.4 }}>
+                    Os <strong>{selectedOwnerIds.length}</strong> estabelecimentos serão desativados e marcados como excluídos. Seus dados e históricos permanecem preservados no banco de dados.
+                  </p>
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Motivo para Auditoria *</label>
+                <textarea
+                  rows={2}
+                  value={bulkDeleteReason}
+                  onChange={(e) => setBulkDeleteReason(e.target.value)}
+                  className={styles.textarea}
+                  disabled={bulkDeleting}
+                />
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setBulkDeleteModalOpen(false)}
+                disabled={bulkDeleting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={styles.btnDanger}
+                onClick={handleExecuteBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting
+                  ? "Excluindo..."
+                  : bulkDeleteMode === "hard"
+                  ? `Excluir Definitivamente (${selectedOwnerIds.length})`
+                  : `Desativar em Massa (${selectedOwnerIds.length})`}
               </button>
             </div>
           </div>
