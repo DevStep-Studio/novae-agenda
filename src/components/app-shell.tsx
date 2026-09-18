@@ -9,9 +9,10 @@ import {
   Clock, Clock3, Copy, CreditCard, ExternalLink, FileText, Globe, Home, Laptop, Lock, LogOut, Mail, MapPin,
   ImagePlus, Loader2, Menu, Moon, Palette, Pencil, Percent, Phone, Plus, ReceiptText, Scissors, Search,
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Star, Sun, Tag, TrendingUp, Upload, User, UserPlus,
-  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon, Lightbulb,
+  Trash2, UserRound, Users, WalletCards, X, XCircle, Zap, Image as ImageIcon, Lightbulb, Crop,
 } from "lucide-react";
 import { useStore } from "@/store/store";
+import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
 import type { LocationDTO } from "@/shared/types";
 import { Toasts } from "@/components/ui/toast";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -3015,37 +3016,32 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
   const [savingBranding, setSavingBranding] = useState(false);
   const [uploadingBrandingBanner, setUploadingBrandingBanner] = useState(false);
   const [uploadingBrandingLogo, setUploadingBrandingLogo] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
+  const [cropperTarget, setCropperTarget] = useState<"logo" | "banner">("logo");
   const brandingBannerInput = useRef<HTMLInputElement>(null);
   const brandingLogoInput = useRef<HTMLInputElement>(null);
 
-  const handleBrandingBannerFile = async (file?: File) => {
+  const handleBrandingBannerFile = (file?: File) => {
     if (!file) return;
-    setUploadingBrandingBanner(true);
-    try {
-      const dataUrl = await prepareImageUpload(file, { maxDimension: 1600, square: false });
-      setBrandingBanner(dataUrl);
-      notify("Banner carregado! Clique em 'Salvar identidade' para aplicar.");
-    } catch (err) {
-      notify(err instanceof Error ? err.message : "Erro ao carregar banner.", "error");
-    } finally {
-      setUploadingBrandingBanner(false);
-      if (brandingBannerInput.current) brandingBannerInput.current.value = "";
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(String(reader.result));
+      setCropperTarget("banner");
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleBrandingLogoFile = async (file?: File) => {
+  const handleBrandingLogoFile = (file?: File) => {
     if (!file) return;
-    setUploadingBrandingLogo(true);
-    try {
-      const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
-      setBrandingLogo(dataUrl);
-      notify("Logo carregado! Clique em 'Salvar identidade' para aplicar.");
-    } catch (err) {
-      notify(err instanceof Error ? err.message : "Erro ao carregar logotipo.", "error");
-    } finally {
-      setUploadingBrandingLogo(false);
-      if (brandingLogoInput.current) brandingLogoInput.current.value = "";
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(String(reader.result));
+      setCropperTarget("logo");
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Operational settings fields
@@ -3328,6 +3324,21 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
                       >
                         <Upload size={14} /> {uploadingBrandingBanner ? "Carregando…" : "Subir foto (celular / PC)"}
                       </Button>
+                      {brandingBanner && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            setCropperImageSrc(brandingBanner);
+                            setCropperTarget("banner");
+                            setCropperOpen(true);
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                          title="Ajustar, recortar e arrastar imagem do banner"
+                        >
+                          <Crop size={14} /> Ajustar / Cortar
+                        </Button>
+                      )}
                       <input
                         className="input"
                         style={{ flex: 1, minWidth: "200px" }}
@@ -3369,7 +3380,11 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif"
                         style={{ display: "none" }}
-                        onChange={(e) => void handleBrandingLogoFile(e.target.files?.[0])}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleBrandingLogoFile(file);
+                          e.target.value = "";
+                        }}
                       />
                       <Button
                         type="button"
@@ -3380,6 +3395,21 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
                       >
                         <Upload size={14} /> {uploadingBrandingLogo ? "Carregando…" : "Subir foto (celular / PC)"}
                       </Button>
+                      {brandingLogo && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            setCropperImageSrc(brandingLogo);
+                            setCropperTarget("logo");
+                            setCropperOpen(true);
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                          title="Ajustar, recortar e arrastar logotipo"
+                        >
+                          <Crop size={14} /> Ajustar / Cortar
+                        </Button>
+                      )}
                       <input
                         className="input"
                         style={{ flex: 1, minWidth: "200px" }}
@@ -3846,6 +3876,26 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
           )}
         </div>
       </div>
+
+      {/* Interactive Image Cropper Modal */}
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageSrc={cropperImageSrc}
+        aspectRatio={cropperTarget === "banner" ? "16:5" : "1:1"}
+        shape={cropperTarget === "banner" ? "rect" : "circle"}
+        title={cropperTarget === "banner" ? "Ajustar e Enquadrar Banner de Capa" : "Ajustar e Enquadrar Logotipo / Perfil"}
+        outputMaxDimension={cropperTarget === "banner" ? 1400 : 600}
+        onCropComplete={(croppedDataUrl) => {
+          if (cropperTarget === "banner") {
+            setBrandingBanner(croppedDataUrl);
+            notify("Banner ajustado! Clique em 'Salvar identidade' para aplicar.");
+          } else {
+            setBrandingLogo(croppedDataUrl);
+            notify("Logo ajustado! Clique em 'Salvar identidade' para aplicar.");
+          }
+        }}
+      />
     </div>
   );
 }

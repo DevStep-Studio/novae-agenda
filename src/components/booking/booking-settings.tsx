@@ -25,8 +25,10 @@ import {
   Upload,
   Monitor,
   Coffee,
+  Crop,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
 import { api } from "@/lib/api-client";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { useStore } from "@/store/store";
@@ -113,8 +115,20 @@ export function BookingSettings() {
   const [addressValue, setAddressValue] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoFile = (file?: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(String(reader.result));
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
 
   async function load() {
     const result = await api<Data>("/api/booking-settings");
@@ -818,20 +832,10 @@ export function BookingSettings() {
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                     style={{ display: "none" }}
-                    onChange={async (e) => {
+                    onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (!file) return;
-                      try {
-                        setUploadingLogo(true);
-                        const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
-                        setLogoUrl(dataUrl);
-                        notify("Logo carregada do dispositivo!");
-                      } catch (err) {
-                        notify((err as Error).message || "Erro ao carregar imagem", "error");
-                      } finally {
-                        setUploadingLogo(false);
-                        e.target.value = "";
-                      }
+                      if (file) handleLogoFile(file);
+                      e.target.value = "";
                     }}
                   />
                   <button
@@ -856,6 +860,32 @@ export function BookingSettings() {
                     <Upload size={13} />
                     <span>{uploadingLogo ? "Carregando..." : "Subir foto (celular / PC)"}</span>
                   </button>
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCropperImageSrc(logoUrl);
+                        setCropperOpen(true);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "5px 10px",
+                        borderRadius: 6,
+                        border: "1px solid rgba(220, 255, 76, 0.4)",
+                        background: "rgba(220, 255, 76, 0.12)",
+                        color: "#dcff4c",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                      title="Ajustar, recortar e arrastar imagem de perfil"
+                    >
+                      <Crop size={13} />
+                      <span>Ajustar / Cortar</span>
+                    </button>
+                  )}
                   {logoUrl && (
                     <button
                       type="button"
@@ -1889,6 +1919,21 @@ export function BookingSettings() {
       </section>
       </>
       )}
+
+      {/* Interactive Image Cropper Modal */}
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageSrc={cropperImageSrc}
+        aspectRatio="1:1"
+        shape="circle"
+        title="Ajustar e Enquadrar Logo / Foto de Perfil"
+        outputMaxDimension={600}
+        onCropComplete={(croppedDataUrl) => {
+          setLogoUrl(croppedDataUrl);
+          notify("Foto de perfil atualizada!");
+        }}
+      />
     </div>
   );
 }

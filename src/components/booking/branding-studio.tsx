@@ -27,7 +27,9 @@ import {
   Clock3,
   MapPin,
   Calendar,
+  Crop,
 } from "lucide-react";
+import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
 import { api } from "@/lib/api-client";
 import { useStore } from "@/store/store";
 import {
@@ -271,7 +273,12 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
     return Array.from(set);
   }, [filteredServices, selectedCategory]);
 
-  // Handle client-side image compression
+  // Image Cropper state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageSrc, setCropperImageSrc] = useState("");
+  const [cropperTarget, setCropperTarget] = useState<"logo" | "cover">("logo");
+
+  // Handle client-side image upload & open interactive cropper
   const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     target: "logo" | "cover" | "avatar",
@@ -279,19 +286,34 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      const dataUrl = await prepareImageUpload(file, {
-        maxDimension: target === "cover" ? 1400 : 800,
-        square: target === "avatar",
-        allowSvg: target === "logo",
-      });
-      if (target === "logo") setLogoUrl(dataUrl);
-      if (target === "cover") setCoverUrl(dataUrl);
-      if (target === "avatar") setAvatarUrl(dataUrl);
-    } catch (error) {
-      notify((error as Error).message, "error");
-    } finally {
-      e.target.value = "";
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropperImageSrc(String(reader.result));
+      setCropperTarget(target === "cover" ? "cover" : "logo");
+      setCropperOpen(true);
+    };
+    reader.onerror = () => {
+      notify("Não foi possível ler o arquivo selecionado.", "error");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleOpenCropperForExisting = (target: "logo" | "cover") => {
+    const src = target === "logo" ? logoUrl : coverUrl;
+    if (!src) return;
+    setCropperImageSrc(src);
+    setCropperTarget(target);
+    setCropperOpen(true);
+  };
+
+  const handleCropComplete = (croppedDataUrl: string) => {
+    if (cropperTarget === "logo") {
+      setLogoUrl(croppedDataUrl);
+      notify("Logo recortada e ajustada com sucesso!");
+    } else {
+      setCoverUrl(croppedDataUrl);
+      notify("Imagem de capa recortada e ajustada!");
     }
   };
 
@@ -541,13 +563,23 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                   <Upload size={14} /> {logoUrl ? "Alterar logo" : "Enviar logo"}
                 </button>
                 {logoUrl && (
-                  <button
-                    type="button"
-                    className={styles.btnRemove}
-                    onClick={() => setLogoUrl(null)}
-                  >
-                    <Trash2 size={13} /> Remover
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className={styles.btnUpload}
+                      style={{ background: "rgba(220, 255, 76, 0.12)", color: "#dcff4c", borderColor: "rgba(220, 255, 76, 0.3)" }}
+                      onClick={() => handleOpenCropperForExisting("logo")}
+                    >
+                      <Crop size={14} /> Ajustar / Cortar
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnRemove}
+                      onClick={() => setLogoUrl(null)}
+                    >
+                      <Trash2 size={13} /> Remover
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -591,13 +623,23 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                   <Upload size={14} /> {coverUrl ? "Alterar capa" : "Enviar imagem de capa"}
                 </button>
                 {coverUrl && (
-                  <button
-                    type="button"
-                    className={styles.btnRemove}
-                    onClick={() => setCoverUrl(null)}
-                  >
-                    <Trash2 size={13} /> Remover
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className={styles.btnUpload}
+                      style={{ background: "rgba(220, 255, 76, 0.12)", color: "#dcff4c", borderColor: "rgba(220, 255, 76, 0.3)" }}
+                      onClick={() => handleOpenCropperForExisting("cover")}
+                    >
+                      <Crop size={14} /> Ajustar / Cortar
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.btnRemove}
+                      onClick={() => setCoverUrl(null)}
+                    >
+                      <Trash2 size={13} /> Remover
+                    </button>
+                  </>
                 )}
               </div>
               <span className={styles.fieldHint}>
@@ -1465,6 +1507,19 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
           </div>
         </div>
       </div>
+
+      {/* Interactive Image Cropper & Drag Modal */}
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageSrc={cropperImageSrc}
+        aspectRatio={cropperTarget === "cover" ? "16:5" : "1:1"}
+        shape={cropperTarget === "logo" ? "circle" : "rect"}
+        title={cropperTarget === "cover" ? "Ajustar e Enquadrar Capa" : "Ajustar e Enquadrar Logo / Perfil"}
+        subtitle="Arraste para reposicionar e ajuste o zoom para o enquadramento perfeito"
+        outputMaxDimension={cropperTarget === "cover" ? 1400 : 600}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }

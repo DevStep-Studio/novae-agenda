@@ -1,0 +1,355 @@
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalDialog {
+  background: #121215;
+  border: 1px solid rgba(220, 255, 76, 0.2);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(220, 255, 76, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #222228;
+  background: #16161c;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.headerTitle h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.headerSubtitle {
+  font-size: 12px;
+  color: #a1a1aa;
+  margin-top: 2px;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.closeBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Crop Workspace Area */
+.cropWorkspace {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: #0d0d10;
+}
+
+.cropViewportContainer {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050507;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+}
+
+.cropBox {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+  border: 2px solid #dcff4c;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease;
+}
+
+.cropBox:active {
+  cursor: grabbing;
+}
+
+.cropBoxCircle {
+  border-radius: 50%;
+}
+
+.cropImage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  pointer-events: none;
+  max-width: none;
+  max-height: none;
+}
+
+/* Grid Guidelines (Rule of Thirds) */
+.gridOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+.gridOverlay > div {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cropBoxCircle .gridOverlay {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.dragHint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  color: #e4e4e7;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Toolbar & Controls */
+.controlsSection {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.zoomLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 70px;
+}
+
+.zoomSlider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #27272a;
+  outline: none;
+  cursor: pointer;
+}
+
+.zoomSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #dcff4c;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(220, 255, 76, 0.4);
+  transition: transform 0.1s ease;
+}
+
+.zoomSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.zoomPercent {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dcff4c;
+  min-width: 44px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btnGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolBtn {
+  background: #18181f;
+  border: 1px solid #2e2e38;
+  color: #d4d4d8;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.toolBtn:hover {
+  background: #23232c;
+  color: #ffffff;
+  border-color: rgba(220, 255, 76, 0.3);
+}
+
+.toolBtnActive {
+  background: rgba(220, 255, 76, 0.12);
+  color: #dcff4c;
+  border-color: rgba(220, 255, 76, 0.4);
+}
+
+/* Modal Footer */
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid #222228;
+  background: #16161c;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.btnCancel {
+  background: #22222a;
+  border: 1px solid #33333f;
+  color: #e4e4e7;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnCancel:hover {
+  background: #2a2a35;
+  color: #ffffff;
+}
+
+.btnApply {
+  background: #dcff4c;
+  color: #0c0c0e;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(220, 255, 76, 0.25);
+}
+
+.btnApply:hover {
+  background: #e5ff66;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(220, 255, 76, 0.35);
+}
+
+@media (max-width: 640px) {
+  .modalDialog {
+    max-height: 94vh;
+    border-radius: 12px;
+  }
+  .cropViewportContainer {
+    height: 220px;
+  }
+  .buttonRow {
+    justify-content: center;
+  }
+}
