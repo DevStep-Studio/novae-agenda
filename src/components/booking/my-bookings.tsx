@@ -959,7 +959,7 @@ export function MyBookings({
                     )}
                   </div>
                 </div>
-                <span className={b.bookingStatus}>
+                <span className={`${b.ticketStatusBadge} ${b[`ticketStatus_${current.status}`] ?? ""}`}>
                   {STATUS_LABELS[current.status as AppointmentStatus] ?? current.status}
                 </span>
               </div>
@@ -1513,7 +1513,6 @@ export function MyBookings({
                             </div>
                           </div>
                           <div className={`${b.ticketStatusBadge} ${b[`ticketStatus_${r.status}`] ?? ""}`}>
-                            <span className={b.ticketStatusDot} />
                             <span>{STATUS_LABELS[r.status as AppointmentStatus] ?? r.status}</span>
                           </div>
                         </div>
@@ -1570,11 +1569,9 @@ export function MyBookings({
                           </div>
                         </div>
 
-                        {/* Perforated Tear Line with Semicircle Punch Cutouts */}
+                        {/* Clean Divider Line */}
                         <div className={b.ticketPerforation}>
-                          <span className={b.ticketNotchLeft} aria-hidden="true" />
                           <span className={b.ticketDashedLine} aria-hidden="true" />
-                          <span className={b.ticketNotchRight} aria-hidden="true" />
                         </div>
 
                         {/* Ticket Stub: Locator, Price, Barcode & Action Buttons */}

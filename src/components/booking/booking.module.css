@@ -1982,9 +1982,9 @@ button.outline:hover:not(:disabled),
   position: relative;
   background: var(--booking-surface);
   border: 1px solid var(--booking-border);
-  border-radius: 18px;
-  overflow: visible;
-  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -1992,11 +1992,12 @@ button.outline:hover:not(:disabled),
 
 .ticketCard:hover {
   border-color: var(--booking-border-strong);
-  box-shadow: 0 14px 38px -6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.45);
 }
 
 .featuredBookingCard {
-  border-color: color-mix(in srgb, var(--card-brand) 55%, var(--booking-border));
+  border-color: rgba(220, 255, 76, 0.4);
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(220, 255, 76, 0.2);
 }
 
 .bookingCardCompact {
@@ -2021,9 +2022,9 @@ button.outline:hover:not(:disabled),
   gap: 12px;
   padding: 16px 20px 14px;
   border-bottom: 1px solid var(--booking-border-soft);
-  background: color-mix(in srgb, var(--card-brand) 5%, transparent);
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
+  background: rgba(220, 255, 76, 0.03);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 
 .ticketCompanyInfo {
@@ -2082,26 +2083,23 @@ button.outline:hover:not(:disabled),
 .ticketStatusBadge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 5px 11px;
-  border-radius: 999px;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: color-mix(in srgb, var(--card-brand) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--card-brand) 30%, transparent);
-  color: var(--card-brand);
+  background: rgba(220, 255, 76, 0.12);
+  border: 1px solid rgba(220, 255, 76, 0.35);
+  color: #dcff4c;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .ticketStatusDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
+  display: none !important;
 }
 
 .ticketStatus_completed {
@@ -2117,9 +2115,10 @@ button.outline:hover:not(:disabled),
 }
 
 .ticketStatus_confirmed {
-  background: rgba(59, 130, 246, 0.1) !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
-  color: #3b82f6 !important;
+  background: rgba(220, 255, 76, 0.14) !important;
+  border-color: rgba(220, 255, 76, 0.4) !important;
+  color: #dcff4c !important;
+  box-shadow: 0 0 14px rgba(220, 255, 76, 0.15);
 }
 
 /* Ticket Main Body */
@@ -2132,7 +2131,7 @@ button.outline:hover:not(:disabled),
   align-items: center;
   gap: 6px;
   margin: 0 0 10px;
-  color: var(--card-brand);
+  color: #dcff4c;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .08em;
@@ -2178,7 +2177,7 @@ button.outline:hover:not(:disabled),
 }
 
 .ticketGridIcon {
-  color: var(--card-brand);
+  color: #dcff4c;
   flex-shrink: 0;
 }
 
@@ -2208,52 +2207,34 @@ button.outline:hover:not(:disabled),
   white-space: nowrap;
 }
 
-/* Perforation Tear Line with Semicircle Punch Notches */
+/* Clean Divider Line without circular punch cutouts */
 .ticketPerforation {
   position: relative;
-  height: 20px;
+  height: 1px;
   display: flex;
   align-items: center;
-  margin: 2px 0;
-  overflow: hidden;
+  margin: 4px 20px;
 }
 
 .ticketNotchLeft,
 .ticketNotchRight {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--booking-background, #0a0a0c);
-  border: 1px solid var(--booking-border);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
-  z-index: 2;
-}
-
-.ticketNotchLeft {
-  left: -10px;
-}
-
-.ticketNotchRight {
-  right: -10px;
+  display: none !important;
 }
 
 .ticketDashedLine {
   width: 100%;
   height: 0;
-  border-bottom: 2px dashed var(--booking-border-strong);
-  opacity: 0.7;
-  margin: 0 16px;
+  border-bottom: 1px dashed var(--booking-border-strong);
+  opacity: 0.6;
+  margin: 0;
 }
 
 /* Ticket Stub */
 .ticketStub {
   padding: 16px 20px 20px;
   background: color-mix(in srgb, var(--booking-surface-secondary) 50%, var(--booking-surface));
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -5443,11 +5424,35 @@ button.outline:hover:not(:disabled),
   color: #0f172a !important;
 }
 
-.pageLight .featuredBookingCard,
+.pageLight .featuredBookingCard {
+  background: #ffffff;
+  border-color: #84cc16;
+  box-shadow: 0 4px 20px rgba(132, 204, 22, 0.12), 0 0 0 1px rgba(132, 204, 22, 0.25);
+}
+
 .pageLight .bookingCardCompact {
   background: #ffffff;
   border-color: #e2e8f0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.pageLight .ticketStatus_confirmed {
+  background: #f7fee7 !important;
+  border-color: #a3e635 !important;
+  color: #365314 !important;
+  box-shadow: none !important;
+}
+
+.pageLight .bookingKicker {
+  color: #3f6212 !important;
+}
+
+.pageLight .ticketGridIcon {
+  color: #4d7c0f !important;
+}
+
+.pageLight .ticketHeader {
+  background: rgba(132, 204, 22, 0.04);
 }
 
 .pageLight .bookingDateBlock {
