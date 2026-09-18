@@ -305,4 +305,46 @@ test("Super Admin 2.0 — Comprehensive Features, Queries, Transactions & Segreg
     assert.equal(metrics30d.filterPeriod, "30d");
     assert.ok(metrics30d.companies.total >= 0);
   });
+
+  // -------------------------------------------------------------------------
+  // 6. BULK DELETION FOR OWNERS AND CLIENTS WITH AUDIT LOGGING
+  // -------------------------------------------------------------------------
+  await t.test("6. bulkDeleteOwners and bulkDeleteClients execute multi-item deletion properly", async () => {
+    const s1 = crypto.randomUUID().slice(0, 6);
+    const s2 = crypto.randomUUID().slice(0, 6);
+    const c1 = crypto.randomUUID();
+    const c2 = crypto.randomUUID();
+    createdCompanyIds.push(c1, c2);
+
+    await db.insert(companies).values([
+      { id: c1, name: `Bulk Test 1 ${s1}` },
+      { id: c2, name: `Bulk Test 2 ${s2}` },
+    ]);
+
+    // Test soft bulk delete
+    const softResult = await AdminService.bulkDeleteOwners(
+      [c1, c2],
+      "soft",
+      "Teste soft delete em massa",
+      { id: adminId, email: adminEmail }
+    );
+    assert.equal(softResult.success, true);
+    assert.equal(softResult.deletedCount, 2);
+
+    const checkSoft = await db.select().from(companies).where(eq(companies.id, c1));
+    assert.ok(checkSoft[0]?.deletedAt);
+
+    // Test hard bulk delete
+    const hardResult = await AdminService.bulkDeleteOwners(
+      [c1, c2],
+      "hard",
+      "Teste hard delete definitivo em massa",
+      { id: adminId, email: adminEmail }
+    );
+    assert.equal(hardResult.success, true);
+    assert.equal(hardResult.deletedCount, 2);
+
+    const checkHard = await db.select().from(companies).where(eq(companies.id, c1));
+    assert.equal(checkHard.length, 0);
+  });
 });

@@ -70,6 +70,13 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
   const [deleteMode, setDeleteMode] = useState<"soft" | "hard">("soft");
   const [deleteReason, setDeleteReason] = useState("Exclusão administrativa");
 
+  // Bulk selection state
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteMode, setBulkDeleteMode] = useState<"soft" | "hard">("soft");
+  const [bulkDeleteReason, setBulkDeleteReason] = useState("Exclusão em massa via Super Admin");
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   // Create User Form
   const [newUserForm, setNewUserForm] = useState({
     name: "",
@@ -228,6 +235,53 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
       alert(`Erro ao excluir: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Bulk Select Handlers
+  const handleToggleSelectAll = () => {
+    if (usersList.length === 0) return;
+    const allIds = usersList.map((u) => u.id);
+    const allSelected = allIds.every((id) => selectedUserIds.includes(id));
+    if (allSelected) {
+      setSelectedUserIds((prev) => prev.filter((id) => !allIds.includes(id)));
+    } else {
+      setSelectedUserIds((prev) => Array.from(new Set([...prev, ...allIds])));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleExecuteBulkDelete = async () => {
+    if (selectedUserIds.length === 0) return;
+    setBulkDeleting(true);
+    try {
+      const res = await fetch("/api/superadmin/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: selectedUserIds,
+          mode: bulkDeleteMode,
+          reason: bulkDeleteReason || "Exclusão em massa via Super Admin",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error || "Erro ao excluir usuários selecionados.");
+        return;
+      }
+      alert(json.message || `${selectedUserIds.length} usuário(s) processado(s) com sucesso!`);
+      setSelectedUserIds([]);
+      setBulkDeleteModalOpen(false);
+      await loadUsers();
+    } catch (err: any) {
+      alert("Erro ao excluir em massa: " + err.message);
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -453,6 +507,15 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
         <table className={styles.dataTable}>
           <thead>
             <tr>
+              <th style={{ width: 44, textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  className={styles.tableCheckbox}
+                  checked={usersList.length > 0 && usersList.every((u) => selectedUserIds.includes(u.id))}
+                  onChange={handleToggleSelectAll}
+                  aria-label="Selecionar todos os usuários da página"
+                />
+              </th>
               <th style={{ minWidth: 220 }}>USUÁRIO</th>
               <th style={{ minWidth: 200 }}>CONTATO</th>
               <th style={{ minWidth: 140 }}>NÍVEL / PAPEL</th>
@@ -464,149 +527,162 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
           </thead>
           <tbody>
             {!loading &&
-              usersList.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div className={`${styles.userAvatar} ${getAvatarClass(user)}`}>
-                        {user.name?.slice(0, 2).toUpperCase() || "US"}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "13.5px" }}>{user.name}</div>
-                        <div style={{ fontSize: 11, color: "#71717a", marginTop: 2 }}>
-                          Cadastrado em {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+              usersList.map((user) => {
+                const isSelected = selectedUserIds.includes(user.id);
+                return (
+                  <tr key={user.id} className={isSelected ? styles.rowSelected : ""}>
+                    <td style={{ width: 44, textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        className={styles.tableCheckbox}
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectOne(user.id)}
+                        aria-label={`Selecionar usuário ${user.name}`}
+                      />
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div className={`${styles.userAvatar} ${getAvatarClass(user)}`}>
+                          {user.name?.slice(0, 2).toUpperCase() || "US"}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: "#ffffff", fontSize: "13.5px" }}>{user.name}</div>
+                          <div style={{ fontSize: 11, color: "#71717a", marginTop: 2 }}>
+                            Cadastrado em {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td>
-                    <div style={{ fontSize: 13, color: "#f4f4f5", fontWeight: 500 }}>{user.email}</div>
-                    <div style={{ fontSize: 11.5, color: "#a1a1aa", marginTop: 2 }}>
-                      {user.phone || "Sem telefone"}
-                    </div>
-                  </td>
-
-                  <td>{renderLevelBadge(user)}</td>
-
-                  <td>
-                    {user.company ? (
-                      <span
-                        style={{
-                          fontSize: 12.5,
-                          color: "#e4e4e7",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <Building2 size={14} style={{ color: "#a1a1aa" }} />
-                        {user.company.name}
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: 11.5,
-                          color: "#71717a",
-                          background: "#18181c",
-                          padding: "3px 8px",
-                          borderRadius: 6,
-                          border: "1px solid #282830",
-                        }}
-                      >
-                        Global (Sem empresa)
-                      </span>
-                    )}
-                  </td>
-
-                  <td>
-                    {user.subscription ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#ffffff", letterSpacing: "0.03em" }}>
-                          {user.subscription.plan.toUpperCase()}
-                        </span>
-                        <span
-                          className={`${styles.statusPill} ${
-                            user.subscription.status === "active" ? styles.statusActive : styles.statusTrial
-                          }`}
-                          style={{ fontSize: 10, padding: "2px 8px" }}
-                        >
-                          <span className={styles.statusDot} />
-                          {user.subscription.status === "active"
-                            ? "Ativa"
-                            : user.subscription.status === "trialing"
-                            ? "Trial"
-                            : user.subscription.status}
-                        </span>
+                    <td>
+                      <div style={{ fontSize: 13, color: "#f4f4f5", fontWeight: 500 }}>{user.email}</div>
+                      <div style={{ fontSize: 11.5, color: "#a1a1aa", marginTop: 2 }}>
+                        {user.phone || "Sem telefone"}
                       </div>
-                    ) : (
-                      <span style={{ fontSize: 12, color: "#52525b" }}>—</span>
-                    )}
-                  </td>
+                    </td>
 
-                  <td>
-                    <span
-                      className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
-                    >
-                      <span className={styles.statusDot} />
-                      {user.active ? "Ativo" : "Inativo"}
-                    </span>
-                  </td>
+                    <td>{renderLevelBadge(user)}</td>
 
-                  <td style={{ textAlign: "right" }}>
-                    <div className={styles.actionBtnGroup}>
-                      {onSwitchToPins && (
+                    <td>
+                      {user.company ? (
+                        <span
+                          style={{
+                            fontSize: 12.5,
+                            fontWeight: 500,
+                            color: "#e4e4e7",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Building2 size={14} style={{ color: "#a1a1aa" }} />
+                          {user.company.name}
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: 11.5,
+                            color: "#71717a",
+                            background: "#18181c",
+                            padding: "3px 8px",
+                            borderRadius: 6,
+                            border: "1px solid #282830",
+                          }}
+                        >
+                          Global (Sem empresa)
+                        </span>
+                      )}
+                    </td>
+
+                    <td>
+                      {user.subscription ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#ffffff", letterSpacing: "0.03em" }}>
+                            {user.subscription.plan.toUpperCase()}
+                          </span>
+                          <span
+                            className={`${styles.statusPill} ${
+                              user.subscription.status === "active" ? styles.statusActive : styles.statusTrial
+                            }`}
+                            style={{ fontSize: 10, padding: "2px 8px" }}
+                          >
+                            <span className={styles.statusDot} />
+                            {user.subscription.status === "active"
+                              ? "Ativa"
+                              : user.subscription.status === "trialing"
+                              ? "Trial"
+                              : user.subscription.status}
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "#52525b" }}>—</span>
+                      )}
+                    </td>
+
+                    <td>
+                      <span
+                        className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
+                      >
+                        <span className={styles.statusDot} />
+                        {user.active ? "Ativo" : "Inativo"}
+                      </span>
+                    </td>
+
+                    <td style={{ textAlign: "right" }}>
+                      <div className={styles.actionBtnGroup}>
+                        {onSwitchToPins && (
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionBtnPin}`}
+                            title="Gerenciar / Redefinir PIN"
+                            onClick={onSwitchToPins}
+                          >
+                            <KeyRound size={15} />
+                          </button>
+                        )}
+
                         <button
                           type="button"
-                          className={`${styles.actionBtn} ${styles.actionBtnPin}`}
-                          title="Gerenciar / Redefinir PIN"
-                          onClick={onSwitchToPins}
+                          className={`${styles.actionBtn} ${styles.actionBtnEdit}`}
+                          title="Editar Nível / Papel"
+                          onClick={() => {
+                            setUserToEdit(user);
+                            setEditForm({
+                              name: user.name || "",
+                              phone: user.phone || "",
+                              role: user.role || "customer",
+                              isSuperadmin: Boolean(user.isSuperadmin),
+                              active: Boolean(user.active),
+                              password: "",
+                            });
+                            setEditModalOpen(true);
+                          }}
                         >
-                          <KeyRound size={15} />
+                          <Edit2 size={15} />
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        className={`${styles.actionBtn} ${styles.actionBtnEdit}`}
-                        title="Editar Nível / Papel"
-                        onClick={() => {
-                          setUserToEdit(user);
-                          setEditForm({
-                            name: user.name || "",
-                            phone: user.phone || "",
-                            role: user.role || "customer",
-                            isSuperadmin: Boolean(user.isSuperadmin),
-                            active: Boolean(user.active),
-                            password: "",
-                          });
-                          setEditModalOpen(true);
-                        }}
-                      >
-                        <Edit2 size={15} />
-                      </button>
-
-                      <button
-                        type="button"
-                        className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
-                        title="Excluir Usuário"
-                        onClick={() => {
-                          setUserToDelete(user);
-                          setDeleteMode("soft");
-                          setDeleteReason("Exclusão solicitada no Super Admin");
-                          setDeleteModalOpen(true);
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.actionBtnDelete}`}
+                          title="Excluir Usuário"
+                          onClick={() => {
+                            setUserToDelete(user);
+                            setDeleteMode("soft");
+                            setDeleteReason("Exclusão solicitada no Super Admin");
+                            setDeleteModalOpen(true);
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
 
             {!loading && usersList.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "48px 24px", color: "#a1a1aa" }}>
+                <td colSpan={8} style={{ textAlign: "center", padding: "48px 24px", color: "#a1a1aa" }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                     <Users size={32} style={{ color: "#52525b" }} />
                     <span style={{ fontSize: 14, fontWeight: 500 }}>Nenhum usuário encontrado para os filtros selecionados.</span>
@@ -631,7 +707,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
 
             {loading && (
               <tr>
-                <td colSpan={7} style={{ textAlign: "center", padding: "48px 24px", color: "#a1a1aa" }}>
+                <td colSpan={8} style={{ textAlign: "center", padding: "48px 24px", color: "#a1a1aa" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
                     <div
                       style={{
@@ -683,89 +759,102 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
       {/* Mobile Cards List */}
       <div className={styles.mobileCardsList}>
         {!loading &&
-          usersList.map((user) => (
-            <div key={user.id} className={styles.mobileCard}>
-              <div className={styles.mobileCardHeader}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div className={`${styles.userAvatar} ${getAvatarClass(user)}`} style={{ width: 34, height: 34, fontSize: 12 }}>
-                    {user.name?.slice(0, 2).toUpperCase() || "US"}
+          usersList.map((user) => {
+            const isSelected = selectedUserIds.includes(user.id);
+            return (
+              <div
+                key={user.id}
+                className={`${styles.mobileCard} ${isSelected ? styles.rowSelected : ""}`}
+              >
+                <div className={styles.mobileCardHeader}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <input
+                      type="checkbox"
+                      className={styles.tableCheckbox}
+                      checked={isSelected}
+                      onChange={() => handleToggleSelectOne(user.id)}
+                      aria-label={`Selecionar usuário ${user.name}`}
+                    />
+                    <div className={`${styles.userAvatar} ${getAvatarClass(user)}`} style={{ width: 34, height: 34, fontSize: 12 }}>
+                      {user.name?.slice(0, 2).toUpperCase() || "US"}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>{user.name}</div>
+                      <div style={{ fontSize: 11.5, color: "#a1a1aa" }}>{user.email}</div>
+                    </div>
+                  </div>
+                  <span
+                    className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
+                  >
+                    <span className={styles.statusDot} />
+                    {user.active ? "Ativo" : "Inativo"}
+                  </span>
+                </div>
+
+                <div className={styles.mobileCardBody}>
+                  <div>
+                    <span style={{ color: "#71717a" }}>Nível:</span> {renderLevelBadge(user)}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#ffffff", fontSize: 14 }}>{user.name}</div>
-                    <div style={{ fontSize: 11.5, color: "#a1a1aa" }}>{user.email}</div>
+                    <span style={{ color: "#71717a" }}>Telefone:</span> {user.phone || "—"}
+                  </div>
+                  <div>
+                    <span style={{ color: "#71717a" }}>Empresa:</span> {user.company?.name || "Global"}
+                  </div>
+                  <div>
+                    <span style={{ color: "#71717a" }}>Plano:</span>{" "}
+                    {user.subscription ? (
+                      <strong style={{ color: "#ffffff" }}>{user.subscription.plan.toUpperCase()}</strong>
+                    ) : (
+                      "—"
+                    )}
                   </div>
                 </div>
-                <span
-                  className={`${styles.statusPill} ${user.active ? styles.statusActive : styles.statusCancelled}`}
-                >
-                  <span className={styles.statusDot} />
-                  {user.active ? "Ativo" : "Inativo"}
-                </span>
-              </div>
 
-              <div className={styles.mobileCardBody}>
-                <div>
-                  <span style={{ color: "#71717a" }}>Nível:</span> {renderLevelBadge(user)}
-                </div>
-                <div>
-                  <span style={{ color: "#71717a" }}>Telefone:</span> {user.phone || "—"}
-                </div>
-                <div>
-                  <span style={{ color: "#71717a" }}>Empresa:</span> {user.company?.name || "Global"}
-                </div>
-                <div>
-                  <span style={{ color: "#71717a" }}>Plano:</span>{" "}
-                  {user.subscription ? (
-                    <strong style={{ color: "#ffffff" }}>{user.subscription.plan.toUpperCase()}</strong>
-                  ) : (
-                    "—"
+                <div className={styles.mobileCardActions}>
+                  {onSwitchToPins && (
+                    <button
+                      type="button"
+                      className={styles.btnSecondary}
+                      onClick={onSwitchToPins}
+                    >
+                      <KeyRound size={14} style={{ color: "#dcff4c" }} /> PINs
+                    </button>
                   )}
-                </div>
-              </div>
-
-              <div className={styles.mobileCardActions}>
-                {onSwitchToPins && (
                   <button
                     type="button"
                     className={styles.btnSecondary}
-                    onClick={onSwitchToPins}
+                    onClick={() => {
+                      setUserToEdit(user);
+                      setEditForm({
+                        name: user.name || "",
+                        phone: user.phone || "",
+                        role: user.role || "customer",
+                        isSuperadmin: Boolean(user.isSuperadmin),
+                        active: Boolean(user.active),
+                        password: "",
+                      });
+                      setEditModalOpen(true);
+                    }}
                   >
-                    <KeyRound size={14} style={{ color: "#dcff4c" }} /> PINs
+                    <Edit2 size={14} /> Editar
                   </button>
-                )}
-                <button
-                  type="button"
-                  className={styles.btnSecondary}
-                  onClick={() => {
-                    setUserToEdit(user);
-                    setEditForm({
-                      name: user.name || "",
-                      phone: user.phone || "",
-                      role: user.role || "customer",
-                      isSuperadmin: Boolean(user.isSuperadmin),
-                      active: Boolean(user.active),
-                      password: "",
-                    });
-                    setEditModalOpen(true);
-                  }}
-                >
-                  <Edit2 size={14} /> Editar
-                </button>
-                <button
-                  type="button"
-                  className={styles.btnDanger}
-                  onClick={() => {
-                    setUserToDelete(user);
-                    setDeleteMode("soft");
-                    setDeleteReason("Exclusão solicitada no Super Admin");
-                    setDeleteModalOpen(true);
-                  }}
-                >
-                  <Trash2 size={14} /> Excluir
-                </button>
+                  <button
+                    type="button"
+                    className={styles.btnDanger}
+                    onClick={() => {
+                      setUserToDelete(user);
+                      setDeleteMode("soft");
+                      setDeleteReason("Exclusão solicitada no Super Admin");
+                      setDeleteModalOpen(true);
+                    }}
+                  >
+                    <Trash2 size={14} /> Excluir
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
         {!loading && usersList.length === 0 && (
           <div className={styles.mobileCard} style={{ textAlign: "center", color: "#a3a3a3" }}>
@@ -1235,6 +1324,94 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EXCLUSÃO EM MASSA DE USUÁRIOS */}
+      {bulkDeleteModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalCard} style={{ maxWidth: 460 }}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Trash2 size={20} style={{ color: "#f87171" }} />
+                <h3>Excluir {selectedUserIds.length} {selectedUserIds.length === 1 ? "Usuário" : "Usuários"}</h3>
+              </div>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setBulkDeleteModalOpen(false)}
+                disabled={bulkDeleting}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div style={{ marginBottom: 12 }}>
+                <label className={styles.label}>Tipo de Exclusão</label>
+                <select
+                  className={styles.input}
+                  value={bulkDeleteMode}
+                  onChange={(e) => setBulkDeleteMode(e.target.value as any)}
+                  disabled={bulkDeleting}
+                >
+                  <option value="soft">Soft Delete (Desativação lógica - Recomendado)</option>
+                  <option value="hard">Hard Delete (Exclusão definitiva no MySQL)</option>
+                </select>
+              </div>
+
+              {bulkDeleteMode === "hard" && (
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8, marginBottom: 12 }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
+                    ⚠️ <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente os <strong>{selectedUserIds.length}</strong> usuários selecionados do MySQL. Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+              )}
+
+              {bulkDeleteMode === "soft" && (
+                <div style={{ background: "rgba(234, 179, 8, 0.1)", border: "1px solid rgba(234, 179, 8, 0.3)", padding: "12px 14px", borderRadius: 8, marginBottom: 12 }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: "#fde047", lineHeight: 1.4 }}>
+                    Os <strong>{selectedUserIds.length}</strong> usuários serão marcados como desativados (soft delete). Seus dados e vínculos permanecem no banco.
+                  </p>
+                </div>
+              )}
+
+              <div style={{ marginBottom: 12 }}>
+                <label className={styles.label}>Motivo para Auditoria</label>
+                <input
+                  type="text"
+                  required
+                  className={styles.input}
+                  value={bulkDeleteReason}
+                  onChange={(e) => setBulkDeleteReason(e.target.value)}
+                  disabled={bulkDeleting}
+                />
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => setBulkDeleteModalOpen(false)}
+                disabled={bulkDeleting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={styles.btnDanger}
+                onClick={handleExecuteBulkDelete}
+                disabled={bulkDeleting}
+              >
+                {bulkDeleting
+                  ? "Excluindo..."
+                  : bulkDeleteMode === "hard"
+                  ? `Excluir Definitivamente (${selectedUserIds.length})`
+                  : `Desativar em Massa (${selectedUserIds.length})`}
+              </button>
+            </div>
           </div>
         </div>
       )}
