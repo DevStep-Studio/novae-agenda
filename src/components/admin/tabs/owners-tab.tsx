@@ -28,7 +28,11 @@ import {
 import { formatCurrency } from "@/lib/client-utils";
 import styles from "../admin-dashboard.module.css";
 
-export function OwnersTab() {
+export interface OwnersTabProps {
+  onSwitchToUsers?: () => void;
+}
+
+export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
   const [owners, setOwners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -101,6 +105,10 @@ export function OwnersTab() {
       }
 
       const res = await fetch(`/api/superadmin/owners?${params.toString()}`);
+      if (res.status === 401) {
+        setFetchError("Sua sessão de Super Admin expirou ou não possui permissão. Por favor, recarregue a página.");
+        return;
+      }
       if (!res.ok) {
         throw new Error(`Falha na resposta do servidor (HTTP ${res.status}).`);
       }
@@ -405,6 +413,42 @@ export function OwnersTab() {
 
   return (
     <div>
+      {/* Quick link banner to Users & Levels */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          padding: "12px 18px",
+          marginBottom: 16,
+          background: "rgba(220, 255, 76, 0.05)",
+          border: "1px solid rgba(220, 255, 76, 0.2)",
+          borderRadius: 8,
+          color: "#e5e5e5",
+          fontSize: 13,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Users size={18} color="#dcff4c" />
+          <span>
+            Para visualizar e gerenciar <strong>todos os usuários do sistema</strong> (Super Admin, Colaboradores, Clientes e Proprietários) com seus níveis e senhas, acesse a aba <strong>Usuários & Níveis</strong>.
+          </span>
+        </div>
+        {onSwitchToUsers && (
+          <button
+            type="button"
+            className={styles.btnSecondary}
+            style={{ borderColor: "#dcff4c", color: "#dcff4c", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}
+            onClick={onSwitchToUsers}
+          >
+            <Users size={14} />
+            Ir para Usuários & Níveis
+          </button>
+        )}
+      </div>
+
       {/* Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>

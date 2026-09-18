@@ -168,7 +168,9 @@ export function AdminDashboard() {
         <div className={styles.contentBody}>
           {activeTab === "dashboard" && <MetricsTab />}
           {activeTab === "usuarios" && <UsersTab />}
-          {activeTab === "proprietarios" && <OwnersTab />}
+          {activeTab === "proprietarios" && (
+            <OwnersTab onSwitchToUsers={() => handleSelectTab("usuarios")} />
+          )}
           {activeTab === "assinaturas" && <SubscriptionsTab />}
           {activeTab === "clientes" && <ClientsTab />}
           {activeTab === "cupons" && <CouponsTab />}

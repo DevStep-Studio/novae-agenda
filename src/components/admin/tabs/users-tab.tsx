@@ -85,6 +85,10 @@ export function UsersTab() {
       if (statusFilter !== "all") params.set("status", statusFilter);
 
       const res = await fetch(`/api/superadmin/users?${params.toString()}`);
+      if (res.status === 401) {
+        setFetchError("Sua sessão de Super Admin expirou ou não possui permissão. Por favor, recarregue a página.");
+        return;
+      }
       if (!res.ok) {
         throw new Error(`Falha na resposta do servidor (HTTP ${res.status}).`);
       }
