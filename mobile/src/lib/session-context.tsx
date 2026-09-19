@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { getStaffSession, logout as apiLogout, type SessionInfo } from "./auth";
-import { hasStoredSession } from "./api-client";
+import { clearSession, hasStoredSession, setUnauthorizedHandler } from "./api-client";
 
 interface SessionContextValue {
   session: SessionInfo | null;
@@ -25,13 +25,26 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
     try {
       const data = await getStaffSession();
+      if (!data) {
+        await clearSession();
+      }
       setSession(data);
       return data;
     } catch {
       // Expired/invalid session cookie — treat as logged out rather than crash the app.
+      await clearSession();
       setSession(null);
       return null;
     }
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setSession(null);
+    });
+    return () => {
+      setUnauthorizedHandler(null);
+    };
   }, []);
 
   useEffect(() => {
@@ -52,6 +65,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore network errors on logout
     }
+    await clearSession();
     setSession(null);
   }, []);
 

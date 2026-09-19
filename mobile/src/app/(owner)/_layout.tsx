@@ -1,9 +1,26 @@
 import { CalendarDays, Home, Menu, Users } from "lucide-react-native";
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
 
 import { BottomTabBar } from "@/components/ui/bottom-tab-bar";
+import { colors } from "@/constants/design-tokens";
+import { useSession } from "@/lib/session-context";
 
 export default function OwnerLayout() {
+  const { session, loading } = useSession();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <BottomTabBar {...props} />}>
       <Tabs.Screen

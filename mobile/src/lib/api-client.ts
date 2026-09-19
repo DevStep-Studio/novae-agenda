@@ -177,12 +177,19 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   if (!res.ok) {
     if (res.status === 401) {
       await persistCookie(null);
+      unauthorizedHandler?.();
     }
     const message = body?.error ?? "Não foi possível concluir a operação. Tente novamente.";
     throw new ApiError(message, res.status, body?.code);
   }
 
   return body?.data as T;
+}
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(fn: (() => void) | null) {
+  unauthorizedHandler = fn;
 }
 
 export async function clearSession() {
