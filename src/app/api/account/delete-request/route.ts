@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { users, customerCredentials, pushDevices, clients } from "@/db/schema";
-import { getSession } from "@/lib/auth";
+import { users, customerCredentials, pushDevices, clients, companyMemberships } from "@/db/schema";
+import { destroySession, getSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +28,39 @@ export async function POST(request: Request) {
     // 1. Deactivate push devices
     await db
       .update(pushDevices)
-      .set({ isActive: false, lastError: "Account deleted" })
+      .set({ isActive: false, lastError: "Account deleted by user request" })
       .where(eq(pushDevices.userId, userId));
 
-    // 2. Anonymize/delete customer credentials if customer
+    // 2. Delete customer credentials
     await db
       .delete(customerCredentials)
       .where(eq(customerCredentials.userId, userId));
 
-    // 3. Mark user record as deleted / anonymized
+    // 3. Deactivate memberships
+    await db
+      .update(companyMemberships)
+      .set({ active: false })
+      .where(eq(companyMemberships.userId, userId));
+
+    // 4. Anonymize CRM client entry if exists
+    await db
+      .update(clients)
+      .set({
+        name: "Cliente Excluído",
+        email: null,
+        phone: "00000000000",
+        notes: "Dados pessoais excluídos pelo titular sob a LGPD.",
+        active: false,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(clients.userId, userId));
+
+    // 5. Mark user record as deleted / anonymized
     await db
       .update(users)
       .set({
-        email: `deleted_${userId}@anonymized.usereservei.com.br`,
+        email: `deleted_${userId.slice(0, 8)}_${Date.now()}@anonymized.usereservei.com.br`,
         name: "Usuário Excluído",
         phone: null,
         active: false,
@@ -48,6 +68,9 @@ export async function POST(request: Request) {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
+
+    // 6. Terminate session cookie
+    await destroySession();
 
     return NextResponse.json({
       success: true,

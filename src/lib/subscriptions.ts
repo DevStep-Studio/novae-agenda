@@ -225,7 +225,7 @@ export async function getCompanySubscription(
 
   if (!existing) {
     const id = crypto.randomUUID();
-    const trialEndsAt = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     await executor.insert(subscriptions).values({
       id,
       companyId,
