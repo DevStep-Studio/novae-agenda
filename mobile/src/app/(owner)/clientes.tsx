@@ -1,6 +1,16 @@
-import { CircleDollarSign, Search, Sparkles, Users, X } from "lucide-react-native";
+import { CircleDollarSign, Plus, Search, Sparkles, Users, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useFocusEffect } from "expo-router";
 
 import { Button } from "@/components/ui/button";
@@ -8,19 +18,12 @@ import { ClientCard } from "@/components/ui/client-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, typography } from "@/constants/design-tokens";
-import { ApiError } from "@/lib/api-client";
+import { colors, radius, typography } from "@/constants/design-tokens";
+import { ApiError, api } from "@/lib/api-client";
 import { getClients, isFrequentOrVip, type ClientDTO } from "@/lib/clients";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 
-// Mirrors ClientsPage in app-shell.tsx:864-994 — header, the 4-card metrics
-// grid (exact same KPI copy/order/icons as the web), search, then the list
-// (default-sorted by visits desc, matching the web's default `sortBy`).
-//
-// Not ported yet (see MOBILE_DESIGN_SYSTEM.md): the 6-way segment tabs
-// (Todos/Mensalistas/Frequentes/Novos/Com agendamento/Sem retorno), the sort
-// dropdown, and "Novo cliente" (client creation doesn't exist in mobile yet).
 type SegmentFilter = "all" | "members" | "frequent" | "new" | "has_booking" | "inactive";
 
 const SEGMENTS: { key: SegmentFilter; label: string }[] = [
@@ -40,6 +43,14 @@ export default function ClientesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // New Client Modal
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newNotes, setNewNotes] = useState("");
 
   const load = useCallback(async (q: string) => {
     try {
@@ -77,6 +88,37 @@ export default function ClientesScreen() {
     }, 300);
     return () => clearTimeout(handle);
   }, [query, load]);
+
+  const handleCreateClient = async () => {
+    if (!newName.trim()) {
+      Alert.alert("Erro", "O nome do cliente é obrigatório.");
+      return;
+    }
+    setSavingClient(true);
+    try {
+      await api("/api/clients", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newName.trim(),
+          phone: newPhone.trim() || undefined,
+          email: newEmail.trim() || undefined,
+          notes: newNotes.trim() || undefined,
+        }),
+      });
+
+      setCreateModalVisible(false);
+      setNewName("");
+      setNewPhone("");
+      setNewEmail("");
+      setNewNotes("");
+      await load(query);
+      Alert.alert("Sucesso", "Cliente cadastrado com sucesso!");
+    } catch (err: any) {
+      Alert.alert("Erro", err?.message || "Não foi possível cadastrar o cliente.");
+    } finally {
+      setSavingClient(false);
+    }
+  };
 
   const { totalClients, membershipCount, frequentCount, averageTicket, filteredList } = useMemo(() => {
     const list = clients ?? [];
@@ -118,10 +160,12 @@ export default function ClientesScreen() {
 
         {/* Action button */}
         <Pressable
+          onPress={() => setCreateModalVisible(true)}
           className="h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-3"
-          style={{ backgroundColor: colors.primaryForeground }}
+          style={{ backgroundColor: "#ffffff" }}
         >
-          <Text style={{ color: colors.background, fontSize: 12.5, fontWeight: "700" }}>+ Novo cliente</Text>
+          <Plus size={16} color="#000000" strokeWidth={2.5} />
+          <Text style={{ color: "#000000", fontSize: 13, fontWeight: "700" }}>Novo cliente</Text>
         </Pressable>
       </View>
 
@@ -138,6 +182,7 @@ export default function ClientesScreen() {
         <ScrollView
           className="flex-1 mt-4"
           contentContainerClassName="gap-4 pb-6"
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -254,6 +299,128 @@ export default function ClientesScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Modal: Cadastro de Novo Cliente */}
+      <Modal
+        visible={createModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCreateModalVisible(false)}
+      >
+        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+          <View
+            className="w-full rounded-t-3xl border-t p-5 gap-4"
+            style={{
+              backgroundColor: "#111215",
+              borderColor: "rgba(255, 255, 255, 0.12)",
+            }}
+          >
+            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
+                Cadastrar Novo Cliente
+              </Text>
+              <Pressable onPress={() => setCreateModalVisible(false)} className="p-1 rounded-lg">
+                <X size={20} color="#ffffff" />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+              <View className="gap-1.5">
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>NOME COMPLETO *</Text>
+                <TextInput
+                  value={newName}
+                  onChangeText={setNewName}
+                  placeholder="Ex: Amanda Silva"
+                  placeholderTextColor={colors.textDisabled}
+                  style={{
+                    backgroundColor: "#18191e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: radius.sm,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    color: "#ffffff",
+                    fontSize: 14,
+                  }}
+                />
+              </View>
+
+              <View className="gap-1.5">
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>WHATSAPP / TELEFONE</Text>
+                <TextInput
+                  value={newPhone}
+                  onChangeText={setNewPhone}
+                  placeholder="(11) 98888-7777"
+                  placeholderTextColor={colors.textDisabled}
+                  keyboardType="phone-pad"
+                  style={{
+                    backgroundColor: "#18191e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: radius.sm,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    color: "#ffffff",
+                    fontSize: 14,
+                  }}
+                />
+              </View>
+
+              <View className="gap-1.5">
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>E-MAIL (OPCIONAL)</Text>
+                <TextInput
+                  value={newEmail}
+                  onChangeText={setNewEmail}
+                  placeholder="amanda@exemplo.com"
+                  placeholderTextColor={colors.textDisabled}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={{
+                    backgroundColor: "#18191e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: radius.sm,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    color: "#ffffff",
+                    fontSize: 14,
+                  }}
+                />
+              </View>
+
+              <View className="gap-1.5">
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>OBSERVAÇÕES (OPCIONAL)</Text>
+                <TextInput
+                  value={newNotes}
+                  onChangeText={setNewNotes}
+                  placeholder="Preferências, histórico ou alergias..."
+                  placeholderTextColor={colors.textDisabled}
+                  multiline
+                  numberOfLines={2}
+                  style={{
+                    backgroundColor: "#18191e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: radius.sm,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    height: 60,
+                    color: "#ffffff",
+                    fontSize: 13,
+                    textAlignVertical: "top",
+                  }}
+                />
+              </View>
+
+              <Button
+                label={savingClient ? "Cadastrando..." : "Cadastrar Cliente"}
+                onPress={handleCreateClient}
+                disabled={savingClient}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
