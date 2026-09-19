@@ -1,57 +1,113 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Bell,
+  Calendar,
+  ChevronRight,
+  HelpCircle,
+  KeyRound,
+  Lock,
+  LogOut,
+  Phone,
+  ShieldCheck,
+  User,
+} from "lucide-react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
-import { useTheme } from "@/hooks/use-theme";
+import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { useSession } from "@/lib/session-context";
 
-const PENDING_SECTIONS = [
-  "Novo agendamento (serviço → profissional → data/horário)",
-  "Meu perfil e foto",
-  "Minha mensalidade",
-  "Histórico de atendimentos",
-  "Notificações",
-];
-
 export default function CustomerMoreScreen() {
-  const { colors } = useTheme();
   const { session, signOut } = useSession();
 
   return (
-    <Screen style={styles.screen}>
-      <View style={styles.profile}>
-        <Text style={[styles.name, { color: colors.text }]}>{session?.name}</Text>
-        <Text style={[styles.email, { color: colors.textSecondary }]}>{session?.email}</Text>
+    <Screen style={{ paddingTop: 12, gap: 16 }}>
+      {/* Header do Cliente */}
+      <View
+        className="flex-row items-center gap-3.5 rounded-xl border p-4"
+        style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+      >
+        <Avatar name={session?.name || "Cliente"} size="lg" />
+        <View className="gap-0.5 flex-1">
+          <Text
+            style={{
+              color: colors.textPrimary,
+              fontSize: 17,
+              fontFamily: fontFamily.display,
+            }}
+          >
+            {session?.name || "Cliente Reservei"}
+          </Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+            {session?.email || session?.phone || "Acesso via PIN rápido"}
+          </Text>
+          <View className="flex-row items-center gap-1.5 mt-0.5">
+            <View
+              style={{
+                backgroundColor: colors.primarySoft,
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+                borderRadius: radius.pill,
+              }}
+            >
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontSize: 10,
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                }}
+              >
+                Conta de Cliente
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.list}>
-        <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>Em construção</Text>
-        {PENDING_SECTIONS.map((section) => (
-          <View key={section} style={[styles.row, { borderColor: colors.border }]}>
-            <Text style={{ color: colors.textSecondary }}>{section}</Text>
+      <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 24 }}>
+        {/* Segurança do PIN */}
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: 1,
+            borderRadius: radius.md,
+            padding: 16,
+            gap: 10,
+          }}
+        >
+          <View className="flex-row items-center gap-2">
+            <ShieldCheck size={18} color={colors.primary} />
+            <Text
+              style={{
+                color: colors.textPrimary,
+                fontSize: 15,
+                fontWeight: "600",
+              }}
+            >
+              Segurança e Acesso Rápido
+            </Text>
           </View>
-        ))}
-      </ScrollView>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
+            Você pode acessar todos os seus agendamentos rapidamente através do seu número de telefone e PIN de 6 dígitos.
+          </Text>
+        </View>
 
-      <Button
-        label="Sair"
-        variant="ghost"
-        onPress={async () => {
-          await signOut();
-          router.replace("/(auth)/login");
-        }}
-      />
+        {/* Botão Sair */}
+        <View style={{ marginTop: 12 }}>
+          <Button
+            label="Sair da Conta"
+            variant="ghost"
+            onPress={async () => {
+              await signOut();
+              router.replace("/(auth)/login");
+            }}
+          />
+        </View>
+      </ScrollView>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { paddingTop: 8, gap: 20 },
-  profile: { gap: 2 },
-  name: { fontSize: 20, fontWeight: "700" },
-  email: { fontSize: 13 },
-  sectionTitle: { fontSize: 12, fontWeight: "700", textTransform: "uppercase", marginBottom: 8 },
-  list: { gap: 10, paddingBottom: 12 },
-  row: { borderWidth: 1, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14 },
-});

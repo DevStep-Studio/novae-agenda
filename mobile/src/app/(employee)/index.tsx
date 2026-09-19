@@ -1,14 +1,35 @@
+import {
+  Calendar,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock,
+  MapPin,
+  Scissors,
+  User,
+} from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 
+import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
-import { useTheme } from "@/hooks/use-theme";
+import { TopBar } from "@/components/ui/top-bar";
+import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { ApiError } from "@/lib/api-client";
 import { getAppointments, statusLabel, todayKey, type AppointmentDTO } from "@/lib/appointments";
 import { formatBRL } from "@/lib/stats";
+import { useSession } from "@/lib/session-context";
 
 export default function EmployeeAgendaScreen() {
-  const { colors } = useTheme();
+  const { session } = useSession();
   const [appointments, setAppointments] = useState<AppointmentDTO[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,9 +38,15 @@ export default function EmployeeAgendaScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setAppointments(await getAppointments({ from: todayKey() }));
+      const today = todayKey();
+      const res = await getAppointments({ from: today, to: today });
+      setAppointments(res || []);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Não foi possível carregar sua agenda.");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "Não foi possível carregar sua agenda."
+      );
     }
   }, []);
 
@@ -41,37 +68,160 @@ export default function EmployeeAgendaScreen() {
     setRefreshing(false);
   }
 
+  const todayRevenue = appointments
+    .filter((a) => a.status === "completed" || a.status === "confirmed")
+    .reduce((acc, a) => acc + (Number(a.total) || 0), 0);
+
   return (
-    <Screen style={styles.screen}>
-      <Text style={[styles.title, { color: colors.text }]}>Hoje</Text>
+    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
+      <View style={{ paddingHorizontal: 16 }}>
+        <TopBar
+          title="Minha Agenda"
+        />
+      </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color={colors.primary} size="large" />
         </View>
       ) : error ? (
-        <View style={styles.center}>
-          <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
-        </View>
-      ) : appointments.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={{ color: colors.textSecondary }}>Nenhum atendimento hoje.</Text>
+        <View className="flex-1 items-center justify-center p-6 text-center">
+          <Text style={{ color: colors.danger, textAlign: "center", marginBottom: 12 }}>
+            {error}
+          </Text>
+          <Button label="Tentar novamente" onPress={load} />
         </View>
       ) : (
         <FlatList
           data={appointments}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-          renderItem={({ item }) => (
-            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={styles.cardHeader}>
-                <Text style={[styles.time, { color: colors.primary }]}>{item.startTime}</Text>
-                <Text style={[styles.status, { color: colors.textMuted }]}>{statusLabel(item.status)}</Text>
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 14 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+            />
+          }
+          ListHeaderComponent={
+            <View className="flex-row gap-3 mb-2">
+              <View className="flex-1">
+                <MetricCard
+                  label="Atendimentos Hoje"
+                  value={String(appointments.length)}
+                  detail="Agendados"
+                  icon={Calendar}
+                  variant="teal"
+                />
               </View>
-              <Text style={[styles.client, { color: colors.text }]}>{item.clientName}</Text>
-              <Text style={{ color: colors.textSecondary }}>{item.serviceName}</Text>
-              <Text style={[styles.price, { color: colors.text }]}>{formatBRL(item.total)}</Text>
+              <View className="flex-1">
+                <MetricCard
+                  label="Faturamento Estimado"
+                  value={formatBRL(todayRevenue)}
+                  detail="Total do dia"
+                  icon={CircleDollarSign}
+                  variant="teal"
+                />
+              </View>
+            </View>
+          }
+          ListEmptyComponent={
+            <View
+              className="items-center justify-center rounded-xl border p-8 mt-2"
+              style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+            >
+              <CalendarDays size={36} color={colors.textMuted} />
+              <Text
+                style={{
+                  color: colors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: "600",
+                  marginTop: 12,
+                }}
+              >
+                Nenhum atendimento para hoje
+              </Text>
+              <Text
+                style={{
+                  color: colors.textSecondary,
+                  fontSize: 13,
+                  textAlign: "center",
+                  marginTop: 4,
+                }}
+              >
+                Novos agendamentos marcados para você aparecerão aqui automaticamente.
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View
+              style={{
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+                borderRadius: radius.md,
+                padding: 16,
+                gap: 12,
+              }}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2.5">
+                  <View
+                    style={{
+                      backgroundColor: colors.primarySoft,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: radius.sm,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 13,
+                        fontWeight: "800",
+                      }}
+                    >
+                      {item.startTime}
+                    </Text>
+                  </View>
+
+                  <Text
+                    style={{
+                      color: colors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {item.clientName}
+                  </Text>
+                </View>
+
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 15,
+                    fontFamily: fontFamily.display,
+                  }}
+                >
+                  {formatBRL(Number(item.total) || 0)}
+                </Text>
+              </View>
+
+              <View
+                className="flex-row items-center justify-between rounded-lg p-2.5"
+                style={{ backgroundColor: colors.surfaceSecondary }}
+              >
+                <View className="flex-row items-center gap-2">
+                  <Scissors size={14} color={colors.textMuted} />
+                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                    {item.serviceName}
+                  </Text>
+                </View>
+
+                <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                  {statusLabel(item.status)}
+                </Text>
+              </View>
             </View>
           )}
         />
@@ -79,16 +229,3 @@ export default function EmployeeAgendaScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { paddingTop: 8, gap: 16 },
-  title: { fontSize: 24, fontWeight: "700" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  list: { gap: 10, paddingBottom: 24 },
-  card: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 4 },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between" },
-  time: { fontWeight: "700" },
-  status: { fontSize: 12 },
-  client: { fontSize: 16, fontWeight: "700" },
-  price: { fontWeight: "600", marginTop: 4 },
-});
