@@ -735,8 +735,16 @@ export class CustomerAccessService {
           .limit(1);
 
         if (bookingUser) {
-          user = bookingUser;
-          identityVerified = true;
+          if (normalized) {
+            const bookingPhoneNorm = bookingUser.phone ? normalizePhoneDigits(bookingUser.phone) : "";
+            if (!bookingPhoneNorm || bookingPhoneNorm === normalized) {
+              user = bookingUser;
+              identityVerified = true;
+            }
+          } else {
+            user = bookingUser;
+            identityVerified = true;
+          }
         }
       }
     }
@@ -880,6 +888,114 @@ export class CustomerAccessService {
         role: "customer",
         hasPin: true,
       },
+    };
+  }
+
+  /**
+   * Solicita código OTP para primeiro cadastro de PIN de cliente.
+   */
+  static async requestPinSetupOtp(params: {
+    phone: string;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    channel: "email" | "whatsapp" | "console";
+    destination: string;
+  }> {
+    const normalized = normalizePhoneDigits(params.phone);
+    if (!normalized || normalized.length < 8) {
+      throw new Error("Informe um número de celular válido com DDD.");
+    }
+
+    const { user, credential } = await this.resolveCustomerUser(normalized);
+
+    if (credential?.pinHash) {
+      throw new Error("Este número já possui um PIN cadastrado. Acesse digitando seu PIN ou solicite a recuperação.");
+    }
+
+    let targetUser = user;
+    if (!targetUser) {
+      const newUserId = crypto.randomUUID();
+      const defaultEmail = `cliente-${normalized}@novae.local`;
+      const fallbackPassword = await hashPassword(crypto.randomUUID());
+
+      await db.insert(users).values({
+        id: newUserId,
+        name: "Cliente",
+        email: defaultEmail,
+        phone: params.phone.trim(),
+        role: "customer",
+        active: true,
+        passwordHash: fallbackPassword,
+      });
+
+      const [created] = await db.select().from(users).where(eq(users.id, newUserId)).limit(1);
+      targetUser = created;
+    }
+
+    if (!targetUser) {
+      throw new Error("Erro ao preparar validação de identidade.");
+    }
+
+    // Gera OTP numérico de 6 dígitos
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const tokenHash = sha256(otp);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+
+    // Invalida tokens anteriores
+    await db
+      .update(authTokens)
+      .set({ consumedAt: new Date() })
+      .where(
+        and(
+          eq(authTokens.userId, targetUser.id),
+          eq(authTokens.kind, "customer_pin_setup"),
+          isNull(authTokens.consumedAt),
+        ),
+      );
+
+    await db.insert(authTokens).values({
+      id: crypto.randomUUID(),
+      userId: targetUser.id,
+      kind: "customer_pin_setup",
+      tokenHash,
+      expiresAt,
+    });
+
+    await this.logAudit({
+      userId: targetUser.id,
+      phoneNormalized: normalized,
+      action: "PIN_RESET_REQUESTED",
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
+    });
+
+    const hasRealEmail = targetUser.email && !targetUser.email.endsWith("@novae.local");
+    if (hasRealEmail) {
+      await sendMail({
+        to: targetUser.email,
+        subject: "Código de Verificação — Reservei",
+        text: `Olá!\n\nSeu código de verificação para criar seu PIN no Reservei é: ${otp}\n\nEste código expira em 10 minutos.`,
+        html: `<p>Olá!</p><p>Seu código de verificação para criar seu PIN no Reservei é:</p><h2 style="letter-spacing: 4px; font-size: 28px;">${otp}</h2><p>Este código expira em 10 minutos.</p>`,
+      });
+
+      return {
+        success: true,
+        message: `Enviamos um código de verificação para ${maskEmail(targetUser.email)}.`,
+        channel: "email",
+        destination: maskEmail(targetUser.email),
+      };
+    }
+
+    console.info(`\n[CustomerPinService] OTP Setup para ${normalized}: ${otp}\n`);
+
+    return {
+      success: true,
+      message: `Código de verificação enviado para o seu número ${maskPhone(params.phone)}.`,
+      channel: "whatsapp",
+      destination: maskPhone(params.phone),
     };
   }
 
