@@ -37,8 +37,33 @@ const Store = Platform.OS === "web"
  * needs to change.
  */
 
-const DEFAULT_API_URL = "https://usereservei.com.br";
-export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
+import Constants from "expo-constants";
+
+function resolveApiBaseUrl(): string {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+
+  // In development, auto-detect the host machine IP where Metro is running
+  if (__DEV__) {
+    const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+    if (hostUri) {
+      const host = hostUri.split(":")[0];
+      if (host && host !== "localhost" && host !== "127.0.0.1") {
+        return `http://${host}:3000`;
+      }
+    }
+    if (Platform.OS === "android") {
+      return "http://10.0.2.2:3000";
+    }
+    return "http://localhost:3000";
+  }
+
+  return "https://usereservei.com.br";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
+
 
 const SESSION_COOKIE_KEY = "reservei_session_cookie";
 const RELEVANT_COOKIE_NAMES = ["agenda_session", "active_company_id"];

@@ -97,8 +97,32 @@ export async function loginStaff(email: string, password: string) {
   });
 }
 
+export async function registerStaff(input: {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  accountType?: string;
+}) {
+  return api<{ ok: boolean }>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      ...input,
+      accountType: input.accountType || "professional",
+    }),
+  });
+}
+
+export async function requestPasswordReset(email: string) {
+  return api<{ success: boolean; message: string }>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
 /** GET /api/auth/session — returns null (not a 401) when logged out. */
 export async function getStaffSession() {
+
   return api<SessionInfo | null>("/api/auth/session");
 }
 
