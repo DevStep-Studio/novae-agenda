@@ -166,6 +166,35 @@ export async function loginCustomerWithPin(pin: string, phone?: string) {
   });
 }
 
+export async function requestCustomerPinReset(phone: string) {
+  return api<{
+    success: boolean;
+    message: string;
+    channel: "email" | "whatsapp" | "console";
+    destination: string;
+  }>("/api/customer-access/pin/reset/request", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+
+export async function confirmCustomerPinReset(input: {
+  phone: string;
+  otp: string;
+  newPin: string;
+  confirmNewPin: string;
+}) {
+  return api<{
+    userId: string;
+    customer: { id: string; name: string; phone: string; role: string };
+    targetPortal: string;
+    message: string;
+  }>("/api/customer-access/pin/reset/confirm", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export interface CustomerSession {
   id: string;
   name: string;
@@ -180,3 +209,4 @@ export interface CustomerSession {
 export async function getCustomerSession() {
   return api<CustomerSession | null>("/api/my/session");
 }
+
