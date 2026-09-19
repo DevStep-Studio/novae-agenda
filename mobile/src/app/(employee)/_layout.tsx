@@ -44,6 +44,7 @@ export default function EmployeeLayout() {
           tabBarIcon: ({ color, size }) => <Menu color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="notificacoes" options={{ href: null }} />
     </Tabs>
   );
 }

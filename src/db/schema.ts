@@ -803,3 +803,50 @@ export const adminAuditLogs = mysqlTable("admin_audit_logs", {
   createdIdx: index("admin_audit_logs_created_idx").on(table.createdAt),
 }));
 
+// Push Notifications Devices for Mobile (iOS & Android)
+export const pushDevices = mysqlTable("push_devices", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id", { length: 36 }).references(() => users.id, { onDelete: "cascade" }),
+  customerId: varchar("customer_id", { length: 36 }),
+  companyId: varchar("company_id", { length: 36 }).references(() => companies.id, { onDelete: "cascade" }),
+  provider: varchar("provider", { length: 50 }).default("expo").notNull(),
+  pushToken: varchar("push_token", { length: 255 }).notNull(),
+  platform: varchar("platform", { length: 20 }).default("unknown").notNull(), // 'ios' | 'android' | 'web' | 'unknown'
+  deviceIdentifier: varchar("device_identifier", { length: 100 }),
+  appVersion: varchar("app_version", { length: 50 }),
+  environment: varchar("environment", { length: 20 }).default("production").notNull(), // 'development' | 'preview' | 'production'
+  isActive: boolean("is_active").default(true).notNull(),
+  lastRegisteredAt: timestamp("last_registered_at", { mode: "date" }).defaultNow().notNull(),
+  lastSuccessAt: timestamp("last_success_at", { mode: "date" }),
+  lastFailureAt: timestamp("last_failure_at", { mode: "date" }),
+  lastError: text("last_error"),
+  ...timestamps,
+}, (table) => ({
+  tokenIdx: uniqueIndex("push_devices_token_idx").on(table.pushToken),
+  userIdx: index("push_devices_user_idx").on(table.userId, table.isActive),
+  customerIdx: index("push_devices_customer_idx").on(table.customerId, table.isActive),
+  companyIdx: index("push_devices_company_idx").on(table.companyId, table.isActive),
+}));
+
+// Notification Schedules (Reminders, 2h before appointments, idempotency)
+export const notificationSchedules = mysqlTable("notification_schedules", {
+  id: varchar("id", { length: 36 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  bookingId: varchar("booking_id", { length: 36 }).notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  companyId: varchar("company_id", { length: 36 }).notNull().references(() => companies.id, { onDelete: "cascade" }),
+  eventType: varchar("event_type", { length: 50 }).notNull(), // 'reminder_2h' | 'reminder_15m' | 'custom'
+  recipientType: varchar("recipient_type", { length: 20 }).notNull(), // 'customer' | 'employee' | 'owner'
+  recipientId: varchar("recipient_id", { length: 36 }),
+  scheduledFor: timestamp("scheduled_for", { mode: "date" }).notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // 'pending' | 'sent' | 'cancelled' | 'failed'
+  attempts: int("attempts").default(0).notNull(),
+  sentAt: timestamp("sent_at", { mode: "date" }),
+  cancelledAt: timestamp("cancelled_at", { mode: "date" }),
+  idempotencyKey: varchar("idempotency_key", { length: 128 }).notNull(),
+  lastError: text("last_error"),
+  ...timestamps,
+}, (table) => ({
+  idempotencyIdx: uniqueIndex("notification_schedules_idempotency_idx").on(table.idempotencyKey),
+  queueIdx: index("notification_schedules_queue_idx").on(table.status, table.scheduledFor),
+  bookingIdx: index("notification_schedules_booking_idx").on(table.bookingId),
+}));
+

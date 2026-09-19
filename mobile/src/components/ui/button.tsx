@@ -2,7 +2,7 @@ import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } fr
 
 import { colors } from "@/constants/design-tokens";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export interface ButtonProps {
   label: string;
@@ -29,9 +29,21 @@ export function Button({ label, variant = "primary", loading, disabled, onPress,
   const isDisabled = disabled || loading;
 
   const backgroundColor =
-    variant === "primary" ? colors.primary : variant === "secondary" ? colors.surfaceSecondary : "transparent";
-  const textColor = variant === "primary" ? colors.primaryForeground : colors.textPrimary;
+    variant === "primary"
+      ? colors.primary
+      : variant === "danger"
+        ? colors.danger
+        : variant === "secondary"
+          ? colors.surfaceSecondary
+          : "transparent";
+  const textColor =
+    variant === "primary"
+      ? colors.primaryForeground
+      : variant === "danger"
+        ? "#ffffff"
+        : colors.textPrimary;
   const borderColor = variant === "ghost" ? colors.border : "transparent";
+
 
   return (
     <Pressable

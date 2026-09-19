@@ -31,6 +31,9 @@ import { loadAvailability, type AvailableSlot } from "./engine";
 import { BookingError } from "./errors";
 import { canCustomerChange, localDate, localInstant, localTime } from "./time";
 import type { createBookingSchema } from "./validation";
+import { scheduleBookingReminders, cancelBookingSchedules } from "@/lib/notification-scheduler";
+import { dispatchBookingPushNotifications } from "@/lib/push-notifications";
+
 export async function lockCompany(tx: DbExecutor, companyId: string) {
   await tx.execute(
     sql`SELECT id FROM companies WHERE id = ${companyId} FOR UPDATE`,
@@ -87,6 +90,7 @@ export async function bookingEvent(
   }
 
   if (event === "booking.created" || event === "booking.rescheduled") {
+    await scheduleBookingReminders(tx, booking);
     for (const hours of [24, 2]) {
       const dueAt = new Date(booking.startsAt.getTime() - hours * 3600000);
       if (dueAt > new Date()) {
@@ -107,7 +111,12 @@ export async function bookingEvent(
         }
       }
     }
+  } else if (event === "booking.cancelled") {
+    await cancelBookingSchedules(tx, booking.id);
   }
+
+  // Trigger push notifications asynchronously in background
+  void dispatchBookingPushNotifications(booking.id, event, actorId);
 }
 async function writeItems(
   tx: DbExecutor,

@@ -512,8 +512,69 @@ export default function ConfiguracoesScreen() {
             onPress={handleSave}
             disabled={saving}
           />
+
+          {/* Zona de Privacidade e Exclusão de Conta (App Store / Google Play Compliance) */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: radius.md,
+              padding: 16,
+              gap: 12,
+              marginTop: 8,
+            }}
+          >
+            <View className="flex-row items-center gap-2">
+              <Shield size={18} color={colors.textSecondary} />
+              <Text
+                style={{
+                  color: colors.textPrimary,
+                  fontSize: 15,
+                  fontWeight: "600",
+                }}
+              >
+                Privacidade e Conta
+              </Text>
+            </View>
+
+            <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 18 }}>
+              Em conformidade com a LGPD e diretrizes da App Store e Google Play, você pode solicitar a exclusão definitiva da sua conta e de todos os seus dados pessoais a qualquer momento.
+            </Text>
+
+            <Button
+              label="Excluir Minha Conta"
+              variant="danger"
+              onPress={() => {
+                Alert.alert(
+                  "Excluir Conta Definitivamente",
+                  "Esta ação é irreversível. Todos os seus dados, estabelecimentos vinculados e registros serão permanentemente removidos. Deseja continuar?",
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Sim, Excluir",
+                      style: "destructive",
+                      onPress: async () => {
+                        try {
+                          await fetch("/api/account/delete-request", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ confirmation: "EXCLUIR" }),
+                          });
+                          Alert.alert("Conta Excluída", "Sua conta foi excluída com sucesso.");
+                        } catch {
+                          Alert.alert("Erro", "Não foi possível concluir a exclusão. Entre em contato com o suporte.");
+                        }
+                      },
+                    },
+                  ]
+                );
+              }}
+            />
+          </View>
         </ScrollView>
       )}
     </Screen>
   );
 }
+

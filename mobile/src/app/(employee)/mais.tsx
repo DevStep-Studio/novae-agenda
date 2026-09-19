@@ -76,6 +76,50 @@ export default function EmployeeMoreScreen() {
             padding: 16,
             gap: 8,
           }}
+          onPress={() => router.push("/(employee)/notificacoes" as any)}
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2.5">
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: radius.sm,
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Bell size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text
+                  style={{
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: "600",
+                  }}
+                >
+                  Notificações
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                  Avisos de novos atendimentos e alterações
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </View>
+        </Pressable>
+
+        <Pressable
+          style={{
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: 1,
+            borderRadius: radius.md,
+            padding: 16,
+            gap: 8,
+          }}
           onPress={() => router.push("/(employee)/clientes")}
         >
           <View className="flex-row items-center justify-between">

@@ -68,6 +68,35 @@ export default function CustomerMoreScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 24 }}>
+        {/* Notificações */}
+        <Pressable
+          onPress={() => router.push("/(customer)/notificacoes" as any)}
+          style={{
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: 1,
+            borderRadius: radius.md,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <View className="flex-row items-center gap-3">
+            <Bell size={18} color={colors.primary} />
+            <Text
+              style={{
+                color: colors.textPrimary,
+                fontSize: 15,
+                fontWeight: "600",
+              }}
+            >
+              Notificações e Avisos
+            </Text>
+          </View>
+          <ChevronRight size={18} color={colors.textMuted} />
+        </Pressable>
+
         {/* Segurança do PIN */}
         <View
           style={{

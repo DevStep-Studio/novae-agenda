@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 import { getStaffSession, logout as apiLogout, type SessionInfo } from "./auth";
 import { clearSession, hasStoredSession, setUnauthorizedHandler } from "./api-client";
+import { registerForPushNotifications, unregisterPushNotifications } from "./push-notifications";
 
 interface SessionContextValue {
   session: SessionInfo | null;
@@ -22,6 +23,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const data = await getStaffSession();
       if (data && data.userId) {
         setSession(data);
+        // Register push token with backend for this user
+        void registerForPushNotifications();
         return data;
       }
       setSession(null);
@@ -35,6 +38,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       setSession(null);
+      void unregisterPushNotifications();
     });
     return () => {
       setUnauthorizedHandler(null);
@@ -55,6 +59,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
+      await unregisterPushNotifications();
+    } catch {
+      // Ignore errors unregistering push
+    }
+    try {
       await apiLogout();
     } catch {
       // Ignore network errors on logout
@@ -62,6 +71,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await clearSession();
     setSession(null);
   }, []);
+
 
   const value = useMemo(
     () => ({ session, loading, refresh, signOut }),

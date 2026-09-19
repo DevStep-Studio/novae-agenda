@@ -29,6 +29,7 @@ export default function CustomerLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="menu" color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="notificacoes" options={{ href: null }} />
     </Tabs>
   );
 }
