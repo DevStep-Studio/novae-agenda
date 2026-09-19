@@ -1,6 +1,8 @@
+import { ActivityIndicator, View } from "react-native";
 import { Redirect } from "expo-router";
 
 import { useSession } from "@/lib/session-context";
+import { colors } from "@/constants/design-tokens";
 
 /**
  * Root redirect gate. Mirrors targetPortal from GET /api/auth/session (the same
@@ -8,7 +10,15 @@ import { useSession } from "@/lib/session-context";
  * area) — see src/shared/types.ts `SessionInfo.targetPortal` in the root project.
  */
 export default function Index() {
-  const { session } = useSession();
+  const { session, loading } = useSession();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   if (!session) return <Redirect href="/(auth)/login" />;
 
@@ -22,10 +32,7 @@ export default function Index() {
     case "client":
       return <Redirect href="/(customer)" />;
     default:
-      // superadmin: the mobile app doesn't implement the platform ops console —
-      // it's desktop-only tooling (see Section 0 exception for the Page Builder;
-      // same reasoning applies here). Fall back to the customer view rather than
-      // a dead end.
+      // superadmin or fallback
       return <Redirect href="/(customer)" />;
   }
 }

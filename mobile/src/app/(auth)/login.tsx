@@ -79,9 +79,17 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await loginStaff(email.trim(), password);
-      await refresh();
-      router.replace("/");
+      const res = await loginStaff(email.trim(), password);
+      const newSession = await refresh();
+
+      const role = newSession?.role || res?.role;
+      if (role === "employee") {
+        router.replace("/(employee)");
+      } else if (role === "client") {
+        router.replace("/(customer)");
+      } else {
+        router.replace("/(owner)");
+      }
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -123,9 +131,17 @@ export default function LoginScreen() {
         confirmPassword,
         accountType: "professional",
       });
-      await loginStaff(email.trim(), password);
-      await refresh();
-      router.replace("/");
+      const res = await loginStaff(email.trim(), password);
+      const newSession = await refresh();
+
+      const role = newSession?.role || res?.role;
+      if (role === "employee") {
+        router.replace("/(employee)");
+      } else if (role === "client") {
+        router.replace("/(customer)");
+      } else {
+        router.replace("/(owner)");
+      }
     } catch (err) {
       setError(
         err instanceof ApiError

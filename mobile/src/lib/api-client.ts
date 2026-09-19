@@ -39,20 +39,26 @@ const Store = Platform.OS === "web"
 
 import Constants from "expo-constants";
 
-function resolveApiBaseUrl(): string {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
-  }
-
-  // In development, auto-detect the host machine IP where Metro is running
+export function resolveApiBaseUrl(): string {
+  // In development (Metro / Expo Go), auto-detect the host machine IP where Metro is running
   if (__DEV__) {
-    const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+    const hostUri =
+      Constants.expoConfig?.hostUri ||
+      (Constants as any).manifest2?.extra?.expoClient?.hostUri ||
+      (Constants as any).manifest?.debuggerHost;
     if (hostUri) {
       const host = hostUri.split(":")[0];
       if (host && host !== "localhost" && host !== "127.0.0.1") {
         return `http://${host}:3000`;
       }
     }
+  }
+
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+
+  if (__DEV__) {
     if (Platform.OS === "android") {
       return "http://10.0.2.2:3000";
     }
@@ -126,15 +132,38 @@ type ApiOptions = RequestInit & { skipAuth?: boolean };
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const cookie = await loadStoredCookie();
   const { skipAuth, ...init } = options;
+  const baseUrl = resolveApiBaseUrl();
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      ...(cookie && !skipAuth ? { cookie } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 15000);
+
+  let res: Response;
+  try {
+    res = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      signal: init.signal || controller.signal,
+      headers: {
+        "content-type": "application/json",
+        ...(cookie && !skipAuth ? { cookie } : {}),
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (fetchError: any) {
+    if (fetchError?.name === "AbortError") {
+      throw new ApiError(
+        `Tempo limite esgotado ao conectar com o servidor (${baseUrl}). Verifique se o backend está ligado na mesma rede Wi-Fi.`,
+        408
+      );
+    }
+    throw new ApiError(
+      `Falha na conexão com o servidor (${baseUrl}). Verifique se seu celular e computador estão na mesma rede Wi-Fi.`,
+      0
+    );
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const setCookieHeader = res.headers.get("set-cookie");
   if (setCookieHeader) {
