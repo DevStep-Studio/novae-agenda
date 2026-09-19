@@ -70,14 +70,10 @@ export default function AvaliacoesScreen() {
   }, [data]);
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Avaliações dos Clientes"
-          company="Feedbacks e notas"
-        />
-      </View>
-
+    <Screen
+      header={<TopBar title="Avaliações dos Clientes" company="Feedbacks e notas" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -91,7 +87,7 @@ export default function AvaliacoesScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 16 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

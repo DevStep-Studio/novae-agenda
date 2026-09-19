@@ -155,11 +155,10 @@ export default function AssinaturaScreen() {
     sub?.isLifetime || sub?.plan?.toLowerCase().includes("vitalicia");
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar title="Assinatura & Planos" company="Reservei SaaS" />
-      </View>
-
+    <Screen
+      header={<TopBar title="Assinatura & Planos" company="Reservei SaaS" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -173,7 +172,7 @@ export default function AssinaturaScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 20 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 20 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

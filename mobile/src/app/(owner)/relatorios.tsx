@@ -79,16 +79,12 @@ export default function RelatoriosScreen() {
     data?.byMethod?.reduce((acc, curr) => acc + curr.total, 0) || 1;
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Relatórios & Analytics"
-          company="Performance do negócio"
-        />
-      </View>
-
+    <Screen
+      header={<TopBar title="Relatórios & Analytics" company="Performance do negócio" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {/* Seletor de Período */}
-      <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+      <View style={{ marginBottom: 12 }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -137,7 +133,7 @@ export default function RelatoriosScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 18 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

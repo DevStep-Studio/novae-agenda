@@ -2,6 +2,7 @@ import { BarChart3, ReceiptText, TrendingUp, WalletCards } from "lucide-react-na
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 
+import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -121,7 +122,7 @@ export default function FinanceiroScreen() {
   const maxRevenue = teamRanking[0]?.revenue ?? 0;
 
   return (
-    <Screen header={<TopBar title="Financeiro" company={session?.company.name} />} style={{ paddingTop: 16 }}>
+    <Screen header={<TopBar title="Financeiro" company={session?.company.name} showBack={true} />} style={{ paddingTop: 16 }}>
       <View>
         <Text style={{ color: colors.primary, ...typography.eyebrow }}>VISÃO FINANCEIRA</Text>
         <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Financeiro</Text>
@@ -135,8 +136,9 @@ export default function FinanceiroScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center p-6 gap-3">
           <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+          <Button label="Tentar novamente" onPress={load} />
         </View>
       ) : (
         <ScrollView

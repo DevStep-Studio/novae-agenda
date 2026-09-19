@@ -82,14 +82,10 @@ export default function ClubesScreen() {
     .reduce((acc, m) => acc + (Number(m.monthlyPriceSnapshot) || 0), 0);
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Clubes de Assinatura"
-          company="Mensalistas e recorrência"
-        />
-      </View>
-
+    <Screen
+      header={<TopBar title="Clubes de Assinatura" company="Mensalistas e recorrência" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -103,7 +99,7 @@ export default function ClubesScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 16 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

@@ -47,7 +47,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const signOut = useCallback(async () => {
-    await apiLogout();
+    try {
+      await apiLogout();
+    } catch {
+      // Ignore network errors on logout
+    }
     setSession(null);
   }, []);
 

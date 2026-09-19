@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 
+import { Button } from "@/components/ui/button";
 import { ClientCard } from "@/components/ui/client-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
@@ -96,8 +97,9 @@ export default function ClientesScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center p-6 gap-3">
           <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+          <Button label="Tentar novamente" onPress={() => load(query)} />
         </View>
       ) : (
         <ScrollView

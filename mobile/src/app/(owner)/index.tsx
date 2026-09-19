@@ -2,6 +2,7 @@ import { CalendarDays, CircleDollarSign, TrendingUp, Users, WalletCards } from "
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 
+import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
@@ -9,13 +10,14 @@ import { colors, typography } from "@/constants/design-tokens";
 import { ApiError } from "@/lib/api-client";
 import { formatBRL, getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
+import { router } from "expo-router";
 
 // KPI set, order, icons and copy mirror app-shell.tsx:417-458 (`.metrics-grid`)
 // exactly — including "Receita pendente", which the web computes client-side
 // as max(0, forecast - realized) (app-shell.tsx:318) rather than reading it
 // from the API, so this screen does the same instead of calling a new endpoint.
 export default function OwnerHomeScreen() {
-  const { session } = useSession();
+  const { session, signOut } = useSession();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export default function OwnerHomeScreen() {
   const forecast = stats?.today.forecast ?? 0;
   const realized = stats?.today.realized ?? 0;
   const pendingAmount = Math.max(0, forecast - realized);
+  const isAuthError = error && (error.toLowerCase().includes("expirou") || error.toLowerCase().includes("sessão") || error.toLowerCase().includes("autenticação"));
 
   return (
     <Screen header={<TopBar title="Visão geral" company={session?.company.name} />} style={{ paddingTop: 16 }}>
@@ -60,8 +63,19 @@ export default function OwnerHomeScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center">
-          <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+        <View className="flex-1 items-center justify-center p-6 gap-4">
+          <Text style={{ color: colors.textSecondary, textAlign: "center", fontSize: 14 }}>{error}</Text>
+          {isAuthError ? (
+            <Button
+              label="Fazer login novamente"
+              onPress={async () => {
+                await signOut();
+                router.replace("/(auth)/login");
+              }}
+            />
+          ) : (
+            <Button label="Tentar novamente" onPress={load} />
+          )}
         </View>
       ) : (
         <ScrollView

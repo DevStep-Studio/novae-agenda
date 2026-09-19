@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
+import { Button } from "@/components/ui/button";
 import { AppointmentCard } from "@/components/ui/appointment-card";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
@@ -137,8 +138,9 @@ export default function AgendaScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center p-6 gap-3">
           <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+          <Button label="Tentar novamente" onPress={() => load(selectedDate)} />
         </View>
       ) : appointments && appointments.length === 0 ? (
         <View className="flex-1 items-center justify-center gap-1 py-16">

@@ -100,14 +100,10 @@ export default function NotificacoesScreen() {
   }
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Notificações"
-          company="Central de avisos"
-        />
-      </View>
-
+    <Screen
+      header={<TopBar title="Notificações" company="Central de avisos" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -121,7 +117,7 @@ export default function NotificacoesScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 12 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 12 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

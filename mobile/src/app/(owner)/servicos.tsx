@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
+import { Button } from "@/components/ui/button";
 import { ServiceCard } from "@/components/ui/service-card";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
@@ -56,7 +57,7 @@ export default function ServicosScreen() {
   }, [services, filter]);
 
   return (
-    <Screen header={<TopBar title="Serviços" company={session?.company.name} />} style={{ paddingTop: 16 }}>
+    <Screen header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />} style={{ paddingTop: 16 }}>
       <View>
         <Text style={{ color: colors.primary, ...typography.eyebrow }}>CATÁLOGO DE SERVIÇOS</Text>
         <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Serviços Avulsos</Text>
@@ -70,8 +71,9 @@ export default function ServicosScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center p-6 gap-3">
           <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+          <Button label="Tentar novamente" onPress={load} />
         </View>
       ) : (
         <ScrollView className="flex-1 mt-4" contentContainerClassName="gap-4 pb-6">

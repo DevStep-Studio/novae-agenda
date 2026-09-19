@@ -91,14 +91,10 @@ export default function ListaEsperaScreen() {
   const availableCount = entries.filter((e) => e.available).length;
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Lista de Espera"
-          company="Clientes aguardando vagas"
-        />
-      </View>
-
+    <Screen
+      header={<TopBar title="Lista de Espera" company="Clientes aguardando vagas" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -112,7 +108,7 @@ export default function ListaEsperaScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 16 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

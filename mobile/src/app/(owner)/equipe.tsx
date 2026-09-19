@@ -2,6 +2,7 @@ import { CalendarDays, CircleDollarSign, TrendingUp, Users } from "lucide-react-
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
 
+import { Button } from "@/components/ui/button";
 import { EmployeeCard, type EmployeeMetrics } from "@/components/ui/employee-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
@@ -112,7 +113,7 @@ export default function EquipeScreen() {
     }, [employees, metricsByEmployee]);
 
   return (
-    <Screen header={<TopBar title="Equipe" company={session?.company.name} />} style={{ paddingTop: 16 }}>
+    <Screen header={<TopBar title="Equipe" company={session?.company.name} showBack={true} />} style={{ paddingTop: 16 }}>
       <View>
         <Text style={{ color: colors.primary, ...typography.eyebrow }}>PESSOAS E PERMISSÕES</Text>
         <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Equipe</Text>
@@ -126,8 +127,9 @@ export default function EquipeScreen() {
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 items-center justify-center p-6 gap-3">
           <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+          <Button label="Tentar novamente" onPress={load} />
         </View>
       ) : (
         <ScrollView

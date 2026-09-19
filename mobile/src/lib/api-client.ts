@@ -175,6 +175,9 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
+    if (res.status === 401) {
+      await persistCookie(null);
+    }
     const message = body?.error ?? "Não foi possível concluir a operação. Tente novamente.";
     throw new ApiError(message, res.status, body?.code);
   }

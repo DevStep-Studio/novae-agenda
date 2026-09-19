@@ -16,6 +16,13 @@ import { bottomNav } from "@/constants/design-tokens";
 // renders honestly with the real routes and is built to take the FAB once
 // appointment creation lands (see MOBILE_DESIGN_SYSTEM.md).
 export function BottomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+  const visibleRoutes = state.routes.filter((route) => {
+    const { options } = descriptors[route.key];
+    if ((options as any).href === null) return false;
+    if (typeof options.tabBarIcon !== "function") return false;
+    return true;
+  });
+
   return (
     <View
       className="flex-row items-center justify-around border-t"
@@ -26,10 +33,10 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
         borderTopColor: bottomNav.borderTopColor,
       }}
     >
-      {state.routes.map((route, index) => {
+      {visibleRoutes.map((route) => {
         const { options } = descriptors[route.key];
         const label = options.title ?? route.name;
-        const focused = state.index === index;
+        const focused = state.routes[state.index]?.key === route.key;
         const color = focused ? bottomNav.itemActiveColor : bottomNav.itemInactiveColor;
 
         return (

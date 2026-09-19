@@ -34,6 +34,16 @@ export default function OwnerLayout() {
           tabBarIcon: ({ color, size }) => <Menu color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="assinatura" options={{ href: null }} />
+      <Tabs.Screen name="avaliacoes" options={{ href: null }} />
+      <Tabs.Screen name="clubes" options={{ href: null }} />
+      <Tabs.Screen name="configuracoes" options={{ href: null }} />
+      <Tabs.Screen name="equipe" options={{ href: null }} />
+      <Tabs.Screen name="financeiro" options={{ href: null }} />
+      <Tabs.Screen name="lista-espera" options={{ href: null }} />
+      <Tabs.Screen name="notificacoes" options={{ href: null }} />
+      <Tabs.Screen name="relatorios" options={{ href: null }} />
+      <Tabs.Screen name="servicos" options={{ href: null }} />
     </Tabs>
   );
 }

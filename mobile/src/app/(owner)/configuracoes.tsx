@@ -155,14 +155,10 @@ export default function ConfiguracoesScreen() {
   }
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Configurações & Perfil"
-          company="Dados do estabelecimento"
-        />
-      </View>
-
+    <Screen
+      header={<TopBar title="Configurações & Perfil" company="Dados do estabelecimento" showBack={true} />}
+      style={{ paddingTop: 16 }}
+    >
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -176,7 +172,7 @@ export default function ConfiguracoesScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40, gap: 20 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 20 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
