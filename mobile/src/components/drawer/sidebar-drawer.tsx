@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChevronDown,
   Globe,
+  HelpCircle,
   Home,
   LogOut,
   Settings2,
@@ -158,6 +159,13 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
       label: "Configurações",
       icon: Settings2,
       path: "/(owner)/configuracoes",
+      badge: null,
+    },
+    {
+      id: "ajuda",
+      label: "Ajuda & Suporte",
+      icon: HelpCircle,
+      path: "/(owner)/ajuda",
       badge: null,
     },
   ];

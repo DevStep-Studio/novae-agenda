@@ -51,6 +51,7 @@ export default function OwnerLayout() {
           tabBarIcon: ({ color, size }) => <Menu color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="ajuda" options={{ href: null }} />
       <Tabs.Screen name="assinatura" options={{ href: null }} />
       <Tabs.Screen name="avaliacoes" options={{ href: null }} />
       <Tabs.Screen name="clubes" options={{ href: null }} />

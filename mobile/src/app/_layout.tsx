@@ -19,6 +19,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import "@/global.css";
 import { SessionProvider, useSession } from "@/lib/session-context";
 import { setupNotificationListeners } from "@/lib/push-notifications";
+import { OfflineBanner } from "@/components/ui/offline-banner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -75,13 +76,16 @@ function RootNavigator() {
   if (!ready) return null;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(owner)" />
-      <Stack.Screen name="(employee)" />
-      <Stack.Screen name="(customer)" />
-    </Stack>
+    <>
+      <OfflineBanner />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(owner)" />
+        <Stack.Screen name="(employee)" />
+        <Stack.Screen name="(customer)" />
+      </Stack>
+    </>
   );
 }
 

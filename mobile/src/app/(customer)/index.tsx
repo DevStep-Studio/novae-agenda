@@ -1,6 +1,7 @@
 import {
   Calendar,
   CalendarDays,
+  CalendarPlus,
   Clock,
   MapPin,
   MessageCircle,
@@ -10,6 +11,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Linking,
   Pressable,
@@ -26,6 +28,7 @@ import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { getMyBookings, type MyBooking } from "@/lib/my-bookings";
+import { addBookingToNativeCalendar } from "@/lib/native-calendar";
 import { formatBRL } from "@/lib/stats";
 
 const STATUS_CONFIG: Record<
@@ -74,6 +77,41 @@ export default function MyBookingsScreen() {
     setRefreshing(true);
     await load();
     setRefreshing(false);
+  }
+
+  async function handleAddToCalendar(booking: MyBooking) {
+    const first = booking.items[0];
+    if (!first) return;
+
+    try {
+      // Parse ISO or YYYY-MM-DD + HH:mm
+      const [year, month, day] = first.date.split("-").map(Number);
+      const [hour, min] = first.startTime.split(":").map(Number);
+      const startDate = new Date(year, month - 1, day, hour, min, 0);
+      const endDate = new Date(startDate.getTime() + (first.durationMinutes || 45) * 60 * 1000);
+
+      const res = await addBookingToNativeCalendar({
+        title: `${first.name} - ${booking.company.name}`,
+        startDate,
+        endDate,
+        location: booking.company.address || undefined,
+        notes: `Agendamento no ${booking.company.name}\nServiço: ${first.name}\nProfissional: ${first.employeeName || "Não especificado"}`,
+      });
+
+      if (res.success) {
+        Alert.alert(
+          "Calendário Sincronizado",
+          "O agendamento foi adicionado à sua agenda com lembretes automáticos!"
+        );
+      } else {
+        Alert.alert(
+          "Permissão Necessária",
+          "Não foi possível acessar o calendário. Verifique as permissões do aplicativo nas configurações do aparelho."
+        );
+      }
+    } catch {
+      Alert.alert("Erro", "Não foi possível adicionar o evento ao calendário.");
+    }
   }
 
   function handleOpenWhatsApp(companyPhone?: string | null, companyName?: string) {
@@ -241,36 +279,66 @@ export default function MyBookingsScreen() {
                   </View>
                 )}
 
-                {/* Botão de Contato WhatsApp com Estabelecimento */}
-                {item.company.phone && (
-                  <Pressable
-                    onPress={() =>
-                      handleOpenWhatsApp(item.company.phone, item.company.name)
-                    }
-                    style={{
-                      backgroundColor: colors.surfaceSecondary,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      height: 38,
-                      borderRadius: radius.sm,
-                    }}
-                  >
-                    <WhatsAppIcon size={16} color="#25D366" />
-                    <Text
+                {/* Ações: Calendário e Contato WhatsApp */}
+                <View className="gap-2">
+                  {(item.status === "scheduled" || item.status === "confirmed") && (
+                    <Pressable
+                      onPress={() => handleAddToCalendar(item)}
                       style={{
-                        color: colors.textPrimary,
-                        fontWeight: "600",
-                        fontSize: 13,
+                        backgroundColor: colors.surfaceSecondary,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        height: 38,
+                        borderRadius: radius.sm,
                       }}
                     >
-                      Falar com {item.company.name}
-                    </Text>
-                  </Pressable>
-                )}
+                      <CalendarPlus size={16} color={colors.primary} />
+                      <Text
+                        style={{
+                          color: colors.textPrimary,
+                          fontWeight: "600",
+                          fontSize: 13,
+                        }}
+                      >
+                        Adicionar ao Calendário do Celular
+                      </Text>
+                    </Pressable>
+                  )}
+
+                  {item.company.phone && (
+                    <Pressable
+                      onPress={() =>
+                        handleOpenWhatsApp(item.company.phone, item.company.name)
+                      }
+                      style={{
+                        backgroundColor: colors.surfaceSecondary,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        height: 38,
+                        borderRadius: radius.sm,
+                      }}
+                    >
+                      <WhatsAppIcon size={16} color="#25D366" />
+                      <Text
+                        style={{
+                          color: colors.textPrimary,
+                          fontWeight: "600",
+                          fontSize: 13,
+                        }}
+                      >
+                        Falar com {item.company.name}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             );
           }}

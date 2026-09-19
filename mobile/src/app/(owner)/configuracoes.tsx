@@ -4,6 +4,7 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Fingerprint,
   Globe,
   MapPin,
   Phone,
@@ -21,6 +22,7 @@ import {
   RefreshControl,
   ScrollView,
   Share,
+  Switch,
   Text,
   TextInput,
   View,
@@ -31,6 +33,12 @@ import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { ApiError } from "@/lib/api-client";
+import {
+  isBiometricsSupported,
+  isBiometricsEnabled,
+  setBiometricsEnabled,
+  promptBiometricAuth,
+} from "@/lib/biometrics";
 import {
   getCompanyProfile,
   getCompanySettings,
@@ -59,15 +67,24 @@ export default function ConfiguracoesScreen() {
   const [minLeadMinutes, setMinLeadMinutes] = useState("60");
   const [cancellationHours, setCancellationHours] = useState("2");
 
+  // Biometrics & App Settings
+  const [biometricsAvailable, setBiometricsAvailable] = useState(false);
+  const [biometricsEnabledState, setBiometricsEnabledState] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(true);
+
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [prof, sett] = await Promise.all([
+      const [prof, sett, bioSupp, bioEn] = await Promise.all([
         getCompanyProfile(),
         getCompanySettings(),
+        isBiometricsSupported(),
+        isBiometricsEnabled(),
       ]);
       setProfile(prof);
       setSettings(sett);
+      setBiometricsAvailable(bioSupp);
+      setBiometricsEnabledState(bioEn);
 
       if (prof) {
         setName(prof.name || "");
@@ -90,6 +107,22 @@ export default function ConfiguracoesScreen() {
       );
     }
   }, []);
+
+  async function handleToggleBiometrics(val: boolean) {
+    if (val) {
+      const authenticated = await promptBiometricAuth("Confirme para ativar a biometria");
+      if (authenticated) {
+        await setBiometricsEnabled(true);
+        setBiometricsEnabledState(true);
+        Alert.alert("Biometria Ativada", "Você agora pode desbloquear o Reservei usando sua biometria.");
+      } else {
+        setBiometricsEnabledState(false);
+      }
+    } else {
+      await setBiometricsEnabled(false);
+      setBiometricsEnabledState(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -503,6 +536,93 @@ export default function ConfiguracoesScreen() {
                   }}
                 />
               </View>
+            </View>
+          </View>
+
+          {/* Segurança & Biometria (P1 Item 6) */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: radius.md,
+              padding: 16,
+              gap: 12,
+            }}
+          >
+            <View className="flex-row items-center gap-2">
+              <Fingerprint size={18} color={colors.primary} />
+              <Text
+                style={{
+                  color: colors.textPrimary,
+                  fontSize: 16,
+                  fontFamily: fontFamily.display,
+                }}
+              >
+                Segurança & Acesso Rápido
+              </Text>
+            </View>
+
+            <View className="flex-row items-center justify-between">
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600" }}>
+                  Desbloqueio com Face ID / Biometria
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {biometricsAvailable
+                    ? "Acesse sua conta com segurança usando o leitor biométrico do dispositivo."
+                    : "Biometria não configurada ou não disponível neste aparelho."}
+                </Text>
+              </View>
+              <Switch
+                value={biometricsEnabledState}
+                onValueChange={handleToggleBiometrics}
+                disabled={!biometricsAvailable}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
+
+          {/* Preferências de Notificação (P1 Item 8) */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderWidth: 1,
+              borderRadius: radius.md,
+              padding: 16,
+              gap: 12,
+            }}
+          >
+            <View className="flex-row items-center gap-2">
+              <Sliders size={18} color={colors.primary} />
+              <Text
+                style={{
+                  color: colors.textPrimary,
+                  fontSize: 16,
+                  fontFamily: fontFamily.display,
+                }}
+              >
+                Preferências de Notificação
+              </Text>
+            </View>
+
+            <View className="flex-row items-center justify-between">
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600" }}>
+                  Notificações Push
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  Receba avisos imediatos de novas reservas, reagendamentos e cancelamentos.
+                </Text>
+              </View>
+              <Switch
+                value={pushEnabled}
+                onValueChange={setPushEnabled}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
             </View>
           </View>
 
