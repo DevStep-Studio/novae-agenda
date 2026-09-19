@@ -67,6 +67,50 @@ export default function EmployeeMoreScreen() {
       </View>
 
       <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 24 }}>
+        <Pressable
+          style={{
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: 1,
+            borderRadius: radius.md,
+            padding: 16,
+            gap: 8,
+          }}
+          onPress={() => router.push("/(employee)/clientes")}
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2.5">
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: radius.sm,
+                  backgroundColor: colors.primarySoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <User size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text
+                  style={{
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: "600",
+                  }}
+                >
+                  Base de Clientes
+                </Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                  Consulte a lista de clientes, contatos e histórico
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </View>
+        </Pressable>
+
         <View
           style={{
             backgroundColor: colors.surface,

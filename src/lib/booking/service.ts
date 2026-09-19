@@ -223,12 +223,102 @@ export async function createBooking(
       .where(
         and(eq(clients.companyId, company.id), eq(clients.userId, user.id)),
       );
-    // Never claim an existing CRM record merely by matching a self-reported phone or email.
-    if (!client) {
-      const newClientId = crypto.randomUUID();
-      await tx
-        .insert(clients)
-        .values({
+    if (client) {
+      const needsUpdate =
+        !client.active ||
+        client.deletedAt !== null ||
+        (user.name && client.name !== user.name) ||
+        (phone && client.phone !== phone) ||
+        (user.email && client.email !== user.email) ||
+        (user.avatarUrl && client.photoUrl !== user.avatarUrl);
+
+      if (needsUpdate) {
+        await tx
+          .update(clients)
+          .set({
+            name: user.name || client.name,
+            phone: phone || client.phone,
+            email: user.email || client.email,
+            photoUrl: user.avatarUrl || client.photoUrl,
+            active: true,
+            deletedAt: null,
+            deletedBy: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(clients.id, client.id));
+
+        client = {
+          ...client,
+          name: user.name || client.name,
+          phone: phone || client.phone,
+          email: user.email || client.email,
+          photoUrl: user.avatarUrl || client.photoUrl,
+          active: true,
+          deletedAt: null,
+          deletedBy: null,
+          updatedAt: new Date(),
+        };
+      }
+    } else {
+      const companyClients = await tx
+        .select()
+        .from(clients)
+        .where(eq(clients.companyId, company.id));
+
+      const phoneNormalized = normalizePhoneDigits(phone);
+      const matchedUnlinked = companyClients.find(
+        (c) =>
+          c.phone &&
+          normalizePhoneDigits(c.phone) === phoneNormalized &&
+          (!c.userId || c.userId === user.id),
+      );
+
+      if (matchedUnlinked) {
+        await tx
+          .update(clients)
+          .set({
+            userId: user.id,
+            name: user.name || matchedUnlinked.name,
+            phone: phone || matchedUnlinked.phone,
+            email: user.email || matchedUnlinked.email,
+            photoUrl: user.avatarUrl || matchedUnlinked.photoUrl,
+            active: true,
+            deletedAt: null,
+            deletedBy: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(clients.id, matchedUnlinked.id));
+
+        client = {
+          ...matchedUnlinked,
+          userId: user.id,
+          name: user.name || matchedUnlinked.name,
+          phone: phone || matchedUnlinked.phone,
+          email: user.email || matchedUnlinked.email,
+          photoUrl: user.avatarUrl || matchedUnlinked.photoUrl,
+          active: true,
+          deletedAt: null,
+          deletedBy: null,
+          updatedAt: new Date(),
+        };
+      } else {
+        const newClientId = crypto.randomUUID();
+        const createdAt = new Date();
+        await tx
+          .insert(clients)
+          .values({
+            id: newClientId,
+            companyId: company.id,
+            userId: user.id,
+            name: user.name,
+            email: user.email,
+            phone,
+            photoUrl: user.avatarUrl,
+            active: true,
+            createdAt,
+            updatedAt: createdAt,
+          });
+        client = {
           id: newClientId,
           companyId: company.id,
           userId: user.id,
@@ -236,24 +326,16 @@ export async function createBooking(
           email: user.email,
           phone,
           photoUrl: user.avatarUrl,
-        });
-      client = {
-        id: newClientId,
-        companyId: company.id,
-        userId: user.id,
-        name: user.name,
-        email: user.email,
-        phone,
-        photoUrl: user.avatarUrl,
-        document: null,
-        notes: null,
-        internalNotes: null,
-        active: true,
-        deletedAt: null,
-        deletedBy: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+          document: null,
+          notes: null,
+          internalNotes: null,
+          active: true,
+          deletedAt: null,
+          deletedBy: null,
+          createdAt,
+          updatedAt: createdAt,
+        };
+      }
     }
     const quote = await quoteBooking(
       company,

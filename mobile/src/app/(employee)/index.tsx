@@ -16,6 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -50,17 +51,19 @@ export default function EmployeeAgendaScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      await load();
-      if (!cancelled) setLoading(false);
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      async function run() {
+        await load();
+        if (!cancelled) setLoading(false);
+      }
+      run();
+      return () => {
+        cancelled = true;
+      };
+    }, [load])
+  );
 
   async function onRefresh() {
     setRefreshing(true);

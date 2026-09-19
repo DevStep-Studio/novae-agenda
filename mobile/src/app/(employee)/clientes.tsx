@@ -13,14 +13,7 @@ import { getClients, isFrequentOrVip, type ClientDTO } from "@/lib/clients";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 
-// Mirrors ClientsPage in app-shell.tsx:864-994 — header, the 4-card metrics
-// grid (exact same KPI copy/order/icons as the web), search, then the list
-// (default-sorted by visits desc, matching the web's default `sortBy`).
-//
-// Not ported yet (see MOBILE_DESIGN_SYSTEM.md): the 6-way segment tabs
-// (Todos/Mensalistas/Frequentes/Novos/Com agendamento/Sem retorno), the sort
-// dropdown, and "Novo cliente" (client creation doesn't exist in mobile yet).
-export default function ClientesScreen() {
+export default function EmployeeClientesScreen() {
   const { session } = useSession();
   const [clients, setClients] = useState<ClientDTO[] | null>(null);
   const [query, setQuery] = useState("");
@@ -58,9 +51,7 @@ export default function ClientesScreen() {
     setRefreshing(false);
   }
 
-  // Debounced server-side search, matching GET /api/clients?q= (app-shell.tsx
-  // does this client-side since it already holds the full list in a store;
-  // this screen re-fetches instead of holding an unbounded client list).
+  // Debounced server-side search matching GET /api/clients?q=
   useEffect(() => {
     const handle = setTimeout(() => {
       load(query);
@@ -87,7 +78,7 @@ export default function ClientesScreen() {
         <Text style={{ color: colors.primary, ...typography.eyebrow }}>BASE DE RELACIONAMENTO</Text>
         <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Clientes</Text>
         <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-          {totalClients} {totalClients === 1 ? "pessoa já faz" : "pessoas já fazem"} parte da sua história.
+          {totalClients} {totalClients === 1 ? "pessoa cadastrada" : "pessoas cadastradas"} no estabelecimento.
         </Text>
       </View>
 
@@ -159,7 +150,9 @@ export default function ClientesScreen() {
               <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: "600" }}>
                 Nenhum cliente encontrado
               </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13 }}>Tente buscar por outro termo.</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                Novas reservas e clientes aparecerão automaticamente aqui.
+              </Text>
             </View>
           ) : (
             <View className="gap-3">
