@@ -396,10 +396,13 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
   const renderStatusBadge = (owner: any) => {
     const isDeleted = Boolean(owner.deletedAt);
     const subStatus = owner.subscriptionStatus || owner.subscription?.status;
+    const isLifetime = owner.billingInterval === "lifetime" || owner.plan === "vitalicia" || subStatus === "vitalicia";
+    const isYearly = owner.billingInterval === "yearly" || owner.plan === "anual" || owner.plan === "pro_yearly";
     const isSuspended = subStatus === "suspended" || owner.publicEnabled === false;
     const isTrial = subStatus === "trialing";
     const isExpired =
       subStatus === "expired" ||
+      subStatus === "past_due" ||
       (isTrial && owner.trialEndsAt && new Date(owner.trialEndsAt) < new Date());
 
     if (isDeleted) {
@@ -416,31 +419,49 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
         </span>
       );
     }
+    if (isLifetime) {
+      return (
+        <span
+          className={styles.statusPill}
+          style={{
+            background: "rgba(220, 255, 76, 0.15)",
+            color: "#dcff4c",
+            border: "1px solid rgba(220, 255, 76, 0.4)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontWeight: 700,
+          }}
+        >
+          <Sparkles size={11} /> Vitalícia
+        </span>
+      );
+    }
     if (isExpired) {
       return (
         <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
-          Trial Expirado
+          Vencida
         </span>
       );
     }
     if (isTrial) {
       return (
         <span className={`${styles.statusPill} ${styles.statusTrial}`}>
-          Teste Gratuito
+          Teste (15d)
         </span>
       );
     }
     if (subStatus === "active") {
       return (
         <span className={`${styles.statusPill} ${styles.statusActive}`}>
-          <CheckCircle2 size={11} /> Ativa
+          <CheckCircle2 size={11} /> {isYearly ? "Ativa (Anual)" : "Ativa"}
         </span>
       );
     }
-    if (subStatus === "pending" || subStatus === "past_due") {
+    if (subStatus === "pending") {
       return (
         <span className={`${styles.statusPill} ${styles.statusTrial}`}>
-          Pagamento Pendente
+          Pendente
         </span>
       );
     }
@@ -453,7 +474,7 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
     }
     return (
       <span className={`${styles.statusPill} ${styles.statusDeleted}`}>
-        {subStatus || "Inativo"}
+        {subStatus || "Inativa"}
       </span>
     );
   };
@@ -521,9 +542,11 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
           >
             <option value="all">Todos os Status</option>
             <option value="active">Assinatura Ativa</option>
-            <option value="trial">Em Teste Gratuito</option>
-            <option value="trial_expired">Trial Expirado</option>
             <option value="pending_payment">Pagamento Pendente</option>
+            <option value="trial_expired">Vencidas / Expiradas</option>
+            <option value="vitalicia">Vitalícias</option>
+            <option value="anual">Anuais</option>
+            <option value="trial">Em Teste (15 dias)</option>
             <option value="suspended">Acesso Suspenso</option>
             <option value="cancelled">Cancelados</option>
             <option value="deleted">Excluídos (Soft Delete)</option>
@@ -980,8 +1003,10 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
                       value={newOwnerForm.planSlug}
                       onChange={(e) => setNewOwnerForm({ ...newOwnerForm, planSlug: e.target.value })}
                     >
-                      <option value="essencial">Essencial (até 2 prof.)</option>
+                      <option value="vitalicia">Vitalícia (Acesso Vitalício)</option>
+                      <option value="anual">Anual (Plano Anual)</option>
                       <option value="profissional">Profissional (até 5 prof.)</option>
+                      <option value="essencial">Essencial (até 2 prof.)</option>
                       <option value="equipe">Equipe (até 10 prof.)</option>
                       <option value="negocio">Negócio (até 20 prof.)</option>
                       <option value="empresa">Empresa (até 50 prof.)</option>
@@ -999,7 +1024,7 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
                       setNewOwnerForm({ ...newOwnerForm, accessType: e.target.value as any })
                     }
                   >
-                    <option value="trial">Iniciar Teste Gratuito (7 dias de degustação)</option>
+                    <option value="trial">Iniciar Teste Gratuito (15 dias de degustação)</option>
                     <option value="courtesy">Concessão Administrativa (Cortesia Sem Cobrança)</option>
                     <option value="pending">Aguardando Contratação (Status Pendente)</option>
                   </select>

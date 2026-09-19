@@ -146,7 +146,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
   });
 
   describe("1. Subscription Lifecycle & Paywall Engine", () => {
-    it("should provision a 7-day TRIAL subscription by default for new company", async () => {
+    it("should provision a 15-day TRIAL subscription by default for new company", async () => {
       const sub = await getCompanySubscription(testCompanyId);
       assert.ok(sub);
       assert.equal(sub.plan, "trial");
@@ -156,7 +156,7 @@ describe("SaaS Commercial Engine, Subscriptions & Reviews", () => {
       const daysLeft = Math.ceil(
         (new Date(sub.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
       );
-      assert.ok(daysLeft >= 6 && daysLeft <= 7, `Expected around 7 days, got ${daysLeft}`);
+      assert.ok(daysLeft >= 14 && daysLeft <= 15, `Expected around 15 days, got ${daysLeft}`);
 
       // assertSubscriptionActive should pass for active trial
       const check = await assertSubscriptionActive(testCompanyId);

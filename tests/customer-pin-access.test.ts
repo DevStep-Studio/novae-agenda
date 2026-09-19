@@ -343,15 +343,14 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
     // Cria um novo cliente para simular agendamento
     const newCustomerPhone = "(21) 97777-6666";
     const normCustomerPhone = "5521977776666";
-    const today = new Date().toISOString().slice(0, 10);
-    const bookingDate = shiftDate(today, 1);
+    const bookingDate = f.date;
 
     const booking = await createBooking(f.customers[1], {
       slug: f.company.publicSlug!,
       locationId: f.location.id,
-      items: [{ serviceId: f.services[0].id, employeeId: f.team[0].id }],
+      items: [{ serviceId: f.services[0].id, employeeId: f.team[1].id }],
       date: bookingDate,
-      startTime: "14:00",
+      startTime: "09:00",
       idempotencyKey: randomUUID(),
       products: [],
       intendedPaymentMethod: "pix",
@@ -391,7 +390,7 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
       locationId: f.location.id,
       items: [{ serviceId: f.services[0].id, employeeId: f.team[0].id }],
       date: bookingDate,
-      startTime: "15:00",
+      startTime: "14:30",
       idempotencyKey: randomUUID(),
       products: [],
       intendedPaymentMethod: "pix",
@@ -435,8 +434,8 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
       slug: f.company.publicSlug!,
       locationId: f.location.id,
       items: [{ serviceId: f.services[0].id, employeeId: f.team[0].id }],
-      date: shiftDate(new Date().toISOString().slice(0, 10), 1),
-      startTime: "16:00",
+      date: shiftDate(f.date, 3),
+      startTime: "09:00",
       idempotencyKey: randomUUID(),
       products: [],
       intendedPaymentMethod: "pix",

@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       request
     );
 
-    return Response.json({ success: true, ...result }, { status: 201 });
+    return Response.json(result, { status: 201 });
   } catch (error: any) {
     console.error("[Superadmin API Create User] Error:", error);
     return Response.json(

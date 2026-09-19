@@ -240,32 +240,53 @@ export function SubscriptionsTab() {
   };
 
   const renderStatusBadge = (sub: any) => {
+    const isLifetime = sub.billingInterval === "lifetime" || sub.plan === "vitalicia";
+    const isYearly = sub.billingInterval === "yearly" || sub.plan === "anual" || sub.plan === "pro_yearly";
     const isTrial = sub.status === "trialing";
     const isExpiredTrial =
       isTrial && sub.trialEndsAt && new Date(sub.trialEndsAt) < new Date();
 
-    if (isExpiredTrial || sub.status === "expired") {
+    if (isLifetime) {
+      return (
+        <span
+          className={styles.statusPill}
+          style={{
+            background: "rgba(220, 255, 76, 0.15)",
+            color: "#dcff4c",
+            border: "1px solid rgba(220, 255, 76, 0.4)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontWeight: 700,
+          }}
+        >
+          <Sparkles size={11} /> Vitalícia
+        </span>
+      );
+    }
+
+    if (isExpiredTrial || sub.status === "expired" || sub.status === "past_due") {
       return (
         <span className={`${styles.statusPill} ${styles.statusCancelled}`}>
-          Trial Expirado
+          Vencida
         </span>
       );
     }
     if (isTrial) {
       return (
         <span className={`${styles.statusPill} ${styles.statusTrial}`}>
-          Teste Gratuito
+          Teste (15 dias)
         </span>
       );
     }
     if (sub.status === "active") {
       return (
         <span className={`${styles.statusPill} ${styles.statusActive}`}>
-          Ativa
+          <CheckCircle2 size={11} /> {isYearly ? "Ativa (Anual)" : "Ativa"}
         </span>
       );
     }
-    if (sub.status === "pending" || sub.status === "past_due") {
+    if (sub.status === "pending") {
       return (
         <span className={`${styles.statusPill} ${styles.statusTrial}`}>
           Pendente
@@ -312,10 +333,13 @@ export function SubscriptionsTab() {
             }}
             className={styles.filterSelect}
           >
-            <option value="all">Todos os Status</option>
+            <option value="all">Todas as Assinaturas</option>
             <option value="active">Ativas</option>
-            <option value="trialing">Em Teste Gratuito</option>
-            <option value="pending">Pagamento Pendente</option>
+            <option value="pending">Pendentes</option>
+            <option value="vencida">Vencidas / Expiradas</option>
+            <option value="vitalicia">Vitalícias</option>
+            <option value="anual">Anuais</option>
+            <option value="trialing">Em Teste (15 dias)</option>
             <option value="suspended">Suspensas</option>
             <option value="cancelled">Canceladas</option>
           </select>
@@ -762,15 +786,32 @@ export function SubscriptionsTab() {
                     <select
                       className={styles.select}
                       value={editForm.plan}
-                      onChange={(e) => setEditForm({ ...editForm, plan: e.target.value })}
+                      onChange={(e) => {
+                        const newPlan = e.target.value;
+                        const isVit = newPlan === "vitalicia";
+                        const isAnu = newPlan === "anual";
+                        setEditForm({
+                          ...editForm,
+                          plan: newPlan,
+                          billingInterval: isVit ? ("lifetime" as any) : isAnu ? "yearly" : editForm.billingInterval,
+                          status: isVit ? "active" : editForm.status,
+                        });
+                        if (isVit) {
+                          handleExtendDays(36500); // 100 years
+                        } else if (isAnu) {
+                          handleExtendDays(365);
+                        }
+                      }}
                       disabled={savingEdit}
                     >
-                      <option value="trial">Trial (Teste Gratuito)</option>
+                      <option value="vitalicia">Vitalícia (Acesso Vitalício)</option>
+                      <option value="anual">Anual (Plano Anual)</option>
+                      <option value="profissional">Profissional (Mais popular)</option>
                       <option value="essencial">Essencial</option>
-                      <option value="profissional">Profissional</option>
                       <option value="equipe">Equipe</option>
                       <option value="negocio">Negócio</option>
                       <option value="empresa">Empresa / Enterprise</option>
+                      <option value="trial">Trial (15 dias de Teste)</option>
                     </select>
                   </div>
 
@@ -783,12 +824,12 @@ export function SubscriptionsTab() {
                       disabled={savingEdit}
                     >
                       <option value="active">Ativa</option>
-                      <option value="trialing">Teste Gratuito (Trialing)</option>
-                      <option value="pending">Pagamento Pendente</option>
+                      <option value="pending">Pendente (Aguardando Pagamento)</option>
                       <option value="past_due">Vencida / Atrasada (Past Due)</option>
+                      <option value="expired">Vencida / Expirada</option>
+                      <option value="trialing">Teste (15 dias de Teste)</option>
                       <option value="suspended">Suspensa Administrativamente</option>
                       <option value="cancelled">Cancelada</option>
-                      <option value="expired">Expirada</option>
                     </select>
                   </div>
 
@@ -802,6 +843,7 @@ export function SubscriptionsTab() {
                     >
                       <option value="monthly">Mensal</option>
                       <option value="yearly">Anual</option>
+                      <option value="lifetime">Vitalícia (Sem Renovação)</option>
                     </select>
                   </div>
 
@@ -898,7 +940,7 @@ export function SubscriptionsTab() {
                       onClick={() => handleExtendDays(90)}
                       disabled={savingEdit}
                     >
-                      +3 meses
+                      +90 dias
                     </button>
                     <button
                       type="button"

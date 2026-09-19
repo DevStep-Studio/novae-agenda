@@ -1,4 +1,4 @@
-export const TRIAL_DURATION_DAYS = 7;
+export const TRIAL_DURATION_DAYS = 15;
 export const TRIAL_DAY_MS = 24 * 60 * 60 * 1000;
 
 export type TrialTimelineState = "completed" | "current" | "future";
@@ -77,7 +77,7 @@ export function buildTrialStatus({ status, plan, startedAt, endsAt, serverNow }:
   const currentDay = Math.min(TRIAL_DURATION_DAYS, elapsedDays + 1);
   const isTrialStatus = status === "trialing";
   const isTrialPlan = !plan || plan === "trial" || plan === "teste";
-  const trialIsActive = !expired && isTrialStatus && isTrialPlan && remainingDays <= 14;
+  const trialIsActive = !expired && isTrialStatus && isTrialPlan && remainingDays <= 20;
   const countdown = formatTrialCountdown(remainingSeconds);
 
   return {

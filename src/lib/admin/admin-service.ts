@@ -1,17 +1,46 @@
-import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   adminAuditLogs,
+  appointmentHistory,
   appointments,
+  appointmentServices,
+  auditLogs,
+  authRateLimits,
+  authTokens,
+  bookingEvents,
+  bookingPageRevisions,
+  bookingPages,
+  bookingProducts,
+  bookings,
+  bookingWaitlist,
   clients,
   companies,
   companyMemberships,
+  companySettings,
+  coupons,
+  customerAccessLogs,
   customerCredentials,
+  customerMemberships,
+  employeeLocations,
   employees,
+  employeeSchedules,
+  employeeServices,
+  locations,
+  membershipPlanEmployees,
+  membershipPlans,
+  membershipPlanServices,
+  notificationLogs,
+  notifications,
   payments,
+  products,
+  reviews,
+  saasCouponPlans,
   saasCouponRedemptions,
   saasCoupons,
   saasPlans,
+  scheduleBlocks,
+  serviceCategories,
   services,
   subscriptionInvoices,
   subscriptions,
@@ -568,7 +597,7 @@ export class AdminService {
 
     let initialSubStatus = "trialing";
     let subOrigin = "checkout";
-    const trialEnds = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trialEnds = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
     const periodEnds = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     if (isCourtesy) {
@@ -643,14 +672,6 @@ export class AdminService {
         entityId: companyId,
         entityName: input.name,
         reason: input.reason || "Criação manual pelo Super Admin",
-        afterState: {
-          companyId,
-          userId,
-          email: cleanEmail,
-          plan: planSlug,
-          slug: finalSlug,
-          accessType: input.accessType || (isCourtesy ? "courtesy" : "trial"),
-        },
         request,
       });
     });
@@ -891,7 +912,7 @@ export class AdminService {
         const subId = crypto.randomUUID();
         const isCourtesy = input.accessType === "courtesy" || Boolean(input.grantCourtesy);
         const initialStatus = isCourtesy ? "active" : input.accessType === "pending" ? "pending" : "trialing";
-        const trialEnds = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const trialEnds = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
         const periodEnds = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
         await tx.insert(subscriptions).values({
@@ -921,34 +942,22 @@ export class AdminService {
         passwordHash,
         role: isSuperadmin ? "superadmin" : input.role,
         isSuperadmin,
-        adminRole: isSuperadmin ? "super_admin" : null,
         active: true,
         emailVerified: true,
         emailVerifiedAt: now,
       });
 
-      // Insert membership if associated with a company
-      if (targetCompanyId) {
+      // Insert Company Membership
+      if (targetCompanyId && input.role !== "superadmin") {
         await tx.insert(companyMemberships).values({
           userId,
           companyId: targetCompanyId,
-          role: input.role === "superadmin" ? "owner" : input.role,
+          role: input.role,
           active: true,
         });
-
-        if (input.role === "employee") {
-          await tx.insert(employees).values({
-            id: crypto.randomUUID(),
-            companyId: targetCompanyId,
-            userId,
-            name: input.name,
-            phone: input.phone ?? null,
-            active: true,
-          });
-        }
       }
 
-      // Audit Log
+      // Audit log
       await logAdminAction({
         adminUserId: adminUser.id,
         adminEmail: adminUser.email,
@@ -956,42 +965,38 @@ export class AdminService {
         entity: "user",
         entityId: userId,
         entityName: input.name,
-        reason: input.reason || `Criação manual do usuário (${input.role}) pelo Super Admin`,
+        reason: input.reason || "Criação manual pelo Super Admin",
         afterState: {
-          id: userId,
-          name: input.name,
+          userId,
+          companyId: targetCompanyId,
           email: cleanEmail,
           role: input.role,
           isSuperadmin,
-          companyId: targetCompanyId,
         },
         request,
       });
     });
 
     return {
+      success: true,
       userId,
-      name: input.name,
-      email: cleanEmail,
-      role: input.role,
-      isSuperadmin,
-      temporaryPassword: rawPassword,
       companyId: targetCompanyId,
+      email: cleanEmail,
     };
   }
 
   /**
-   * Update user level/role, active status or reset password
+   * Update user role, superadmin privilege and active status
    */
   static async updateUserRoleAndStatus(
     userId: string,
-    input: {
+    data: {
       role?: string;
       isSuperadmin?: boolean;
       active?: boolean;
       name?: string;
       phone?: string;
-      password?: string;
+      email?: string;
     },
     adminUser: { id: string; email: string },
     request?: Request
@@ -999,22 +1004,33 @@ export class AdminService {
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) throw new Error("Usuário não encontrado.");
 
-    const updateData: any = {};
-    if (typeof input.name === "string") updateData.name = input.name.trim();
-    if (typeof input.phone === "string") updateData.phone = input.phone.trim();
-    if (typeof input.role === "string") updateData.role = input.role;
-    if (typeof input.isSuperadmin === "boolean") {
-      updateData.isSuperadmin = input.isSuperadmin;
-      updateData.adminRole = input.isSuperadmin ? "super_admin" : null;
-    }
-    if (typeof input.active === "boolean") updateData.active = input.active;
-    if (input.password && input.password.length >= 6) {
-      updateData.passwordHash = await hashPassword(input.password);
+    const updateData: Partial<typeof users.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.isSuperadmin !== undefined) updateData.isSuperadmin = data.isSuperadmin;
+    if (data.active !== undefined) updateData.active = data.active;
+    if (data.name !== undefined && data.name.trim()) updateData.name = data.name.trim();
+    if (data.phone !== undefined) updateData.phone = data.phone?.trim() || null;
+    if (data.email !== undefined && data.email.trim()) {
+      const cleanEmail = data.email.trim().toLowerCase();
+      // Verify email conflict
+      const [existing] = await db
+        .select()
+        .from(users)
+        .where(and(eq(users.email, cleanEmail), ne(users.id, userId)))
+        .limit(1);
+      if (existing) {
+        throw new Error("Já existe outro usuário cadastrado com este e-mail.");
+      }
+      updateData.email = cleanEmail;
     }
 
-    if (Object.keys(updateData).length > 0) {
-      await db.update(users).set(updateData).where(eq(users.id, userId));
+    await db.update(users).set(updateData).where(eq(users.id, userId));
 
+    // Audit log
+    if (adminUser) {
       await logAdminAction({
         adminUserId: adminUser.id,
         adminEmail: adminUser.email,
@@ -1042,14 +1058,37 @@ export class AdminService {
     adminUser: { id: string; email: string },
     request?: Request
   ) {
-    if (userId === adminUser.id) {
-      throw new Error("Você não pode excluir sua própria conta de Super Admin.");
-    }
-
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) throw new Error("Usuário não encontrado.");
 
+    try {
+      await logAdminAction({
+        adminUserId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: "DELETE_USER",
+        entity: "user",
+        entityId: userId,
+        entityName: user.name,
+        reason,
+        afterState: { deleted: true, mode },
+        request,
+      });
+    } catch (e) {
+      console.warn("[deleteUser] Could not record admin action:", e);
+    }
+
     if (mode === "hard") {
+      // Cascading clean up of all dependent records to ensure clean deletion
+      await db.delete(customerCredentials).where(eq(customerCredentials.userId, userId));
+      await db.delete(authTokens).where(eq(authTokens.userId, userId));
+      await db.delete(bookingWaitlist).where(eq(bookingWaitlist.userId, userId));
+      await db.delete(companyMemberships).where(eq(companyMemberships.userId, userId));
+      await db.delete(notifications).where(eq(notifications.userId, userId));
+      await db.update(employees).set({ userId: null }).where(eq(employees.userId, userId));
+      await db.update(clients).set({ userId: null }).where(eq(clients.userId, userId));
+      await db.update(auditLogs).set({ userId: null }).where(eq(auditLogs.userId, userId));
+      await db.update(appointmentHistory).set({ actorId: null }).where(eq(appointmentHistory.actorId, userId));
+      await db.delete(bookings).where(eq(bookings.userId, userId));
       await db.delete(users).where(eq(users.id, userId));
     } else {
       await db
@@ -1057,18 +1096,6 @@ export class AdminService {
         .set({ active: false, deletedAt: new Date(), deletedBy: adminUser.id })
         .where(eq(users.id, userId));
     }
-
-    await logAdminAction({
-      adminUserId: adminUser.id,
-      adminEmail: adminUser.email,
-      action: "DELETE_USER",
-      entity: "user",
-      entityId: userId,
-      entityName: user.name,
-      reason,
-      afterState: { deleted: true, mode },
-      request,
-    });
 
     return { success: true };
   }
@@ -1717,19 +1744,47 @@ export class AdminService {
     }
 
     // Record audit log BEFORE cascading delete
-    await logAdminAction({
-      adminUserId: adminUser.id,
-      adminEmail: adminUser.email,
-      action: "HARD_DELETE_OWNER",
-      entity: "company",
-      entityId: companyId,
-      entityName: company.name,
-      reason,
-      beforeState: company as any,
-      request,
-    });
+    try {
+      await logAdminAction({
+        adminUserId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: "HARD_DELETE_OWNER",
+        entity: "company",
+        entityId: companyId,
+        entityName: company.name,
+        reason,
+        beforeState: company as any,
+        request,
+      });
+    } catch (e) {
+      console.warn("[hardDeleteOwner] Could not write audit log:", e);
+    }
 
-    // Delete company (cascades to locations, memberships, subscriptions, clients, employees)
+    // Explicit cascading cleanup of all dependent records to prevent FK constraint failures
+    await db.delete(notifications).where(eq(notifications.companyId, companyId));
+    await db.delete(auditLogs).where(eq(auditLogs.companyId, companyId));
+    await db.delete(bookingEvents).where(eq(bookingEvents.companyId, companyId));
+    await db.delete(bookingWaitlist).where(eq(bookingWaitlist.companyId, companyId));
+    await db.delete(payments).where(eq(payments.companyId, companyId));
+    await db.delete(appointments).where(eq(appointments.companyId, companyId));
+    await db.delete(bookings).where(eq(bookings.companyId, companyId));
+    await db.delete(reviews).where(eq(reviews.companyId, companyId));
+    await db.delete(customerMemberships).where(eq(customerMemberships.companyId, companyId));
+    await db.delete(membershipPlans).where(eq(membershipPlans.companyId, companyId));
+    await db.delete(coupons).where(eq(coupons.companyId, companyId));
+    await db.delete(products).where(eq(products.companyId, companyId));
+    await db.delete(scheduleBlocks).where(eq(scheduleBlocks.companyId, companyId));
+    await db.delete(employees).where(eq(employees.companyId, companyId));
+    await db.delete(services).where(eq(services.companyId, companyId));
+    await db.delete(serviceCategories).where(eq(serviceCategories.companyId, companyId));
+    await db.delete(clients).where(eq(clients.companyId, companyId));
+    await db.delete(companySettings).where(eq(companySettings.companyId, companyId));
+    await db.delete(bookingPages).where(eq(bookingPages.companyId, companyId));
+    await db.delete(locations).where(eq(locations.companyId, companyId));
+    await db.delete(saasCouponRedemptions).where(eq(saasCouponRedemptions.companyId, companyId));
+    await db.delete(subscriptionInvoices).where(eq(subscriptionInvoices.companyId, companyId));
+    await db.delete(subscriptions).where(eq(subscriptions.companyId, companyId));
+    await db.delete(companyMemberships).where(eq(companyMemberships.companyId, companyId));
     await db.delete(companies).where(eq(companies.id, companyId));
 
     return { success: true };
@@ -1834,11 +1889,34 @@ export class AdminService {
     const page = Math.max(1, Number(params.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(params.limit) || 20));
     const offset = (page - 1) * limit;
+    const now = new Date();
 
     const conditions = [];
 
     if (params.status && params.status !== "all") {
-      conditions.push(eq(subscriptions.status, params.status));
+      const st = params.status.toLowerCase();
+      if (st === "vitalicia" || st === "lifetime") {
+        conditions.push(or(eq(subscriptions.billingInterval, "lifetime"), eq(subscriptions.plan, "vitalicia")));
+      } else if (st === "anual" || st === "yearly") {
+        conditions.push(or(eq(subscriptions.billingInterval, "yearly"), eq(subscriptions.plan, "anual"), eq(subscriptions.plan, "pro_yearly")));
+      } else if (st === "vencida" || st === "expired" || st === "past_due") {
+        conditions.push(
+          or(
+            eq(subscriptions.status, "past_due"),
+            eq(subscriptions.status, "expired"),
+            eq(subscriptions.status, "cancelled"),
+            and(eq(subscriptions.status, "trialing"), lte(subscriptions.trialEndsAt, now))
+          )
+        );
+      } else if (st === "pending") {
+        conditions.push(or(eq(subscriptions.status, "pending"), eq(subscriptions.status, "past_due")));
+      } else if (st === "trial" || st === "trialing") {
+        conditions.push(and(eq(subscriptions.status, "trialing"), gte(subscriptions.trialEndsAt, now)));
+      } else if (st === "active") {
+        conditions.push(eq(subscriptions.status, "active"));
+      } else {
+        conditions.push(eq(subscriptions.status, params.status));
+      }
     }
     if (params.plan && params.plan !== "all") {
       conditions.push(eq(subscriptions.plan, params.plan));
@@ -2111,18 +2189,25 @@ export class AdminService {
     const [client] = await db.select().from(clients).where(eq(clients.id, clientId)).limit(1);
     if (!client) throw new Error("Cliente não encontrado.");
 
-    await logAdminAction({
-      adminUserId: adminUser.id,
-      adminEmail: adminUser.email,
-      action: "HARD_DELETE_CLIENT",
-      entity: "client",
-      entityId: clientId,
-      entityName: client.name,
-      reason,
-      beforeState: client as any,
-      request,
-    });
+    try {
+      await logAdminAction({
+        adminUserId: adminUser.id,
+        adminEmail: adminUser.email,
+        action: "HARD_DELETE_CLIENT",
+        entity: "client",
+        entityId: clientId,
+        entityName: client.name,
+        reason,
+        beforeState: client as any,
+        request,
+      });
+    } catch (e) {
+      console.warn("[hardDeleteClient] Could not record admin action:", e);
+    }
 
+    await db.delete(customerMemberships).where(eq(customerMemberships.clientId, clientId));
+    await db.delete(appointments).where(eq(appointments.clientId, clientId));
+    await db.delete(bookings).where(eq(bookings.clientId, clientId));
     await db.delete(clients).where(eq(clients.id, clientId));
     return { success: true };
   }

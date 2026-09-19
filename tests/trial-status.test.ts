@@ -3,16 +3,17 @@ import test from "node:test";
 import { buildTrialStatus, formatTrialCountdown } from "../src/lib/trial";
 
 const start = new Date("2026-09-15T12:00:00.000Z");
-const end = new Date("2026-09-22T12:00:00.000Z");
+const end = new Date("2026-09-30T12:00:00.000Z");
 
-test("trial começa com sete dias e destaca o primeiro dia", () => {
+test("trial começa com quinze dias e destaca o primeiro dia", () => {
   const result = buildTrialStatus({ status: "trialing", startedAt: start, endsAt: end, serverNow: start });
 
-  assert.equal(result.remainingSeconds, 7 * 24 * 3600);
-  assert.equal(result.remainingDays, 7);
+  assert.equal(result.remainingSeconds, 15 * 24 * 3600);
+  assert.equal(result.remainingDays, 15);
   assert.equal(result.currentDay, 1);
   assert.equal(result.expired, false);
   assert.equal(result.visible, true);
+  assert.equal(result.timeline.length, 15);
   assert.equal(result.timeline[0]?.state, "current");
   assert.equal(result.timeline[1]?.state, "future");
 });
@@ -26,8 +27,11 @@ test("timeline marca dias anteriores como concluídos e o dia atual", () => {
   });
 
   assert.equal(result.currentDay, 4);
+  assert.equal(result.timeline.length, 15);
   assert.deepEqual(result.timeline.map((item) => item.state), [
-    "completed", "completed", "completed", "current", "future", "future", "future",
+    "completed", "completed", "completed", "current",
+    "future", "future", "future", "future", "future",
+    "future", "future", "future", "future", "future", "future",
   ]);
 });
 
@@ -36,10 +40,10 @@ test("último dia troca a contagem para horas", () => {
     status: "trialing",
     startedAt: start,
     endsAt: end,
-    serverNow: new Date("2026-09-21T13:00:00.000Z"),
+    serverNow: new Date("2026-09-29T13:00:00.000Z"),
   });
 
-  assert.equal(result.currentDay, 7);
+  assert.equal(result.currentDay, 15);
   assert.equal(result.remainingLabel, "23h restantes");
   assert.equal(result.headline, "Seu teste gratuito encerra em 23 horas.");
 });
@@ -51,6 +55,7 @@ test("trial expira exatamente no instante final e completa a timeline", () => {
   assert.equal(result.expired, true);
   assert.equal(result.visible, false);
   assert.equal(result.headline, "Seu teste gratuito terminou.");
+  assert.equal(result.timeline.length, 15);
   assert.ok(result.timeline.every((item) => item.state === "completed"));
 });
 
@@ -75,7 +80,7 @@ test("assinatura expirada ou past_due nunca exibe card de trial", () => {
   assert.equal(pastDueResult.visible, false);
 });
 
-test("data de trial estendida manualmente acima de 14 dias não exibe card de progresso de 7 dias", () => {
+test("data de trial estendida manualmente acima de 20 dias não exibe card de progresso de 15 dias", () => {
   const farFuture = new Date("2026-12-31T01:54:21.000Z");
   const result = buildTrialStatus({ status: "trialing", plan: "trial", startedAt: start, endsAt: farFuture, serverNow: start });
   assert.equal(result.visible, false);

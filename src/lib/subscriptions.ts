@@ -225,7 +225,7 @@ export async function getCompanySubscription(
 
   if (!existing) {
     const id = crypto.randomUUID();
-    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const trialEndsAt = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000);
     await executor.insert(subscriptions).values({
       id,
       companyId,
@@ -267,21 +267,27 @@ export async function getCompanySubscription(
   // Normalize status
   const rawStatus = (existing.status || "trialing").toLowerCase().trim();
   const isPaidPlan = Boolean(existing.plan && existing.plan !== "trial" && existing.plan !== "teste");
-  const isPaidOrActiveRaw = ["active", "paid", "approved", "pago"].includes(rawStatus) || Boolean(paidInvoice) || isPaidPlan;
+  const isLifetime = existing.billingInterval === "lifetime" || existing.plan === "vitalicia";
+  const isPaidOrActiveRaw = ["active", "paid", "approved", "pago"].includes(rawStatus) || Boolean(paidInvoice) || isPaidPlan || isLifetime;
 
   let effectiveStatus: SubscriptionStatus = existing.status as SubscriptionStatus;
   let isEffectiveActive = false;
   const trialStartedAt = existing.trialStartedAt
-    ?? new Date(existing.trialEndsAt.getTime() - 7 * 24 * 60 * 60 * 1000);
+    ?? new Date(existing.trialEndsAt.getTime() - 15 * 24 * 60 * 60 * 1000);
 
   if (isPaidOrActiveRaw) {
-    const periodEnd = existing.currentPeriodEnd ?? (isPaidPlan || rawStatus === "paid" || rawStatus === "active" ? existing.trialEndsAt : null);
-    if (periodEnd && periodEnd.getTime() <= now.getTime()) {
-      effectiveStatus = "past_due";
-      isEffectiveActive = false;
-    } else {
+    if (isLifetime) {
       effectiveStatus = "active";
       isEffectiveActive = true;
+    } else {
+      const periodEnd = existing.currentPeriodEnd ?? (isPaidPlan || rawStatus === "paid" || rawStatus === "active" ? existing.trialEndsAt : null);
+      if (periodEnd && periodEnd.getTime() <= now.getTime()) {
+        effectiveStatus = "past_due";
+        isEffectiveActive = false;
+      } else {
+        effectiveStatus = "active";
+        isEffectiveActive = true;
+      }
     }
   } else if (rawStatus === "trialing") {
     if (existing.trialEndsAt.getTime() <= now.getTime()) {

@@ -1052,7 +1052,7 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                             })
                           }
                         >
-                          <option value="trial">Trial (7 dias grátis)</option>
+                          <option value="trial">Trial (15 dias grátis)</option>
                           <option value="courtesy">Cortesia Vitalícia / Manual</option>
                           <option value="pending">Aguardando Pagamento</option>
                         </select>

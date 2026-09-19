@@ -62,9 +62,10 @@ export const PLAN_FEATURES: Record<PlanType, PlanLimits> = {
 export class PlanFeatureService {
   static normalizePlan(plan?: string | null): PlanType {
     if (!plan) return "trial";
-    if (plan.includes("yearly") || plan.includes("anual")) return "pro_yearly";
-    if (plan.includes("enterprise")) return "enterprise";
-    if (plan.includes("pro")) return "pro_monthly";
+    const lower = plan.toLowerCase();
+    if (lower.includes("vitalicia") || lower.includes("vitalicio") || lower.includes("lifetime") || lower.includes("enterprise")) return "enterprise";
+    if (lower.includes("yearly") || lower.includes("anual")) return "pro_yearly";
+    if (lower.includes("pro")) return "pro_monthly";
     return "trial";
   }
 
