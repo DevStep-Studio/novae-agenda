@@ -16,8 +16,8 @@ import {
   WalletCards,
   X,
 } from "lucide-react-native";
+import { Image } from "expo-image";
 import {
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -29,6 +29,7 @@ import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, radius, typography } from "@/constants/design-tokens";
+import { resolveImageUrl } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
 
 interface SidebarDrawerProps {
@@ -51,7 +52,8 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
     .map((p) => p[0]?.toUpperCase())
     .join("");
 
-  const logoUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const logoUrl = resolveImageUrl(rawLogoUrl);
   const publicSlug = session?.company?.publicSlug;
 
   const navigateTo = (path: string) => {

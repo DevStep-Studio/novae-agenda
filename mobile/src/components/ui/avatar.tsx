@@ -1,7 +1,9 @@
 import { Image } from "expo-image";
+import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { avatar } from "@/constants/design-tokens";
+import { resolveImageUrl } from "@/lib/api-client";
 
 export interface AvatarProps {
   name: string;
@@ -21,14 +23,21 @@ function initials(name: string): string {
 // .avatar / .avatar-{size} / .avatar-initials in dark mode, globals.css:1619-1669.
 export function Avatar({ name, photoUrl, size = "md" }: AvatarProps) {
   const dimension = avatar.sizes[size];
+  const resolvedUrl = resolveImageUrl(photoUrl);
+  const [loadError, setLoadError] = useState(false);
 
   return (
     <View
       className="items-center justify-center overflow-hidden rounded-full"
       style={{ width: dimension, height: dimension, backgroundColor: avatar.background }}
     >
-      {photoUrl ? (
-        <Image source={{ uri: photoUrl }} style={{ width: dimension, height: dimension }} contentFit="cover" />
+      {resolvedUrl && !loadError ? (
+        <Image
+          source={{ uri: resolvedUrl }}
+          style={{ width: dimension, height: dimension }}
+          contentFit="cover"
+          onError={() => setLoadError(true)}
+        />
       ) : (
         <Text style={{ color: avatar.text, fontSize: dimension * 0.32, fontWeight: "600", letterSpacing: 0.5 }}>
           {initials(name)}

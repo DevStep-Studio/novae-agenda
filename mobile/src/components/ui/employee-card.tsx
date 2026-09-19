@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 
 import { Avatar } from "@/components/ui/avatar";
 import { colors, teamCard, typography } from "@/constants/design-tokens";
+import { resolveImageUrl } from "@/lib/api-client";
 import { DEFAULT_COVER_URL, type EmployeeDTO } from "@/lib/employees";
 import { formatBRL } from "@/lib/stats";
 
@@ -36,7 +37,7 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
     >
       <View style={{ height: teamCard.coverHeight }}>
         <Image
-          source={{ uri: employee.bannerUrl || DEFAULT_COVER_URL }}
+          source={{ uri: resolveImageUrl(employee.bannerUrl) || DEFAULT_COVER_URL }}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
           contentFit="cover"
         />

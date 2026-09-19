@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
-import { ApiError, api } from "@/lib/api-client";
+import { ApiError, api, resolveImageUrl } from "@/lib/api-client";
 import { getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 import {
@@ -140,8 +140,12 @@ export default function OwnerHomeScreen() {
   const firstName = session?.name ? session.name.split(" ")[0] : "Moa";
   const defaultBanner =
     "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
-  const bannerUrl = session?.company?.bannerUrl || defaultBanner;
-  const logoUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const rawBannerUrl = session?.company?.bannerUrl || defaultBanner;
+  const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const bannerUrl = resolveImageUrl(rawBannerUrl) || defaultBanner;
+  const logoUrl = resolveImageUrl(rawLogoUrl);
+  const [bannerLoadError, setBannerLoadError] = useState(false);
+  const [logoLoadError, setLogoLoadError] = useState(false);
   const companyName = session?.company?.name || "Moa Tattoo";
   const initials = (companyName || firstName || "MO")
     .split(" ")
@@ -189,7 +193,7 @@ export default function OwnerHomeScreen() {
           >
             {/* Background Cover Image with Dark Overlay */}
             <Image
-              source={{ uri: bannerUrl }}
+              source={{ uri: bannerLoadError ? defaultBanner : bannerUrl }}
               style={{
                 position: "absolute",
                 top: 0,
@@ -199,6 +203,7 @@ export default function OwnerHomeScreen() {
                 opacity: 0.35,
               }}
               contentFit="cover"
+              onError={() => setBannerLoadError(true)}
             />
             <View
               style={{
@@ -287,11 +292,12 @@ export default function OwnerHomeScreen() {
                     borderColor: "rgba(255, 255, 255, 0.22)",
                   }}
                 >
-                  {logoUrl ? (
+                  {logoUrl && !logoLoadError ? (
                     <Image
                       source={{ uri: logoUrl }}
                       style={{ width: "100%", height: "100%" }}
                       contentFit="cover"
+                      onError={() => setLogoLoadError(true)}
                     />
                   ) : (
                     <Text style={{ color: "#ffffff", fontSize: 22, fontWeight: "800" }}>

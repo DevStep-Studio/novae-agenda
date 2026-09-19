@@ -218,4 +218,23 @@ export async function hasStoredSession(): Promise<boolean> {
   return Boolean(cookie && cookie.includes("agenda_session="));
 }
 
+export function resolveImageUrl(url?: string | null): string | null {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  if (
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("file://") ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return trimmed;
+  }
+
+  const baseUrl = resolveApiBaseUrl();
+  const normalizedPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `${baseUrl}${normalizedPath}`;
+}
+
 export { formatPhoneForWhatsApp } from "./formatters";

@@ -1,10 +1,12 @@
 import { ArrowLeft, Bell, Menu, Sun } from "lucide-react-native";
-import { Image, Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, typography } from "@/constants/design-tokens";
+import { resolveImageUrl } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
 import { SidebarDrawer } from "@/components/drawer/sidebar-drawer";
 
@@ -20,6 +22,7 @@ export function TopBar({ title, company, showBack, onBack, unreadCount = 1 }: To
   const insets = useSafeAreaInsets();
   const { session } = useSession();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const handleBack = () => {
     if (onBack) {
@@ -32,7 +35,8 @@ export function TopBar({ title, company, showBack, onBack, unreadCount = 1 }: To
   };
 
   const companyName = company || session?.company?.name || "Moa Tattoo";
-  const avatarUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const rawAvatarUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const avatarUrl = resolveImageUrl(rawAvatarUrl);
   const initials = (session?.name || companyName || "MO")
     .split(" ")
     .filter(Boolean)
@@ -150,8 +154,13 @@ export function TopBar({ title, company, showBack, onBack, unreadCount = 1 }: To
                 borderColor: "rgba(255, 255, 255, 0.15)",
               }}
             >
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={{ width: 34, height: 34 }} resizeMode="cover" />
+              {avatarUrl && !imageError ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={{ width: 34, height: 34 }}
+                  contentFit="cover"
+                  onError={() => setImageError(true)}
+                />
               ) : (
                 <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
                   {initials}

@@ -36,7 +36,7 @@ import { router } from "expo-router";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
-import { api } from "@/lib/api-client";
+import { api, resolveImageUrl } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
 
 export const PRIMARY_COLOR_PRESETS = [
@@ -167,7 +167,10 @@ export default function PerfilPersonalizacaoScreen() {
 
   const defaultBanner =
     "https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&w=1200&q=80";
-  const displayBanner = bannerUrl || defaultBanner;
+  const displayBanner = resolveImageUrl(bannerUrl) || defaultBanner;
+  const resolvedAvatarUrl = resolveImageUrl(avatarUrl);
+  const [bannerLoadError, setBannerLoadError] = useState(false);
+  const [avatarLoadError, setAvatarLoadError] = useState(false);
   const publicSlug = session?.company?.publicSlug || session?.company?.slug;
 
   const initials = (companyName || name || "MO")
@@ -345,9 +348,10 @@ export default function PerfilPersonalizacaoScreen() {
           {/* Cover background */}
           <View style={{ height: 140, position: "relative", backgroundColor: "#1a1b20" }}>
             <Image
-              source={{ uri: displayBanner }}
+              source={{ uri: bannerLoadError ? defaultBanner : displayBanner }}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
+              onError={() => setBannerLoadError(true)}
             />
             <View
               style={{
@@ -373,11 +377,12 @@ export default function PerfilPersonalizacaoScreen() {
                   borderColor: "#ffffff",
                 }}
               >
-                {avatarUrl ? (
+                {resolvedAvatarUrl && !avatarLoadError ? (
                   <Image
-                    source={{ uri: avatarUrl }}
+                    source={{ uri: resolvedAvatarUrl }}
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
+                    onError={() => setAvatarLoadError(true)}
                   />
                 ) : (
                   <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "800" }}>
