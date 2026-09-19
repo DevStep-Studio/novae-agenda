@@ -142,10 +142,14 @@ export async function processPendingNotificationSchedules(limit = 50): Promise<{
         .where(eq(bookings.id, schedule.bookingId))
         .limit(1);
 
-      if (!booking || booking.status === "cancelled") {
+      if (!booking || booking.status === "cancelled" || now > new Date(booking.endsAt)) {
         await db
           .update(notificationSchedules)
-          .set({ status: "cancelled", cancelledAt: new Date() })
+          .set({
+            status: "cancelled",
+            cancelledAt: new Date(),
+            lastError: booking?.status === "cancelled" ? "Booking cancelled" : "Booking expired before dispatch",
+          })
           .where(eq(notificationSchedules.id, schedule.id));
         cancelled++;
         continue;

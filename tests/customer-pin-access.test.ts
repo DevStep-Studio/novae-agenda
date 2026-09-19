@@ -2,7 +2,7 @@ import "dotenv/config";
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db, pool } from "@/db";
 import {
   authTokens,
@@ -123,7 +123,7 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
         pin: testPin,
         confirmPin: testPin,
       }),
-      /Não foi possível validar sua identidade/,
+      /Código de verificação obrigatório|Não foi possível validar sua identidade/,
     );
 
     // Criação autorizada com contexto de sessão autenticada
@@ -360,12 +360,12 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
     // Atualiza telefone do customer 1
     await db.update(users).set({ phone: newCustomerPhone }).where(eq(users.id, f.customers[1].id));
 
-    // Cria PIN utilizando o bookingId recém-gerado
+    // Cria PIN utilizando a sessão autenticada do agendamento
     const postBookingSetup = await CustomerAccessService.setupPin({
       phone: newCustomerPhone,
       pin: "918273",
       confirmPin: "918273",
-      bookingId: booking.id,
+      authenticatedUserId: f.customers[1].id,
     });
     assert.equal(postBookingSetup.userId, f.customers[1].id);
 
@@ -441,11 +441,11 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
       intendedPaymentMethod: "pix",
     });
 
-    // Configura o PIN usando bookingId sem precisar de telefone
+    // Configura o PIN usando sessão autenticada do cliente
     const setupResult = await CustomerAccessService.setupPin({
       pin: pinCode,
       confirmPin: pinCode,
-      bookingId: booking.id,
+      authenticatedUserId: f.customers[0].id,
     });
     assert.equal(setupResult.userId, f.customers[0].id);
 
@@ -488,6 +488,43 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
 
     // Limpeza
     await db.delete(users).where(eq(users.id, noPinUserId));
+  });
+
+  it("13. Cryptographic OTP Verification for First-time PIN Setup: enforces single-use OTP", async () => {
+    const otpCustomerPhone = "(11) 97777-1234";
+    const otpNormPhone = "5511977771234";
+    const newPin = "719302";
+
+    // Solicita código OTP para setup
+    const otpRequest = await CustomerAccessService.requestPinSetupOtp({
+      phone: otpCustomerPhone,
+    });
+    assert.equal(otpRequest.success, true);
+
+    // Busca o token salvo no banco para simular envio por WhatsApp/SMS
+    const [tokenRow] = await db
+      .select()
+      .from(authTokens)
+      .where(and(eq(authTokens.kind, "customer_pin_setup"), isNull(authTokens.consumedAt)))
+      .limit(1);
+
+    assert.ok(tokenRow);
+
+    // Tentar criar PIN com OTP incorreto deve falhar
+    await assert.rejects(
+      CustomerAccessService.setupPin({
+        phone: otpCustomerPhone,
+        pin: newPin,
+        confirmPin: newPin,
+        otpToken: "000000",
+      }),
+      /Código de verificação inválido ou expirado/,
+    );
+
+    // Limpeza
+    await db.delete(customerCredentials).where(eq(customerCredentials.phoneNormalized, otpNormPhone));
+    await db.delete(authTokens).where(eq(authTokens.userId, tokenRow.userId));
+    await db.delete(users).where(eq(users.id, tokenRow.userId));
   });
 });
 

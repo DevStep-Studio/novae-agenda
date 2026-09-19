@@ -233,18 +233,28 @@ export async function sendPushToCompany(
 ) {
   if (!companyId) return;
 
-  const query = db
-    .select({ token: pushDevices.pushToken, role: users.role })
+  const activeDevices = await db
+    .select({ token: pushDevices.pushToken, userId: pushDevices.userId })
     .from(pushDevices)
-    .leftJoin(users, eq(pushDevices.userId, users.id))
     .where(and(eq(pushDevices.companyId, companyId), eq(pushDevices.isActive, true)));
 
-  const devices = await query;
-  if (devices.length === 0) return;
+  if (activeDevices.length === 0) return;
 
-  const filtered = roleFilter
-    ? devices.filter((d) => d.role && roleFilter.includes(d.role as any))
-    : devices;
+  let filtered = activeDevices;
+  if (roleFilter && roleFilter.length > 0) {
+    const userIds = activeDevices.map((d) => d.userId).filter(Boolean) as string[];
+    if (userIds.length > 0) {
+      const staffUsers = await db
+        .select({ id: users.id, role: users.role })
+        .from(users);
+      const staffRoleMap = new Map(staffUsers.map((u) => [u.id, u.role]));
+      filtered = activeDevices.filter(
+        (d) => d.userId && staffRoleMap.has(d.userId) && roleFilter.includes(staffRoleMap.get(d.userId) as any)
+      );
+    } else {
+      filtered = [];
+    }
+  }
 
   if (filtered.length === 0) return;
 

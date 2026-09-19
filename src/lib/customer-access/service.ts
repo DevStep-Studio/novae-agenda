@@ -699,65 +699,46 @@ export class CustomerAccessService {
 
     const lookupHash = hashPinLookup(params.pin);
 
-    // Validação de identidade segura
+    // Validação de identidade segura e estrita
     let identityVerified = false;
     let user: typeof users.$inferSelect | null = null;
     let credential: typeof customerCredentials.$inferSelect | null = null;
     const normalized = params.phone ? normalizePhoneDigits(params.phone) : "";
 
-    // 1. Verificação via sessão autenticada ativa ou ID do cliente identificado
-    const targetUserId = params.authenticatedUserId || params.customerId;
+    // 1. Verificação via sessão autenticada ativa
+    const targetUserId = params.authenticatedUserId;
     if (targetUserId) {
       const [sessionUser] = await db
         .select()
         .from(users)
         .where(eq(users.id, targetUserId))
         .limit(1);
-      if (sessionUser) {
+      if (sessionUser && sessionUser.active) {
         user = sessionUser;
         identityVerified = true;
       }
     }
 
-    // 2. Verificação via contexto pós-reserva (bookingId)
-    if (!identityVerified && params.bookingId) {
-      const [booking] = await db
-        .select()
-        .from(bookings)
-        .where(eq(bookings.id, params.bookingId))
-        .limit(1);
-
-      if (booking) {
-        const [bookingUser] = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, booking.userId))
-          .limit(1);
-
-        if (bookingUser) {
-          if (normalized) {
-            const bookingPhoneNorm = bookingUser.phone ? normalizePhoneDigits(bookingUser.phone) : "";
-            if (!bookingPhoneNorm || bookingPhoneNorm === normalized) {
-              user = bookingUser;
-              identityVerified = true;
-            }
-          } else {
-            user = bookingUser;
-            identityVerified = true;
-          }
-        }
+    // 2. Se não estiver autenticado em sessão, exige telefone e validação de OTP obrigatória
+    if (!identityVerified) {
+      if (!normalized || normalized.length < 8) {
+        throw new Error("Informe seu número de celular com DDD para validar a criação do PIN.");
       }
-    }
 
-    // 3. Verificação por telefone caso fornecido
-    if (!user && normalized && normalized.length >= 8) {
       const resolved = await this.resolveCustomerUser(normalized);
       user = resolved.user;
       credential = resolved.credential;
-    }
 
-    // 4. Verificação via token OTP de verificação
-    if (params.otpToken && user) {
+      if (!params.otpToken || !params.otpToken.trim()) {
+        throw new Error(
+          "Código de verificação obrigatório. Solicite um código de verificação para comprovar a titularidade do número.",
+        );
+      }
+
+      if (!user) {
+        throw new Error("Não foi possível localizar o cadastro para este número.");
+      }
+
       const tokenHash = sha256(params.otpToken.trim());
       const [validToken] = await db
         .select()
@@ -773,16 +754,20 @@ export class CustomerAccessService {
         )
         .limit(1);
 
-      if (validToken) {
-        await db
-          .update(authTokens)
-          .set({ consumedAt: new Date() })
-          .where(eq(authTokens.id, validToken.id));
-        identityVerified = true;
+      if (!validToken) {
+        throw new Error("Código de verificação inválido ou expirado.");
       }
+
+      // Consome o token imediatamente para garantir uso único (single-use)
+      await db
+        .update(authTokens)
+        .set({ consumedAt: new Date() })
+        .where(eq(authTokens.id, validToken.id));
+
+      identityVerified = true;
     }
 
-    if (!identityVerified) {
+    if (!identityVerified || !user) {
       throw new Error(
         "Não foi possível validar sua identidade. Solicite um código de verificação para prosseguir.",
       );
