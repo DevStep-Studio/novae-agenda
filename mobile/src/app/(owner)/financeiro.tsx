@@ -146,31 +146,44 @@ export default function FinanceiroScreen() {
           contentContainerClassName="gap-5 pb-6"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
-          <View className="flex-row flex-wrap gap-3">
-            <MetricCard
-              icon={WalletCards}
-              label="Receita realizada"
-              value={formatBRL(realizedRevenue)}
-              detail={`${completedCount} atendimentos recebidos`}
-            />
-            <MetricCard
-              icon={TrendingUp}
-              label="Receita prevista"
-              value={formatBRL(forecastRevenue)}
-              detail={`${pendingCount} atendimentos futuros`}
-            />
-            <MetricCard
-              icon={BarChart3}
-              label="Comissões a pagar"
-              value={formatBRL(totalCommissions)}
-              detail={`${teamRanking.length} profissionais comissionados`}
-            />
-            <MetricCard
-              icon={ReceiptText}
-              label="Lucro líquido"
-              value={formatBRL(netProfit)}
-              detail={`${netMargin}% margem de rentabilidade`}
-            />
+          {/* 2x2 Metrics Grid */}
+          <View className="gap-2.5">
+            <View className="flex-row gap-2.5">
+              <View className="flex-1">
+                <MetricCard
+                  icon={WalletCards}
+                  label="Receita realizada"
+                  value={formatBRL(realizedRevenue)}
+                  detail={`${completedCount} atendimentos`}
+                />
+              </View>
+              <View className="flex-1">
+                <MetricCard
+                  icon={TrendingUp}
+                  label="Receita prevista"
+                  value={formatBRL(forecastRevenue)}
+                  detail={`${pendingCount} atendimentos`}
+                />
+              </View>
+            </View>
+            <View className="flex-row gap-2.5">
+              <View className="flex-1">
+                <MetricCard
+                  icon={BarChart3}
+                  label="Comissões a pagar"
+                  value={formatBRL(totalCommissions)}
+                  detail={`${teamRanking.length} profissionais`}
+                />
+              </View>
+              <View className="flex-1">
+                <MetricCard
+                  icon={ReceiptText}
+                  label="Lucro líquido"
+                  value={formatBRL(netProfit)}
+                  detail={`${netMargin}% margem`}
+                />
+              </View>
+            </View>
           </View>
 
           <View className="gap-3">

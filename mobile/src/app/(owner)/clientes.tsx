@@ -21,10 +21,22 @@ import { useSession } from "@/lib/session-context";
 // Not ported yet (see MOBILE_DESIGN_SYSTEM.md): the 6-way segment tabs
 // (Todos/Mensalistas/Frequentes/Novos/Com agendamento/Sem retorno), the sort
 // dropdown, and "Novo cliente" (client creation doesn't exist in mobile yet).
+type SegmentFilter = "all" | "members" | "frequent" | "new" | "has_booking" | "inactive";
+
+const SEGMENTS: { key: SegmentFilter; label: string }[] = [
+  { key: "all", label: "Todos" },
+  { key: "members", label: "Mensalistas" },
+  { key: "frequent", label: "Frequentes" },
+  { key: "new", label: "Novos" },
+  { key: "has_booking", label: "Com agendamento" },
+  { key: "inactive", label: "Sem retorno" },
+];
+
 export default function ClientesScreen() {
   const { session } = useSession();
   const [clients, setClients] = useState<ClientDTO[] | null>(null);
   const [query, setQuery] = useState("");
+  const [segment, setSegment] = useState<SegmentFilter>("all");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,9 +71,6 @@ export default function ClientesScreen() {
     setRefreshing(false);
   }
 
-  // Debounced server-side search, matching GET /api/clients?q= (app-shell.tsx
-  // does this client-side since it already holds the full list in a store;
-  // this screen re-fetches instead of holding an unbounded client list).
   useEffect(() => {
     const handle = setTimeout(() => {
       load(query);
@@ -69,27 +78,51 @@ export default function ClientesScreen() {
     return () => clearTimeout(handle);
   }, [query, load]);
 
-  const { totalClients, membershipCount, frequentCount, averageTicket, sorted } = useMemo(() => {
+  const { totalClients, membershipCount, frequentCount, averageTicket, filteredList } = useMemo(() => {
     const list = clients ?? [];
     const totalVisits = list.reduce((sum, c) => sum + (c.visits || 0), 0);
     const totalSpent = list.reduce((sum, c) => sum + (c.spent || 0), 0);
+    
+    let filtered = [...list];
+    if (segment === "members") {
+      filtered = filtered.filter((c) => c.isMembershipActive);
+    } else if (segment === "frequent") {
+      filtered = filtered.filter(isFrequentOrVip);
+    } else if (segment === "new") {
+      filtered = filtered.filter((c) => (c.visits || 0) <= 1);
+    } else if (segment === "inactive") {
+      filtered = filtered.filter((c) => (c.visits || 0) === 0);
+    }
+
     return {
       totalClients: list.length,
       membershipCount: list.filter((c) => c.isMembershipActive).length,
       frequentCount: list.filter(isFrequentOrVip).length,
       averageTicket: totalVisits > 0 ? Math.round(totalSpent / totalVisits) : 0,
-      sorted: [...list].sort((a, b) => (b.visits || 0) - (a.visits || 0)),
+      filteredList: filtered.sort((a, b) => (b.visits || 0) - (a.visits || 0)),
     };
-  }, [clients]);
+  }, [clients, segment]);
 
   return (
     <Screen header={<TopBar title="Clientes" company={session?.company.name} />} style={{ paddingTop: 16 }}>
-      <View>
-        <Text style={{ color: colors.primary, ...typography.eyebrow }}>BASE DE RELACIONAMENTO</Text>
-        <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Clientes</Text>
-        <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-          {totalClients} {totalClients === 1 ? "pessoa já faz" : "pessoas já fazem"} parte da sua história.
-        </Text>
+      <View className="gap-3.5">
+        <View className="flex-row items-start justify-between">
+          <View className="flex-1 pr-2">
+            <Text style={{ color: colors.primary, ...typography.eyebrow }}>BASE DE RELACIONAMENTO</Text>
+            <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Clientes</Text>
+            <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
+              {totalClients} {totalClients === 1 ? "pessoa já faz" : "pessoas já fazem"} parte da sua história.
+            </Text>
+          </View>
+        </View>
+
+        {/* Action button */}
+        <Pressable
+          className="h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-3"
+          style={{ backgroundColor: colors.primaryForeground }}
+        >
+          <Text style={{ color: colors.background, fontSize: 12.5, fontWeight: "700" }}>+ Novo cliente</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -113,30 +146,44 @@ export default function ClientesScreen() {
             />
           }
         >
-          <View className="flex-row flex-wrap gap-3">
-            <MetricCard icon={Users} label="Total de clientes" value={String(totalClients)} detail="base cadastrada" />
-            <MetricCard
-              icon={Sparkles}
-              label="Clientes mensalistas"
-              value={String(membershipCount)}
-              detail="planos recorrentes"
-            />
-            <MetricCard
-              icon={Sparkles}
-              label="Clientes frequentes"
-              value={String(frequentCount)}
-              detail={totalClients > 0 ? `${Math.round((frequentCount / totalClients) * 100)}% taxa de retenção` : undefined}
-            />
-            <MetricCard
-              icon={CircleDollarSign}
-              label="Ticket médio"
-              value={formatBRL(averageTicket)}
-              detail="por atendimento"
-            />
+          {/* 2x2 Metrics Grid */}
+          <View className="gap-2.5">
+            <View className="flex-row gap-2.5">
+              <View className="flex-1">
+                <MetricCard icon={Users} label="Total de clientes" value={String(totalClients)} detail="base cadastrada" />
+              </View>
+              <View className="flex-1">
+                <MetricCard
+                  icon={Sparkles}
+                  label="Clientes mensalistas"
+                  value={String(membershipCount)}
+                  detail="planos recorrentes"
+                />
+              </View>
+            </View>
+            <View className="flex-row gap-2.5">
+              <View className="flex-1">
+                <MetricCard
+                  icon={Sparkles}
+                  label="Clientes frequentes"
+                  value={String(frequentCount)}
+                  detail={totalClients > 0 ? `${Math.round((frequentCount / totalClients) * 100)}% retenção` : undefined}
+                />
+              </View>
+              <View className="flex-1">
+                <MetricCard
+                  icon={CircleDollarSign}
+                  label="Ticket médio"
+                  value={formatBRL(averageTicket)}
+                  detail="por atendimento"
+                />
+              </View>
+            </View>
           </View>
 
+          {/* Search Box */}
           <View
-            className="h-11 flex-row items-center gap-2 rounded-md border px-3"
+            className="h-11 flex-row items-center gap-2 rounded-lg border px-3"
             style={{ backgroundColor: colors.surfaceSecondary, borderColor: colors.border }}
           >
             <Search size={16} color={colors.textMuted} />
@@ -144,7 +191,7 @@ export default function ClientesScreen() {
               className="flex-1"
               placeholder="Buscar por nome, telefone ou e-mail..."
               placeholderTextColor={colors.textMuted}
-              style={{ color: colors.textPrimary, fontSize: 14 }}
+              style={{ color: colors.textPrimary, fontSize: 13.5 }}
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
@@ -156,16 +203,51 @@ export default function ClientesScreen() {
             ) : null}
           </View>
 
-          {sorted.length === 0 ? (
+          {/* Segment Tabs */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+            {SEGMENTS.map((s) => {
+              const active = segment === s.key;
+              return (
+                <Pressable
+                  key={s.key}
+                  onPress={() => setSegment(s.key)}
+                  className="px-3 py-1.5 rounded-full border"
+                  style={{
+                    backgroundColor: active ? colors.primary : colors.surface,
+                    borderColor: active ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: active ? colors.primaryForeground : colors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: active ? "700" : "500",
+                    }}
+                  >
+                    {s.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          {/* Results counter */}
+          <View className="flex-row items-center justify-between">
+            <Text style={{ color: colors.textMuted, fontSize: 11.5, fontWeight: "600" }}>
+              {filteredList.length} {filteredList.length === 1 ? "cliente encontrado" : "clientes encontrados"}
+            </Text>
+          </View>
+
+          {filteredList.length === 0 ? (
             <View className="items-center gap-1 py-16">
               <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: "600" }}>
                 Nenhum cliente encontrado
               </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13 }}>Tente buscar por outro termo.</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>Tente buscar por outro termo ou filtro.</Text>
             </View>
           ) : (
             <View className="gap-3">
-              {sorted.map((client) => (
+              {filteredList.map((client) => (
                 <ClientCard key={client.id} client={client} />
               ))}
             </View>

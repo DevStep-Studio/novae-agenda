@@ -41,9 +41,12 @@ function shiftDate(date: string, days: number): string {
 // employee filter, "Bloquear horário"/"Novo agendamento" (both open a
 // creation flow that doesn't exist in mobile), and each card's quick-action
 // row (check-in/finish/cancel buttons) — cards are read-only for now.
+type CalendarMode = "day" | "week" | "month";
+
 export default function AgendaScreen() {
   const { session } = useSession();
   const [selectedDate, setSelectedDate] = useState(todayKey());
+  const [calMode, setCalMode] = useState<CalendarMode>("day");
   const [appointments, setAppointments] = useState<AppointmentDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +91,7 @@ export default function AgendaScreen() {
 
   return (
     <Screen header={<TopBar title="Agenda" company={session?.company.name} />} style={{ paddingTop: 16 }}>
-      <View className="gap-4">
+      <View className="gap-3.5">
         <View>
           <Text style={{ color: colors.primary, ...typography.eyebrow }}>AGENDA DO ESTABELECIMENTO</Text>
           <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }} numberOfLines={1}>
@@ -99,16 +102,17 @@ export default function AgendaScreen() {
           </Text>
         </View>
 
+        {/* Date Controls */}
         <View className="flex-row items-center gap-2">
           <Pressable
-            className="h-11 items-center justify-center rounded-md border px-3.5"
+            className="h-10 items-center justify-center rounded-lg border px-3.5"
             style={{ borderColor: colors.border, backgroundColor: colors.surface }}
             onPress={() => setSelectedDate(todayKey())}
           >
             <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontWeight: "600" }}>Hoje</Text>
           </Pressable>
           <Pressable
-            className="h-11 w-11 items-center justify-center rounded-md border"
+            className="h-10 w-10 items-center justify-center rounded-lg border"
             style={{ borderColor: colors.border, backgroundColor: colors.surface }}
             accessibilityLabel="Dia anterior"
             onPress={() => setSelectedDate((d) => shiftDate(d, -1))}
@@ -116,7 +120,7 @@ export default function AgendaScreen() {
             <ChevronLeft size={18} color={colors.textSecondary} />
           </Pressable>
           <Pressable
-            className="h-11 w-11 items-center justify-center rounded-md border"
+            className="h-10 w-10 items-center justify-center rounded-lg border"
             style={{ borderColor: colors.border, backgroundColor: colors.surface }}
             accessibilityLabel="Próximo dia"
             onPress={() => setSelectedDate((d) => shiftDate(d, 1))}
@@ -125,11 +129,55 @@ export default function AgendaScreen() {
           </Pressable>
           <Text
             className="flex-1 text-center"
-            style={{ color: colors.textSecondary, fontSize: 13.5 }}
+            style={{ color: colors.textSecondary, fontSize: 13.5, fontWeight: "600" }}
             numberOfLines={1}
           >
             {dateLabel(selectedDate)}
           </Text>
+        </View>
+
+        {/* View Switcher: Dia / Semana / Mês */}
+        <View
+          className="flex-row rounded-lg p-1 border"
+          style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+        >
+          {(["day", "week", "month"] as CalendarMode[]).map((mode) => {
+            const active = calMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                className="flex-1 items-center justify-center py-2 rounded-md"
+                style={{ backgroundColor: active ? colors.surfaceSecondary : "transparent" }}
+                onPress={() => setCalMode(mode)}
+              >
+                <Text
+                  style={{
+                    color: active ? colors.textPrimary : colors.textMuted,
+                    fontSize: 12.5,
+                    fontWeight: active ? "700" : "500",
+                  }}
+                >
+                  {mode === "day" ? "Dia" : mode === "week" ? "Semana" : "Mês"}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Action Buttons: Bloquear Horário & Novo Agendamento */}
+        <View className="flex-row gap-2">
+          <Pressable
+            className="flex-1 h-10 flex-row items-center justify-center gap-1.5 rounded-lg border px-2"
+            style={{ borderColor: colors.border, backgroundColor: colors.surface }}
+          >
+            <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>Bloquear horário</Text>
+          </Pressable>
+          <Pressable
+            className="flex-1 h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-2"
+            style={{ backgroundColor: colors.primaryForeground, borderColor: colors.border }}
+          >
+            <Text style={{ color: colors.background, fontSize: 12, fontWeight: "700" }}>+ Novo agendamento</Text>
+          </Pressable>
         </View>
       </View>
 

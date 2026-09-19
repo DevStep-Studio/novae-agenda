@@ -76,13 +76,7 @@ export default function EmployeeAgendaScreen() {
     .reduce((acc, a) => acc + (Number(a.total) || 0), 0);
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
-        <TopBar
-          title="Minha Agenda"
-        />
-      </View>
-
+    <Screen header={<TopBar title="Minha Agenda" company={session?.company?.name} />} style={{ paddingTop: 16 }}>
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -98,7 +92,7 @@ export default function EmployeeAgendaScreen() {
         <FlatList
           data={appointments}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 14 }}
+          contentContainerStyle={{ paddingBottom: 32, gap: 14 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -107,13 +101,13 @@ export default function EmployeeAgendaScreen() {
             />
           }
           ListHeaderComponent={
-            <View className="flex-row gap-3 mb-2">
+            <View className="flex-row gap-2.5 mb-2">
               <View className="flex-1">
                 <MetricCard
                   label="Atendimentos Hoje"
                   value={String(appointments.length)}
                   detail="Agendados"
-                  icon={Calendar}
+                  icon={CalendarDays}
                   variant="teal"
                 />
               </View>
@@ -121,7 +115,7 @@ export default function EmployeeAgendaScreen() {
                 <MetricCard
                   label="Faturamento Estimado"
                   value={formatBRL(todayRevenue)}
-                  detail="Total do dia"
+                  detail="Previsto hoje"
                   icon={CircleDollarSign}
                   variant="teal"
                 />

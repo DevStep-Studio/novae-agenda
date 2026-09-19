@@ -1,6 +1,6 @@
 import { CalendarDays, CircleDollarSign, TrendingUp, Users } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { EmployeeCard, type EmployeeMetrics } from "@/components/ui/employee-card";
@@ -114,12 +114,22 @@ export default function EquipeScreen() {
 
   return (
     <Screen header={<TopBar title="Equipe" company={session?.company.name} showBack={true} />} style={{ paddingTop: 16 }}>
-      <View>
-        <Text style={{ color: colors.primary, ...typography.eyebrow }}>PESSOAS E PERMISSÕES</Text>
-        <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Equipe</Text>
-        <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-          {totalEmployees} profissionais cadastrados no seu estabelecimento.
-        </Text>
+      <View className="gap-3.5">
+        <View>
+          <Text style={{ color: colors.primary, ...typography.eyebrow }}>PESSOAS E PERMISSÕES</Text>
+          <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Equipe</Text>
+          <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
+            {totalEmployees} profissionais cadastrados no seu estabelecimento.
+          </Text>
+        </View>
+
+        {/* Action Button */}
+        <Pressable
+          className="h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-3"
+          style={{ backgroundColor: colors.primaryForeground }}
+        >
+          <Text style={{ color: colors.background, fontSize: 12.5, fontWeight: "700" }}>+ Novo profissional</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -137,32 +147,45 @@ export default function EquipeScreen() {
           contentContainerClassName="gap-4 pb-6"
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
-          <View className="flex-row flex-wrap gap-3">
-            <MetricCard
-              icon={Users}
-              label="Total de profissionais"
-              value={String(totalEmployees)}
-              detail={`${activeCount} ativos na equipe`}
-            />
-            <MetricCard
-              icon={CalendarDays}
-              label="Atendimentos no mês"
-              value={String(totalMonthApts)}
-              detail={`méd. ${avgPerEmployee} por profissional`}
-            />
-            <MetricCard
-              icon={CircleDollarSign}
-              label="Faturamento da equipe"
-              value={formatBRL(totalRevenue)}
-              detail="gerado este mês"
-            />
-            <MetricCard
-              icon={TrendingUp}
-              label="Comissões calculadas"
-              value={formatBRL(totalCommissions)}
-              detail="a repassar à equipe"
-              variant="rose"
-            />
+          {/* 2x2 Metrics Grid */}
+          <View className="gap-2.5">
+            <View className="flex-row gap-2.5">
+              <View className="flex-1">
+                <MetricCard
+                  icon={Users}
+                  label="Total de profissionais"
+                  value={String(totalEmployees)}
+                  detail={`${activeCount} ativos na equipe`}
+                />
+              </View>
+              <View className="flex-1">
+                <MetricCard
+                  icon={CalendarDays}
+                  label="Atendimentos no mês"
+                  value={String(totalMonthApts)}
+                  detail={`méd. ${avgPerEmployee} por profissional`}
+                />
+              </View>
+            </View>
+            <View className="flex-row gap-2.5">
+              <View className="flex-1">
+                <MetricCard
+                  icon={CircleDollarSign}
+                  label="Faturamento da equipe"
+                  value={formatBRL(totalRevenue)}
+                  detail="gerado este mês"
+                />
+              </View>
+              <View className="flex-1">
+                <MetricCard
+                  icon={TrendingUp}
+                  label="Comissões calculadas"
+                  value={formatBRL(totalCommissions)}
+                  detail="a repassar à equipe"
+                  variant="rose"
+                />
+              </View>
+            </View>
           </View>
 
           {employees && employees.length === 0 ? (

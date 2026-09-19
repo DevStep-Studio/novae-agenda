@@ -58,12 +58,22 @@ export default function ServicosScreen() {
 
   return (
     <Screen header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />} style={{ paddingTop: 16 }}>
-      <View>
-        <Text style={{ color: colors.primary, ...typography.eyebrow }}>CATÁLOGO DE SERVIÇOS</Text>
-        <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Serviços Avulsos</Text>
-        <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-          Crie experiências claras para seus clientes e sua equipe.
-        </Text>
+      <View className="gap-3.5">
+        <View>
+          <Text style={{ color: colors.primary, ...typography.eyebrow }}>CATÁLOGO DE SERVIÇOS</Text>
+          <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Serviços Avulsos</Text>
+          <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
+            Crie experiências claras para seus clientes e sua equipe.
+          </Text>
+        </View>
+
+        {/* Action Button */}
+        <Pressable
+          className="h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-3"
+          style={{ backgroundColor: colors.primaryForeground }}
+        >
+          <Text style={{ color: colors.background, fontSize: 12.5, fontWeight: "700" }}>+ Novo serviço</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -77,20 +87,39 @@ export default function ServicosScreen() {
         </View>
       ) : (
         <ScrollView className="flex-1 mt-4" contentContainerClassName="gap-4 pb-6">
-          <View className="flex-row gap-4 border-b" style={{ borderBottomColor: colors.border }}>
+          <View className="flex-row gap-2">
             {FILTERS.map((f) => {
               const active = filter === f;
+              const count = f === "Todos" ? services?.length ?? 0 : services?.filter((s) => s.active === (f === "Ativos")).length ?? 0;
               return (
-                <Pressable key={f} className="pb-2.5" onPress={() => setFilter(f)}>
-                  <Text style={{ color: active ? colors.primary : colors.textSecondary, fontSize: 12, fontWeight: active ? "600" : "400" }}>
+                <Pressable
+                  key={f}
+                  className="px-3.5 py-1.5 rounded-full border flex-row items-center gap-1.5"
+                  style={{
+                    backgroundColor: active ? colors.primary : colors.surface,
+                    borderColor: active ? colors.primary : colors.border,
+                  }}
+                  onPress={() => setFilter(f)}
+                >
+                  <Text
+                    style={{
+                      color: active ? colors.primaryForeground : colors.textSecondary,
+                      fontSize: 12.5,
+                      fontWeight: active ? "700" : "500",
+                    }}
+                  >
                     {f}
                   </Text>
-                  {active ? (
-                    <View
-                      className="mt-2 self-stretch rounded-full"
-                      style={{ height: 2, backgroundColor: colors.primary, marginBottom: -2 }}
-                    />
-                  ) : null}
+                  <Text
+                    style={{
+                      color: active ? colors.primaryForeground : colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: "700",
+                      opacity: 0.8,
+                    }}
+                  >
+                    ({count})
+                  </Text>
                 </Pressable>
               );
             })}

@@ -47,7 +47,7 @@ export default function OwnerLayout() {
       <Tabs.Screen
         name="mais"
         options={{
-          title: "Mais",
+          title: "Menu",
           tabBarIcon: ({ color, size }) => <Menu color={color} size={size} />,
         }}
       />

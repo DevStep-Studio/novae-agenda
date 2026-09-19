@@ -19,6 +19,7 @@ import { router } from "expo-router";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
+import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { useSession } from "@/lib/session-context";
 
@@ -121,7 +122,7 @@ export default function OwnerMoreScreen() {
   const { session, signOut } = useSession();
 
   return (
-    <Screen style={{ paddingTop: 12, gap: 16 }}>
+    <Screen header={<TopBar title="Menu" company={session?.company.name} />} style={{ paddingTop: 16, gap: 16 }}>
       {/* Header do Usuário / Estabelecimento */}
       <View
         className="flex-row items-center gap-3.5 rounded-xl border p-4"
