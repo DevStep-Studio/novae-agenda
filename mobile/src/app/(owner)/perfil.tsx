@@ -3,11 +3,16 @@ import {
   ArrowRight,
   Building2,
   Check,
+  CheckCircle2,
+  ExternalLink,
   Globe,
   ImageIcon,
   ImagePlus,
+  Lock,
   LogOut,
   Palette,
+  Phone,
+  RefreshCw,
   Settings2,
   Share2,
   Shield,
@@ -209,6 +214,7 @@ export default function PerfilPersonalizacaoScreen() {
           ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
           : asset.uri;
         setBannerUrl(dataUrl);
+        setBannerLoadError(false);
         Alert.alert("Banner Selecionado", "Clique em 'Salvar alterações' para aplicar a todos.");
       }
     } catch {
@@ -234,6 +240,7 @@ export default function PerfilPersonalizacaoScreen() {
           ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
           : asset.uri;
         setAvatarUrl(dataUrl);
+        setAvatarLoadError(false);
         Alert.alert("Logo / Foto Selecionada", "Clique em 'Salvar alterações' para aplicar a todos.");
       }
     } catch {
@@ -286,73 +293,75 @@ export default function PerfilPersonalizacaoScreen() {
   return (
     <Screen
       header={<TopBar title="Meu Perfil & Personalização" company={companyName} />}
-      style={{ paddingTop: 10 }}
+      style={{ paddingTop: 8 }}
     >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ gap: 14, paddingBottom: 36, paddingHorizontal: 2 }}
+        contentContainerStyle={{ gap: 16, paddingBottom: 40, paddingHorizontal: 4 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Top Notice Banner (Exact Screenshot) */}
+        {/* 1. Minimalist Info Notice Banner */}
         <View
-          className="p-4 rounded-2xl border gap-2.5"
+          className="p-4 rounded-2xl border"
           style={{
-            backgroundColor: "#16171b",
-            borderColor: "rgba(255, 255, 255, 0.08)",
+            backgroundColor: "#121318",
+            borderColor: "rgba(255, 255, 255, 0.07)",
           }}
         >
           <View className="flex-row items-center gap-3">
             <View
               className="items-center justify-center rounded-xl"
               style={{
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 backgroundColor: "#ffffff",
               }}
             >
-              <Shield size={20} color="#000000" strokeWidth={2.5} />
+              <Shield size={20} color="#000000" strokeWidth={2.4} />
             </View>
 
-            <Text
-              style={{
-                color: "#ffffff",
-                fontSize: 14.5,
-                fontWeight: "700",
-                flex: 1,
-                lineHeight: 19,
-              }}
-            >
-              Identidade Visual Compartilhada para Toda a Equipe
-            </Text>
-          </View>
-
-          <View className="gap-1 pt-0.5">
-            <Text style={{ color: "#9ca3af", fontSize: 13, lineHeight: 18 }}>
-              Você está editando as preferências visuais de{" "}
-              <Text style={{ color: "#ffffff", fontWeight: "700" }}>{companyName}.</Text>
-            </Text>
-            <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-              Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
-            </Text>
+            <View className="flex-1">
+              <Text
+                style={{
+                  color: "#ffffff",
+                  fontSize: 14,
+                  fontWeight: "700",
+                  lineHeight: 18,
+                }}
+              >
+                Identidade Visual Compartilhada
+              </Text>
+              <Text
+                style={{
+                  color: "#9ca3af",
+                  fontSize: 12,
+                  marginTop: 2,
+                }}
+              >
+                Preferências herdadas por toda a equipe de{" "}
+                <Text style={{ color: "#ffffff", fontWeight: "600" }}>{companyName}</Text>
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* 2. Live Preview Hero Card (Exact Screenshot) */}
+        {/* 2. Hero Live Preview Card (Clean Minimalist Design) */}
         <View
-          className="rounded-2xl border overflow-hidden"
+          className="rounded-3xl border overflow-hidden"
           style={{
-            backgroundColor: "#111215",
-            borderColor: "rgba(255, 255, 255, 0.09)",
+            backgroundColor: "#111216",
+            borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
           {/* Cover background */}
-          <View style={{ height: 140, position: "relative", backgroundColor: "#1a1b20" }}>
+          <View style={{ height: 145, position: "relative", backgroundColor: "#181920" }}>
             <Image
               source={{ uri: bannerLoadError ? defaultBanner : displayBanner }}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
               onError={() => setBannerLoadError(true)}
             />
+            {/* Linear Gradient Fade Overlay */}
             <View
               style={{
                 position: "absolute",
@@ -360,21 +369,25 @@ export default function PerfilPersonalizacaoScreen() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(0, 0, 0, 0.35)",
+                backgroundColor: "rgba(10, 11, 14, 0.42)",
               }}
             />
           </View>
 
           {/* Card Info & Overlapping Avatar */}
-          <View className="p-4 pt-0 gap-3">
-            <View className="flex-row items-end justify-between" style={{ marginTop: -36 }}>
+          <View className="p-4 pt-0 gap-3.5">
+            <View className="flex-row items-end justify-between" style={{ marginTop: -40 }}>
               <View
                 className="items-center justify-center rounded-2xl overflow-hidden border-2"
                 style={{
-                  width: 78,
-                  height: 78,
-                  backgroundColor: "#18191e",
+                  width: 80,
+                  height: 80,
+                  backgroundColor: "#181920",
                   borderColor: "#ffffff",
+                  shadowColor: "#000000",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 8,
                 }}
               >
                 {resolvedAvatarUrl && !avatarLoadError ? (
@@ -385,10 +398,31 @@ export default function PerfilPersonalizacaoScreen() {
                     onError={() => setAvatarLoadError(true)}
                   />
                 ) : (
-                  <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "800" }}>
+                  <Text style={{ color: "#ffffff", fontSize: 26, fontWeight: "800" }}>
                     {initials}
                   </Text>
                 )}
+              </View>
+
+              {/* Status Tag */}
+              <View
+                className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full border mb-1"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                  borderColor: "rgba(255, 255, 255, 0.12)",
+                }}
+              >
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: "#10b981",
+                  }}
+                />
+                <Text style={{ color: "#ffffff", fontSize: 11, fontWeight: "600" }}>
+                  Ao vivo
+                </Text>
               </View>
             </View>
 
@@ -412,10 +446,10 @@ export default function PerfilPersonalizacaoScreen() {
             <View className="flex-row items-center gap-2.5 pt-1">
               <Pressable
                 onPress={handleOpenPublicPage}
-                className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border"
+                className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
                 style={{
-                  backgroundColor: "#18191e",
-                  borderColor: "rgba(255, 255, 255, 0.12)",
+                  backgroundColor: "#17181f",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
                 }}
               >
                 <Globe size={15} color="#ffffff" />
@@ -430,7 +464,7 @@ export default function PerfilPersonalizacaoScreen() {
               <Pressable
                 onPress={handleSave}
                 disabled={saving}
-                className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl"
+                className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl"
                 style={{ backgroundColor: "#ffffff" }}
               >
                 {saving ? (
@@ -448,29 +482,29 @@ export default function PerfilPersonalizacaoScreen() {
           </View>
         </View>
 
-        {/* 3. Navigation Tabs Row (Exact Screenshot) */}
+        {/* 3. Minimalist Tab Bar */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
+          contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
         >
           <Pressable
             onPress={() => setActiveTab("visual")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "visual" ? "#18191e" : "transparent",
+              backgroundColor: activeTab === "visual" ? "#1e1f26" : "transparent",
               borderColor:
                 activeTab === "visual"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(255, 255, 255, 0.06)",
             }}
           >
-            <Palette size={15} color={activeTab === "visual" ? "#ffffff" : "#9ca3af"} />
+            <Palette size={15} color={activeTab === "visual" ? "#ffffff" : "#71717a"} />
             <Text
               style={{
-                color: activeTab === "visual" ? "#ffffff" : "#9ca3af",
+                color: activeTab === "visual" ? "#ffffff" : "#71717a",
                 fontSize: 12.5,
-                fontWeight: "700",
+                fontWeight: activeTab === "visual" ? "700" : "500",
               }}
             >
               Identidade Visual & Cores
@@ -479,21 +513,21 @@ export default function PerfilPersonalizacaoScreen() {
 
           <Pressable
             onPress={() => setActiveTab("dados")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "dados" ? "#18191e" : "transparent",
+              backgroundColor: activeTab === "dados" ? "#1e1f26" : "transparent",
               borderColor:
                 activeTab === "dados"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(255, 255, 255, 0.06)",
             }}
           >
-            <User size={15} color={activeTab === "dados" ? "#ffffff" : "#9ca3af"} />
+            <User size={15} color={activeTab === "dados" ? "#ffffff" : "#71717a"} />
             <Text
               style={{
-                color: activeTab === "dados" ? "#ffffff" : "#9ca3af",
+                color: activeTab === "dados" ? "#ffffff" : "#71717a",
                 fontSize: 12.5,
-                fontWeight: activeTab === "dados" ? "700" : "600",
+                fontWeight: activeTab === "dados" ? "700" : "500",
               }}
             >
               Dados da Conta & Empresa
@@ -502,24 +536,24 @@ export default function PerfilPersonalizacaoScreen() {
 
           <Pressable
             onPress={() => setActiveTab("widgets")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "widgets" ? "#18191e" : "transparent",
+              backgroundColor: activeTab === "widgets" ? "#1e1f26" : "transparent",
               borderColor:
                 activeTab === "widgets"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(255, 255, 255, 0.06)",
             }}
           >
             <SlidersHorizontal
               size={15}
-              color={activeTab === "widgets" ? "#ffffff" : "#9ca3af"}
+              color={activeTab === "widgets" ? "#ffffff" : "#71717a"}
             />
             <Text
               style={{
-                color: activeTab === "widgets" ? "#ffffff" : "#9ca3af",
+                color: activeTab === "widgets" ? "#ffffff" : "#71717a",
                 fontSize: 12.5,
-                fontWeight: activeTab === "widgets" ? "700" : "600",
+                fontWeight: activeTab === "widgets" ? "700" : "500",
               }}
             >
               Widgets do Início
@@ -528,21 +562,21 @@ export default function PerfilPersonalizacaoScreen() {
 
           <Pressable
             onPress={() => setActiveTab("atalhos")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-3.5 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "atalhos" ? "#18191e" : "transparent",
+              backgroundColor: activeTab === "atalhos" ? "#1e1f26" : "transparent",
               borderColor:
                 activeTab === "atalhos"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "rgba(255, 255, 255, 0.06)",
             }}
           >
-            <Sparkles size={15} color={activeTab === "atalhos" ? "#ffffff" : "#9ca3af"} />
+            <Sparkles size={15} color={activeTab === "atalhos" ? "#ffffff" : "#71717a"} />
             <Text
               style={{
-                color: activeTab === "atalhos" ? "#ffffff" : "#9ca3af",
+                color: activeTab === "atalhos" ? "#ffffff" : "#71717a",
                 fontSize: 12.5,
-                fontWeight: activeTab === "atalhos" ? "700" : "600",
+                fontWeight: activeTab === "atalhos" ? "700" : "500",
               }}
             >
               Ações & Links
@@ -552,28 +586,29 @@ export default function PerfilPersonalizacaoScreen() {
 
         {/* 4. Tab 1: Identidade Visual & Cores */}
         {activeTab === "visual" && (
-          <View className="gap-3.5">
+          <View className="gap-4">
             {/* Card: Cor Primária do Sistema */}
             <View
-              className="p-4 rounded-2xl border gap-3.5"
+              className="p-5 rounded-2xl border gap-4"
               style={{
-                backgroundColor: "#16171b",
-                borderColor: "rgba(255, 255, 255, 0.08)",
+                backgroundColor: "#121318",
+                borderColor: "rgba(255, 255, 255, 0.07)",
               }}
             >
-              <View className="flex-row items-center gap-2">
-                <Palette size={18} color="#ffffff" />
-                <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
-                  Cor Primária do Sistema
+              <View className="gap-1">
+                <View className="flex-row items-center gap-2">
+                  <Palette size={17} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                    Cor Primária do Sistema
+                  </Text>
+                </View>
+                <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
+                  Substitua a cor de destaque do Reservei para botões, badges e status.
                 </Text>
               </View>
 
-              <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                Substitua a cor de destaque do Reservei. Afeta botões, badges, status e links para você e todos os profissionais da sua empresa.
-              </Text>
-
               {/* Color Preset Circles Grid */}
-              <View className="flex-row flex-wrap gap-2.5 pt-1">
+              <View className="flex-row flex-wrap gap-3 pt-1">
                 {PRIMARY_COLOR_PRESETS.map((preset) => {
                   const isSelected =
                     primaryColor.toLowerCase() === preset.hex.toLowerCase();
@@ -584,18 +619,18 @@ export default function PerfilPersonalizacaoScreen() {
                       onPress={() => setPrimaryColor(preset.hex)}
                       className="items-center justify-center rounded-full"
                       style={{
-                        width: 36,
-                        height: 36,
+                        width: 38,
+                        height: 38,
                         backgroundColor: preset.hex,
-                        borderWidth: isSelected ? 2.5 : 1,
+                        borderWidth: isSelected ? 3 : 1,
                         borderColor: isSelected
                           ? "#ffffff"
-                          : "rgba(255, 255, 255, 0.18)",
+                          : "rgba(255, 255, 255, 0.15)",
                       }}
                     >
                       {isSelected ? (
                         <Check
-                          size={16}
+                          size={18}
                           color={light ? "#000000" : "#ffffff"}
                           strokeWidth={3}
                         />
@@ -609,15 +644,15 @@ export default function PerfilPersonalizacaoScreen() {
               <View
                 className="flex-row items-center gap-2.5 p-2 rounded-xl border"
                 style={{
-                  backgroundColor: "#111215",
+                  backgroundColor: "#0d0e12",
                   borderColor: "rgba(255, 255, 255, 0.06)",
                 }}
               >
                 <View
                   className="rounded-lg border"
                   style={{
-                    width: 34,
-                    height: 34,
+                    width: 36,
+                    height: 36,
                     backgroundColor: primaryColor,
                     borderColor: "rgba(255, 255, 255, 0.2)",
                   }}
@@ -627,16 +662,16 @@ export default function PerfilPersonalizacaoScreen() {
                   value={primaryColor}
                   onChangeText={setPrimaryColor}
                   placeholder="#3b82f6"
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor="#52525b"
                   maxLength={9}
                   style={{
                     flex: 1,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#16171e",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
                     borderRadius: 8,
                     paddingHorizontal: 12,
-                    height: 36,
+                    height: 38,
                     color: "#ffffff",
                     fontSize: 13,
                     fontWeight: "600",
@@ -645,11 +680,11 @@ export default function PerfilPersonalizacaoScreen() {
 
                 <Pressable
                   onPress={() => setPrimaryColor("#3b82f6")}
-                  className="px-3 py-2 rounded-lg border items-center justify-center"
+                  className="px-3 rounded-lg border items-center justify-center"
                   style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.12)",
-                    height: 36,
+                    backgroundColor: "#16171e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    height: 38,
                   }}
                 >
                   <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
@@ -661,15 +696,15 @@ export default function PerfilPersonalizacaoScreen() {
 
             {/* Card: Banner de Capa */}
             <View
-              className="p-4 rounded-2xl border gap-3.5"
+              className="p-5 rounded-2xl border gap-4"
               style={{
-                backgroundColor: "#16171b",
-                borderColor: "rgba(255, 255, 255, 0.08)",
+                backgroundColor: "#121318",
+                borderColor: "rgba(255, 255, 255, 0.07)",
               }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
-                  <ImagePlus size={18} color="#ffffff" />
+                  <ImagePlus size={17} color="#ffffff" />
                   <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
                     Banner de Capa
                   </Text>
@@ -680,8 +715,8 @@ export default function PerfilPersonalizacaoScreen() {
                   disabled={uploadingBanner}
                   className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border"
                   style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.14)",
+                    backgroundColor: "#181920",
+                    borderColor: "rgba(255, 255, 255, 0.12)",
                   }}
                 >
                   {uploadingBanner ? (
@@ -690,7 +725,7 @@ export default function PerfilPersonalizacaoScreen() {
                     <>
                       <Upload size={13} color="#ffffff" />
                       <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
-                        Upload do Computador
+                        Upload
                       </Text>
                     </>
                   )}
@@ -698,36 +733,43 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
 
               <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                Imagem decorativa de destaque exibida no topo do painel inicial para você e toda a equipe.
+                Imagem decorativa de destaque exibida no topo do painel inicial.
               </Text>
 
               {/* URL Input & Limpar Button */}
               <View className="flex-row items-center gap-2">
                 <TextInput
                   value={bannerUrl}
-                  onChangeText={setBannerUrl}
-                  placeholder="https://exemplo.com/banner.jpg ou faça upload acima"
-                  placeholderTextColor="#6b7280"
+                  onChangeText={(text) => {
+                    setBannerUrl(text);
+                    setBannerLoadError(false);
+                  }}
+                  placeholder="https://exemplo.com/banner.jpg"
+                  placeholderTextColor="#52525b"
                   style={{
                     flex: 1,
-                    backgroundColor: "#111215",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#0d0e12",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
-                    borderRadius: 8,
+                    borderRadius: 10,
                     paddingHorizontal: 12,
-                    height: 40,
+                    height: 42,
                     color: "#ffffff",
                     fontSize: 12.5,
                   }}
                 />
                 {bannerUrl ? (
                   <Pressable
-                    onPress={() => setBannerUrl("")}
-                    className="px-3.5 py-2.5 rounded-lg border items-center justify-center"
+                    onPress={() => {
+                      setBannerUrl("");
+                      setBannerLoadError(false);
+                    }}
+                    className="px-3.5 rounded-10 border items-center justify-center"
                     style={{
-                      backgroundColor: "#18191e",
-                      borderColor: "rgba(255, 255, 255, 0.12)",
-                      height: 40,
+                      backgroundColor: "#181920",
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      height: 42,
+                      borderRadius: 10,
                     }}
                   >
                     <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
@@ -738,7 +780,7 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
 
               {/* Banner Presets Grid */}
-              <View className="gap-2 pt-1">
+              <View className="gap-2.5 pt-1">
                 <Text style={{ fontSize: 12, fontWeight: "600", color: "#9ca3af" }}>
                   Sugestões de Capas Profissionais:
                 </Text>
@@ -749,11 +791,14 @@ export default function PerfilPersonalizacaoScreen() {
                     return (
                       <Pressable
                         key={preset.id}
-                        onPress={() => setBannerUrl(preset.url)}
+                        onPress={() => {
+                          setBannerUrl(preset.url);
+                          setBannerLoadError(false);
+                        }}
                         className="rounded-xl overflow-hidden border"
                         style={{
                           width: "48%",
-                          height: 52,
+                          height: 56,
                           position: "relative",
                           borderColor: isSelected
                             ? "#ffffff"
@@ -773,7 +818,7 @@ export default function PerfilPersonalizacaoScreen() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: "rgba(0, 0, 0, 0.45)",
+                            backgroundColor: "rgba(0, 0, 0, 0.5)",
                             justifyContent: "center",
                             paddingHorizontal: 10,
                           }}
@@ -798,15 +843,15 @@ export default function PerfilPersonalizacaoScreen() {
 
             {/* Card: Logomarca da Empresa / Foto */}
             <View
-              className="p-4 rounded-2xl border gap-3.5"
+              className="p-5 rounded-2xl border gap-4"
               style={{
-                backgroundColor: "#16171b",
-                borderColor: "rgba(255, 255, 255, 0.08)",
+                backgroundColor: "#121318",
+                borderColor: "rgba(255, 255, 255, 0.07)",
               }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
-                  <ImageIcon size={18} color="#ffffff" />
+                  <ImageIcon size={17} color="#ffffff" />
                   <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
                     Logomarca da Empresa / Foto
                   </Text>
@@ -817,8 +862,8 @@ export default function PerfilPersonalizacaoScreen() {
                   disabled={uploadingAvatar}
                   className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border"
                   style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.14)",
+                    backgroundColor: "#181920",
+                    borderColor: "rgba(255, 255, 255, 0.12)",
                   }}
                 >
                   {uploadingAvatar ? (
@@ -827,7 +872,7 @@ export default function PerfilPersonalizacaoScreen() {
                     <>
                       <Upload size={13} color="#ffffff" />
                       <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
-                        Upload da Logo / Foto
+                        Upload
                       </Text>
                     </>
                   )}
@@ -835,36 +880,43 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
 
               <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                Logotipo ou foto principal exibida no topo do menu lateral, banner de boas-vindas e página de agendamento online.
+                Logotipo ou foto principal exibida no topo do menu lateral e página online.
               </Text>
 
               {/* URL Input & Limpar Button */}
               <View className="flex-row items-center gap-2">
                 <TextInput
                   value={avatarUrl}
-                  onChangeText={setAvatarUrl}
-                  placeholder="https://exemplo.com/foto.jpg ou faça upload acima"
-                  placeholderTextColor="#6b7280"
+                  onChangeText={(text) => {
+                    setAvatarUrl(text);
+                    setAvatarLoadError(false);
+                  }}
+                  placeholder="https://exemplo.com/foto.jpg"
+                  placeholderTextColor="#52525b"
                   style={{
                     flex: 1,
-                    backgroundColor: "#111215",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#0d0e12",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
-                    borderRadius: 8,
+                    borderRadius: 10,
                     paddingHorizontal: 12,
-                    height: 40,
+                    height: 42,
                     color: "#ffffff",
                     fontSize: 12.5,
                   }}
                 />
                 {avatarUrl ? (
                   <Pressable
-                    onPress={() => setAvatarUrl("")}
-                    className="px-3.5 py-2.5 rounded-lg border items-center justify-center"
+                    onPress={() => {
+                      setAvatarUrl("");
+                      setAvatarLoadError(false);
+                    }}
+                    className="px-3.5 border items-center justify-center"
                     style={{
-                      backgroundColor: "#18191e",
-                      borderColor: "rgba(255, 255, 255, 0.12)",
-                      height: 40,
+                      backgroundColor: "#181920",
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      height: 42,
+                      borderRadius: 10,
                     }}
                   >
                     <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
@@ -875,22 +927,25 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
 
               {/* Suggested Avatars List */}
-              <View className="gap-2 pt-1">
+              <View className="gap-2.5 pt-1">
                 <Text style={{ fontSize: 12, fontWeight: "600", color: "#9ca3af" }}>
-                  Avatares e Ícones Sugeridos:
+                  Avatares Sugeridos:
                 </Text>
 
-                <View className="flex-row items-center gap-3">
+                <View className="flex-row items-center gap-3.5">
                   {AVATAR_PRESETS.map((preset) => {
                     const isSelected = avatarUrl === preset.url;
                     return (
                       <Pressable
                         key={preset.id}
-                        onPress={() => setAvatarUrl(preset.url)}
+                        onPress={() => {
+                          setAvatarUrl(preset.url);
+                          setAvatarLoadError(false);
+                        }}
                         className="rounded-full overflow-hidden border-2"
                         style={{
-                          width: 44,
-                          height: 44,
+                          width: 46,
+                          height: 46,
                           borderColor: isSelected
                             ? "#ffffff"
                             : "rgba(255, 255, 255, 0.15)",
@@ -912,86 +967,85 @@ export default function PerfilPersonalizacaoScreen() {
 
         {/* 5. Tab 2: Dados da Conta & Empresa */}
         {activeTab === "dados" && (
-          <View className="gap-3.5">
+          <View className="gap-4">
             {/* Card: Dados Pessoais do Administrador */}
             <View
-              className="p-4 rounded-2xl border gap-3.5"
+              className="p-5 rounded-2xl border gap-4"
               style={{
-                backgroundColor: "#16171b",
-                borderColor: "rgba(255, 255, 255, 0.08)",
+                backgroundColor: "#121318",
+                borderColor: "rgba(255, 255, 255, 0.07)",
               }}
             >
               <View className="flex-row items-center gap-2">
-                <User size={18} color="#ffffff" />
+                <User size={17} color="#ffffff" />
                 <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
                   Dados Pessoais do Administrador
                 </Text>
               </View>
-              <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
-                Informações de contato e identificação do proprietário da conta.
-              </Text>
 
               <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
+                <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Nome completo
                 </Text>
                 <TextInput
                   value={name}
                   onChangeText={setName}
                   placeholder="Seu nome completo"
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor="#52525b"
                   style={{
-                    backgroundColor: "#111215",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#0d0e12",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 42,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    height: 44,
                     color: "#ffffff",
-                    fontSize: 13,
+                    fontSize: 13.5,
                   }}
                 />
               </View>
 
               <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
+                <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Telefone / WhatsApp
                 </Text>
                 <TextInput
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="(11) 99999-9999"
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor="#52525b"
                   style={{
-                    backgroundColor: "#111215",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#0d0e12",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 42,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    height: 44,
                     color: "#ffffff",
-                    fontSize: 13,
+                    fontSize: 13.5,
                   }}
                 />
               </View>
 
               <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
-                  E-mail de acesso (login)
-                </Text>
+                <View className="flex-row items-center justify-between">
+                  <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    E-mail de acesso (login)
+                  </Text>
+                  <Lock size={12} color="#71717a" />
+                </View>
                 <TextInput
                   value={session?.email || ""}
                   editable={false}
                   style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.06)",
+                    backgroundColor: "#16171e",
+                    borderColor: "rgba(255, 255, 255, 0.05)",
                     borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 42,
-                    color: "#9ca3af",
-                    fontSize: 13,
-                    opacity: 0.8,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    height: 44,
+                    color: "#71717a",
+                    fontSize: 13.5,
                   }}
                 />
               </View>
@@ -999,93 +1053,92 @@ export default function PerfilPersonalizacaoScreen() {
 
             {/* Card: Dados do Estabelecimento */}
             <View
-              className="p-4 rounded-2xl border gap-3.5"
+              className="p-5 rounded-2xl border gap-4"
               style={{
-                backgroundColor: "#16171b",
-                borderColor: "rgba(255, 255, 255, 0.08)",
+                backgroundColor: "#121318",
+                borderColor: "rgba(255, 255, 255, 0.07)",
               }}
             >
               <View className="flex-row items-center gap-2">
-                <Building2 size={18} color="#ffffff" />
+                <Building2 size={17} color="#ffffff" />
                 <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
                   Dados do Estabelecimento
                 </Text>
               </View>
-              <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
-                Informações da empresa registrada no sistema Reservei.
-              </Text>
 
               <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
+                <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Nome da empresa
                 </Text>
                 <TextInput
                   value={companyName}
                   onChangeText={setCompanyName}
                   placeholder="Nome do seu estabelecimento"
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor="#52525b"
                   style={{
-                    backgroundColor: "#111215",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#0d0e12",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 42,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    height: 44,
                     color: "#ffffff",
-                    fontSize: 13,
+                    fontSize: 13.5,
                   }}
                 />
               </View>
 
               <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
+                <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Segmento de atuação
                 </Text>
                 <TextInput
                   value={businessType}
                   onChangeText={setBusinessType}
-                  placeholder="Ex.: Manicure, Barbearia, Salão de Beleza, Estética..."
-                  placeholderTextColor="#6b7280"
+                  placeholder="Ex.: Barbearia, Studio, Manicure..."
+                  placeholderTextColor="#52525b"
                   style={{
-                    backgroundColor: "#111215",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: "#0d0e12",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                     borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 42,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    height: 44,
                     color: "#ffffff",
-                    fontSize: 13,
+                    fontSize: 13.5,
                   }}
                 />
               </View>
 
               <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
-                  Nível de permissão
-                </Text>
+                <View className="flex-row items-center justify-between">
+                  <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Nível de permissão
+                  </Text>
+                  <ShieldCheck size={13} color="#10b981" />
+                </View>
                 <TextInput
                   value="Proprietário · Acesso Total e Gerenciamento"
                   editable={false}
                   style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.06)",
+                    backgroundColor: "#16171e",
+                    borderColor: "rgba(255, 255, 255, 0.05)",
                     borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 42,
-                    color: "#9ca3af",
-                    fontSize: 13,
-                    opacity: 0.8,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    height: 44,
+                    color: "#71717a",
+                    fontSize: 13.5,
                   }}
                 />
               </View>
 
               <Pressable
-                onPress={() => router.push("/(owner)/mais" as any)}
+                onPress={() => router.push("/(owner)/configuracoes" as any)}
                 className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border mt-1"
                 style={{
-                  backgroundColor: "#18191e",
-                  borderColor: "rgba(255, 255, 255, 0.12)",
+                  backgroundColor: "#181920",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
                 }}
               >
                 <Settings2 size={16} color="#ffffff" />
@@ -1100,21 +1153,23 @@ export default function PerfilPersonalizacaoScreen() {
         {/* 6. Tab 3: Widgets do Início */}
         {activeTab === "widgets" && (
           <View
-            className="p-4 rounded-2xl border gap-3.5"
+            className="p-5 rounded-2xl border gap-4"
             style={{
-              backgroundColor: "#16171b",
-              borderColor: "rgba(255, 255, 255, 0.08)",
+              backgroundColor: "#121318",
+              borderColor: "rgba(255, 255, 255, 0.07)",
             }}
           >
-            <View className="flex-row items-center gap-2">
-              <SlidersHorizontal size={18} color="#ffffff" />
-              <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
-                Visibilidade de Módulos no Painel Inicial
+            <View className="gap-1">
+              <View className="flex-row items-center gap-2">
+                <SlidersHorizontal size={17} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                  Visibilidade de Módulos
+                </Text>
+              </View>
+              <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
+                Escolha quais seções e blocos devem ser visíveis no Dashboard geral.
               </Text>
             </View>
-            <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-              Escolha quais seções e blocos devem ser visíveis no Dashboard geral da empresa.
-            </Text>
 
             <View className="gap-2.5 pt-1">
               {[
@@ -1131,7 +1186,7 @@ export default function PerfilPersonalizacaoScreen() {
                 {
                   key: "showKpis",
                   label: "Cards de Indicadores (KPIs)",
-                  desc: "Métricas de faturamento, reservas e taxa de ocupação",
+                  desc: "Métricas de faturamento, reservas e ocupação",
                 },
                 {
                   key: "showSubmetrics",
@@ -1146,7 +1201,7 @@ export default function PerfilPersonalizacaoScreen() {
                 {
                   key: "showDaySummary",
                   label: "Resumo do Dia por Status",
-                  desc: "Gráfico e contadores de agendamentos de hoje",
+                  desc: "Gráfico e contadores de atendimentos de hoje",
                 },
                 {
                   key: "showQuickSlots",
@@ -1173,10 +1228,10 @@ export default function PerfilPersonalizacaoScreen() {
                     }
                     className="flex-row items-center justify-between p-3.5 rounded-xl border"
                     style={{
-                      backgroundColor: isChecked ? "#1c1d24" : "#111215",
+                      backgroundColor: isChecked ? "#181920" : "#0d0e12",
                       borderColor: isChecked
-                        ? "rgba(255, 255, 255, 0.18)"
-                        : "rgba(255, 255, 255, 0.06)",
+                        ? "rgba(255, 255, 255, 0.14)"
+                        : "rgba(255, 255, 255, 0.05)",
                     }}
                   >
                     <View className="flex-1 pr-3 gap-0.5">
@@ -1189,7 +1244,7 @@ export default function PerfilPersonalizacaoScreen() {
                       >
                         {label}
                       </Text>
-                      <Text style={{ color: "#9ca3af", fontSize: 11.5 }}>
+                      <Text style={{ color: "#71717a", fontSize: 11.5 }}>
                         {desc}
                       </Text>
                     </View>
@@ -1215,80 +1270,88 @@ export default function PerfilPersonalizacaoScreen() {
         {/* 7. Tab 4: Ações & Links */}
         {activeTab === "atalhos" && (
           <View
-            className="p-4 rounded-2xl border gap-3"
+            className="p-5 rounded-2xl border gap-3"
             style={{
-              backgroundColor: "#16171b",
-              borderColor: "rgba(255, 255, 255, 0.08)",
+              backgroundColor: "#121318",
+              borderColor: "rgba(255, 255, 255, 0.07)",
             }}
           >
-            <View className="flex-row items-center gap-2">
-              <Sparkles size={18} color="#ffffff" />
-              <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
-                Ações Rápidas e Acesso
+            <View className="gap-1">
+              <View className="flex-row items-center gap-2">
+                <Sparkles size={17} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                  Ações Rápidas & Acesso
+                </Text>
+              </View>
+              <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
+                Atalhos para navegação externa e ferramentas administrativas.
               </Text>
             </View>
-            <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
-              Atalhos para navegação externa e ferramentas administrativas.
-            </Text>
 
             <Pressable
               onPress={handleOpenPublicPage}
-              className="flex-row items-center justify-between p-3.5 rounded-xl border mt-1"
+              className="flex-row items-center justify-between p-4 rounded-xl border mt-1"
               style={{
-                backgroundColor: "rgba(59, 130, 246, 0.1)",
-                borderColor: "rgba(59, 130, 246, 0.3)",
+                backgroundColor: "rgba(59, 130, 246, 0.08)",
+                borderColor: "rgba(59, 130, 246, 0.25)",
               }}
             >
-              <View className="flex-row items-center gap-2.5">
+              <View className="flex-row items-center gap-3">
                 <UserRound size={18} color="#3b82f6" />
-                <Text style={{ color: "#3b82f6", fontSize: 13, fontWeight: "700" }}>
-                  Abrir Portal do Cliente (Agendamento Online)
+                <Text style={{ color: "#3b82f6", fontSize: 13.5, fontWeight: "700" }}>
+                  Abrir Portal do Cliente
                 </Text>
               </View>
               <ArrowRight size={16} color="#3b82f6" />
             </Pressable>
 
             <Pressable
-              onPress={() => router.push("/(owner)/mais" as any)}
-              className="flex-row items-center gap-2.5 p-3.5 rounded-xl border"
+              onPress={() => router.push("/(owner)/configuracoes" as any)}
+              className="flex-row items-center justify-between p-4 rounded-xl border"
               style={{
-                backgroundColor: "#18191e",
-                borderColor: "rgba(255, 255, 255, 0.12)",
+                backgroundColor: "#181920",
+                borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              <Settings2 size={18} color="#ffffff" />
-              <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
-                Configurações Gerais da Conta
-              </Text>
+              <View className="flex-row items-center gap-3">
+                <Settings2 size={18} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>
+                  Configurações Gerais da Conta
+                </Text>
+              </View>
+              <ArrowRight size={15} color="#71717a" />
             </Pressable>
 
             <Pressable
               onPress={handleLogout}
-              className="flex-row items-center gap-2.5 p-3.5 rounded-xl border"
+              className="flex-row items-center justify-between p-4 rounded-xl border"
               style={{
-                backgroundColor: "#18191e",
-                borderColor: "rgba(239, 68, 68, 0.25)",
+                backgroundColor: "#181920",
+                borderColor: "rgba(239, 68, 68, 0.2)",
               }}
             >
-              <LogOut size={18} color="#ef4444" />
-              <Text style={{ color: "#ef4444", fontSize: 13, fontWeight: "700" }}>
-                Sair da conta
-              </Text>
+              <View className="flex-row items-center gap-3">
+                <LogOut size={18} color="#ef4444" />
+                <Text style={{ color: "#ef4444", fontSize: 13.5, fontWeight: "700" }}>
+                  Sair da conta
+                </Text>
+              </View>
+              <ArrowRight size={15} color="#ef4444" />
             </Pressable>
           </View>
         )}
 
-        {/* 8. Sticky Save Bar at Bottom (Exact Screenshot) */}
+        {/* 8. Minimalist Bottom Save Card */}
         <View
           className="p-4 rounded-2xl border gap-3"
           style={{
-            backgroundColor: "#16171b",
-            borderColor: "rgba(255, 255, 255, 0.08)",
+            backgroundColor: "#121318",
+            borderColor: "rgba(255, 255, 255, 0.07)",
           }}
         >
           <View className="flex-row items-center gap-2.5">
             <ShieldCheck size={18} color={primaryColor || "#3b82f6"} />
-            <Text style={{ color: "#9ca3af", fontSize: 12, flex: 1, lineHeight: 16 }}>
+            <Text style={{ color: "#71717a", fontSize: 12, flex: 1, lineHeight: 16 }}>
               As personalizações aplicadas aqui valem para você e todos os profissionais desta empresa
             </Text>
           </View>
@@ -1296,7 +1359,7 @@ export default function PerfilPersonalizacaoScreen() {
           <Pressable
             onPress={handleSave}
             disabled={saving}
-            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl"
+            className="flex-row items-center justify-center gap-2 py-3.5 px-4 rounded-xl"
             style={{ backgroundColor: "#ffffff" }}
           >
             {saving ? (
