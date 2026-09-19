@@ -1,18 +1,42 @@
-import { ChevronLeft, ChevronRight } from "lucide-react-native";
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Clock3,
+  Plus,
+  Users,
+  X,
+} from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { router } from "expo-router";
 
 import { Button } from "@/components/ui/button";
-import { AppointmentCard } from "@/components/ui/appointment-card";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, typography } from "@/constants/design-tokens";
-import { ApiError } from "@/lib/api-client";
+import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { ApiError, api } from "@/lib/api-client";
 import { getAppointments, todayKey, type AppointmentDTO } from "@/lib/appointments";
+import { getEmployees, type EmployeeDTO } from "@/lib/employees";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "2-digit",
+  month: "long",
+});
 
 function dateLabel(date: string): string {
   try {
@@ -31,32 +55,42 @@ function shiftDate(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Mirrors CalendarPage's "day" mode in app-shell.tsx:6617-6752 — header
-// (eyebrow/title/subtitle), date nav row (Hoje/←/→/label, in that exact
-// order — matches `.calendar-date-controls` justify-content:space-between +
-// `.calendar-title-display` flex:1, not a guessed "arrows around a centered
-// label" layout), then the appointment list.
-//
-// Not ported yet (see MOBILE_DESIGN_SYSTEM.md): week/month view switcher,
-// employee filter, "Bloquear horário"/"Novo agendamento" (both open a
-// creation flow that doesn't exist in mobile), and each card's quick-action
-// row (check-in/finish/cancel buttons) — cards are read-only for now.
 type CalendarMode = "day" | "week" | "month";
+
+const START_HOUR = 8;
+const END_HOUR = 20;
+const TIME_SLOTS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
+  const h = START_HOUR + i;
+  return `${String(h).padStart(2, "0")}:00`;
+});
 
 export default function AgendaScreen() {
   const { session } = useSession();
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [calMode, setCalMode] = useState<CalendarMode>("day");
-  const [appointments, setAppointments] = useState<AppointmentDTO[] | null>(null);
+  const [appointments, setAppointments] = useState<AppointmentDTO[]>([]);
+  const [employees, setEmployees] = useState<EmployeeDTO[]>([]);
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // New appointment / block modal state
+  const [newModalVisible, setNewModalVisible] = useState(false);
+  const [blockModalVisible, setBlockModalVisible] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ employeeId?: string; time?: string } | null>(null);
+
+  const companyName = session?.company?.name || "Moa Tattoo";
+
   const load = useCallback(async (date: string) => {
     setError(null);
     try {
-      const data = await getAppointments({ from: date, to: date });
-      setAppointments([...data].sort((a, b) => a.startTime.localeCompare(b.startTime)));
+      const [aptsData, empsData] = await Promise.all([
+        getAppointments({ from: date, to: date }),
+        getEmployees().catch(() => []),
+      ]);
+      setAppointments(aptsData || []);
+      setEmployees(empsData || []);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível carregar a agenda.");
     }
@@ -82,130 +116,469 @@ export default function AgendaScreen() {
   }
 
   const { activeCount, projectedRevenue } = useMemo(() => {
-    const active = (appointments ?? []).filter((a) => a.status !== "cancelled");
+    const active = appointments.filter((a) => a.status !== "cancelled");
     return {
       activeCount: active.length,
-      projectedRevenue: active.reduce((sum, a) => sum + a.total, 0),
+      projectedRevenue: active.reduce((sum, a) => sum + (a.total || 0), 0),
     };
   }, [appointments]);
 
+  const visibleEmployees = useMemo(() => {
+    if (employeeFilter !== "all") {
+      const filtered = employees.filter((e) => e.id === employeeFilter);
+      if (filtered.length > 0) return filtered;
+    }
+    const active = employees.filter((e) => e.active);
+    return active.length > 0 ? active : employees;
+  }, [employees, employeeFilter]);
+
+  const handleSlotPress = (empId: string, time: string) => {
+    setSelectedSlot({ employeeId: empId, time });
+    setNewModalVisible(true);
+  };
+
   return (
-    <Screen header={<TopBar title="Agenda" company={session?.company.name} />} style={{ paddingTop: 16 }}>
-      <View className="gap-3.5">
-        <View>
-          <Text style={{ color: colors.primary, ...typography.eyebrow }}>AGENDA DO ESTABELECIMENTO</Text>
-          <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }} numberOfLines={1}>
+    <Screen header={<TopBar title="Agenda" company={companyName} />} style={{ paddingTop: 14 }}>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ gap: 14, paddingBottom: 24 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        {/* 1. Header Section */}
+        <View className="gap-1">
+          <Text
+            style={{
+              color: colors.primary,
+              fontSize: 11,
+              fontWeight: "700",
+              textTransform: "uppercase",
+              letterSpacing: 0.8,
+            }}
+          >
+            AGENDA DO ESTABELECIMENTO
+          </Text>
+          <Text
+            style={{
+              color: "#ffffff",
+              fontSize: 26,
+              fontWeight: "800",
+              letterSpacing: -0.5,
+              textTransform: "lowercase",
+            }}
+            numberOfLines={1}
+          >
             {dateLabel(selectedDate)}
           </Text>
-          <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
+          <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
             {activeCount} {activeCount === 1 ? "atendimento" : "atendimentos"} · {formatBRL(projectedRevenue)} previsto
           </Text>
         </View>
 
-        {/* Date Controls */}
-        <View className="flex-row items-center gap-2">
-          <Pressable
-            className="h-10 items-center justify-center rounded-lg border px-3.5"
-            style={{ borderColor: colors.border, backgroundColor: colors.surface }}
-            onPress={() => setSelectedDate(todayKey())}
-          >
-            <Text style={{ color: colors.textSecondary, fontSize: 12.5, fontWeight: "600" }}>Hoje</Text>
-          </Pressable>
-          <Pressable
-            className="h-10 w-10 items-center justify-center rounded-lg border"
-            style={{ borderColor: colors.border, backgroundColor: colors.surface }}
-            accessibilityLabel="Dia anterior"
-            onPress={() => setSelectedDate((d) => shiftDate(d, -1))}
-          >
-            <ChevronLeft size={18} color={colors.textSecondary} />
-          </Pressable>
-          <Pressable
-            className="h-10 w-10 items-center justify-center rounded-lg border"
-            style={{ borderColor: colors.border, backgroundColor: colors.surface }}
-            accessibilityLabel="Próximo dia"
-            onPress={() => setSelectedDate((d) => shiftDate(d, 1))}
-          >
-            <ChevronRight size={18} color={colors.textSecondary} />
-          </Pressable>
+        {/* 2. Date Navigation Row */}
+        <View
+          className="flex-row items-center justify-between p-2 rounded-xl border"
+          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+        >
+          <View className="flex-row items-center gap-1.5">
+            <Pressable
+              onPress={() => setSelectedDate(todayKey())}
+              className="px-3 py-1.5 rounded-lg border"
+              style={{
+                backgroundColor: "#202126",
+                borderColor: "rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>Hoje</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedDate((d) => shiftDate(d, -1))}
+              hitSlop={8}
+              className="p-1.5 rounded-lg"
+            >
+              <ChevronLeft size={18} color="#ffffff" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedDate((d) => shiftDate(d, 1))}
+              hitSlop={8}
+              className="p-1.5 rounded-lg"
+            >
+              <ChevronRight size={18} color="#ffffff" />
+            </Pressable>
+          </View>
+
           <Text
-            className="flex-1 text-center"
-            style={{ color: colors.textSecondary, fontSize: 13.5, fontWeight: "600" }}
+            style={{
+              color: "#ffffff",
+              fontSize: 13,
+              fontWeight: "600",
+              textTransform: "lowercase",
+              paddingRight: 6,
+            }}
             numberOfLines={1}
           >
             {dateLabel(selectedDate)}
           </Text>
         </View>
 
-        {/* View Switcher: Dia / Semana / Mês */}
+        {/* 3. View Switcher Tabs (Dia / Semana / Mês) */}
         <View
-          className="flex-row rounded-lg p-1 border"
-          style={{ backgroundColor: colors.surface, borderColor: colors.border }}
+          className="flex-row p-1 rounded-xl border"
+          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
         >
           {(["day", "week", "month"] as CalendarMode[]).map((mode) => {
-            const active = calMode === mode;
+            const isActive = calMode === mode;
+            const label = mode === "day" ? "Dia" : mode === "week" ? "Semana" : "Mês";
             return (
               <Pressable
                 key={mode}
-                className="flex-1 items-center justify-center py-2 rounded-md"
-                style={{ backgroundColor: active ? colors.surfaceSecondary : "transparent" }}
                 onPress={() => setCalMode(mode)}
+                className="flex-1 py-2 items-center justify-center rounded-lg"
+                style={{
+                  backgroundColor: isActive ? "#28292f" : "transparent",
+                  borderWidth: isActive ? 1 : 0,
+                  borderColor: isActive ? "rgba(255, 255, 255, 0.12)" : "transparent",
+                }}
               >
                 <Text
                   style={{
-                    color: active ? colors.textPrimary : colors.textMuted,
-                    fontSize: 12.5,
-                    fontWeight: active ? "700" : "500",
+                    color: isActive ? "#ffffff" : colors.textMuted,
+                    fontSize: 13,
+                    fontWeight: isActive ? "700" : "500",
                   }}
                 >
-                  {mode === "day" ? "Dia" : mode === "week" ? "Semana" : "Mês"}
+                  {label}
                 </Text>
               </Pressable>
             );
           })}
         </View>
 
-        {/* Action Buttons: Bloquear Horário & Novo Agendamento */}
-        <View className="flex-row gap-2">
+        {/* 4. Action Buttons Row: Bloquear horário | + Novo agendamento */}
+        <View className="flex-row items-center gap-2.5">
           <Pressable
-            className="flex-1 h-10 flex-row items-center justify-center gap-1.5 rounded-lg border px-2"
-            style={{ borderColor: colors.border, backgroundColor: colors.surface }}
+            onPress={() => setBlockModalVisible(true)}
+            className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3 rounded-xl border"
+            style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.12)" }}
           >
-            <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>Bloquear horário</Text>
+            <Clock3 size={15} color="#ffffff" />
+            <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
+              Bloquear horário
+            </Text>
           </Pressable>
-          <Pressable
-            className="flex-1 h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-2"
-            style={{ backgroundColor: colors.primaryForeground, borderColor: colors.border }}
-          >
-            <Text style={{ color: colors.background, fontSize: 12, fontWeight: "700" }}>+ Novo agendamento</Text>
-          </Pressable>
-        </View>
-      </View>
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.primary} />
+          <Pressable
+            onPress={() => {
+              setSelectedSlot(null);
+              setNewModalVisible(true);
+            }}
+            className="flex-1 flex-row items-center justify-center gap-1.5 py-3 px-3 rounded-xl"
+            style={{ backgroundColor: "#ffffff" }}
+          >
+            <Plus size={16} color="#000000" strokeWidth={2.5} />
+            <Text style={{ color: "#000000", fontSize: 13, fontWeight: "700" }}>
+              Novo agendamento
+            </Text>
+          </Pressable>
         </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center p-6 gap-3">
-          <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
-          <Button label="Tentar novamente" onPress={() => load(selectedDate)} />
-        </View>
-      ) : appointments && appointments.length === 0 ? (
-        <View className="flex-1 items-center justify-center gap-1 py-16">
-          <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: "600" }}>Nenhum atendimento</Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13 }}>A agenda está livre neste dia.</Text>
-        </View>
-      ) : (
-        <ScrollView
-          className="flex-1 mt-4"
-          contentContainerClassName="gap-3 pb-6"
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+
+        {/* 5. Professional Filter & Chips */}
+        <View
+          className="p-3.5 rounded-xl border gap-2.5"
+          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
         >
-          {appointments?.map((appointment) => (
-            <AppointmentCard key={appointment.id} appointment={appointment} />
-          ))}
-        </ScrollView>
-      )}
+          <View className="flex-row items-center gap-2">
+            <Users size={15} color={colors.textSecondary} />
+            <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "500" }}>
+              Profissional:
+            </Text>
+
+            <Pressable
+              className="flex-1 flex-row items-center justify-between px-3 py-1.5 rounded-lg border ml-1"
+              style={{ backgroundColor: "#1f2025", borderColor: "rgba(255, 255, 255, 0.1)" }}
+              onPress={() => {
+                // Cycle through filters
+                if (employeeFilter === "all" && employees.length > 0) {
+                  setEmployeeFilter(employees[0].id);
+                } else {
+                  setEmployeeFilter("all");
+                }
+              }}
+            >
+              <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }} numberOfLines={1}>
+                {employeeFilter === "all"
+                  ? `Todos os profissionais (${employees.length || 2})`
+                  : employees.find((e) => e.id === employeeFilter)?.name || "Profissional"}
+              </Text>
+              <ChevronDown size={14} color={colors.textMuted} />
+            </Pressable>
+          </View>
+
+          {/* Chips */}
+          <View className="flex-row flex-wrap gap-2 pt-1">
+            {employees.map((emp) => {
+              const isSelected = employeeFilter === emp.id;
+              return (
+                <Pressable
+                  key={emp.id}
+                  onPress={() => setEmployeeFilter(isSelected ? "all" : emp.id)}
+                  className="flex-row items-center gap-1.5 px-3 py-1 rounded-full border"
+                  style={{
+                    backgroundColor: isSelected ? "#2a2b32" : "#1b1c20",
+                    borderColor: isSelected ? colors.primary : "rgba(255, 255, 255, 0.08)",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: "#ffffff",
+                    }}
+                  />
+                  <Text
+                    style={{
+                      color: isSelected ? "#ffffff" : colors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {emp.name.split(" ")[0]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* 6. Multi-Professional Timetable Grid */}
+        {loading ? (
+          <View className="py-12 items-center justify-center">
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="rounded-xl border" style={{ borderColor: "rgba(255, 255, 255, 0.08)", backgroundColor: "#111216" }}>
+            <View>
+              {/* Table Header: Time Slot Column + Professional Columns */}
+              <View className="flex-row border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)", backgroundColor: "#16171c" }}>
+                {/* Time header */}
+                <View
+                  className="items-center justify-center border-r p-2.5"
+                  style={{ width: 75, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                >
+                  <View className="flex-row items-center gap-1">
+                    <Clock size={12} color={colors.textMuted} />
+                    <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>Horário</Text>
+                  </View>
+                </View>
+
+                {/* Professional headers */}
+                {visibleEmployees.map((emp) => {
+                  const initialsEmp = emp.name
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((p) => p[0]?.toUpperCase())
+                    .join("");
+
+                  const countEmp = appointments.filter((a) => a.employeeId === emp.id && a.status !== "cancelled").length;
+
+                  return (
+                    <View
+                      key={emp.id}
+                      className="flex-row items-center gap-2.5 p-3 border-r"
+                      style={{ width: 190, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                    >
+                      <View
+                        className="items-center justify-center rounded-lg"
+                        style={{
+                          width: 36,
+                          height: 36,
+                          backgroundColor: "#d1d5db",
+                        }}
+                      >
+                        <Text style={{ color: "#111827", fontSize: 13, fontWeight: "800" }}>
+                          {initialsEmp}
+                        </Text>
+                      </View>
+
+                      <View className="flex-1 min-w-0">
+                        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }} numberOfLines={1}>
+                          {emp.name}
+                        </Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 11 }} numberOfLines={1}>
+                          {countEmp} {countEmp === 1 ? "atendimento" : "atendimentos"}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Table Body: Time Rows */}
+              {TIME_SLOTS.map((time) => (
+                <View
+                  key={time}
+                  className="flex-row border-b"
+                  style={{
+                    borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                    minHeight: 56,
+                  }}
+                >
+                  {/* Time label */}
+                  <View
+                    className="items-center justify-center border-r p-2"
+                    style={{ width: 75, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                  >
+                    <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "500" }}>
+                      {time}
+                    </Text>
+                  </View>
+
+                  {/* Professional slot cells */}
+                  {visibleEmployees.map((emp) => {
+                    const apt = appointments.find(
+                      (a) =>
+                        a.employeeId === emp.id &&
+                        a.startTime.startsWith(time.slice(0, 2)) &&
+                        a.status !== "cancelled"
+                    );
+
+                    return (
+                      <Pressable
+                        key={emp.id}
+                        onPress={() => handleSlotPress(emp.id, time)}
+                        className="border-r p-1.5 justify-center"
+                        style={{
+                          width: 190,
+                          borderRightColor: "rgba(255, 255, 255, 0.08)",
+                          backgroundColor: apt ? "rgba(16, 185, 129, 0.12)" : "transparent",
+                        }}
+                      >
+                        {apt ? (
+                          <View
+                            className="p-2 rounded-lg border gap-0.5"
+                            style={{
+                              backgroundColor: "#162820",
+                              borderColor: colors.primary,
+                            }}
+                          >
+                            <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }} numberOfLines={1}>
+                              {apt.clientName || "Cliente"}
+                            </Text>
+                            <Text style={{ color: colors.primary, fontSize: 10.5, fontWeight: "600" }} numberOfLines={1}>
+                              {apt.serviceName || "Serviço"} · {apt.startTime}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </ScrollView>
+
+      {/* Modal: Novo Agendamento */}
+      <Modal
+        visible={newModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setNewModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+          <View
+            className="w-full rounded-2xl border p-5 gap-4"
+            style={{
+              maxWidth: 400,
+              backgroundColor: "#111215",
+              borderColor: "rgba(255, 255, 255, 0.12)",
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "700" }}>
+                Novo Agendamento
+              </Text>
+              <Pressable onPress={() => setNewModalVisible(false)}>
+                <X size={18} color="#ffffff" />
+              </Pressable>
+            </View>
+
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              Data: {selectedDate} {selectedSlot?.time ? `às ${selectedSlot.time}` : ""}
+            </Text>
+
+            <View className="gap-2.5">
+              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>Nome do Cliente</Text>
+              <TextInput
+                placeholder="Ex: João da Silva"
+                placeholderTextColor={colors.textDisabled}
+                style={{
+                  backgroundColor: "#18191e",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  borderWidth: 1,
+                  borderRadius: radius.sm,
+                  paddingHorizontal: 12,
+                  height: 44,
+                  color: "#ffffff",
+                }}
+              />
+            </View>
+
+            <Button
+              label="Confirmar Horário"
+              onPress={() => {
+                setNewModalVisible(false);
+                void load(selectedDate);
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal: Bloquear Horário */}
+      <Modal
+        visible={blockModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBlockModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+          <View
+            className="w-full rounded-2xl border p-5 gap-4"
+            style={{
+              maxWidth: 400,
+              backgroundColor: "#111215",
+              borderColor: "rgba(255, 255, 255, 0.12)",
+            }}
+          >
+            <View className="flex-row items-center justify-between">
+              <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "700" }}>
+                Bloquear Horário
+              </Text>
+              <Pressable onPress={() => setBlockModalVisible(false)}>
+                <X size={18} color="#ffffff" />
+              </Pressable>
+            </View>
+
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              Bloqueie intervalos para almoço, folgas ou manutenção na data {selectedDate}.
+            </Text>
+
+            <Button
+              label="Salvar Bloqueio"
+              onPress={() => {
+                setBlockModalVisible(false);
+                void load(selectedDate);
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }

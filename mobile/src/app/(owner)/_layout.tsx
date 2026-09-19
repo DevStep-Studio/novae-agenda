@@ -59,6 +59,7 @@ export default function OwnerLayout() {
       <Tabs.Screen name="financeiro" options={{ href: null }} />
       <Tabs.Screen name="lista-espera" options={{ href: null }} />
       <Tabs.Screen name="notificacoes" options={{ href: null }} />
+      <Tabs.Screen name="perfil" options={{ href: null }} />
       <Tabs.Screen name="relatorios" options={{ href: null }} />
       <Tabs.Screen name="servicos" options={{ href: null }} />
     </Tabs>

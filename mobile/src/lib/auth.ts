@@ -46,6 +46,8 @@ export type Company = {
   secondaryColor: string;
   logoUrl?: string | null;
   bannerUrl?: string | null;
+  publicSlug?: string | null;
+  slug?: string | null;
   dashboardPreferences?: DashboardPreferences;
   onboarded: boolean;
 };

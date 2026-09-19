@@ -11,6 +11,7 @@ import {
   Settings,
   Sparkles,
   Star,
+  User,
   Users,
 } from "lucide-react-native";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -38,6 +39,7 @@ type SectionItem = {
     | "/(owner)/avaliacoes"
     | "/(owner)/lista-espera"
     | "/(owner)/clubes"
+    | "/(owner)/perfil"
     | "/(owner)/notificacoes"
     | "/(owner)/configuracoes"
     | "/(owner)/assinatura";
@@ -92,6 +94,13 @@ const SECTIONS: SectionItem[] = [
     icon: Crown,
     iconColor: colors.primary,
     href: "/(owner)/clubes",
+  },
+  {
+    label: "Meu Perfil & Personalização",
+    subtitle: "Identidade visual, capa e dados",
+    icon: User,
+    iconColor: colors.primary,
+    href: "/(owner)/perfil",
   },
   {
     label: "Central de Notificações",
