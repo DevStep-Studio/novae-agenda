@@ -165,13 +165,14 @@ export default function EmployeeAgendaScreen() {
               }}
             >
               <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2.5">
+                <View className="flex-row items-center gap-2.5 flex-1 pr-2" style={{ flex: 1, flexShrink: 1 }}>
                   <View
                     style={{
                       backgroundColor: colors.primarySoft,
                       paddingHorizontal: 8,
                       paddingVertical: 4,
                       borderRadius: radius.sm,
+                      flexShrink: 0,
                     }}
                   >
                     <Text
@@ -190,7 +191,9 @@ export default function EmployeeAgendaScreen() {
                       color: colors.textPrimary,
                       fontSize: 16,
                       fontWeight: "600",
+                      flexShrink: 1,
                     }}
+                    numberOfLines={1}
                   >
                     {item.clientName}
                   </Text>
@@ -201,9 +204,10 @@ export default function EmployeeAgendaScreen() {
                     color: colors.primary,
                     fontSize: 15,
                     fontFamily: fontFamily.display,
+                    flexShrink: 0,
                   }}
                 >
-                  {formatBRL(Number(item.total) || 0)}
+                  {formatBRL(item.total)}
                 </Text>
               </View>
 
@@ -211,14 +215,14 @@ export default function EmployeeAgendaScreen() {
                 className="flex-row items-center justify-between rounded-lg p-2.5"
                 style={{ backgroundColor: colors.surfaceSecondary }}
               >
-                <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center gap-2 flex-1 pr-2" style={{ flex: 1, flexShrink: 1 }}>
                   <Scissors size={14} color={colors.textMuted} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+                  <Text style={{ color: colors.textSecondary, fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
                     {item.serviceName}
                   </Text>
                 </View>
 
-                <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                <Text style={{ color: colors.textMuted, fontSize: 12, flexShrink: 0 }}>
                   {statusLabel(item.status)}
                 </Text>
               </View>

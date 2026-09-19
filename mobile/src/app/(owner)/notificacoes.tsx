@@ -209,6 +209,7 @@ export default function NotificacoesScreen() {
                         backgroundColor: colors.surfaceTertiary,
                         padding: 7,
                         borderRadius: radius.sm,
+                        flexShrink: 0,
                       }}
                     >
                       {getNotificationIcon(item.type)}
@@ -221,12 +222,13 @@ export default function NotificacoesScreen() {
                         fontWeight: item.read ? "600" : "700",
                         flex: 1,
                       }}
+                      numberOfLines={1}
                     >
                       {item.title}
                     </Text>
                   </View>
 
-                  <Text style={{ color: colors.textMuted, fontSize: 11 }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11, flexShrink: 0 }}>
                     {new Date(item.createdAt).toLocaleDateString("pt-BR", {
                       day: "2-digit",
                       month: "2-digit",

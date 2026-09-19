@@ -31,7 +31,7 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentDTO }
 
       <View className="flex-row items-center gap-3">
         <Avatar name={appointment.clientName} photoUrl={appointment.clientPhotoUrl} />
-        <View className="shrink gap-0.5">
+        <View className="flex-1 shrink gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
           <Text style={{ color: colors.textPrimary, ...typography.clientName }} numberOfLines={1}>
             {appointment.clientName}
           </Text>

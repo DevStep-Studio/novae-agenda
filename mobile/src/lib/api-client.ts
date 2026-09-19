@@ -137,10 +137,4 @@ export async function hasStoredSession(): Promise<boolean> {
   return Boolean(cookie && cookie.includes("agenda_session="));
 }
 
-// Mirrors formatPhoneForWhatsApp in src/lib/api-client.ts (root project) —
-// same file, same export name there too.
-export function formatPhoneForWhatsApp(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 0) return "";
-  return digits.length <= 11 ? `55${digits}` : digits;
-}
+export { formatPhoneForWhatsApp } from "./formatters";

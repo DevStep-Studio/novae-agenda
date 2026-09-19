@@ -225,19 +225,21 @@ export default function ClubesScreen() {
                   }}
                 >
                   <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-3">
+                    <View className="flex-row items-center gap-3" style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
                       <Avatar name={item.clientName || "Cliente"} size="md" />
-                      <View className="gap-0.5">
+                      <View className="gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
                         <Text
                           style={{
                             color: colors.textPrimary,
                             fontSize: 15,
                             fontWeight: "600",
+                            flexShrink: 1,
                           }}
+                          numberOfLines={1}
                         >
                           {item.clientName || "Cliente VIP"}
                         </Text>
-                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }} numberOfLines={1}>
                           {item.planName || "Plano Mensal"}
                         </Text>
                       </View>
@@ -252,6 +254,7 @@ export default function ClubesScreen() {
                         paddingHorizontal: 8,
                         paddingVertical: 3,
                         borderRadius: radius.pill,
+                        flexShrink: 0,
                       }}
                     >
                       <Text
@@ -340,7 +343,11 @@ export default function ClubesScreen() {
                         color: colors.textPrimary,
                         fontSize: 17,
                         fontFamily: fontFamily.display,
+                        flex: 1,
+                        flexShrink: 1,
+                        marginRight: 8,
                       }}
+                      numberOfLines={1}
                     >
                       {p.name}
                     </Text>
@@ -350,6 +357,7 @@ export default function ClubesScreen() {
                         color: colors.primary,
                         fontSize: 18,
                         fontFamily: fontFamily.display,
+                        flexShrink: 0,
                       }}
                     >
                       {formatBRL(p.price)}/mês

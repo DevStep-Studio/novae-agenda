@@ -208,6 +208,14 @@ export default function CustomerAccessScreen() {
             <Button label="Criar PIN e entrar" onPress={handleSetupPinSubmit} loading={loading} />
           </>
         )}
+
+        <View style={{ marginTop: 8 }}>
+          <Button
+            label="← Voltar para o login"
+            variant="ghost"
+            onPress={() => router.replace("/(auth)/login")}
+          />
+        </View>
       </View>
     </Screen>
   );

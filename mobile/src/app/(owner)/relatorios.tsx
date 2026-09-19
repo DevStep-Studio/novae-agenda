@@ -216,13 +216,13 @@ export default function RelatoriosScreen() {
                   key={emp.employeeId}
                   className="flex-row items-center justify-between py-1 border-b border-neutral-800 last:border-0"
                 >
-                  <View className="flex-row items-center gap-3">
-                    <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: "700", width: 18 }}>
+                  <View className="flex-row items-center gap-2.5 flex-1 pr-2" style={{ flex: 1, flexShrink: 1 }}>
+                    <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: "700", width: 18, flexShrink: 0 }}>
                       #{idx + 1}
                     </Text>
                     <Avatar name={emp.name} photoUrl={emp.photoUrl} size="md" />
-                    <View className="gap-0.5">
-                      <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600" }}>
+                    <View className="gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
+                      <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600", flexShrink: 1 }} numberOfLines={1}>
                         {emp.name}
                       </Text>
                       <Text style={{ color: colors.textMuted, fontSize: 12 }}>
@@ -231,7 +231,7 @@ export default function RelatoriosScreen() {
                     </View>
                   </View>
 
-                  <View className="items-end gap-0.5">
+                  <View className="items-end gap-0.5" style={{ flexShrink: 0 }}>
                     <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "700" }}>
                       {formatBRL(emp.revenue)}
                     </Text>

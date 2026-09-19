@@ -198,7 +198,7 @@ export default function AssinaturaScreen() {
             }}
           >
             <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
+              <View className="flex-row items-center gap-2" style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
                 {isLifetime ? (
                   <Crown size={20} color="#f59e0b" />
                 ) : (
@@ -209,7 +209,9 @@ export default function AssinaturaScreen() {
                     color: colors.textPrimary,
                     fontSize: 18,
                     fontFamily: fontFamily.display,
+                    flexShrink: 1,
                   }}
+                  numberOfLines={1}
                 >
                   Plano{" "}
                   {isLifetime
@@ -230,6 +232,7 @@ export default function AssinaturaScreen() {
                   paddingHorizontal: 10,
                   paddingVertical: 4,
                   borderRadius: radius.pill,
+                  flexShrink: 0,
                 }}
               >
                 <Text
@@ -473,15 +476,16 @@ export default function AssinaturaScreen() {
                     borderColor: colors.border,
                   }}
                 >
-                  <View className="flex-row items-center gap-3">
+                  <View className="flex-row items-center gap-3" style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
                     <FileText size={20} color={colors.textSecondary} />
-                    <View className="gap-0.5">
+                    <View className="gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
                       <Text
                         style={{
                           color: colors.textPrimary,
                           fontSize: 14,
                           fontWeight: "600",
                         }}
+                        numberOfLines={1}
                       >
                         {formatBRL(inv.amount)}
                       </Text>
@@ -500,6 +504,7 @@ export default function AssinaturaScreen() {
                       paddingHorizontal: 8,
                       paddingVertical: 3,
                       borderRadius: radius.pill,
+                      flexShrink: 0,
                     }}
                   >
                     <Text

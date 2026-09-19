@@ -41,9 +41,9 @@ export function ClientCard({ client }: { client: ClientDTO }) {
     >
       <View className="flex-row items-center gap-3">
         <Avatar name={client.name} photoUrl={client.photoUrl} />
-        <View className="shrink gap-0.5">
-          <View className="flex-row flex-wrap items-center gap-1.5">
-            <Text style={{ color: colors.textPrimary, ...typography.clientCardName }} numberOfLines={1}>
+        <View className="flex-1 shrink gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
+          <View className="flex-row items-center gap-1.5 flex-wrap">
+            <Text style={{ color: colors.textPrimary, ...typography.clientCardName, flexShrink: 1 }} numberOfLines={1}>
               {client.name}
             </Text>
             <ClientBadge tier={tier} />

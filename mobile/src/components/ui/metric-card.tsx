@@ -34,12 +34,12 @@ export function MetricCard({ icon: Icon, label, value, detail, variant = "teal" 
       >
         <Icon size={16} color={tone.color} />
       </View>
-      <View className="shrink gap-1">
-        <Text style={{ color: colors.textSecondary, ...typography.metricLabel }}>{label}</Text>
+      <View className="flex-1 shrink gap-1" style={{ flex: 1, flexShrink: 1 }}>
+        <Text style={{ color: colors.textSecondary, ...typography.metricLabel }} numberOfLines={1}>{label}</Text>
         <Text style={{ color: colors.textPrimary, ...typography.metricValue }} numberOfLines={1}>
           {value}
         </Text>
-        {detail ? <Text style={{ color: colors.textMuted, ...typography.metricDetail }}>{detail}</Text> : null}
+        {detail ? <Text style={{ color: colors.textMuted, ...typography.metricDetail }} numberOfLines={1}>{detail}</Text> : null}
       </View>
     </View>
   );

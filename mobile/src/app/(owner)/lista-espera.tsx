@@ -185,20 +185,22 @@ export default function ListaEsperaScreen() {
                 }}
               >
                 <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3">
+                  <View className="flex-row items-center gap-3" style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
                     <Avatar name={item.clientName} size="md" />
-                    <View className="gap-0.5">
+                    <View className="gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
                       <Text
                         style={{
                           color: colors.textPrimary,
                           fontSize: 15,
                           fontWeight: "600",
+                          flexShrink: 1,
                         }}
+                        numberOfLines={1}
                       >
                         {item.clientName}
                       </Text>
                       {item.clientPhone && (
-                        <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                        <Text style={{ color: colors.textMuted, fontSize: 13 }} numberOfLines={1}>
                           {item.clientPhone}
                         </Text>
                       )}
@@ -212,6 +214,7 @@ export default function ListaEsperaScreen() {
                         paddingHorizontal: 8,
                         paddingVertical: 3,
                         borderRadius: radius.pill,
+                        flexShrink: 0,
                       }}
                     >
                       <Text

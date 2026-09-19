@@ -183,6 +183,7 @@ export default function MyBookingsScreen() {
                       paddingHorizontal: 8,
                       paddingVertical: 3,
                       borderRadius: radius.pill,
+                      flexShrink: 0,
                     }}
                   >
                     <Text style={{ color: cfg.color, fontSize: 11, fontWeight: "700" }}>
@@ -203,7 +204,10 @@ export default function MyBookingsScreen() {
                           color: colors.textPrimary,
                           fontSize: 15,
                           fontWeight: "600",
+                          flex: 1,
+                          marginRight: 8,
                         }}
+                        numberOfLines={1}
                       >
                         {first.name}
                       </Text>
@@ -212,9 +216,10 @@ export default function MyBookingsScreen() {
                           color: colors.primary,
                           fontSize: 15,
                           fontWeight: "700",
+                          flexShrink: 0,
                         }}
                       >
-                        {formatBRL(Number(first.price) || 0)}
+                        {formatBRL(first.price)}
                       </Text>
                     </View>
 

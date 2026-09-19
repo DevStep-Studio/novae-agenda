@@ -31,6 +31,4 @@ export async function getStats(range: "today" | "week" | "month" = "today") {
   return api<StatsResponse>(`/api/stats?range=${range}`);
 }
 
-export function formatBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+export { formatBRL } from "./formatters";

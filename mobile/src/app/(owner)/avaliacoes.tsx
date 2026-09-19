@@ -202,15 +202,17 @@ export default function AvaliacoesScreen() {
                 }}
               >
                 <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-3">
+                  <View className="flex-row items-center gap-3" style={{ flex: 1, flexShrink: 1, marginRight: 8 }}>
                     <Avatar name={item.clientName} size="md" />
-                    <View className="gap-0.5">
+                    <View className="gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
                       <Text
                         style={{
                           color: colors.textPrimary,
                           fontSize: 15,
                           fontWeight: "600",
+                          flexShrink: 1,
                         }}
+                        numberOfLines={1}
                       >
                         {item.clientName}
                       </Text>
@@ -225,7 +227,7 @@ export default function AvaliacoesScreen() {
                   </View>
 
                   {/* Estrelas */}
-                  <View className="flex-row gap-0.5">
+                  <View className="flex-row gap-0.5" style={{ flexShrink: 0 }}>
                     {Array.from({ length: 5 }, (_, idx) => (
                       <Star
                         key={idx}
