@@ -40,7 +40,17 @@ const Store = Platform.OS === "web"
 import Constants from "expo-constants";
 
 export function resolveApiBaseUrl(): string {
-  // In development (Metro / Expo Go), auto-detect the host machine IP where Metro is running
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+
+  // Se executando no Web (browser), usar o mesmo hostname do browser (localhost ou IP local)
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+    const hostname = window.location.hostname || "localhost";
+    return `http://${hostname}:3000`;
+  }
+
+  // Em desenvolvimento nativo (Metro / Expo Go em celular físico ou simulador)
   if (__DEV__) {
     const hostUri =
       Constants.expoConfig?.hostUri ||
@@ -52,10 +62,6 @@ export function resolveApiBaseUrl(): string {
         return `http://${host}:3000`;
       }
     }
-  }
-
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
   }
 
   if (__DEV__) {
@@ -143,6 +149,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   try {
     res = await fetch(`${baseUrl}${path}`, {
       ...init,
+      credentials: "include",
       signal: init.signal || controller.signal,
       headers: {
         "content-type": "application/json",
@@ -165,7 +172,17 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     clearTimeout(timeoutId);
   }
 
-  const setCookieHeader = res.headers.get("set-cookie");
+  let setCookieHeader: string | null = null;
+  if (typeof (res.headers as any).getSetCookie === "function") {
+    const list = (res.headers as any).getSetCookie();
+    if (Array.isArray(list) && list.length > 0) {
+      setCookieHeader = list.join("; ");
+    }
+  }
+  if (!setCookieHeader) {
+    setCookieHeader = res.headers.get("set-cookie");
+  }
+
   if (setCookieHeader) {
     await persistCookie(mergeCookies(cookie, setCookieHeader));
   }
@@ -175,7 +192,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && !path.includes("/login")) {
       await persistCookie(null);
       unauthorizedHandler?.();
     }

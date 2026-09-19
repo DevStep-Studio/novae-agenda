@@ -27,7 +27,7 @@ type AuthMode = "login" | "register" | "forgot-password";
 type RecoveryStep = "request_email" | "email_sent";
 
 export default function LoginScreen() {
-  const { refresh } = useSession();
+  const { session, refresh } = useSession();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("request_email");
@@ -49,6 +49,19 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (session) {
+      if (session.role === "employee") {
+        router.replace("/(employee)");
+      } else if (session.role === "client") {
+        router.replace("/(customer)");
+      } else {
+        router.replace("/(owner)");
+      }
+    }
+  }, [session]);
 
   // Timer countdown for resending email
   useEffect(() => {
@@ -82,7 +95,7 @@ export default function LoginScreen() {
       const res = await loginStaff(email.trim(), password);
       const newSession = await refresh();
 
-      const role = newSession?.role || res?.role;
+      const role = newSession?.role || res?.role || "owner";
       if (role === "employee") {
         router.replace("/(employee)");
       } else if (role === "client") {

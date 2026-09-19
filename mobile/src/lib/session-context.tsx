@@ -17,22 +17,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    // No stored cookie at all — skip the network round trip on cold start.
-    if (!(await hasStoredSession())) {
-      setSession(null);
-      return null;
-    }
+  const refresh = useCallback(async (): Promise<SessionInfo | null> => {
     try {
       const data = await getStaffSession();
-      if (!data) {
-        await clearSession();
+      if (data && data.userId) {
+        setSession(data);
+        return data;
       }
-      setSession(data);
-      return data;
+      setSession(null);
+      return null;
     } catch {
-      // Expired/invalid session cookie — treat as logged out rather than crash the app.
-      await clearSession();
       setSession(null);
       return null;
     }
