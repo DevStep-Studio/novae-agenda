@@ -212,4 +212,68 @@ describe("Client Auto Registration on Booking (Web & Mobile Sync)", () => {
     assert.equal(reactivated.deletedBy, null);
     assert.equal(reactivated.name, customerUser.name);
   });
+
+  it("automatically creates and updates client using customer payload info on booking", async () => {
+    const rawUserId = randomUUID();
+    const phone = "11955554444";
+    const richCustomerName = "Carlos Eduardo Ferreira";
+    const richEmail = `carlos-${randomUUID().slice(0, 8)}@example.com`;
+
+    // Customer user created with placeholder or minimal info
+    await db.insert(users).values({
+      id: rawUserId,
+      name: "Cliente",
+      email: `temp-${randomUUID().slice(0, 6)}@novae.local`,
+      phone: null,
+      passwordHash: "hash123",
+      role: "customer",
+      active: true,
+      emailVerified: false,
+    });
+
+    const [userRecord] = await db.select().from(users).where(eq(users.id, rawUserId)).limit(1);
+
+    const bookingRequest = {
+      slug: f.company.publicSlug!,
+      locationId: f.location.id,
+      date: f.date,
+      startTime: "09:00",
+      items: [{ serviceId: f.services[0].id, employeeId: f.team[1].id }],
+      idempotencyKey: randomUUID(),
+      products: [],
+      intendedPaymentMethod: "pix" as const,
+      customer: {
+        name: richCustomerName,
+        phone,
+        email: richEmail,
+      },
+    };
+
+    const booking = await createBooking(userRecord!, bookingRequest);
+
+    assert.ok(booking.id);
+    assert.ok(booking.clientId);
+
+    // Verify user was updated with the rich customer info
+    const [updatedUser] = await db.select().from(users).where(eq(users.id, rawUserId)).limit(1);
+    assert.equal(updatedUser?.name, richCustomerName);
+    assert.equal(updatedUser?.phone, phone);
+    assert.equal(updatedUser?.email, richEmail);
+
+    // Verify client was created in clients table for the establishment
+    const [createdClient] = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.companyId, f.company.id), eq(clients.userId, rawUserId)))
+      .limit(1);
+
+    assert.ok(createdClient, "Cliente deve ser cadastrado automaticamente na base do estabelecimento");
+    assert.equal(createdClient.id, booking.clientId);
+    assert.equal(createdClient.name, richCustomerName);
+    assert.equal(createdClient.phone, phone);
+    assert.equal(createdClient.email, richEmail);
+    assert.equal(createdClient.active, true);
+    assert.equal(createdClient.deletedAt, null);
+  });
 });
+

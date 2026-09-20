@@ -34,9 +34,9 @@ export async function GET(request: Request) {
     ? and(
         baseCondition,
         or(
-          sql`lower(${clients.name}) LIKE ${`%${query.toLowerCase()}%`}`,
-          sql`${clients.phone} LIKE ${`%${query}%`}`,
-          sql`lower(${clients.email}) LIKE ${`%${query.toLowerCase()}%`}`
+          sql`lower(coalesce(${clients.name}, ${users.name}, '')) LIKE ${`%${query.toLowerCase()}%`}`,
+          sql`coalesce(${clients.phone}, ${users.phone}, '') LIKE ${`%${query}%`}`,
+          sql`lower(coalesce(${clients.email}, ${users.email}, '')) LIKE ${`%${query.toLowerCase()}%`}`
         )
       )
     : baseCondition;
@@ -46,10 +46,10 @@ export async function GET(request: Request) {
       id: clients.id,
       companyId: clients.companyId,
       userId: clients.userId,
-      name: clients.name,
-      email: clients.email,
+      name: sql<string>`coalesce(${clients.name}, ${users.name}, 'Cliente')`.as("name"),
+      email: sql<string | null>`coalesce(${clients.email}, ${users.email})`.as("email"),
       phone: sql<string | null>`coalesce(${clients.phone}, ${users.phone})`.as("phone"),
-      photoUrl: clients.photoUrl,
+      photoUrl: sql<string | null>`coalesce(${clients.photoUrl}, ${users.avatarUrl})`.as("photoUrl"),
       notes: clients.notes,
       internalNotes: clients.internalNotes,
       active: clients.active,
@@ -179,6 +179,7 @@ export async function GET(request: Request) {
       hasActiveMembership: !!mem,
       membershipPlanName: mem?.planName ?? null,
       membershipStatus: (mem?.status as any) ?? null,
+      isMembershipActive: !!mem,
     };
   });
 

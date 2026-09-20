@@ -188,9 +188,15 @@ export async function createBooking(
   user: typeof users.$inferSelect,
   input: z.infer<typeof createBookingSchema>,
 ) {
-  if (!user.phone)
+  const effectivePhone = (user.phone || input.customer?.phone || "").trim();
+  if (!effectivePhone)
     throw new BookingError("Informe seu telefone antes de confirmar.");
-  const phone = user.phone;
+  const phone = effectivePhone;
+  const rawCustomerName = (input.customer?.name || "").trim();
+  const userName = (user.name || "").trim();
+  const effectiveName = rawCustomerName || (userName && userName !== "Cliente" ? userName : "") || rawCustomerName || userName || "Cliente";
+  const effectiveEmail = (input.customer?.email || user.email || "").trim() || null;
+
   return db.transaction(async (tx) => {
     await lockCompanyBySlug(tx, input.slug);
     const company = await publicCompany(input.slug, tx);
@@ -226,125 +232,115 @@ export async function createBooking(
         "Este horário acabou de ser reservado. Escolha outro horário.",
         409,
       );
+
+    // Atualiza os dados do usuário cliente caso tenham sido enriquecidos
+    if (
+      (effectiveName && effectiveName !== "Cliente" && user.name !== effectiveName) ||
+      (effectivePhone && user.phone !== effectivePhone) ||
+      (effectiveEmail && (!user.email || user.email.endsWith("@novae.local")))
+    ) {
+      await tx
+        .update(users)
+        .set({
+          name: effectiveName || user.name,
+          phone: effectivePhone || user.phone,
+          ...(effectiveEmail && (!user.email || user.email.endsWith("@novae.local")) ? { email: effectiveEmail } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+    }
+
     let [client] = await tx
       .select()
       .from(clients)
       .where(
         and(eq(clients.companyId, company.id), eq(clients.userId, user.id)),
       );
-    if (client) {
-      const needsUpdate =
-        !client.active ||
-        client.deletedAt !== null ||
-        (user.name && client.name !== user.name) ||
-        (phone && client.phone !== phone) ||
-        (user.email && client.email !== user.email) ||
-        (user.avatarUrl && client.photoUrl !== user.avatarUrl);
 
-      if (needsUpdate) {
-        await tx
-          .update(clients)
-          .set({
-            name: user.name || client.name,
-            phone: phone || client.phone,
-            email: user.email || client.email,
-            photoUrl: user.avatarUrl || client.photoUrl,
-            active: true,
-            deletedAt: null,
-            deletedBy: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(clients.id, client.id));
+    const phoneNormalized = normalizePhoneDigits(phone);
 
-        client = {
-          ...client,
-          name: user.name || client.name,
-          phone: phone || client.phone,
-          email: user.email || client.email,
-          photoUrl: user.avatarUrl || client.photoUrl,
-          active: true,
-          deletedAt: null,
-          deletedBy: null,
-          updatedAt: new Date(),
-        };
-      }
-    } else {
+    if (!client && phoneNormalized) {
       const companyClients = await tx
         .select()
         .from(clients)
         .where(eq(clients.companyId, company.id));
 
-      const phoneNormalized = normalizePhoneDigits(phone);
-      const matchedUnlinked = companyClients.find(
-        (c) =>
-          c.phone &&
-          normalizePhoneDigits(c.phone) === phoneNormalized &&
-          (!c.userId || c.userId === user.id),
+      const matchedPhone = companyClients.find(
+        (c) => c.phone && normalizePhoneDigits(c.phone) === phoneNormalized,
       );
 
-      if (matchedUnlinked) {
-        await tx
-          .update(clients)
-          .set({
-            userId: user.id,
-            name: user.name || matchedUnlinked.name,
-            phone: phone || matchedUnlinked.phone,
-            email: user.email || matchedUnlinked.email,
-            photoUrl: user.avatarUrl || matchedUnlinked.photoUrl,
-            active: true,
-            deletedAt: null,
-            deletedBy: null,
-            updatedAt: new Date(),
-          })
-          .where(eq(clients.id, matchedUnlinked.id));
+      if (matchedPhone) {
+        client = matchedPhone;
+      }
+    }
 
-        client = {
-          ...matchedUnlinked,
+    if (client) {
+      const targetName = (effectiveName && effectiveName !== "Cliente") ? effectiveName : (client.name || effectiveName);
+      const targetEmail = effectiveEmail || client.email;
+      const targetPhone = effectivePhone || client.phone;
+      const targetPhoto = user.avatarUrl || client.photoUrl;
+
+      await tx
+        .update(clients)
+        .set({
           userId: user.id,
-          name: user.name || matchedUnlinked.name,
-          phone: phone || matchedUnlinked.phone,
-          email: user.email || matchedUnlinked.email,
-          photoUrl: user.avatarUrl || matchedUnlinked.photoUrl,
+          name: targetName,
+          phone: targetPhone,
+          email: targetEmail,
+          photoUrl: targetPhoto,
           active: true,
           deletedAt: null,
           deletedBy: null,
           updatedAt: new Date(),
-        };
-      } else {
-        const newClientId = crypto.randomUUID();
-        const createdAt = new Date();
-        await tx
-          .insert(clients)
-          .values({
-            id: newClientId,
-            companyId: company.id,
-            userId: user.id,
-            name: user.name,
-            email: user.email,
-            phone,
-            photoUrl: user.avatarUrl,
-            active: true,
-            createdAt,
-            updatedAt: createdAt,
-          });
-        client = {
+        })
+        .where(eq(clients.id, client.id));
+
+      client = {
+        ...client,
+        userId: user.id,
+        name: targetName,
+        phone: targetPhone,
+        email: targetEmail,
+        photoUrl: targetPhoto,
+        active: true,
+        deletedAt: null,
+        deletedBy: null,
+        updatedAt: new Date(),
+      };
+    } else {
+      const newClientId = crypto.randomUUID();
+      const createdAt = new Date();
+      await tx
+        .insert(clients)
+        .values({
           id: newClientId,
           companyId: company.id,
           userId: user.id,
-          name: user.name,
-          email: user.email,
-          phone,
-          photoUrl: user.avatarUrl,
-          document: null,
-          notes: null,
-          internalNotes: null,
+          name: effectiveName,
+          email: effectiveEmail,
+          phone: effectivePhone,
+          photoUrl: user.avatarUrl || null,
           active: true,
-          deletedAt: null,
-          deletedBy: null,
           createdAt,
           updatedAt: createdAt,
-        };
-      }
+        });
+      client = {
+        id: newClientId,
+        companyId: company.id,
+        userId: user.id,
+        name: effectiveName,
+        email: effectiveEmail,
+        phone: effectivePhone,
+        photoUrl: user.avatarUrl,
+        document: null,
+        notes: null,
+        internalNotes: null,
+        active: true,
+        deletedAt: null,
+        deletedBy: null,
+        createdAt,
+        updatedAt: createdAt,
+      };
     }
     const quote = await quoteBooking(
       company,
