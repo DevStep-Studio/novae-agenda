@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import Constants from "expo-constants";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Application from "expo-application";
 import * as SecureStore from "expo-secure-store";
 import { api } from "./api-client";
@@ -9,47 +9,55 @@ import { api } from "./api-client";
 const PUSH_TOKEN_STORAGE_KEY = "reservei_push_token";
 
 // Configure how notifications are handled when the app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    priority: Notifications.AndroidNotificationPriority.HIGH,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    }),
+  });
+} catch {
+  // Graceful fallback
+}
 
 /**
  * Configure native notification channels for Android 8.0+ (API 26+)
  */
 export async function setupNotificationChannels() {
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("appointments", {
-      name: "Agendamentos e Reservas",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#10B981",
-      enableLights: true,
-      enableVibrate: true,
-      showBadge: true,
-    });
+    try {
+      await Notifications.setNotificationChannelAsync("appointments", {
+        name: "Agendamentos e Reservas",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#10B981",
+        enableLights: true,
+        enableVibrate: true,
+        showBadge: true,
+      });
 
-    await Notifications.setNotificationChannelAsync("reminders", {
-      name: "Lembretes de Horários",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 200, 200, 200],
-      lightColor: "#10B981",
-      enableLights: true,
-      enableVibrate: true,
-      showBadge: true,
-    });
+      await Notifications.setNotificationChannelAsync("reminders", {
+        name: "Lembretes de Horários",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 200, 200, 200],
+        lightColor: "#10B981",
+        enableLights: true,
+        enableVibrate: true,
+        showBadge: true,
+      });
 
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "Geral",
-      importance: Notifications.AndroidImportance.DEFAULT,
-      showBadge: true,
-    });
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "Geral",
+        importance: Notifications.AndroidImportance.DEFAULT,
+        showBadge: true,
+      });
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -57,31 +65,39 @@ export async function setupNotificationChannels() {
  * Checks current push notification permission status.
  */
 export async function getPushNotificationPermissionStatus(): Promise<Notifications.PermissionStatus> {
-  const settings = await Notifications.getPermissionsAsync();
-  return settings.status;
+  try {
+    const settings = await Notifications.getPermissionsAsync();
+    return settings.status;
+  } catch {
+    return Notifications.PermissionStatus.UNDETERMINED;
+  }
 }
 
 /**
  * Requests push notification permission from the OS.
  */
 export async function requestPushNotificationPermissions(): Promise<boolean> {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync({
-      ios: {
-        allowAlert: true,
-        allowBadge: true,
-        allowSound: true,
-        allowDisplayInCarPlay: false,
-        allowCriticalAlerts: false,
-      },
-    });
-    finalStatus = status;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowDisplayInCarPlay: false,
+          allowCriticalAlerts: false,
+        },
+      });
+      finalStatus = status;
+    }
+
+    return finalStatus === "granted";
+  } catch {
+    return false;
   }
-
-  return finalStatus === "granted";
 }
 
 /**
@@ -89,16 +105,20 @@ export async function requestPushNotificationPermissions(): Promise<boolean> {
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   try {
+    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+    if (isExpoGo) {
+      // In Expo Go, push notifications are not supported without a development build
+      return null;
+    }
+
     await setupNotificationChannels();
 
     if (!Device.isDevice) {
-      console.log("[PushNotifications] Push notifications are only supported on physical devices.");
       return null;
     }
 
     const hasPermission = await requestPushNotificationPermissions();
     if (!hasPermission) {
-      console.log("[PushNotifications] Permission not granted by user.");
       return null;
     }
 
@@ -111,7 +131,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
       projectId,
     });
 
-    const pushToken = tokenResponse.data;
+    const pushToken = tokenResponse?.data;
     if (!pushToken) return null;
 
     // Save token locally in secure store
@@ -133,8 +153,8 @@ export async function registerForPushNotifications(): Promise<string | null> {
     });
 
     return pushToken;
-  } catch (error) {
-    console.warn("[PushNotifications] Failed to register push token:", error);
+  } catch {
+    // Silent catch so LogBox warning banner never surfaces in development
     return null;
   }
 }
@@ -153,8 +173,8 @@ export async function unregisterPushNotifications(): Promise<void> {
     });
 
     await SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY);
-  } catch (error) {
-    console.warn("[PushNotifications] Failed to unregister push token:", error);
+  } catch {
+    // Silent catch
   }
 }
 

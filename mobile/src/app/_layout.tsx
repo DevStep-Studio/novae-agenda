@@ -13,7 +13,7 @@ import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { useColorScheme } from "react-native";
+import { LogBox, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -21,6 +21,23 @@ import { AppThemeProvider, useAppTheme } from "@/lib/theme-context";
 import { SessionProvider, useSession } from "@/lib/session-context";
 import { setupNotificationListeners } from "@/lib/push-notifications";
 import { OfflineBanner } from "@/components/ui/offline-banner";
+
+// Suppress intrusive development warning / LogBox toast overlays in Expo Go
+LogBox.ignoreAllLogs(true);
+if (typeof console !== "undefined") {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    const msg = typeof args[0] === "string" ? args[0] : "";
+    if (
+      msg.includes("expo-notifications") ||
+      msg.includes("Android Push") ||
+      msg.includes("development build")
+    ) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
 
 SplashScreen.preventAutoHideAsync();
 

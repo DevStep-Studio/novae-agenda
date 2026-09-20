@@ -48,8 +48,7 @@ async function getOrCreateReserveiCalendar(): Promise<string | null> {
     });
 
     return newCalendarId;
-  } catch (err) {
-    console.warn("[Calendar Error]:", err);
+  } catch {
     return null;
   }
 }
@@ -79,8 +78,7 @@ export async function addBookingToNativeCalendar(data: CalendarEventData): Promi
     });
 
     return { success: true, eventId };
-  } catch (error) {
-    console.warn("[Add to Calendar Error]:", error);
+  } catch {
     return { success: false };
   }
 }
