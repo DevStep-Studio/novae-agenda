@@ -121,10 +121,10 @@ export function TopBar({
         className="flex-row items-center justify-between border-b"
         style={{
           paddingTop: insets.top,
-          height: 64 + insets.top,
+          height: 60 + insets.top,
           paddingHorizontal: 16,
-          backgroundColor: "#0d0e11",
-          borderBottomColor: "rgba(255, 255, 255, 0.08)",
+          backgroundColor: isDark ? "#0a0b0e" : "#ffffff",
+          borderBottomColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
           zIndex: 90,
         }}
       >
@@ -138,15 +138,15 @@ export function TopBar({
               hitSlop={10}
               className="items-center justify-center rounded-lg"
               style={{
-                width: 44,
-                height: 44,
-                minWidth: 44,
-                minHeight: 44,
+                width: 40,
+                height: 40,
+                minWidth: 40,
+                minHeight: 40,
                 marginRight: 2,
                 backgroundColor: "transparent",
               }}
             >
-              <ArrowLeft size={20} color="#ffffff" strokeWidth={2.2} />
+              <ArrowLeft size={20} color={isDark ? "#ffffff" : "#0f172a"} strokeWidth={2.2} />
             </Pressable>
           ) : (
             <Pressable
@@ -156,26 +156,26 @@ export function TopBar({
               hitSlop={10}
               className="items-center justify-center rounded-lg"
               style={{
-                width: 44,
-                height: 44,
-                minWidth: 44,
-                minHeight: 44,
+                width: 40,
+                height: 40,
+                minWidth: 40,
+                minHeight: 40,
                 marginRight: 2,
                 backgroundColor: "transparent",
               }}
             >
-              <Menu size={20} color="#ffffff" strokeWidth={2.2} />
+              <Menu size={22} color={isDark ? "#ffffff" : "#0f172a"} strokeWidth={2.2} />
             </Pressable>
           )}
 
           <View className="flex-col justify-center flex-1 min-w-0" style={{ gap: 1 }}>
             <Text
               style={{
-                color: "#ffffff",
-                fontSize: 16,
+                color: isDark ? "#ffffff" : "#0f172a",
+                fontSize: 17,
                 fontWeight: "700",
                 letterSpacing: -0.4,
-                lineHeight: 20,
+                lineHeight: 21,
               }}
               numberOfLines={1}
             >
@@ -184,11 +184,10 @@ export function TopBar({
             {companyName ? (
               <Text
                 style={{
-                  color: "#9ca3af",
-                  fontSize: 11.5,
+                  color: isDark ? "#9ca3af" : "#64748b",
+                  fontSize: 12,
                   fontWeight: "500",
-                  lineHeight: 14,
-                  marginTop: 1,
+                  lineHeight: 15,
                 }}
                 numberOfLines={1}
               >
@@ -216,9 +215,9 @@ export function TopBar({
             }}
           >
             {isDark ? (
-              <Sun size={18} color="#9ca3af" strokeWidth={1.8} />
+              <Sun size={19} color="#9ca3af" strokeWidth={1.8} />
             ) : (
-              <Moon size={18} color="#4b5563" strokeWidth={1.8} />
+              <Moon size={19} color="#4b5563" strokeWidth={1.8} />
             )}
           </Pressable>
 
@@ -240,20 +239,20 @@ export function TopBar({
               backgroundColor: "transparent",
             }}
           >
-            <Bell size={18} color="#9ca3af" strokeWidth={1.8} />
+            <Bell size={19} color="#9ca3af" strokeWidth={1.8} />
             {unreadCount > 0 && (
               <View
                 className="absolute items-center justify-center"
                 style={{
                   top: 2,
                   right: 2,
-                  minWidth: 15,
-                  height: 15,
+                  minWidth: 16,
+                  height: 16,
                   paddingHorizontal: 3,
                   borderRadius: 999,
                   backgroundColor: "#ef4444",
                   borderWidth: 1.5,
-                  borderColor: "#0d0e11",
+                  borderColor: isDark ? "#0a0b0e" : "#ffffff",
                 }}
               >
                 <Text
@@ -283,11 +282,11 @@ export function TopBar({
             <View
               className="items-center justify-center rounded-full overflow-hidden"
               style={{
-                width: 34,
-                height: 34,
-                minWidth: 34,
-                minHeight: 34,
-                borderRadius: 17,
+                width: 36,
+                height: 36,
+                minWidth: 36,
+                minHeight: 36,
+                borderRadius: 18,
                 backgroundColor: "#181920",
                 borderWidth: 1.5,
                 borderColor: "rgba(255, 255, 255, 0.15)",
@@ -296,13 +295,13 @@ export function TopBar({
               {avatarUrl && !imageError ? (
                 <Image
                   source={{ uri: avatarUrl }}
-                  style={{ width: 34, height: 34 }}
+                  style={{ width: 36, height: 36 }}
                   contentFit="cover"
                   priority="high"
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
+                <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>
                   {initials}
                 </Text>
               )}
@@ -313,12 +312,12 @@ export function TopBar({
                 position: "absolute",
                 bottom: 0,
                 right: 0,
-                width: 8,
-                height: 8,
-                borderRadius: 4,
+                width: 9,
+                height: 9,
+                borderRadius: 4.5,
                 backgroundColor: "#10b981",
                 borderWidth: 1.5,
-                borderColor: "#0d0e11",
+                borderColor: isDark ? "#0a0b0e" : "#ffffff",
                 zIndex: 2,
               }}
             />

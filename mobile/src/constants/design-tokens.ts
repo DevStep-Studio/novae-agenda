@@ -304,12 +304,12 @@ export const toggle = {
  * small white underline bar, on an always-dark bar regardless of app theme.
  */
 export const bottomNav = {
-  background: "#101216",
-  height: 66,
+  background: "#08080a",
+  height: 62,
   borderTopColor: "rgba(255, 255, 255, 0.08)",
-  itemInactiveColor: "#94a3b8",
+  itemInactiveColor: "#9ca3af",
   itemActiveColor: "#ffffff",
-  indicatorWidth: 22,
+  indicatorWidth: 18,
   indicatorHeight: 2.5,
   iconSize: 20,
   addButtonSize: 48,

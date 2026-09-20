@@ -321,7 +321,7 @@ export default function OwnerHomeScreen() {
               </View>
 
               {/* Bottom Row: Personalizar Capa Button + Logo Box */}
-              <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 4 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 6 }}>
                 <Pressable
                   onPress={() => router.push("/(owner)/perfil" as any)}
                   style={{
@@ -331,26 +331,26 @@ export default function OwnerHomeScreen() {
                     paddingHorizontal: 12,
                     paddingVertical: 8,
                     borderRadius: 8,
-                    backgroundColor: isDark ? "rgba(0, 0, 0, 0.55)" : "rgba(255, 255, 255, 0.85)",
+                    backgroundColor: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.85)",
                     borderWidth: 1,
-                    borderColor: isDark ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)",
                   }}
                 >
-                  <ImagePlus size={13} color={textTitle} />
-                  <Text style={{ color: textTitle, fontSize: 12, fontWeight: "600" }}>
+                  <ImagePlus size={14} color={textTitle} />
+                  <Text style={{ color: textTitle, fontSize: 12.5, fontWeight: "600" }}>
                     Personalizar capa
                   </Text>
                 </Pressable>
 
                 <View
                   style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 16,
+                    width: 68,
+                    height: 68,
+                    borderRadius: 14,
                     overflow: "hidden",
                     borderWidth: 1,
-                    backgroundColor: isDark ? "#18191e" : "#e2e8f0",
-                    borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.15)",
+                    backgroundColor: isDark ? "#0a0a0a" : "#e2e8f0",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.15)",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -477,18 +477,18 @@ export default function OwnerHomeScreen() {
             {/* Card 1: Atendimentos hoje */}
             <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
-                  <CalendarDays size={15} color={textTitle} />
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
+                  <CalendarDays size={16} color={textTitle} />
                 </View>
-                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
+                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Atendimentos hoje
                 </Text>
               </View>
-              <View style={{ gap: 2, marginTop: 6 }}>
-                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
+              <View style={{ gap: 2, marginTop: 10 }}>
+                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
                   {stats?.today.appointments ?? 0}
                 </Text>
-                <Text style={{ color: textMuted, fontSize: 11 }}>
+                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
                   agendados para hoje
                 </Text>
               </View>
@@ -497,18 +497,18 @@ export default function OwnerHomeScreen() {
             {/* Card 2: Receita prevista */}
             <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
-                  <TrendingUp size={15} color={primaryColor} />
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
+                  <TrendingUp size={16} color={textTitle} />
                 </View>
-                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
+                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Receita prevista
                 </Text>
               </View>
-              <View style={{ gap: 2, marginTop: 6 }}>
-                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
+              <View style={{ gap: 2, marginTop: 10 }}>
+                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
                   {formatDashboardCurrency(forecast)}
                 </Text>
-                <Text style={{ color: textMuted, fontSize: 11 }}>
+                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
                   para hoje
                 </Text>
               </View>
@@ -517,18 +517,18 @@ export default function OwnerHomeScreen() {
             {/* Card 3: Receita realizada */}
             <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
-                  <WalletCards size={15} color="#10b981" />
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
+                  <WalletCards size={16} color={textTitle} />
                 </View>
-                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
+                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Receita realizada
                 </Text>
               </View>
-              <View style={{ gap: 2, marginTop: 6 }}>
-                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
+              <View style={{ gap: 2, marginTop: 10 }}>
+                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
                   {formatDashboardCurrency(realized)}
                 </Text>
-                <Text style={{ color: textMuted, fontSize: 11 }}>
+                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
                   já recebida hoje
                 </Text>
               </View>
@@ -537,19 +537,39 @@ export default function OwnerHomeScreen() {
             {/* Card 4: Receita pendente */}
             <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
-                  <CircleDollarSign size={15} color="#f59e0b" />
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
+                  <CircleDollarSign size={16} color={textTitle} />
                 </View>
-                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
+                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Receita pendente
                 </Text>
               </View>
-              <View style={{ gap: 2, marginTop: 6 }}>
-                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
+              <View style={{ gap: 2, marginTop: 10 }}>
+                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
                   {formatDashboardCurrency(pendingAmount)}
                 </Text>
-                <Text style={{ color: textMuted, fontSize: 11 }}>
+                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
                   a receber hoje
+                </Text>
+              </View>
+            </View>
+
+            {/* Card 5: Clientes atendidos */}
+            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
+                  <Users size={16} color={textTitle} />
+                </View>
+                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
+                  Clientes atendidos
+                </Text>
+              </View>
+              <View style={{ gap: 2, marginTop: 10 }}>
+                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
+                  {stats?.today.clientsServed ?? 0}
+                </Text>
+                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
+                  finalizados hoje
                 </Text>
               </View>
             </View>
@@ -879,12 +899,12 @@ export default function OwnerHomeScreen() {
             }
           >
             {/* 1. Page Intro / Headings */}
-            <View style={{ gap: 12, marginBottom: 2 }}>
-              <View style={{ gap: 4 }}>
+            <View style={{ gap: 14, marginTop: 4, marginBottom: 2 }}>
+              <View style={{ gap: 6 }}>
                 <Text
                   style={{
-                    color: primaryColor,
-                    fontSize: 11,
+                    color: isDark ? "#9ca3af" : "#64748b",
+                    fontSize: 11.5,
                     fontWeight: "700",
                     textTransform: "uppercase",
                     letterSpacing: 0.8,
@@ -895,9 +915,10 @@ export default function OwnerHomeScreen() {
                 <Text
                   style={{
                     color: textTitle,
-                    fontSize: 25,
+                    fontSize: 28,
                     fontWeight: "800",
-                    letterSpacing: -0.4,
+                    letterSpacing: -0.5,
+                    lineHeight: 34,
                   }}
                 >
                   Olá! Aqui está seu dia
@@ -905,8 +926,8 @@ export default function OwnerHomeScreen() {
                 <Text
                   style={{
                     color: textMuted,
-                    fontSize: 13,
-                    lineHeight: 18,
+                    fontSize: 14,
+                    lineHeight: 20,
                   }}
                 >
                   Acompanhe os atendimentos e a receita do seu estabelecimento hoje.
@@ -914,7 +935,7 @@ export default function OwnerHomeScreen() {
               </View>
 
               {/* Action Buttons Row */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 2 }}>
                 <Pressable
                   onPress={() => setCustomizeVisible(true)}
                   style={{
@@ -925,14 +946,14 @@ export default function OwnerHomeScreen() {
                     gap: 8,
                     borderRadius: 12,
                     borderWidth: 1,
-                    paddingVertical: 10,
+                    height: 44,
                     paddingHorizontal: 12,
-                    backgroundColor: isDark ? "#15161a" : "#f8fafc",
-                    borderColor: cardBorder,
+                    backgroundColor: isDark ? "#121316" : "#f8fafc",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.12)" : "#e2e8f0",
                   }}
                 >
-                  <SlidersHorizontal size={14} color={textTitle} />
-                  <Text style={{ color: textTitle, fontSize: 12.5, fontWeight: "600" }}>
+                  <SlidersHorizontal size={15} color={textTitle} />
+                  <Text style={{ color: textTitle, fontSize: 13.5, fontWeight: "600" }}>
                     Personalizar início
                   </Text>
                 </Pressable>
@@ -946,13 +967,13 @@ export default function OwnerHomeScreen() {
                     justifyContent: "center",
                     gap: 6,
                     borderRadius: 12,
-                    paddingVertical: 10,
+                    height: 44,
                     paddingHorizontal: 12,
-                    backgroundColor: primaryColor,
+                    backgroundColor: isDark ? "#ffffff" : primaryColor,
                   }}
                 >
-                  <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
-                  <Text style={{ color: primaryForeground, fontSize: 12.5, fontWeight: "700" }}>
+                  <Plus size={18} color={isDark ? "#000000" : primaryForeground} strokeWidth={2.5} />
+                  <Text style={{ color: isDark ? "#000000" : primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
                     Novo agendamento
                   </Text>
                 </Pressable>
@@ -991,14 +1012,14 @@ const styles = StyleSheet.create({
     width: "48.5%",
     borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
+    padding: 16,
     justifyContent: "space-between",
-    minHeight: 92,
+    minHeight: 110,
   },
   kpiIconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.08)",
     alignItems: "center",
@@ -1009,7 +1030,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 14,
+    padding: 16,
     borderRadius: 16,
     borderWidth: 1,
   },
