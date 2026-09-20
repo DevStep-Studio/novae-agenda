@@ -26,7 +26,13 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
         key={route.key}
         accessibilityRole="button"
         accessibilityState={focused ? { selected: true } : {}}
-        className="flex-1 items-center justify-center gap-[3px] py-1.5"
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3,
+          paddingVertical: 6,
+        }}
         onPress={() => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
@@ -55,8 +61,11 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
 
   return (
     <View
-      className="flex-row items-center justify-around border-t"
       style={{
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-around",
+        borderTopWidth: 1,
         height: bottomNav.height + insets.bottom,
         paddingBottom: insets.bottom,
         backgroundColor: bottomNav.background,
@@ -69,8 +78,13 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Novo agendamento"
-        className="flex-1 items-center justify-center gap-[3px]"
-        style={{ marginTop: -14 }}
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 3,
+          marginTop: -14,
+        }}
         onPress={() => {
           router.push("/(owner)/agenda");
         }}

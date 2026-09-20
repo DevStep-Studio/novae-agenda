@@ -1,3 +1,4 @@
+import "../global.css";
 import {
   DMSans_400Regular,
   DMSans_500Medium,

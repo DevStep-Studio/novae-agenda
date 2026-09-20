@@ -19,19 +19,25 @@ function normalizeTime(time: string): string {
 export function AppointmentCard({ appointment }: { appointment: AppointmentDTO }) {
   return (
     <View
-      className="gap-3 rounded-md border p-4"
-      style={{ backgroundColor: colors.surfaceSecondary, borderColor: colors.border }}
+      style={{
+        gap: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 16,
+        backgroundColor: colors.surfaceSecondary,
+        borderColor: colors.border,
+      }}
     >
-      <View className="flex-row items-center justify-between">
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Text style={{ color: colors.textPrimary, ...typography.appointmentTime }}>
           {normalizeTime(appointment.startTime)}
         </Text>
         <StatusBadge status={appointment.status} />
       </View>
 
-      <View className="flex-row items-center gap-3">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={appointment.clientName} photoUrl={appointment.clientPhotoUrl} />
-        <View className="flex-1 shrink gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
+        <View style={{ flex: 1, flexShrink: 1, gap: 2 }}>
           <Text style={{ color: colors.textPrimary, ...typography.clientName }} numberOfLines={1}>
             {appointment.clientName}
           </Text>
@@ -42,16 +48,22 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentDTO }
       </View>
 
       <View
-        className="flex-row items-center gap-3 border-t pt-2.5"
-        style={{ borderTopColor: colors.border }}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 10,
+        }}
       >
-        <View className="flex-row items-center gap-1">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <Clock3 size={13} color={colors.textMuted} />
           <Text style={{ color: colors.textMuted, ...typography.appointmentMetaText }}>
             {appointment.durationMinutes} min
           </Text>
         </View>
-        <View className="flex-row items-center gap-1">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
           <UserRound size={13} color={colors.textMuted} />
           <Text style={{ color: colors.textMuted, ...typography.appointmentMetaText }} numberOfLines={1}>
             {appointment.employeeName}

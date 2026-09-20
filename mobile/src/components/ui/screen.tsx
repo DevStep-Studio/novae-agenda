@@ -25,7 +25,16 @@ export function Screen({ header, noPadding, style, children, ...rest }: ScreenPr
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       {header}
-      <View className={noPadding ? "flex-1" : "flex-1 px-5"} style={style} {...rest}>
+      <View
+        style={[
+          {
+            flex: 1,
+            paddingHorizontal: noPadding ? 0 : 20,
+          },
+          style,
+        ]}
+        {...rest}
+      >
         {children}
       </View>
     </SafeAreaView>

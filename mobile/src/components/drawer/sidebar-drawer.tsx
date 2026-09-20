@@ -203,28 +203,40 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
       onRequestClose={onClose}
     >
       <View
-        className="flex-1 flex-row"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.7)" }}
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+        }}
       >
         {/* Drawer Container */}
         <View
-          className="h-full border-r justify-between"
           style={{
+            height: "100%",
             width: "80%",
             maxWidth: 310,
             backgroundColor: "#0d0e11",
+            borderRightWidth: 1,
             borderRightColor: "rgba(255, 255, 255, 0.08)",
             paddingTop: Math.max(insets.top, 14),
             paddingBottom: Math.max(insets.bottom, 14),
+            justifyContent: "space-between",
           }}
         >
-          {/* Top Brand Logo & Close Button (Exact Screenshot) */}
+          {/* Top Brand Logo & Close Button */}
           <View
-            className="px-4 pb-3.5 flex-row items-center justify-between"
-            style={{ borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.06)" }}
+            style={{
+              paddingHorizontal: 16,
+              paddingBottom: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              borderBottomWidth: 1,
+              borderBottomColor: "rgba(255, 255, 255, 0.06)",
+            }}
           >
             {/* Logo: reservei✦ */}
-            <View className="flex-row items-center gap-0.5">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
               <Text
                 style={{
                   color: "#ffffff",
@@ -251,37 +263,49 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
             <Pressable
               onPress={onClose}
               hitSlop={10}
-              className="items-center justify-center rounded-xl border"
               style={{
                 width: 36,
                 height: 36,
+                borderRadius: 12,
+                borderWidth: 1,
                 backgroundColor: "#18191e",
                 borderColor: "rgba(255, 255, 255, 0.08)",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <X size={17} color="#ffffff" strokeWidth={2.2} />
             </Pressable>
           </View>
 
-          {/* Workspace / Tenant Switcher Card (Exact Screenshot) */}
-          <View className="px-3 pt-3 pb-1">
+          {/* Workspace / Tenant Switcher Card */}
+          <View style={{ paddingHorizontal: 12, paddingTop: 12, paddingBottom: 4 }}>
             <Pressable
               onPress={() => setWorkspaceDropdownOpen((prev) => !prev)}
-              className="flex-row items-center justify-between p-2.5 rounded-xl border"
               style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: 10,
+                borderRadius: 12,
+                borderWidth: 1,
                 backgroundColor: "#16171b",
                 borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              <View className="flex-row items-center gap-2.5 flex-1 min-w-0 pr-2">
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0, paddingRight: 8 }}>
                 {/* Logo Box / Initials MT */}
                 <View
-                  className="items-center justify-center rounded-lg border overflow-hidden"
                   style={{
                     width: 34,
                     height: 34,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    overflow: "hidden",
                     backgroundColor: "#222328",
                     borderColor: "rgba(255, 255, 255, 0.1)",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   <Text
@@ -297,7 +321,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                 </View>
 
                 {/* Info Text */}
-                <View className="flex-1 min-w-0">
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text
                     style={{
                       color: "#ffffff",

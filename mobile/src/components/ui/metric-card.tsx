@@ -18,14 +18,27 @@ export function MetricCard({ icon: Icon, label, value, detail, variant = "teal" 
 
   return (
     <View
-      className="flex-row items-start gap-3 rounded-md border p-3.5"
-      style={{ backgroundColor: colors.surface, borderColor: colors.border, minHeight: 84, flexBasis: "47%", flexGrow: 1 }}
+      style={{
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 14,
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
+        minHeight: 84,
+        flexBasis: "47%",
+        flexGrow: 1,
+      }}
     >
       <View
-        className="items-center justify-center rounded-sm"
         style={{
           width: metricIcon.size,
           height: metricIcon.size,
+          borderRadius: 8,
+          alignItems: "center",
+          justifyContent: "center",
           backgroundColor: tone.background,
           borderWidth: tone.border ? 1 : 0,
           borderColor: tone.border,
@@ -33,12 +46,18 @@ export function MetricCard({ icon: Icon, label, value, detail, variant = "teal" 
       >
         <Icon size={16} color={tone.color} />
       </View>
-      <View className="flex-1 shrink gap-1" style={{ flex: 1, flexShrink: 1 }}>
-        <Text style={{ color: colors.textSecondary, ...typography.metricLabel }} numberOfLines={1}>{label}</Text>
+      <View style={{ flex: 1, flexShrink: 1, gap: 4 }}>
+        <Text style={{ color: colors.textSecondary, ...typography.metricLabel }} numberOfLines={1}>
+          {label}
+        </Text>
         <Text style={{ color: colors.textPrimary, ...typography.metricValue }} numberOfLines={1}>
           {value}
         </Text>
-        {detail ? <Text style={{ color: colors.textMuted, ...typography.metricDetail }} numberOfLines={1}>{detail}</Text> : null}
+        {detail ? (
+          <Text style={{ color: colors.textMuted, ...typography.metricDetail }} numberOfLines={1}>
+            {detail}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

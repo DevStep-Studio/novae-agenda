@@ -41,9 +41,19 @@ export function Button({ label, variant = "primary", loading, disabled, onPress,
       accessibilityState={{ disabled: isDisabled }}
       disabled={isDisabled}
       onPress={onPress}
-      className="h-12 flex-row items-center justify-center gap-2 rounded-[10px] px-4"
       style={[
-        { backgroundColor, borderColor, borderWidth: variant === "ghost" ? 1 : 0 },
+        {
+          height: 48,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          borderRadius: 10,
+          paddingHorizontal: 16,
+          backgroundColor,
+          borderColor,
+          borderWidth: variant === "ghost" ? 1 : 0,
+        },
         isDisabled ? { opacity: 0.55 } : null,
         style,
       ]}

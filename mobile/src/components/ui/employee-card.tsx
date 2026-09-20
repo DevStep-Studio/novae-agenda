@@ -32,8 +32,14 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
 
   return (
     <View
-      className="overflow-hidden rounded-lg border"
-      style={{ backgroundColor: colors.surface, borderColor: colors.border, flexBasis: "100%" }}
+      style={{
+        overflow: "hidden",
+        borderRadius: 12,
+        borderWidth: 1,
+        backgroundColor: colors.surface,
+        borderColor: colors.border,
+        flexBasis: "100%",
+      }}
     >
       <View style={{ height: teamCard.coverHeight }}>
         <Image
@@ -42,10 +48,20 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
           contentFit="cover"
         />
         <View style={{ position: "absolute", inset: 0, backgroundColor: teamCard.coverOverlay }} />
-        <View className="flex-row items-center justify-between p-2.5" style={{ flex: 1 }}>
+        <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 10 }}>
           <View
-            className="flex-row items-center gap-1 self-start rounded-full px-2 py-1"
-            style={{ backgroundColor: statusTone.background, borderWidth: 1, borderColor: statusTone.border }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              alignSelf: "flex-start",
+              borderRadius: 999,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              backgroundColor: statusTone.background,
+              borderWidth: 1,
+              borderColor: statusTone.border,
+            }}
           >
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusTone.color }} />
             <Text style={{ color: statusTone.color, textTransform: "uppercase", ...typography.teamStatusBadge }}>
@@ -53,8 +69,11 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
             </Text>
           </View>
           <View
-            className="self-start rounded px-2 py-1"
             style={{
+              alignSelf: "flex-start",
+              borderRadius: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
               backgroundColor: teamCard.commissionBadge.background,
               borderWidth: 1,
               borderColor: teamCard.commissionBadge.border,
@@ -67,16 +86,17 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
         </View>
       </View>
 
-      <View className="items-center" style={{ marginTop: -38, marginBottom: 6 }}>
-        <View className="rounded-full p-[3px]" style={{ backgroundColor: teamCard.avatarRingColor }}>
+      <View style={{ alignItems: "center", marginTop: -38, marginBottom: 6 }}>
+        <View style={{ borderRadius: 999, padding: 3, backgroundColor: teamCard.avatarRingColor }}>
           <Avatar name={employee.name} photoUrl={employee.photoUrl} size="lg" />
           <View
-            className="absolute rounded-full"
             style={{
+              position: "absolute",
               bottom: 2,
               right: 2,
               width: 12,
               height: 12,
+              borderRadius: 6,
               borderWidth: 2,
               borderColor: teamCard.avatarRingColor,
               backgroundColor: employee.active ? teamCard.activeDot.online : teamCard.activeDot.offline,
@@ -85,8 +105,8 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
         </View>
       </View>
 
-      <View className="gap-2.5 px-4 pb-4">
-        <View className="items-center gap-0.5">
+      <View style={{ gap: 10, paddingHorizontal: 16, paddingBottom: 16 }}>
+        <View style={{ alignItems: "center", gap: 2 }}>
           <Text style={{ color: colors.textPrimary, ...typography.teamName }}>{employee.name}</Text>
           <Text style={{ color: colors.textSecondary, ...typography.teamRole }}>
             {employee.jobTitle ?? "Profissional"}
@@ -94,24 +114,33 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
         </View>
 
         <View
-          className="flex-row items-center justify-between rounded-[10px] border px-3.5 py-2.5"
-          style={{ backgroundColor: teamCard.statsStrip.background, borderColor: teamCard.statsStrip.border }}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderRadius: 10,
+            borderWidth: 1,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            backgroundColor: teamCard.statsStrip.background,
+            borderColor: teamCard.statsStrip.border,
+          }}
         >
-          <View className="flex-1 items-center gap-0.5">
+          <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
             <Text style={{ color: colors.textMuted, textTransform: "uppercase", ...typography.teamStatLabel }}>
               Hoje
             </Text>
             <Text style={{ color: colors.textPrimary, ...typography.teamStatValue }}>{metrics.todayCount} atend.</Text>
           </View>
           <View style={{ width: 1, height: 22, backgroundColor: teamCard.statsStrip.border }} />
-          <View className="flex-1 items-center gap-0.5">
+          <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
             <Text style={{ color: colors.textMuted, textTransform: "uppercase", ...typography.teamStatLabel }}>
               Este mês
             </Text>
             <Text style={{ color: colors.textPrimary, ...typography.teamStatValue }}>{metrics.monthCount} atend.</Text>
           </View>
           <View style={{ width: 1, height: 22, backgroundColor: teamCard.statsStrip.border }} />
-          <View className="flex-1 items-center gap-0.5">
+          <View style={{ flex: 1, alignItems: "center", gap: 2 }}>
             <Text style={{ color: colors.textMuted, textTransform: "uppercase", ...typography.teamStatLabel }}>
               Faturamento
             </Text>
@@ -121,7 +150,7 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
           </View>
         </View>
 
-        <View className="flex-row flex-wrap items-center justify-center gap-1.5" style={{ minHeight: 24 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 24 }}>
           {visibleServices.length === 0 ? (
             <Text style={{ color: colors.textMuted, fontSize: 10.5, fontStyle: "italic" }}>
               Nenhum serviço vinculado
@@ -131,14 +160,20 @@ export function EmployeeCard({ employee, metrics }: { employee: EmployeeDTO; met
               {visibleServices.map((service) => (
                 <View
                   key={service}
-                  className="rounded px-2 py-1"
-                  style={{ backgroundColor: teamCard.serviceChip.background, borderWidth: 1, borderColor: teamCard.serviceChip.border }}
+                  style={{
+                    borderRadius: 4,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    backgroundColor: teamCard.serviceChip.background,
+                    borderWidth: 1,
+                    borderColor: teamCard.serviceChip.border,
+                  }}
                 >
                   <Text style={{ color: teamCard.serviceChip.color, ...typography.serviceChip }}>{service}</Text>
                 </View>
               ))}
               {extraServices > 0 ? (
-                <View className="rounded px-1.5 py-1" style={{ backgroundColor: teamCard.serviceMore.background }}>
+                <View style={{ borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4, backgroundColor: teamCard.serviceMore.background }}>
                   <Text style={{ color: teamCard.serviceMore.color, ...typography.serviceMore }}>
                     +{extraServices} mais
                   </Text>

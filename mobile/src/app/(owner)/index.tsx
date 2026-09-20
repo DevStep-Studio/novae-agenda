@@ -5,10 +5,14 @@ import {
   CalendarDays,
   Check,
   CheckCheck,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
   CircleDollarSign,
   Clock,
   ImagePlus,
   Plus,
+  Share2,
   SlidersHorizontal,
   Sparkles,
   TrendingUp,
@@ -24,6 +28,8 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -33,10 +39,12 @@ import * as SecureStore from "expo-secure-store";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
+import { AppointmentCard } from "@/components/ui/appointment-card";
 import { colors, radius } from "@/constants/design-tokens";
 import { ApiError, api, resolveImageUrl } from "@/lib/api-client";
 import { getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
 import {
   CustomizeDashboardModal,
   DEFAULT_DASHBOARD_PREFS,
@@ -45,6 +53,17 @@ import {
 } from "@/components/dashboard/customize-dashboard-modal";
 
 const DASHBOARD_PREFS_KEY = "reservei_dashboard_prefs_v1";
+
+interface SetupStatus {
+  isComplete: boolean;
+  publicUrl?: string;
+  steps: {
+    key: string;
+    label: string;
+    completed: boolean;
+    route?: string;
+  }[];
+}
 
 function formatDashboardCurrency(val: number | null | undefined): string {
   const num = typeof val === "number" ? val : Number(val) || 0;
@@ -59,9 +78,11 @@ function formatDashboardCurrency(val: number | null | undefined): string {
 
 export default function OwnerHomeScreen() {
   const { session, signOut } = useSession();
+  const { isDark, colors: themeColors, primaryColor, primaryForeground } = useTheme();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [setupStatus, setSetupStatus] = useState<SetupStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,14 +131,16 @@ export default function OwnerHomeScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [statsData, aptsData] = await Promise.all([
+      const [statsData, aptsData, setupData] = await Promise.all([
         getStats("today"),
         api<{ appointments: any[] }>("/api/appointments?range=today").catch(() => ({
           appointments: [],
         })),
+        api<SetupStatus>("/api/company/setup-status").catch(() => null),
       ]);
       setStats(statsData);
       setAppointments(aptsData?.appointments || []);
+      if (setupData) setSetupStatus(setupData);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Não foi possível carregar o painel."
@@ -191,6 +214,11 @@ export default function OwnerHomeScreen() {
       a.status === "scheduled"
   );
 
+  const cardBg = isDark ? "#111215" : "#ffffff";
+  const cardBorder = isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0";
+  const textTitle = isDark ? "#ffffff" : "#0f172a";
+  const textMuted = isDark ? "#9ca3af" : "#64748b";
+
   const renderSection = (key: DashboardSectionKey) => {
     if (!prefs[key]) return null;
 
@@ -199,12 +227,16 @@ export default function OwnerHomeScreen() {
         return (
           <View
             key="showBanner"
-            className="rounded-2xl border overflow-hidden relative"
-            style={{
-              backgroundColor: "#111215",
-              borderColor: "rgba(255, 255, 255, 0.08)",
-              minHeight: 160,
-            }}
+            style={[
+              styles.cardBase,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                minHeight: 160,
+                overflow: "hidden",
+                position: "relative",
+              },
+            ]}
           >
             {/* Background Cover Image with Dark Overlay */}
             <Image
@@ -227,24 +259,30 @@ export default function OwnerHomeScreen() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(10, 11, 14, 0.72)",
+                backgroundColor: isDark ? "rgba(10, 11, 14, 0.72)" : "rgba(240, 245, 250, 0.75)",
               }}
             />
 
-            <View className="p-4 gap-2.5">
+            <View style={{ padding: 16, gap: 10 }}>
               {/* Top Tag Badge */}
               <View
-                className="self-start flex-row items-center gap-1.5 px-2.5 py-1 rounded-md"
                 style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)",
                   borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.15)",
+                  borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
                 }}
               >
-                <Sparkles size={11} color="#ffffff" />
+                <Sparkles size={11} color={primaryColor} />
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: textTitle,
                     fontSize: 10.5,
                     fontWeight: "700",
                     textTransform: "uppercase",
@@ -256,10 +294,10 @@ export default function OwnerHomeScreen() {
               </View>
 
               {/* Title & Greeting Subtitle */}
-              <View className="gap-1 mt-0.5">
+              <View style={{ gap: 4, marginTop: 2 }}>
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: textTitle,
                     fontSize: 21,
                     fontWeight: "800",
                     letterSpacing: -0.3,
@@ -269,7 +307,7 @@ export default function OwnerHomeScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: "#9ca3af",
+                    color: textMuted,
                     fontSize: 12.5,
                     lineHeight: 17,
                   }}
@@ -283,28 +321,38 @@ export default function OwnerHomeScreen() {
               </View>
 
               {/* Bottom Row: Personalizar Capa Button + Logo Box */}
-              <View className="flex-row items-end justify-between pt-1">
+              <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 4 }}>
                 <Pressable
                   onPress={() => router.push("/(owner)/perfil" as any)}
-                  className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg border"
                   style={{
-                    backgroundColor: "rgba(0, 0, 0, 0.55)",
-                    borderColor: "rgba(255, 255, 255, 0.18)",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    borderRadius: 8,
+                    backgroundColor: isDark ? "rgba(0, 0, 0, 0.55)" : "rgba(255, 255, 255, 0.85)",
+                    borderWidth: 1,
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.18)" : "rgba(0, 0, 0, 0.12)",
                   }}
                 >
-                  <ImagePlus size={13} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
+                  <ImagePlus size={13} color={textTitle} />
+                  <Text style={{ color: textTitle, fontSize: 12, fontWeight: "600" }}>
                     Personalizar capa
                   </Text>
                 </Pressable>
 
                 <View
-                  className="items-center justify-center rounded-2xl overflow-hidden border"
                   style={{
-                    width: 70,
-                    height: 70,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.22)",
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    backgroundColor: isDark ? "#18191e" : "#e2e8f0",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.22)" : "rgba(0, 0, 0, 0.15)",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   {logoUrl && !logoLoadError ? (
@@ -315,7 +363,7 @@ export default function OwnerHomeScreen() {
                       onError={() => setLogoLoadError(true)}
                     />
                   ) : (
-                    <Text style={{ color: "#ffffff", fontSize: 22, fontWeight: "800" }}>
+                    <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800" }}>
                       {initials}
                     </Text>
                   )}
@@ -325,265 +373,183 @@ export default function OwnerHomeScreen() {
           </View>
         );
 
-      case "showKpis":
+      case "showChecklist":
+        if (!setupStatus) return null;
         return (
-          <View key="showKpis" className="flex-row flex-wrap justify-between gap-y-2.5">
-            {/* Card 1: Atendimentos hoje */}
-            <View
-              className="p-3.5 rounded-2xl border justify-between"
-              style={{
-                width: "48.5%",
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-                minHeight: 90,
-              }}
-            >
-              <View className="flex-row items-center gap-2">
+          <View
+            key="showChecklist"
+            style={[
+              styles.cardBase,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                padding: 16,
+                gap: 12,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <View
-                  className="items-center justify-center rounded-lg border"
                   style={{
-                    width: 30,
-                    height: 30,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    backgroundColor: "rgba(220, 255, 76, 0.15)",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  <CalendarDays size={15} color="#ffffff" />
+                  <Sparkles size={15} color={primaryColor} />
                 </View>
-                <Text
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: 11.5,
-                    fontWeight: "500",
-                    flex: 1,
-                  }}
-                  numberOfLines={1}
-                >
-                  Atendimentos hoje
+                <Text style={{ color: textTitle, fontSize: 14, fontWeight: "700" }}>
+                  Checklist de Configuração
                 </Text>
               </View>
 
-              <View className="gap-0.5 mt-1.5">
-                <Text
+              {setupStatus.publicUrl ? (
+                <Pressable
+                  onPress={() => {
+                    void Share.share({
+                      message: `Agende seu horário online no ${companyName}: ${setupStatus.publicUrl}`,
+                      url: setupStatus.publicUrl,
+                    });
+                  }}
                   style={{
-                    color: "#ffffff",
-                    fontSize: 20,
-                    fontWeight: "800",
-                    letterSpacing: -0.3,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 6,
+                    backgroundColor: primaryColor,
                   }}
                 >
+                  <Share2 size={12} color={primaryForeground} />
+                  <Text style={{ color: primaryForeground, fontSize: 11, fontWeight: "700" }}>
+                    Compartilhar
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <View style={{ gap: 8 }}>
+              {setupStatus.steps?.map((step) => (
+                <Pressable
+                  key={step.key}
+                  onPress={() => {
+                    if (step.route) router.push(step.route as any);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingVertical: 6,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                    {step.completed ? (
+                      <CheckCircle2 size={18} color="#10b981" />
+                    ) : (
+                      <Circle size={18} color={textMuted} />
+                    )}
+                    <Text
+                      style={{
+                        color: step.completed ? textMuted : textTitle,
+                        fontSize: 13,
+                        fontWeight: step.completed ? "400" : "600",
+                        textDecorationLine: step.completed ? "line-through" : "none",
+                      }}
+                    >
+                      {step.label}
+                    </Text>
+                  </View>
+                  <ChevronRight size={15} color={textMuted} />
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+
+      case "showKpis":
+        return (
+          <View key="showKpis" style={styles.kpiGrid}>
+            {/* Card 1: Atendimentos hoje */}
+            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
+                  <CalendarDays size={15} color={textTitle} />
+                </View>
+                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
+                  Atendimentos hoje
+                </Text>
+              </View>
+              <View style={{ gap: 2, marginTop: 6 }}>
+                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
                   {stats?.today.appointments ?? 0}
                 </Text>
-                <Text style={{ color: "#6b7280", fontSize: 11 }}>
+                <Text style={{ color: textMuted, fontSize: 11 }}>
                   agendados para hoje
                 </Text>
               </View>
             </View>
 
             {/* Card 2: Receita prevista */}
-            <View
-              className="p-3.5 rounded-2xl border justify-between"
-              style={{
-                width: "48.5%",
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-                minHeight: 90,
-              }}
-            >
-              <View className="flex-row items-center gap-2">
-                <View
-                  className="items-center justify-center rounded-lg border"
-                  style={{
-                    width: 30,
-                    height: 30,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <TrendingUp size={15} color="#ffffff" />
+            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
+                  <TrendingUp size={15} color={primaryColor} />
                 </View>
-                <Text
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: 11.5,
-                    fontWeight: "500",
-                    flex: 1,
-                  }}
-                  numberOfLines={1}
-                >
+                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Receita prevista
                 </Text>
               </View>
-
-              <View className="gap-0.5 mt-1.5">
-                <Text
-                  style={{
-                    color: "#ffffff",
-                    fontSize: 20,
-                    fontWeight: "800",
-                    letterSpacing: -0.3,
-                  }}
-                >
+              <View style={{ gap: 2, marginTop: 6 }}>
+                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
                   {formatDashboardCurrency(forecast)}
                 </Text>
-                <Text style={{ color: "#6b7280", fontSize: 11 }}>
+                <Text style={{ color: textMuted, fontSize: 11 }}>
                   para hoje
                 </Text>
               </View>
             </View>
 
             {/* Card 3: Receita realizada */}
-            <View
-              className="p-3.5 rounded-2xl border justify-between"
-              style={{
-                width: "48.5%",
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-                minHeight: 90,
-              }}
-            >
-              <View className="flex-row items-center gap-2">
-                <View
-                  className="items-center justify-center rounded-lg border"
-                  style={{
-                    width: 30,
-                    height: 30,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <WalletCards size={15} color="#ffffff" />
+            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
+                  <WalletCards size={15} color="#10b981" />
                 </View>
-                <Text
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: 11.5,
-                    fontWeight: "500",
-                    flex: 1,
-                  }}
-                  numberOfLines={1}
-                >
+                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Receita realizada
                 </Text>
               </View>
-
-              <View className="gap-0.5 mt-1.5">
-                <Text
-                  style={{
-                    color: "#ffffff",
-                    fontSize: 20,
-                    fontWeight: "800",
-                    letterSpacing: -0.3,
-                  }}
-                >
+              <View style={{ gap: 2, marginTop: 6 }}>
+                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
                   {formatDashboardCurrency(realized)}
                 </Text>
-                <Text style={{ color: "#6b7280", fontSize: 11 }}>
+                <Text style={{ color: textMuted, fontSize: 11 }}>
                   já recebida hoje
                 </Text>
               </View>
             </View>
 
             {/* Card 4: Receita pendente */}
-            <View
-              className="p-3.5 rounded-2xl border justify-between"
-              style={{
-                width: "48.5%",
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-                minHeight: 90,
-              }}
-            >
-              <View className="flex-row items-center gap-2">
-                <View
-                  className="items-center justify-center rounded-lg border"
-                  style={{
-                    width: 30,
-                    height: 30,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <CircleDollarSign size={15} color="#ffffff" />
+            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "#18191e" : "#f1f5f9" }]}>
+                  <CircleDollarSign size={15} color="#f59e0b" />
                 </View>
-                <Text
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: 11.5,
-                    fontWeight: "500",
-                    flex: 1,
-                  }}
-                  numberOfLines={1}
-                >
+                <Text style={{ color: textMuted, fontSize: 11.5, fontWeight: "500", flex: 1 }} numberOfLines={1}>
                   Receita pendente
                 </Text>
               </View>
-
-              <View className="gap-0.5 mt-1.5">
-                <Text
-                  style={{
-                    color: "#ffffff",
-                    fontSize: 20,
-                    fontWeight: "800",
-                    letterSpacing: -0.3,
-                  }}
-                >
+              <View style={{ gap: 2, marginTop: 6 }}>
+                <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800", letterSpacing: -0.3 }}>
                   {formatDashboardCurrency(pendingAmount)}
                 </Text>
-                <Text style={{ color: "#6b7280", fontSize: 11 }}>
+                <Text style={{ color: textMuted, fontSize: 11 }}>
                   a receber hoje
-                </Text>
-              </View>
-            </View>
-
-            {/* Card 5: Clientes atendidos */}
-            <View
-              className="p-3.5 rounded-2xl border justify-between"
-              style={{
-                width: "48.5%",
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-                minHeight: 90,
-              }}
-            >
-              <View className="flex-row items-center gap-2">
-                <View
-                  className="items-center justify-center rounded-lg border"
-                  style={{
-                    width: 30,
-                    height: 30,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
-                  }}
-                >
-                  <Users size={15} color="#ffffff" />
-                </View>
-                <Text
-                  style={{
-                    color: "#9ca3af",
-                    fontSize: 11.5,
-                    fontWeight: "500",
-                    flex: 1,
-                  }}
-                  numberOfLines={1}
-                >
-                  Clientes atendidos
-                </Text>
-              </View>
-
-              <View className="gap-0.5 mt-1.5">
-                <Text
-                  style={{
-                    color: "#ffffff",
-                    fontSize: 20,
-                    fontWeight: "800",
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  {stats?.today.clientsServed ?? 0}
-                </Text>
-                <Text style={{ color: "#6b7280", fontSize: 11 }}>
-                  finalizados hoje
                 </Text>
               </View>
             </View>
@@ -592,52 +558,36 @@ export default function OwnerHomeScreen() {
 
       case "showSubmetrics":
         return (
-          <View key="showSubmetrics" className="flex-row gap-2.5">
+          <View key="showSubmetrics" style={{ flexDirection: "row", gap: 10 }}>
             {/* Left Submetric: Atendimentos pendentes */}
             <View
-              className="flex-1 flex-row items-center justify-between p-4 rounded-2xl border"
-              style={{
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-              }}
+              style={[
+                styles.submetricCard,
+                { backgroundColor: cardBg, borderColor: cardBorder },
+              ]}
             >
-              <Text
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 12,
-                  fontWeight: "500",
-                  flex: 1,
-                  paddingRight: 6,
-                }}
-              >
+              <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1, paddingRight: 6 }}>
                 Atendimentos pendentes
               </Text>
-              <Text
-                style={{
-                  color: "#ffffff",
-                  fontSize: 20,
-                  fontWeight: "800",
-                }}
-              >
+              <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800" }}>
                 {pendingCount}
               </Text>
             </View>
 
             {/* Right Submetric: Cancelamentos hoje */}
             <View
-              className="flex-1 flex-row items-center justify-between p-4 rounded-2xl border"
-              style={{
-                backgroundColor: "#111215",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-              }}
+              style={[
+                styles.submetricCard,
+                { backgroundColor: cardBg, borderColor: cardBorder },
+              ]}
             >
-              <View className="gap-0.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "500" }}>
-                  Cancelamentos hoje
+              <View style={{ gap: 2 }}>
+                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500" }}>
+                  Cancelamentos
                 </Text>
                 <Text
                   style={{
-                    color: cancelledCount > 0 ? "#ef4444" : "#ffffff",
+                    color: cancelledCount > 0 ? "#ef4444" : textTitle,
                     fontSize: 20,
                     fontWeight: "800",
                   }}
@@ -645,10 +595,7 @@ export default function OwnerHomeScreen() {
                   {cancelledCount}
                 </Text>
               </View>
-              <Ban
-                size={18}
-                color={cancelledCount > 0 ? "#ef4444" : "#6b7280"}
-              />
+              <Ban size={18} color={cancelledCount > 0 ? "#ef4444" : textMuted} />
             </View>
           </View>
         );
@@ -657,53 +604,60 @@ export default function OwnerHomeScreen() {
         return (
           <View
             key="showNextAppointment"
-            className="p-4 rounded-2xl border gap-3.5"
-            style={{
-              backgroundColor: "#111215",
-              borderColor: "rgba(255, 255, 255, 0.08)",
-            }}
+            style={[
+              styles.cardBase,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                padding: 16,
+                gap: 14,
+              },
+            ]}
           >
-            <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
+            <Text style={{ color: textTitle, fontSize: 16, fontWeight: "700" }}>
               Próximo atendimento
             </Text>
 
             {nextAppointment ? (
-              <View className="gap-3">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2">
+              <View style={{ gap: 12 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                     <View
-                      className="px-2.5 py-1 rounded-md"
-                      style={{ backgroundColor: "rgba(59, 130, 246, 0.15)" }}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        backgroundColor: "rgba(59, 130, 246, 0.15)",
+                      }}
                     >
-                      <Text
-                        style={{
-                          color: "#3b82f6",
-                          fontSize: 11.5,
-                          fontWeight: "700",
-                        }}
-                      >
+                      <Text style={{ color: "#3b82f6", fontSize: 11.5, fontWeight: "700" }}>
                         {nextAppointment.startTime || "Hoje"}
                       </Text>
                     </View>
-                    <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                    <Text style={{ color: textTitle, fontSize: 14, fontWeight: "600" }}>
                       {nextAppointment.clientName || "Cliente"}
                     </Text>
                   </View>
 
-                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                  <Text style={{ color: textTitle, fontSize: 14, fontWeight: "700" }}>
                     {formatDashboardCurrency(nextAppointment.total || nextAppointment.price)}
                   </Text>
                 </View>
 
-                <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
-                  {nextAppointment.serviceName || "Serviço"} · com{" "}
-                  {nextAppointment.employeeName || "Profissional"}
+                <Text style={{ color: textMuted, fontSize: 12.5 }}>
+                  {nextAppointment.serviceName || "Serviço"} · com {nextAppointment.employeeName || "Profissional"}
                 </Text>
 
                 <Pressable
                   onPress={() => router.push("/(owner)/agenda")}
-                  className="flex-row items-center justify-between pt-2 border-t"
-                  style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingTop: 10,
+                    borderTopWidth: 1,
+                    borderTopColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#e2e8f0",
+                  }}
                 >
                   <Text style={{ color: "#3b82f6", fontSize: 12.5, fontWeight: "600" }}>
                     Ver na Agenda
@@ -712,33 +666,45 @@ export default function OwnerHomeScreen() {
                 </Pressable>
               </View>
             ) : (
-              <View className="items-center justify-center py-3 gap-1">
+              <View style={{ alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 4 }}>
                 <View
-                  className="items-center justify-center rounded-xl border mb-1"
                   style={{
                     width: 44,
                     height: 44,
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    backgroundColor: isDark ? "#18191e" : "#f1f5f9",
+                    borderColor: cardBorder,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 4,
                   }}
                 >
-                  <CalendarDays size={22} color="#9ca3af" />
+                  <CalendarDays size={22} color={textMuted} />
                 </View>
 
-                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                <Text style={{ color: textTitle, fontSize: 14, fontWeight: "700" }}>
                   Agenda livre hoje
                 </Text>
-                <Text style={{ color: "#9ca3af", fontSize: 12 }}>
+                <Text style={{ color: textMuted, fontSize: 12 }}>
                   Você ainda não tem atendimentos para hoje.
                 </Text>
 
                 <Pressable
                   onPress={() => router.push("/(owner)/agenda")}
-                  className="flex-row items-center gap-1.5 px-4 py-2 rounded-xl mt-2.5"
-                  style={{ backgroundColor: "#ffffff" }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    paddingHorizontal: 16,
+                    paddingVertical: 8,
+                    borderRadius: 12,
+                    marginTop: 10,
+                    backgroundColor: primaryColor,
+                  }}
                 >
-                  <Plus size={15} color="#000000" strokeWidth={2.5} />
-                  <Text style={{ color: "#000000", fontSize: 13, fontWeight: "700" }}>
+                  <Plus size={15} color={primaryForeground} strokeWidth={2.5} />
+                  <Text style={{ color: primaryForeground, fontSize: 13, fontWeight: "700" }}>
                     Criar atendimento
                   </Text>
                 </Pressable>
@@ -751,126 +717,117 @@ export default function OwnerHomeScreen() {
         return (
           <View
             key="showDaySummary"
-            className="p-4 rounded-2xl border gap-3.5"
-            style={{
-              backgroundColor: "#111215",
-              borderColor: "rgba(255, 255, 255, 0.08)",
-            }}
+            style={[
+              styles.cardBase,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                padding: 16,
+                gap: 14,
+              },
+            ]}
           >
-            <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
+            <Text style={{ color: textTitle, fontSize: 16, fontWeight: "700" }}>
               Resumo do dia
             </Text>
 
-            <View className="gap-3 pt-0.5">
-              {/* Row 1: Confirmados */}
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2.5">
-                  <View
-                    className="items-center justify-center rounded-full"
-                    style={{
-                      width: 24,
-                      height: 24,
-                      backgroundColor: "rgba(16, 185, 129, 0.15)",
-                    }}
-                  >
+            <View style={{ gap: 12, paddingTop: 2 }}>
+              {/* Confirmados */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(16, 185, 129, 0.15)", alignItems: "center", justifyContent: "center" }}>
                     <Check size={13} color="#10b981" strokeWidth={2.5} />
                   </View>
-                  <Text style={{ color: "#d1d5db", fontSize: 13, fontWeight: "500" }}>
+                  <Text style={{ color: textTitle, fontSize: 13, fontWeight: "500" }}>
                     Confirmados
                   </Text>
                 </View>
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                <Text style={{ color: textTitle, fontSize: 13, fontWeight: "700" }}>
                   {confirmedCount}
                 </Text>
               </View>
 
-              {/* Row 2: Aguardando */}
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2.5">
-                  <View
-                    className="items-center justify-center rounded-full"
-                    style={{
-                      width: 24,
-                      height: 24,
-                      backgroundColor: "rgba(245, 158, 11, 0.15)",
-                    }}
-                  >
+              {/* Aguardando */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(245, 158, 11, 0.15)", alignItems: "center", justifyContent: "center" }}>
                     <Clock size={13} color="#f59e0b" strokeWidth={2.5} />
                   </View>
-                  <Text style={{ color: "#d1d5db", fontSize: 13, fontWeight: "500" }}>
+                  <Text style={{ color: textTitle, fontSize: 13, fontWeight: "500" }}>
                     Aguardando
                   </Text>
                 </View>
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                <Text style={{ color: textTitle, fontSize: 13, fontWeight: "700" }}>
                   {waitingCount}
                 </Text>
               </View>
 
-              {/* Row 3: Em atendimento */}
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2.5">
-                  <View
-                    className="items-center justify-center rounded-full"
-                    style={{
-                      width: 24,
-                      height: 24,
-                      backgroundColor: "rgba(59, 130, 246, 0.15)",
-                    }}
-                  >
+              {/* Em atendimento */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(59, 130, 246, 0.15)", alignItems: "center", justifyContent: "center" }}>
                     <Zap size={13} color="#3b82f6" strokeWidth={2.5} />
                   </View>
-                  <Text style={{ color: "#d1d5db", fontSize: 13, fontWeight: "500" }}>
+                  <Text style={{ color: textTitle, fontSize: 13, fontWeight: "500" }}>
                     Em atendimento
                   </Text>
                 </View>
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                <Text style={{ color: textTitle, fontSize: 13, fontWeight: "700" }}>
                   {inProgressCount}
                 </Text>
               </View>
 
-              {/* Row 4: Finalizados */}
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2.5">
-                  <View
-                    className="items-center justify-center rounded-full"
-                    style={{
-                      width: 24,
-                      height: 24,
-                      backgroundColor: "rgba(16, 185, 129, 0.15)",
-                    }}
-                  >
+              {/* Finalizados */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "rgba(16, 185, 129, 0.15)", alignItems: "center", justifyContent: "center" }}>
                     <Check size={13} color="#10b981" strokeWidth={2.5} />
                   </View>
-                  <Text style={{ color: "#d1d5db", fontSize: 13, fontWeight: "500" }}>
+                  <Text style={{ color: textTitle, fontSize: 13, fontWeight: "500" }}>
                     Finalizados
                   </Text>
                 </View>
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                <Text style={{ color: textTitle, fontSize: 13, fontWeight: "700" }}>
                   {completedCount}
                 </Text>
               </View>
             </View>
 
-            {/* Footer: Abrir agenda completa */}
             <Pressable
               onPress={() => router.push("/(owner)/agenda")}
-              className="flex-row items-center justify-between pt-3 border-t mt-1"
-              style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#e2e8f0",
+                marginTop: 4,
+              }}
             >
-              <View className="flex-row items-center gap-2">
-                <CalendarDays size={15} color="#9ca3af" />
-                <Text style={{ color: "#9ca3af", fontSize: 12.5, fontWeight: "500" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <CalendarDays size={15} color={textMuted} />
+                <Text style={{ color: textMuted, fontSize: 12.5, fontWeight: "500" }}>
                   Abrir agenda completa
                 </Text>
               </View>
-              <ArrowRight size={14} color="#9ca3af" />
+              <ArrowRight size={14} color={textMuted} />
             </Pressable>
           </View>
         );
 
-      case "showQuickSlots":
       case "showTodayAppointments":
-        return null;
+        if (appointments.length === 0) return null;
+        return (
+          <View key="showTodayAppointments" style={{ gap: 10 }}>
+            <Text style={{ color: textTitle, fontSize: 16, fontWeight: "700" }}>
+              Atendimentos de hoje ({appointments.length})
+            </Text>
+            {appointments.map((apt) => (
+              <AppointmentCard key={apt.id} appointment={apt} />
+            ))}
+          </View>
+        );
 
       default:
         return null;
@@ -883,14 +840,12 @@ export default function OwnerHomeScreen() {
       style={{ paddingTop: 10 }}
     >
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.primary} />
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <ActivityIndicator color={primaryColor} size="large" />
         </View>
       ) : error ? (
-        <View className="flex-1 items-center justify-center p-6 gap-4">
-          <Text
-            style={{ color: colors.textSecondary, textAlign: "center", fontSize: 14 }}
-          >
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 16 }}>
+          <Text style={{ color: textMuted, textAlign: "center", fontSize: 14 }}>
             {error}
           </Text>
           {isAuthError ? (
@@ -908,7 +863,7 @@ export default function OwnerHomeScreen() {
       ) : (
         <>
           <ScrollView
-            className="flex-1"
+            style={{ flex: 1 }}
             contentContainerStyle={{
               gap: 14,
               paddingBottom: 36,
@@ -919,16 +874,16 @@ export default function OwnerHomeScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={colors.primary}
+                tintColor={primaryColor}
               />
             }
           >
-            {/* 1. Page Intro / Headings (Exact Screenshot) */}
-            <View className="gap-3">
-              <View className="gap-1">
+            {/* 1. Page Intro / Headings */}
+            <View style={{ gap: 12, marginBottom: 2 }}>
+              <View style={{ gap: 4 }}>
                 <Text
                   style={{
-                    color: "#9ca3af",
+                    color: primaryColor,
                     fontSize: 11,
                     fontWeight: "700",
                     textTransform: "uppercase",
@@ -939,7 +894,7 @@ export default function OwnerHomeScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: "#ffffff",
+                    color: textTitle,
                     fontSize: 25,
                     fontWeight: "800",
                     letterSpacing: -0.4,
@@ -949,7 +904,7 @@ export default function OwnerHomeScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: "#9ca3af",
+                    color: textMuted,
                     fontSize: 13,
                     lineHeight: 18,
                   }}
@@ -959,32 +914,45 @@ export default function OwnerHomeScreen() {
               </View>
 
               {/* Action Buttons Row */}
-              <View className="flex-row items-center gap-2.5 pt-0.5">
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingTop: 2 }}>
                 <Pressable
                   onPress={() => setCustomizeVisible(true)}
-                  className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border py-2.5 px-3"
                   style={{
-                    backgroundColor: "#15161a",
-                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    backgroundColor: isDark ? "#15161a" : "#f8fafc",
+                    borderColor: cardBorder,
                   }}
                 >
-                  <SlidersHorizontal size={14} color="#ffffff" />
-                  <Text
-                    style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}
-                  >
+                  <SlidersHorizontal size={14} color={textTitle} />
+                  <Text style={{ color: textTitle, fontSize: 12.5, fontWeight: "600" }}>
                     Personalizar início
                   </Text>
                 </Pressable>
 
                 <Pressable
                   onPress={() => router.push("/(owner)/agenda")}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl py-2.5 px-3"
-                  style={{ backgroundColor: "#ffffff" }}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    borderRadius: 12,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    backgroundColor: primaryColor,
+                  }}
                 >
-                  <Plus size={16} color="#000000" strokeWidth={2.5} />
-                  <Text
-                    style={{ color: "#000000", fontSize: 12.5, fontWeight: "700" }}
-                  >
+                  <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+                  <Text style={{ color: primaryForeground, fontSize: 12.5, fontWeight: "700" }}>
                     Novo agendamento
                   </Text>
                 </Pressable>
@@ -1007,3 +975,42 @@ export default function OwnerHomeScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  cardBase: {
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  kpiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 10,
+  },
+  kpiCard: {
+    width: "48.5%",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    justifyContent: "space-between",
+    minHeight: 92,
+  },
+  kpiIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  submetricCard: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+});

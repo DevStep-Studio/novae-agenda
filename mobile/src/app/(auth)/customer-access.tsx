@@ -8,12 +8,21 @@ import {
   KeyRound,
   Lock,
   Mail,
+  Moon,
   Phone,
   ShieldCheck,
+  Sun,
   User,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { PinInput } from "@/components/ui/pin-input";
@@ -31,11 +40,13 @@ import {
 } from "@/lib/auth";
 import { formatPhoneInput } from "@/lib/formatters";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
 
 type Step = "phone" | "pin_login" | "pin_setup" | "pin_reset_confirm" | "not_found";
 
 export default function CustomerAccessScreen() {
   const { refresh } = useSession();
+  const { isDark, toggleTheme, colors: themeColors, primaryColor } = useTheme();
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
@@ -56,7 +67,7 @@ export default function CustomerAccessScreen() {
 
   async function completeLogin() {
     await refresh();
-    router.replace("/");
+    router.replace("/(customer)");
   }
 
   // ─── Step 1: Phone check ───
@@ -228,29 +239,106 @@ export default function CustomerAccessScreen() {
     }
   }
 
+  const formBackground = isDark ? "#0d0f12" : "#ffffff";
+  const titleColor = isDark ? "#f8fafc" : "#0f172a";
+  const subtitleColor = isDark ? "#94a3b8" : "#64748b";
+
   return (
     <Screen noPadding>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+        style={{ backgroundColor: formBackground }}
+      >
         {/* Top Split Banner */}
-        <Image
-          source={require("../../../assets/images/login-banner.png")}
-          style={{ width: "100%", height: authSplit.bannerHeight }}
-          contentFit="cover"
-        />
-
-        <View className="flex-1 gap-6 px-3.5 pb-8 pt-4" style={{ backgroundColor: authSplit.formBackground }}>
-          {/* Logo */}
+        <View style={styles.bannerContainer}>
           <Image
-            source={require("../../../assets/images/reservei-logo.png")}
-            style={{ width: 80, height: 34 }}
-            contentFit="contain"
+            source={require("../../../assets/images/login-banner.png")}
+            style={styles.bannerImage}
+            contentFit="cover"
           />
+        </View>
+
+        <View style={[styles.formPane, { backgroundColor: formBackground }]}>
+          {/* TopBar: Logo and Theme Toggle */}
+          <View style={styles.topBar}>
+            <Image
+              source={require("../../../assets/images/reservei-logo.png")}
+              style={{ width: 92, height: 34 }}
+              contentFit="contain"
+            />
+
+            <View
+              style={[
+                styles.themePill,
+                {
+                  backgroundColor: isDark ? "#181b23" : "#f1f5f9",
+                  borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => !isDark || toggleTheme()}
+                style={[
+                  styles.themeBtn,
+                  !isDark && {
+                    backgroundColor: "#ffffff",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2,
+                  },
+                ]}
+              >
+                <Sun size={13} color={!isDark ? "#0f172a" : "#94a3b8"} />
+                <Text
+                  style={[
+                    styles.themeBtnText,
+                    { color: !isDark ? "#0f172a" : "#94a3b8", fontWeight: !isDark ? "700" : "500" },
+                  ]}
+                >
+                  Claro
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => isDark || toggleTheme()}
+                style={[
+                  styles.themeBtn,
+                  isDark && {
+                    backgroundColor: "#252a37",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 3,
+                    elevation: 2,
+                  },
+                ]}
+              >
+                <Moon size={13} color={isDark ? primaryColor : "#94a3b8"} />
+                <Text
+                  style={[
+                    styles.themeBtnText,
+                    { color: isDark ? primaryColor : "#94a3b8", fontWeight: isDark ? "700" : "500" },
+                  ]}
+                >
+                  Escuro
+                </Text>
+              </Pressable>
+            </View>
+          </View>
 
           {/* Feedback alerts */}
           {error ? (
             <View
-              className="flex-row items-center gap-2 rounded-lg border px-3.5 py-2.5"
-              style={{ backgroundColor: authSplit.errorBackground, borderColor: authSplit.errorBorder }}
+              style={[
+                styles.alertBox,
+                {
+                  backgroundColor: authSplit.errorBackground,
+                  borderColor: authSplit.errorBorder,
+                },
+              ]}
             >
               <AlertCircle size={16} color={authSplit.errorText} />
               <Text style={{ color: authSplit.errorText, flex: 1, ...typography.authError }}>{error}</Text>
@@ -259,8 +347,13 @@ export default function CustomerAccessScreen() {
 
           {successBanner ? (
             <View
-              className="flex-row items-center gap-2 rounded-lg border px-3.5 py-2.5"
-              style={{ backgroundColor: "rgba(16, 185, 129, 0.15)", borderColor: "rgba(16, 185, 129, 0.35)" }}
+              style={[
+                styles.alertBox,
+                {
+                  backgroundColor: "rgba(16, 185, 129, 0.15)",
+                  borderColor: "rgba(16, 185, 129, 0.35)",
+                },
+              ]}
             >
               <CheckCircle2 size={16} color="#10b981" />
               <Text style={{ color: "#86efac", flex: 1, ...typography.authError }}>{successBanner}</Text>
@@ -271,16 +364,16 @@ export default function CustomerAccessScreen() {
           {/* STEP 1: PHONE INPUT                                        */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {step === "phone" && (
-            <View className="gap-6">
-              <View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Minhas Reservas</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <Text style={[styles.title, { color: titleColor }]}>Minhas Reservas</Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
                   Informe seu celular para consultar, remarcar ou acompanhar seus agendamentos.
                 </Text>
               </View>
 
-              <View className="gap-[18px]">
-                <View className="gap-1">
+              <View style={styles.fieldsBlock}>
+                <View style={{ gap: 4 }}>
                   <TextField
                     label="Número de celular / WhatsApp"
                     required
@@ -293,7 +386,7 @@ export default function CustomerAccessScreen() {
                     onChangeText={(val) => setPhone(formatPhoneInput(val))}
                     autoFocus
                   />
-                  <Text style={{ color: "#737373", fontSize: 12, marginTop: 2 }}>
+                  <Text style={{ color: subtitleColor, fontSize: 12, marginTop: 2 }}>
                     Digite o mesmo número informado no seu agendamento.
                   </Text>
                 </View>
@@ -311,31 +404,34 @@ export default function CustomerAccessScreen() {
                     setError(null);
                     setStep("pin_login");
                   }}
-                  className="items-center py-1"
+                  style={{ alignItems: "center", paddingVertical: 4 }}
                 >
-                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "600" }}>
                     Já tem um PIN de 6 dígitos? Entrar diretamente
                   </Text>
                 </Pressable>
               </View>
 
               {/* Divider */}
-              <View className="flex-row items-center gap-3">
-                <View className="h-px flex-1" style={{ backgroundColor: authSplit.inputBorder }} />
-                <Text style={{ color: authSplit.mutedIcon, fontSize: 12, fontWeight: "500" }}>
-                  ou é profissional / proprietário?
-                </Text>
-                <View className="h-px flex-1" style={{ backgroundColor: authSplit.inputBorder }} />
+              <View style={styles.dividerRow}>
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#282d3b" : "#e2e8f0" }]} />
+                <Text style={styles.dividerText}>ou é profissional / proprietário?</Text>
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#282d3b" : "#e2e8f0" }]} />
               </View>
 
               {/* Secondary button */}
               <Pressable
-                className="h-[46px] flex-row items-center justify-center gap-2 rounded-[10px] border"
-                style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
+                style={[
+                  styles.secondaryBtn,
+                  {
+                    backgroundColor: isDark ? "#181b23" : "#f8fafc",
+                    borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                  },
+                ]}
                 onPress={() => router.replace("/(auth)/login")}
               >
-                <Lock size={16} color="#ffffff" />
-                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                <Lock size={16} color={titleColor} />
+                <Text style={[styles.secondaryBtnText, { color: titleColor }]}>
                   Entrar com e-mail e senha
                 </Text>
               </Pressable>
@@ -346,30 +442,35 @@ export default function CustomerAccessScreen() {
           {/* STEP 2A: PIN LOGIN (6-box PIN)                             */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {step === "pin_login" && (
-            <View className="gap-6">
-              <View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Minhas Reservas</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <Text style={[styles.title, { color: titleColor }]}>Minhas Reservas</Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
                   Digite seu PIN de 6 dígitos para consultar, remarcar ou acompanhar seus agendamentos.
                 </Text>
               </View>
 
-              {(maskedPhone || phone) && (
+              {(maskedPhone || phone) ? (
                 <View
-                  className="items-center justify-center rounded-lg border py-2.5 px-3"
-                  style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
+                  style={[
+                    styles.phoneInfoBox,
+                    {
+                      backgroundColor: isDark ? "#181b23" : "#f8fafc",
+                      borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                    },
+                  ]}
                 >
-                  <Text style={{ color: "#a3a3a3", fontSize: 13 }}>
+                  <Text style={{ color: subtitleColor, fontSize: 13 }}>
                     PIN para:{" "}
-                    <Text style={{ color: "#fafafa", fontWeight: "700" }}>
+                    <Text style={{ color: titleColor, fontWeight: "700" }}>
                       {maskedPhone || phone}
                     </Text>
                   </Text>
                 </View>
-              )}
+              ) : null}
 
-              <View className="gap-4">
-                <View className="items-center py-2">
+              <View style={styles.fieldsBlock}>
+                <View style={{ alignItems: "center", paddingVertical: 8 }}>
                   <PinInput
                     value={pin}
                     onChange={setPin}
@@ -387,17 +488,17 @@ export default function CustomerAccessScreen() {
                   disabled={pin.length !== 6}
                 />
 
-                <View className="flex-row items-center justify-between pt-1">
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 4 }}>
                   <Pressable
                     hitSlop={8}
                     onPress={() => {
                       setError(null);
                       setStep("phone");
                     }}
-                    className="flex-row items-center gap-1.5"
+                    style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
                   >
-                    <ArrowLeft size={14} color={colors.textSecondary} />
-                    <Text style={{ color: colors.textSecondary, fontSize: 12.5 }}>Trocar número</Text>
+                    <ArrowLeft size={14} color={subtitleColor} />
+                    <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Trocar número</Text>
                   </Pressable>
 
                   <Pressable
@@ -405,22 +506,22 @@ export default function CustomerAccessScreen() {
                     onPress={handleRequestPinReset}
                     disabled={loading || !phone}
                   >
-                    <Text style={{ color: colors.primary, fontSize: 12.5, fontWeight: "600" }}>
+                    <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "600" }}>
                       Esqueci meu PIN
                     </Text>
                   </Pressable>
                 </View>
 
-                <Text style={{ color: "#737373", fontSize: 12, textAlign: "center", marginTop: 8 }}>
+                <Text style={{ color: subtitleColor, fontSize: 12, textAlign: "center", marginTop: 8 }}>
                   O PIN de 6 dígitos é gerado ao confirmar uma reserva.
                 </Text>
               </View>
 
               {/* Back to Staff */}
-              <View className="flex-row items-center justify-center gap-1.5 pt-4">
-                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>É da equipe?</Text>
+              <View style={styles.switchRow}>
+                <Text style={{ color: subtitleColor, fontSize: 13 }}>É da equipe? </Text>
                 <Pressable onPress={() => router.replace("/(auth)/login")}>
-                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
                     Entrar com e-mail
                   </Text>
                 </Pressable>
@@ -432,171 +533,146 @@ export default function CustomerAccessScreen() {
           {/* STEP 2B: PIN SETUP (First Access)                          */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {step === "pin_setup" && (
-            <View className="gap-6">
-              <View>
-                <View className="flex-row items-center gap-1.5 mb-1">
-                  <ShieldCheck size={16} color={colors.primary} />
-                  <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <ShieldCheck size={16} color={primaryColor} />
+                  <Text style={{ color: primaryColor, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>
                     PRIMEIRO ACESSO
                   </Text>
                 </View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Proteja suas reservas</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+                <Text style={[styles.title, { color: titleColor }]}>Proteja suas reservas</Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
                   Crie um PIN de 6 dígitos que você usará junto ao seu celular para acessar suas reservas.
                 </Text>
               </View>
 
-              {(maskedPhone || phone) && (
+              {(maskedPhone || phone) ? (
                 <View
-                  className="items-center justify-center rounded-lg border py-2.5 px-3"
-                  style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
+                  style={[
+                    styles.phoneInfoBox,
+                    {
+                      backgroundColor: isDark ? "#181b23" : "#f8fafc",
+                      borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                    },
+                  ]}
                 >
-                  <Text style={{ color: "#a3a3a3", fontSize: 13 }}>
-                    Celular:{" "}
-                    <Text style={{ color: "#fafafa", fontWeight: "700" }}>
-                      {maskedPhone || phone}
-                    </Text>
+                  <Text style={{ color: subtitleColor, fontSize: 13 }}>
+                    Número: <Text style={{ color: titleColor, fontWeight: "700" }}>{maskedPhone || phone}</Text>
                   </Text>
                 </View>
-              )}
+              ) : null}
 
-              <View className="gap-4">
-                <View className="gap-2">
-                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
-                    Crie seu PIN (6 dígitos) <Text style={{ color: colors.primary }}>*</Text>
+              <View style={styles.fieldsBlock}>
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                    Digite seu novo PIN de 6 dígitos
                   </Text>
-                  <PinInput value={pin} onChange={setPin} length={6} autoFocus />
+                  <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                    <PinInput value={pin} onChange={setPin} length={6} autoFocus />
+                  </View>
                 </View>
 
-                <View className="gap-2">
-                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
-                    Confirme seu PIN <Text style={{ color: colors.primary }}>*</Text>
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                    Confirme seu novo PIN
                   </Text>
-                  <PinInput value={confirmPin} onChange={setConfirmPin} length={6} />
+                  <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                    <PinInput value={confirmPin} onChange={setConfirmPin} length={6} />
+                  </View>
                 </View>
 
-                {confirmPin.length === 6 ? (
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "600",
-                      textAlign: "center",
-                      color: pin === confirmPin ? "#10b981" : colors.danger,
-                    }}
-                  >
-                    {pin === confirmPin ? "✓ Os PINs coincidem" : "✕ Os PINs não coincidem"}
-                  </Text>
-                ) : null}
+                <Button
+                  label="Salvar PIN e acessar"
+                  onPress={handlePinSetup}
+                  loading={loading}
+                  disabled={pin.length !== 6 || confirmPin.length !== 6}
+                />
 
                 <Pressable
                   hitSlop={8}
-                  onPress={() => {
-                    setError(null);
-                    setStep("phone");
-                  }}
-                  className="flex-row items-center gap-1 py-1"
+                  onPress={() => setStep("phone")}
+                  style={{ alignItems: "center", paddingVertical: 4 }}
                 >
-                  <ArrowLeft size={14} color={colors.textSecondary} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 12.5 }}>Usar outro número</Text>
+                  <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Voltar</Text>
                 </Pressable>
-
-                <Button
-                  label="Criar PIN e acessar"
-                  onPress={handlePinSetup}
-                  loading={loading}
-                  disabled={pin.length !== 6 || confirmPin.length !== 6 || pin !== confirmPin}
-                />
               </View>
             </View>
           )}
 
           {/* ═══════════════════════════════════════════════════════════ */}
-          {/* STEP 2C: PIN RESET CONFIRM (OTP + New PIN)                 */}
+          {/* STEP 2C: PIN RESET CONFIRM (Recovery)                       */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {step === "pin_reset_confirm" && (
-            <View className="gap-6">
-              <View>
-                <View className="flex-row items-center gap-1.5 mb-1">
-                  <KeyRound size={16} color={colors.primary} />
-                  <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700", letterSpacing: 0.8 }}>
-                    REDEFINIR PIN
-                  </Text>
-                </View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Recuperação de PIN</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
-                  Informe o código de 6 números enviado para {resetDestination || maskedPhone || phone} e defina o novo PIN.
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <Text style={[styles.title, { color: titleColor }]}>Recuperar PIN</Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
+                  Digite o código enviado para {resetDestination} e defina um novo PIN.
                 </Text>
               </View>
 
-              <View className="gap-4">
-                <View className="gap-2">
-                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
-                    Código de verificação (6 dígitos) <Text style={{ color: colors.primary }}>*</Text>
+              <View style={styles.fieldsBlock}>
+                <TextField
+                  label="Código de verificação"
+                  required
+                  icon={KeyRound}
+                  placeholder="000000"
+                  keyboardType="number-pad"
+                  value={resetOtp}
+                  onChangeText={setResetOtp}
+                  autoFocus
+                />
+
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                    Novo PIN (6 dígitos)
                   </Text>
-                  <PinInput value={resetOtp} onChange={setResetOtp} length={6} mask={false} autoFocus />
+                  <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                    <PinInput value={pin} onChange={setPin} length={6} />
+                  </View>
                 </View>
 
-                <View className="gap-2">
-                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
-                    Novo PIN (6 dígitos) <Text style={{ color: colors.primary }}>*</Text>
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                    Confirme o novo PIN
                   </Text>
-                  <PinInput value={pin} onChange={setPin} length={6} />
+                  <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                    <PinInput value={confirmPin} onChange={setConfirmPin} length={6} />
+                  </View>
                 </View>
-
-                <View className="gap-2">
-                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
-                    Confirme o novo PIN <Text style={{ color: colors.primary }}>*</Text>
-                  </Text>
-                  <PinInput value={confirmPin} onChange={setConfirmPin} length={6} />
-                </View>
-
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => {
-                    setError(null);
-                    setStep("pin_login");
-                  }}
-                  className="flex-row items-center gap-1 py-1"
-                >
-                  <ArrowLeft size={14} color={colors.textSecondary} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 12.5 }}>Voltar para login</Text>
-                </Pressable>
 
                 <Button
-                  label="Redefinir PIN e entrar"
+                  label="Redefinir PIN e acessar"
                   onPress={handleConfirmPinReset}
                   loading={loading}
                   disabled={resetOtp.length < 6 || pin.length !== 6 || confirmPin.length !== 6}
                 />
+
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => setStep("pin_login")}
+                  style={{ alignItems: "center", paddingVertical: 4 }}
+                >
+                  <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Voltar</Text>
+                </Pressable>
               </View>
             </View>
           )}
 
           {/* ═══════════════════════════════════════════════════════════ */}
-          {/* STEP 2D: NOT FOUND (Create Customer & Setup PIN)           */}
+          {/* STEP 2D: NOT FOUND (Identify Customer)                     */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {step === "not_found" && (
-            <View className="gap-6">
-              <View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Minhas Reservas</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
-                  Não encontramos reservas vinculadas a este número.
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <Text style={[styles.title, { color: titleColor }]}>Completar cadastro</Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
+                  Não encontramos reservas vinculadas a este número. Preencha seus dados para criar seu perfil de cliente.
                 </Text>
               </View>
 
-              <View
-                className="rounded-lg border p-3.5 gap-2"
-                style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
-              >
-                <Text style={{ color: "#d4d4d8", fontSize: 13 }}>
-                  Número pesquisado: <Text style={{ color: "#fafafa", fontWeight: "700" }}>{maskedPhone || phone}</Text>
-                </Text>
-                <Text style={{ color: "#a3a3a3", fontSize: 12, lineHeight: 17 }}>
-                  Cadastre seus dados para agendar e acompanhar seus atendimentos com segurança pelo aplicativo.
-                </Text>
-              </View>
-
-              <View className="gap-[18px]">
+              <View style={styles.fieldsBlock}>
                 <TextField
                   label="Nome completo"
                   required
@@ -604,6 +680,7 @@ export default function CustomerAccessScreen() {
                   placeholder="Seu nome"
                   value={name}
                   onChangeText={setName}
+                  autoFocus
                 />
 
                 <TextField
@@ -611,45 +688,41 @@ export default function CustomerAccessScreen() {
                   required
                   icon={Mail}
                   placeholder="seu@email.com"
-                  autoCapitalize="none"
                   keyboardType="email-address"
-                  autoComplete="email"
-                  textContentType="emailAddress"
+                  autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
                 />
 
-                <View className="gap-2">
-                  <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
-                    Crie seu PIN de 6 dígitos <Text style={{ color: colors.primary }}>*</Text>
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600", textAlign: "center" }}>
+                    Crie seu PIN de 6 dígitos
                   </Text>
-                  <PinInput value={pin} onChange={setPin} length={6} />
+                  <View style={{ alignItems: "center", paddingVertical: 4 }}>
+                    <PinInput value={pin} onChange={setPin} length={6} />
+                  </View>
                 </View>
 
                 <Button
-                  label="Cadastrar e entrar"
+                  label="Concluir e acessar"
                   onPress={handleIdentifySubmit}
                   loading={loading}
-                  disabled={name.trim().length < 2 || !email.includes("@") || pin.length !== 6}
+                  disabled={!name.trim() || !email.includes("@") || pin.length !== 6}
                 />
 
                 <Pressable
                   hitSlop={8}
-                  onPress={() => {
-                    setError(null);
-                    setStep("phone");
-                  }}
-                  className="flex-row items-center justify-center gap-1 py-1"
+                  onPress={() => setStep("phone")}
+                  style={{ alignItems: "center", paddingVertical: 4 }}
                 >
-                  <ArrowLeft size={14} color={colors.textSecondary} />
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Verificar outro número</Text>
+                  <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Voltar</Text>
                 </Pressable>
               </View>
             </View>
           )}
 
           {/* Footer Terms */}
-          <Text style={{ color: "#737373", fontSize: 11.5, textAlign: "center", marginTop: 12, lineHeight: 16 }}>
+          <Text style={[styles.footerText, { color: subtitleColor }]}>
             Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.
           </Text>
         </View>
@@ -657,3 +730,128 @@ export default function CustomerAccessScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  bannerContainer: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "#c6f53e",
+    overflow: "hidden",
+  },
+  bannerImage: {
+    width: "100%",
+    height: "100%",
+  },
+  formPane: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+    maxWidth: 460,
+    width: "100%",
+    alignSelf: "center",
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  themePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    padding: 3,
+    gap: 2,
+  },
+  themeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  themeBtnText: {
+    fontSize: 12,
+  },
+  alertBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  phoneInfoBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  formContent: {
+    gap: 20,
+  },
+  headerBlock: {
+    gap: 6,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+    lineHeight: 32,
+  },
+  subtitle: {
+    fontSize: 13.5,
+    lineHeight: 19,
+  },
+  fieldsBlock: {
+    gap: 16,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: "#94a3b8",
+    fontWeight: "500",
+  },
+  secondaryBtn: {
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+  },
+  secondaryBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 4,
+  },
+  footerText: {
+    fontSize: 11.5,
+    textAlign: "center",
+    marginTop: 24,
+    lineHeight: 16,
+  },
+});

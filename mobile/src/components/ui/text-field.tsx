@@ -34,21 +34,24 @@ export function TextField({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View className="gap-1.5">
+    <View style={{ gap: 6 }}>
       <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600" }}>
         {label} {required ? <Text style={{ color: colors.primary, fontWeight: "700" }}>*</Text> : null}
       </Text>
-      <View className="flex-row items-center">
+      <View style={{ flexDirection: "row", alignItems: "center", position: "relative" }}>
         {Icon ? (
-          <View className="absolute left-3.5 z-10">
+          <View style={{ position: "absolute", left: 14, zIndex: 10, pointerEvents: "none" }}>
             <Icon size={17} color={authSplit.mutedIcon} />
           </View>
         ) : null}
         <TextInput
           placeholderTextColor={colors.textMuted}
-          className="h-12 flex-1 rounded-[10px] border"
           style={[
             {
+              height: 48,
+              flex: 1,
+              borderRadius: 10,
+              borderWidth: 1,
               backgroundColor: authSplit.inputBackground,
               borderColor: error ? colors.danger : focused ? colors.primary : authSplit.inputBorder,
               color: colors.textPrimary,
@@ -68,9 +71,13 @@ export function TextField({
           }}
           {...rest}
         />
-        {rightElement ? <View className="absolute right-3">{rightElement}</View> : null}
+        {rightElement ? (
+          <View style={{ position: "absolute", right: 12, zIndex: 10 }}>
+            {rightElement}
+          </View>
+        ) : null}
       </View>
-      {error ? <Text style={{ fontSize: 12, color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text style={{ fontSize: 12, color: colors.danger, marginTop: 2 }}>{error}</Text> : null}
     </View>
   );
 }

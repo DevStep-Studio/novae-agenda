@@ -9,11 +9,21 @@ import {
   Lock,
   Mail,
   MailCheck,
+  Moon,
   RotateCcw,
+  Sun,
   User,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
@@ -22,12 +32,15 @@ import { authSplit, colors, radius, typography } from "@/constants/design-tokens
 import { ApiError } from "@/lib/api-client";
 import { loginStaff, registerStaff, requestPasswordReset } from "@/lib/auth";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
 
 type AuthMode = "login" | "register" | "forgot-password";
 type RecoveryStep = "request_email" | "email_sent";
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const { session, refresh } = useSession();
+  const { isDark, toggleTheme, themeMode, colors: themeColors, primaryColor } = useTheme();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("request_email");
@@ -218,43 +231,131 @@ export default function LoginScreen() {
   const strengthLabels = ["Muito fraca", "Fraca", "Média", "Forte", "Excelente"];
   const strengthColors = ["#ef4444", "#f87171", "#f59e0b", "#10b981", "#10b981"];
 
+  const formBackground = isDark ? "#0d0f12" : "#ffffff";
+  const titleColor = isDark ? "#f8fafc" : "#0f172a";
+  const subtitleColor = isDark ? "#94a3b8" : "#64748b";
+
   return (
     <Screen noPadding>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+        style={{ backgroundColor: formBackground }}
+      >
         {/* Top Split Banner */}
-        <Image
-          source={require("../../../assets/images/login-banner.png")}
-          style={{ width: "100%", height: authSplit.bannerHeight }}
-          contentFit="cover"
-        />
-
-        <View className="flex-1 gap-6 px-3.5 pb-8 pt-4" style={{ backgroundColor: authSplit.formBackground }}>
-          {/* Logo */}
+        <View style={styles.bannerContainer}>
           <Image
-            source={require("../../../assets/images/reservei-logo.png")}
-            style={{ width: 80, height: 34 }}
-            contentFit="contain"
+            source={require("../../../assets/images/login-banner.png")}
+            style={styles.bannerImage}
+            contentFit="cover"
           />
+        </View>
+
+        {/* Main Form Pane */}
+        <View style={[styles.formPane, { backgroundColor: formBackground }]}>
+          {/* Topbar: Logo on Left, Theme Toggle Pill on Right */}
+          <View style={styles.topBar}>
+            <Image
+              source={require("../../../assets/images/reservei-logo.png")}
+              style={{ width: 92, height: 34 }}
+              contentFit="contain"
+            />
+
+            {/* Seletor de Tema Claro / Escuro (Web Split Parity) */}
+            <View
+              style={[
+                styles.themePill,
+                {
+                  backgroundColor: isDark ? "#181b23" : "#f1f5f9",
+                  borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => !isDark || toggleTheme()}
+                style={[
+                  styles.themeBtn,
+                  !isDark && {
+                    backgroundColor: "#ffffff",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 2,
+                    elevation: 2,
+                  },
+                ]}
+              >
+                <Sun size={13} color={!isDark ? "#0f172a" : "#94a3b8"} />
+                <Text
+                  style={[
+                    styles.themeBtnText,
+                    { color: !isDark ? "#0f172a" : "#94a3b8", fontWeight: !isDark ? "700" : "500" },
+                  ]}
+                >
+                  Claro
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => isDark || toggleTheme()}
+                style={[
+                  styles.themeBtn,
+                  isDark && {
+                    backgroundColor: "#252a37",
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 3,
+                    elevation: 2,
+                  },
+                ]}
+              >
+                <Moon size={13} color={isDark ? primaryColor : "#94a3b8"} />
+                <Text
+                  style={[
+                    styles.themeBtnText,
+                    { color: isDark ? primaryColor : "#94a3b8", fontWeight: isDark ? "700" : "500" },
+                  ]}
+                >
+                  Escuro
+                </Text>
+              </Pressable>
+            </View>
+          </View>
 
           {/* Feedback: Error banner */}
           {error ? (
             <View
-              className="flex-row items-center gap-2 rounded-lg border px-3.5 py-2.5"
-              style={{ backgroundColor: authSplit.errorBackground, borderColor: authSplit.errorBorder }}
+              style={[
+                styles.alertBox,
+                {
+                  backgroundColor: authSplit.errorBackground,
+                  borderColor: authSplit.errorBorder,
+                },
+              ]}
             >
               <AlertCircle size={16} color={authSplit.errorText} />
-              <Text style={{ color: authSplit.errorText, flex: 1, ...typography.authError }}>{error}</Text>
+              <Text style={{ color: authSplit.errorText, flex: 1, ...typography.authError }}>
+                {error}
+              </Text>
             </View>
           ) : null}
 
           {/* Feedback: Success banner */}
           {successBanner ? (
             <View
-              className="flex-row items-center gap-2 rounded-lg border px-3.5 py-2.5"
-              style={{ backgroundColor: "rgba(16, 185, 129, 0.15)", borderColor: "rgba(16, 185, 129, 0.35)" }}
+              style={[
+                styles.alertBox,
+                {
+                  backgroundColor: "rgba(16, 185, 129, 0.15)",
+                  borderColor: "rgba(16, 185, 129, 0.35)",
+                },
+              ]}
             >
               <CheckCircle2 size={16} color="#10b981" />
-              <Text style={{ color: "#86efac", flex: 1, ...typography.authError }}>{successBanner}</Text>
+              <Text style={{ color: "#86efac", flex: 1, ...typography.authError }}>
+                {successBanner}
+              </Text>
             </View>
           ) : null}
 
@@ -262,15 +363,15 @@ export default function LoginScreen() {
           {/* MODE 1: LOGIN                                               */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {mode === "login" && (
-            <View className="gap-6">
-              <View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Acesse sua conta</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <Text style={[styles.title, { color: titleColor }]}>Acesse sua conta</Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
                   Entre para gerenciar seu plano e acessar todos os seus recursos.
                 </Text>
               </View>
 
-              <View className="gap-[18px]">
+              <View style={styles.fieldsBlock}>
                 <TextField
                   label="E-mail"
                   required
@@ -306,11 +407,11 @@ export default function LoginScreen() {
                 />
 
                 {/* Lembrar de mim & Esqueci minha senha */}
-                <View className="flex-row items-center justify-between">
+                <View style={styles.rememberRow}>
                   <Pressable
                     hitSlop={8}
                     onPress={() => setRemember((v) => !v)}
-                    className="flex-row items-center gap-2"
+                    style={styles.rememberBtn}
                   >
                     <View
                       style={{
@@ -318,19 +419,23 @@ export default function LoginScreen() {
                         height: 18,
                         borderRadius: 4,
                         borderWidth: 1.5,
-                        borderColor: remember ? colors.primary : authSplit.inputBorder,
-                        backgroundColor: remember ? colors.primary : "transparent",
+                        borderColor: remember ? primaryColor : (isDark ? "#282d3b" : "#cbd5e1"),
+                        backgroundColor: remember ? primaryColor : "transparent",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      {remember ? <Text style={{ color: "#0a0a0a", fontSize: 12, fontWeight: "900" }}>✓</Text> : null}
+                      {remember ? (
+                        <Text style={{ color: "#0a0a0a", fontSize: 11, fontWeight: "900" }}>✓</Text>
+                      ) : null}
                     </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Lembrar de mim</Text>
+                    <Text style={{ color: subtitleColor, fontSize: 13, fontWeight: "500" }}>
+                      Lembrar de mim
+                    </Text>
                   </Pressable>
 
                   <Pressable hitSlop={8} onPress={() => switchMode("forgot-password")}>
-                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                    <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "600" }}>
                       Esqueci minha senha
                     </Text>
                   </Pressable>
@@ -340,29 +445,36 @@ export default function LoginScreen() {
               </View>
 
               {/* Divider */}
-              <View className="flex-row items-center gap-3">
-                <View className="h-px flex-1" style={{ backgroundColor: authSplit.inputBorder }} />
-                <Text style={{ color: authSplit.mutedIcon, fontSize: 12, fontWeight: "500" }}>ou é cliente?</Text>
-                <View className="h-px flex-1" style={{ backgroundColor: authSplit.inputBorder }} />
+              <View style={styles.dividerRow}>
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#282d3b" : "#e2e8f0" }]} />
+                <Text style={styles.dividerText}>ou é cliente?</Text>
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#282d3b" : "#e2e8f0" }]} />
               </View>
 
               {/* Secondary button */}
               <Pressable
-                className="h-[46px] flex-row items-center justify-center gap-2 rounded-[10px] border"
-                style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
+                style={[
+                  styles.secondaryBtn,
+                  {
+                    backgroundColor: isDark ? "#181b23" : "#f8fafc",
+                    borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                  },
+                ]}
                 onPress={() => router.push("/(auth)/customer-access")}
               >
-                <CalendarDays size={16} color="#ffffff" />
-                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                <CalendarDays size={16} color={titleColor} />
+                <Text style={[styles.secondaryBtnText, { color: titleColor }]}>
                   Consultar minhas reservas com PIN
                 </Text>
               </Pressable>
 
               {/* Switch to Register */}
-              <View className="flex-row items-center justify-center gap-1.5 pt-2">
-                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>É dono de estabelecimento?</Text>
+              <View style={styles.switchRow}>
+                <Text style={{ color: subtitleColor, fontSize: 13 }}>
+                  É dono de estabelecimento?{" "}
+                </Text>
                 <Pressable onPress={() => switchMode("register")}>
-                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
                     Criar conta de proprietário
                   </Text>
                 </Pressable>
@@ -374,15 +486,17 @@ export default function LoginScreen() {
           {/* MODE 2: REGISTER (Owner Account)                            */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {mode === "register" && (
-            <View className="gap-6">
-              <View>
-                <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Cadastre seu estabelecimento</Text>
-                <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+            <View style={styles.formContent}>
+              <View style={styles.headerBlock}>
+                <Text style={[styles.title, { color: titleColor }]}>
+                  Cadastre seu estabelecimento
+                </Text>
+                <Text style={[styles.subtitle, { color: subtitleColor }]}>
                   Crie sua conta de proprietário e teste gratuitamente por 15 dias.
                 </Text>
               </View>
 
-              <View className="gap-[18px]">
+              <View style={styles.fieldsBlock}>
                 <TextField
                   label="Nome completo"
                   required
@@ -408,7 +522,7 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                 />
 
-                <View className="gap-1.5">
+                <View style={{ gap: 6 }}>
                   <TextField
                     label="Senha"
                     required
@@ -431,8 +545,8 @@ export default function LoginScreen() {
                   />
 
                   {password.length > 0 ? (
-                    <View className="gap-1 pt-1">
-                      <View className="flex-row gap-1">
+                    <View style={{ gap: 4, paddingTop: 4 }}>
+                      <View style={{ flexDirection: "row", gap: 4 }}>
                         {[1, 2, 3, 4].map((step) => (
                           <View
                             key={step}
@@ -443,21 +557,29 @@ export default function LoginScreen() {
                               backgroundColor:
                                 passwordScore >= step
                                   ? strengthColors[passwordScore]
-                                  : "rgba(255, 255, 255, 0.1)",
+                                  : (isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"),
                             }}
                           />
                         ))}
                       </View>
-                      <Text style={{ fontSize: 11, color: strengthColors[passwordScore], fontWeight: "600" }}>
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: strengthColors[passwordScore],
+                          fontWeight: "600",
+                        }}
+                      >
                         Força: {strengthLabels[passwordScore]}
                       </Text>
                     </View>
                   ) : (
-                    <Text style={{ fontSize: 11.5, color: "#737373" }}>Pelo menos 8 caracteres</Text>
+                    <Text style={{ fontSize: 11.5, color: subtitleColor }}>
+                      Pelo menos 8 caracteres
+                    </Text>
                   )}
                 </View>
 
-                <View className="gap-1.5">
+                <View style={{ gap: 6 }}>
                   <TextField
                     label="Confirmar senha"
                     required
@@ -496,29 +618,34 @@ export default function LoginScreen() {
               </View>
 
               {/* Divider */}
-              <View className="flex-row items-center gap-3">
-                <View className="h-px flex-1" style={{ backgroundColor: authSplit.inputBorder }} />
-                <Text style={{ color: authSplit.mutedIcon, fontSize: 12, fontWeight: "500" }}>ou acesse com</Text>
-                <View className="h-px flex-1" style={{ backgroundColor: authSplit.inputBorder }} />
+              <View style={styles.dividerRow}>
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#282d3b" : "#e2e8f0" }]} />
+                <Text style={styles.dividerText}>ou acesse com</Text>
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#282d3b" : "#e2e8f0" }]} />
               </View>
 
               {/* Secondary button */}
               <Pressable
-                className="h-[46px] flex-row items-center justify-center gap-2 rounded-[10px] border"
-                style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
+                style={[
+                  styles.secondaryBtn,
+                  {
+                    backgroundColor: isDark ? "#181b23" : "#f8fafc",
+                    borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                  },
+                ]}
                 onPress={() => router.push("/(auth)/customer-access")}
               >
-                <CalendarDays size={16} color="#ffffff" />
-                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                <CalendarDays size={16} color={titleColor} />
+                <Text style={[styles.secondaryBtnText, { color: titleColor }]}>
                   Ver minhas reservas
                 </Text>
               </Pressable>
 
               {/* Switch to Login */}
-              <View className="flex-row items-center justify-center gap-1.5 pt-2">
-                <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Já tem uma conta?</Text>
+              <View style={styles.switchRow}>
+                <Text style={{ color: subtitleColor, fontSize: 13 }}>Já tem uma conta? </Text>
                 <Pressable onPress={() => switchMode("login")}>
-                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
                     Entrar
                   </Text>
                 </Pressable>
@@ -530,17 +657,17 @@ export default function LoginScreen() {
           {/* MODE 3: FORGOT PASSWORD                                     */}
           {/* ═══════════════════════════════════════════════════════════ */}
           {mode === "forgot-password" && (
-            <View className="gap-6">
+            <View style={styles.formContent}>
               {recoveryStep === "request_email" ? (
                 <>
-                  <View>
-                    <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Recuperar senha</Text>
-                    <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+                  <View style={styles.headerBlock}>
+                    <Text style={[styles.title, { color: titleColor }]}>Recuperar senha</Text>
+                    <Text style={[styles.subtitle, { color: subtitleColor }]}>
                       Informe o e-mail cadastrado na sua conta para receber as instruções de recuperação.
                     </Text>
                   </View>
 
-                  <View className="gap-[18px]">
+                  <View style={styles.fieldsBlock}>
                     <TextField
                       label="E-mail cadastrado"
                       required
@@ -559,10 +686,10 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Switch back to Login */}
-                  <View className="flex-row items-center justify-center gap-1.5 pt-4">
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Lembrou sua senha?</Text>
+                  <View style={styles.switchRow}>
+                    <Text style={{ color: subtitleColor, fontSize: 13 }}>Lembrou sua senha? </Text>
                     <Pressable onPress={() => switchMode("login")}>
-                      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+                      <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
                         Voltar ao login
                       </Text>
                     </Pressable>
@@ -570,16 +697,21 @@ export default function LoginScreen() {
                 </>
               ) : (
                 <>
-                  <View>
-                    <Text style={{ color: "#f5f5f5", ...typography.authTitle }}>Verifique seu e-mail</Text>
-                    <Text style={{ color: "#a3a3a3", marginTop: 8, ...typography.authSubtitle }}>
+                  <View style={styles.headerBlock}>
+                    <Text style={[styles.title, { color: titleColor }]}>Verifique seu e-mail</Text>
+                    <Text style={[styles.subtitle, { color: subtitleColor }]}>
                       Enviamos as orientações de redefinição para o endereço abaixo.
                     </Text>
                   </View>
 
                   <View
-                    className="rounded-xl border p-4 items-center gap-3"
-                    style={{ backgroundColor: authSplit.inputBackground, borderColor: authSplit.inputBorder }}
+                    style={[
+                      styles.sentCard,
+                      {
+                        backgroundColor: isDark ? "#181b23" : "#f8fafc",
+                        borderColor: isDark ? "#282d3b" : "#e2e8f0",
+                      },
+                    ]}
                   >
                     <View
                       style={{
@@ -591,38 +723,38 @@ export default function LoginScreen() {
                         justifyContent: "center",
                       }}
                     >
-                      <MailCheck size={24} color={colors.primary} />
+                      <MailCheck size={24} color={primaryColor} />
                     </View>
 
                     <View
                       style={{
                         paddingHorizontal: 12,
-                        paddingVertical: 5,
-                        backgroundColor: "rgba(255, 255, 255, 0.06)",
+                        paddingVertical: 6,
+                        backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
                         borderRadius: radius.pill,
                       }}
                     >
-                      <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: "600" }}>
+                      <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600" }}>
                         {recoveryEmail}
                       </Text>
                     </View>
 
-                    <Text style={{ color: colors.textSecondary, fontSize: 12.5, textAlign: "center", lineHeight: 18 }}>
+                    <Text style={{ color: subtitleColor, fontSize: 12.5, textAlign: "center", lineHeight: 18 }}>
                       Abra sua caixa de entrada e siga as instruções para redefinir sua senha com segurança.
                     </Text>
                   </View>
 
                   <Button label="Voltar ao login" onPress={() => switchMode("login")} />
 
-                  <View className="flex-row items-center justify-center gap-1.5 pt-2">
-                    <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Não recebeu o e-mail?</Text>
+                  <View style={styles.switchRow}>
+                    <Text style={{ color: subtitleColor, fontSize: 13 }}>Não recebeu o e-mail? </Text>
                     <Pressable
                       onPress={handleResendRecoveryEmail}
                       disabled={resendCooldown > 0 || loading}
-                      className="flex-row items-center gap-1"
+                      style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
                     >
-                      <RotateCcw size={13} color={colors.primary} />
-                      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                      <RotateCcw size={13} color={primaryColor} />
+                      <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "600" }}>
                         {resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar e-mail"}
                       </Text>
                     </Pressable>
@@ -633,7 +765,7 @@ export default function LoginScreen() {
           )}
 
           {/* Footer Terms */}
-          <Text style={{ color: "#737373", fontSize: 11.5, textAlign: "center", marginTop: 12, lineHeight: 16 }}>
+          <Text style={[styles.footerText, { color: subtitleColor }]}>
             Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.
           </Text>
         </View>
@@ -641,3 +773,139 @@ export default function LoginScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  bannerContainer: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "#c6f53e",
+    overflow: "hidden",
+  },
+  bannerImage: {
+    width: "100%",
+    height: "100%",
+  },
+  formPane: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 32,
+    maxWidth: 460,
+    width: "100%",
+    alignSelf: "center",
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+  themePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    padding: 3,
+    gap: 2,
+  },
+  themeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  themeBtnText: {
+    fontSize: 12,
+  },
+  alertBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  formContent: {
+    gap: 20,
+  },
+  headerBlock: {
+    gap: 6,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+    lineHeight: 32,
+  },
+  subtitle: {
+    fontSize: 13.5,
+    lineHeight: 19,
+  },
+  fieldsBlock: {
+    gap: 16,
+  },
+  rememberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: -2,
+    marginBottom: 2,
+  },
+  rememberBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginVertical: 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 12,
+    color: "#94a3b8",
+    fontWeight: "500",
+  },
+  secondaryBtn: {
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+  },
+  secondaryBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 4,
+  },
+  sentCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 18,
+    alignItems: "center",
+    gap: 12,
+  },
+  footerText: {
+    fontSize: 11.5,
+    textAlign: "center",
+    marginTop: 24,
+    lineHeight: 16,
+  },
+});

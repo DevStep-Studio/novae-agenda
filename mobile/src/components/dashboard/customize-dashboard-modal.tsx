@@ -13,6 +13,7 @@ import { colors, radius, typography } from "@/constants/design-tokens";
 
 export type DashboardSectionKey =
   | "showBanner"
+  | "showChecklist"
   | "showKpis"
   | "showSubmetrics"
   | "showNextAppointment"
@@ -22,6 +23,7 @@ export type DashboardSectionKey =
 
 export interface DashboardPrefs {
   showBanner: boolean;
+  showChecklist: boolean;
   showKpis: boolean;
   showSubmetrics: boolean;
   showNextAppointment: boolean;
@@ -38,6 +40,10 @@ export const DASHBOARD_SECTION_META: Record<
   showBanner: {
     label: "Banner e Boas-vindas",
     desc: "Cartão de destaque com saudação e imagem de capa da empresa",
+  },
+  showChecklist: {
+    label: "Checklist de Configuração",
+    desc: "Passo a passo inicial para ativar seu agendamento e link público",
   },
   showKpis: {
     label: "Indicadores Principais",
@@ -67,6 +73,7 @@ export const DASHBOARD_SECTION_META: Record<
 
 export const DEFAULT_DASHBOARD_ORDER: DashboardSectionKey[] = [
   "showBanner",
+  "showChecklist",
   "showKpis",
   "showSubmetrics",
   "showNextAppointment",
@@ -77,6 +84,7 @@ export const DEFAULT_DASHBOARD_ORDER: DashboardSectionKey[] = [
 
 export const DEFAULT_DASHBOARD_PREFS: DashboardPrefs = {
   showBanner: true,
+  showChecklist: true,
   showKpis: true,
   showSubmetrics: true,
   showNextAppointment: true,

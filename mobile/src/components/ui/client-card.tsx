@@ -36,13 +36,19 @@ export function ClientCard({ client }: { client: ClientDTO }) {
 
   return (
     <View
-      className="gap-3 rounded-md border p-4"
-      style={{ backgroundColor: colors.surfaceSecondary, borderColor: colors.border }}
+      style={{
+        gap: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 16,
+        backgroundColor: colors.surfaceSecondary,
+        borderColor: colors.border,
+      }}
     >
-      <View className="flex-row items-center gap-3">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Avatar name={client.name} photoUrl={client.photoUrl} />
-        <View className="flex-1 shrink gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
-          <View className="flex-row items-center gap-1.5 flex-wrap">
+        <View style={{ flex: 1, flexShrink: 1, gap: 2 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <Text style={{ color: colors.textPrimary, ...typography.clientCardName, flexShrink: 1 }} numberOfLines={1}>
               {client.name}
             </Text>
@@ -56,8 +62,18 @@ export function ClientCard({ client }: { client: ClientDTO }) {
 
       {client.phone ? (
         <Pressable
-          className="h-[26px] flex-row items-center gap-1.5 self-start rounded px-2"
-          style={{ backgroundColor: "rgba(34, 197, 94, 0.08)", borderWidth: 1, borderColor: "rgba(34, 197, 94, 0.2)" }}
+          style={{
+            height: 28,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            alignSelf: "flex-start",
+            borderRadius: 6,
+            paddingHorizontal: 8,
+            backgroundColor: "rgba(34, 197, 94, 0.08)",
+            borderWidth: 1,
+            borderColor: "rgba(34, 197, 94, 0.2)",
+          }}
           onPress={openWhatsApp}
         >
           <WhatsAppIcon size={13} />
@@ -65,7 +81,16 @@ export function ClientCard({ client }: { client: ClientDTO }) {
         </Pressable>
       ) : null}
 
-      <View className="flex-row items-center justify-between border-t pt-2.5" style={{ borderTopColor: colors.border }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingTop: 10,
+        }}
+      >
         <View>
           {client.visits > 0 ? (
             <Text>
@@ -84,7 +109,7 @@ export function ClientCard({ client }: { client: ClientDTO }) {
             </Text>
           ) : null}
         </View>
-        <View className="items-end">
+        <View style={{ alignItems: "flex-end" }}>
           <Text style={{ color: colors.textPrimary, ...typography.clientTotalSpent }}>{formatBRL(client.spent)}</Text>
           {client.visits > 0 ? (
             <Text style={{ color: colors.textMuted, ...typography.clientSpendingDetail }}>

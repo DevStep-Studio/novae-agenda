@@ -45,8 +45,10 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
 
   return (
     <View
-      className="overflow-hidden rounded-lg border"
       style={{
+        overflow: "hidden",
+        borderRadius: 12,
+        borderWidth: 1,
         minHeight: serviceCard.minHeight,
         borderColor: colors.border,
         backgroundColor: colors.surface,
@@ -65,11 +67,21 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
         style={{ position: "absolute", inset: 0 }}
       />
 
-      <View className="gap-0" style={{ padding: 18, minHeight: serviceCard.minHeight }}>
-        <View className="flex-row items-center justify-between gap-2.5">
+      <View style={{ padding: 18, minHeight: serviceCard.minHeight, justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <View
-            className="flex-row items-center gap-1.5 self-start rounded-full px-3 py-1"
-            style={{ backgroundColor: serviceCard.categoryBadge.background, borderWidth: 1, borderColor: serviceCard.categoryBadge.border }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              alignSelf: "flex-start",
+              borderRadius: 999,
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              backgroundColor: serviceCard.categoryBadge.background,
+              borderWidth: 1,
+              borderColor: serviceCard.categoryBadge.border,
+            }}
           >
             <Tag size={12} color={serviceCard.categoryBadge.color} />
             <Text style={{ color: serviceCard.categoryBadge.color, ...typography.serviceCategoryBadge }}>
@@ -78,7 +90,7 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
           </View>
         </View>
 
-        <View className="flex-1 justify-end" style={{ marginTop: 22, marginBottom: 14 }}>
+        <View style={{ marginTop: 22, marginBottom: 14 }}>
           <Text
             style={{
               color: "#ffffff",
@@ -91,9 +103,9 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
             {service.name}
           </Text>
           <Text
-            className="mt-1.5"
             numberOfLines={2}
             style={{
+              marginTop: 6,
               color: serviceCard.descriptionColor,
               textShadowColor: "rgba(0,0,0,0.85)",
               textShadowOffset: { width: 0, height: 1 },
@@ -106,8 +118,14 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
         </View>
 
         <View
-          className="flex-row items-end justify-between border-t pt-3.5"
-          style={{ borderTopColor: serviceCard.footerBorder }}
+          style={{
+            flexDirection: "row",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            borderTopWidth: 1,
+            borderTopColor: serviceCard.footerBorder,
+            paddingTop: 14,
+          }}
         >
           <View>
             {isQuote ? (
@@ -115,7 +133,7 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
             ) : (
               <Text style={{ color: "#ffffff", ...typography.servicePrice }}>{formatBRL(numericPrice)}</Text>
             )}
-            <View className="mt-0.5 flex-row items-center gap-1">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
               <Clock3 size={13} color={colors.primary} />
               <Text style={{ color: colors.primary, ...typography.serviceDuration }}>
                 {formatDuration(Number(service.durationMinutes) || 0)}

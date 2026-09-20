@@ -28,8 +28,15 @@ export function Avatar({ name, photoUrl, size = "md" }: AvatarProps) {
 
   return (
     <View
-      className="items-center justify-center overflow-hidden rounded-full"
-      style={{ width: dimension, height: dimension, backgroundColor: avatar.background }}
+      style={{
+        width: dimension,
+        height: dimension,
+        borderRadius: dimension / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        backgroundColor: avatar.background,
+      }}
     >
       {resolvedUrl && !loadError ? (
         <Image

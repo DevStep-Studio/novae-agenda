@@ -10,10 +10,18 @@ export function StatusBadge({ status }: { status: AppointmentStatus }) {
 
   return (
     <View
-      className="flex-row items-center gap-1.5 self-start rounded-[5px] px-[7px] py-1"
-      style={{ backgroundColor: tone.background }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        alignSelf: "flex-start",
+        borderRadius: 5,
+        paddingHorizontal: 7,
+        paddingVertical: 4,
+        backgroundColor: tone.background,
+      }}
     >
-      <View className="h-[5px] w-[5px] rounded-full" style={{ backgroundColor: tone.color }} />
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tone.color }} />
       <Text style={{ color: tone.color, ...typography.statusBadge }}>{statusLabel(status)}</Text>
     </View>
   );
