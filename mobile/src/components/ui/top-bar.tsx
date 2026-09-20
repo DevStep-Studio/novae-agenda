@@ -20,6 +20,7 @@ import {
   type NotificationDTO,
 } from "@/lib/notifications";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
 import { SidebarDrawer } from "@/components/drawer/sidebar-drawer";
 
 export interface TopBarProps {
@@ -39,12 +40,12 @@ export function TopBar({
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
   const { session } = useSession();
+  const { isDark, toggleTheme, colors: themeColors, primaryColor } = useTheme();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(propUnreadCount ?? 1);
-  const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [imageError, setImageError] = useState(false);
 
   // Sync prop unreadCount if provided
@@ -81,10 +82,6 @@ export function TopBar({
     } else {
       router.replace("/(owner)/mais");
     }
-  };
-
-  const handleToggleTheme = () => {
-    setIsDarkTheme((prev) => !prev);
   };
 
   const handleMarkAllAsRead = async () => {
@@ -208,7 +205,7 @@ export function TopBar({
             accessibilityRole="button"
             accessibilityLabel="Alternar tema"
             hitSlop={8}
-            onPress={handleToggleTheme}
+            onPress={toggleTheme}
             className="items-center justify-center rounded-lg"
             style={{
               width: 38,
@@ -218,10 +215,10 @@ export function TopBar({
               backgroundColor: "transparent",
             }}
           >
-            {isDarkTheme ? (
+            {isDark ? (
               <Sun size={18} color="#9ca3af" strokeWidth={1.8} />
             ) : (
-              <Moon size={18} color="#9ca3af" strokeWidth={1.8} />
+              <Moon size={18} color="#4b5563" strokeWidth={1.8} />
             )}
           </Pressable>
 

@@ -43,6 +43,8 @@ import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
 import { api, resolveImageUrl } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
+import { Sun, Moon } from "lucide-react-native";
 
 export const PRIMARY_COLOR_PRESETS = [
   { id: "blue", name: "Azul Elétrico (Padrão)", hex: "#3b82f6" },
@@ -116,6 +118,7 @@ function isLightHex(hex: string): boolean {
 
 export default function PerfilPersonalizacaoScreen() {
   const { session, refresh, signOut } = useSession();
+  const { themeMode, setThemeMode, setPrimaryColorOverride } = useTheme();
 
   const [activeTab, setActiveTab] = useState<"visual" | "dados" | "widgets" | "atalhos">("visual");
   const [saving, setSaving] = useState(false);
@@ -253,6 +256,10 @@ export default function PerfilPersonalizacaoScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      if (primaryColor) {
+        await setPrimaryColorOverride(primaryColor);
+      }
+
       await api("/api/profile", {
         method: "PATCH",
         body: JSON.stringify({
@@ -691,6 +698,55 @@ export default function PerfilPersonalizacaoScreen() {
                     Restaurar padrão
                   </Text>
                 </Pressable>
+              </View>
+            </View>
+
+            {/* Card: Modo de Exibição (Tema Claro / Escuro / Sistema) */}
+            <View
+              className="p-5 rounded-2xl border gap-3.5"
+              style={{
+                backgroundColor: "#121318",
+                borderColor: "rgba(255, 255, 255, 0.07)",
+              }}
+            >
+              <View className="gap-1">
+                <View className="flex-row items-center gap-2">
+                  <Sun size={17} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                    Modo de Exibição (Tema)
+                  </Text>
+                </View>
+                <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
+                  Escolha como a interface será exibida no seu celular.
+                </Text>
+              </View>
+
+              <View className="flex-row gap-2.5 pt-1">
+                {(["dark", "light", "system"] as const).map((mode) => {
+                  const isSelected = themeMode === mode;
+                  const label = mode === "dark" ? "Escuro" : mode === "light" ? "Claro" : "Automático";
+                  return (
+                    <Pressable
+                      key={mode}
+                      onPress={() => setThemeMode(mode)}
+                      className="flex-1 py-3 px-2 rounded-xl border items-center justify-center"
+                      style={{
+                        backgroundColor: isSelected ? "rgba(255, 255, 255, 0.12)" : "#0d0e12",
+                        borderColor: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isSelected ? "#ffffff" : "#9ca3af",
+                          fontSize: 13,
+                          fontWeight: isSelected ? "700" : "500",
+                        }}
+                      >
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 

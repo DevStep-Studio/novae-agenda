@@ -1,20 +1,19 @@
 import type { LucideIcon } from "lucide-react-native";
 import { Text, View } from "react-native";
 
-import { colors, metricIcon, typography } from "@/constants/design-tokens";
+import { metricIcon, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 
 export interface MetricCardProps {
   icon: LucideIcon;
   label: string;
   value: string;
   detail?: string;
-  /** .metric-{teal,lilac,amber,rose} — see metricIcon.variants in design-tokens.ts. */
   variant?: keyof typeof metricIcon.variants;
 }
 
-// .metric-card / .metric-icon / .metric-copy, globals.css:644-668 and
-// 853-866, at the mobile breakpoint (globals.css:8832-8864).
 export function MetricCard({ icon: Icon, label, value, detail, variant = "teal" }: MetricCardProps) {
+  const { colors } = useTheme();
   const tone = metricIcon.variants[variant];
 
   return (

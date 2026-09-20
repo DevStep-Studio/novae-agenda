@@ -176,7 +176,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
       id: "link",
       label: "Link de agendamento",
       icon: Globe,
-      action: handleShareLink,
+      path: "/(owner)/link-agendamento",
       badge: null,
     },
     {
@@ -404,8 +404,9 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                 <Pressable
                   key={item.id}
                   onPress={() => {
-                    if (item.action) {
-                      item.action();
+                    const customAction = (item as any).action;
+                    if (typeof customAction === "function") {
+                      customAction();
                     } else if (item.path) {
                       navigateTo(item.path);
                     }

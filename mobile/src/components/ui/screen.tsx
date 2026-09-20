@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { View, type ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colors } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 
 export interface ScreenProps extends ViewProps {
   /**
@@ -17,6 +17,8 @@ export interface ScreenProps extends ViewProps {
 }
 
 export function Screen({ header, noPadding, style, children, ...rest }: ScreenProps) {
+  const { colors } = useTheme();
+
   return (
     <SafeAreaView
       edges={header ? ["left", "right", "bottom"] : ["top", "left", "right", "bottom"]}

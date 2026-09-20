@@ -68,9 +68,16 @@ export default function OwnerHomeScreen() {
   const [customizeVisible, setCustomizeVisible] = useState(false);
   const [prefs, setPrefs] = useState<DashboardPrefs>(DEFAULT_DASHBOARD_PREFS);
 
-  // Load saved preferences
+  // Load saved preferences from session or SecureStore
   useEffect(() => {
     async function loadPrefs() {
+      if (session?.company?.dashboardPreferences) {
+        setPrefs((prev) => ({
+          ...prev,
+          ...(session.company.dashboardPreferences as unknown as Partial<DashboardPrefs>),
+        }));
+        return;
+      }
       try {
         const saved = await SecureStore.getItemAsync(DASHBOARD_PREFS_KEY);
         if (saved) {
@@ -81,12 +88,20 @@ export default function OwnerHomeScreen() {
       }
     }
     loadPrefs();
-  }, []);
+  }, [session?.company?.dashboardPreferences]);
 
   const savePrefs = async (newPrefs: DashboardPrefs) => {
     setPrefs(newPrefs);
     try {
       await SecureStore.setItemAsync(DASHBOARD_PREFS_KEY, JSON.stringify(newPrefs));
+    } catch {
+      // ignore
+    }
+    try {
+      await api("/api/profile", {
+        method: "PATCH",
+        body: JSON.stringify({ dashboardPreferences: newPrefs }),
+      });
     } catch {
       // ignore
     }

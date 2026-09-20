@@ -16,12 +16,21 @@ import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import "@/global.css";
+import { AppThemeProvider, useAppTheme } from "@/lib/theme-context";
 import { SessionProvider, useSession } from "@/lib/session-context";
 import { setupNotificationListeners } from "@/lib/push-notifications";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 
 SplashScreen.preventAutoHideAsync();
+
+function RootThemeContainer({ children }: { children: React.ReactNode }) {
+  const { isDark } = useAppTheme();
+  return (
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+      {children}
+    </ThemeProvider>
+  );
+}
 
 function RootNavigator() {
   const router = useRouter();
@@ -90,14 +99,15 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SessionProvider>
-          <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-            <RootNavigator />
-          </ThemeProvider>
+          <AppThemeProvider>
+            <RootThemeContainer>
+              <RootNavigator />
+            </RootThemeContainer>
+          </AppThemeProvider>
         </SessionProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
