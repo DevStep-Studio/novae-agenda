@@ -40,18 +40,9 @@ const Store = Platform.OS === "web"
 import Constants from "expo-constants";
 
 export function resolveApiBaseUrl(): string {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
-  }
-
-  // Se executando no Web (browser), usar o mesmo hostname do browser (localhost ou IP local)
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
-    const hostname = window.location.hostname || "localhost";
-    return `http://${hostname}:3000`;
-  }
-
-  // Em desenvolvimento nativo (Metro / Expo Go em celular físico ou simulador)
-  if (__DEV__) {
+  // 1. Em desenvolvimento nativo no Expo Go / celular físico / simulador,
+  // se o Metro estiver rodando, extrair o IP dinamicamente para que nunca quebre
+  if (__DEV__ && Platform.OS !== "web") {
     const hostUri =
       Constants.expoConfig?.hostUri ||
       (Constants as any).manifest2?.extra?.expoClient?.hostUri ||
@@ -64,6 +55,18 @@ export function resolveApiBaseUrl(): string {
     }
   }
 
+  // 2. Se houver EXPO_PUBLIC_API_URL configurado
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+
+  // 3. Se executando no Web (browser), usar o mesmo hostname do browser (localhost ou IP local)
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
+    const hostname = window.location.hostname || "localhost";
+    return `http://${hostname}:3000`;
+  }
+
+  // Em desenvolvimento nativo fallback
   if (__DEV__) {
     if (Platform.OS === "android") {
       return "http://10.0.2.2:3000";
@@ -200,7 +203,11 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     throw new ApiError(message, res.status, body?.code);
   }
 
-  return body?.data as T;
+  if (body !== null && typeof body === "object" && "data" in body) {
+    return body.data as T;
+  }
+
+  return body as T;
 }
 
 let unauthorizedHandler: (() => void) | null = null;
