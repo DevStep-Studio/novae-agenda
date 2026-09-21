@@ -475,8 +475,17 @@
 }
 
 .ctaBtn:disabled {
-  opacity: 0.5;
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
   cursor: not-allowed;
+  opacity: 0.85;
+}
+
+:root[data-theme="dark"] .ctaBtn:disabled {
+  background: #1f1f26 !important;
+  color: #71717a !important;
+  border-color: #27272f !important;
 }
 
 .trustLine {

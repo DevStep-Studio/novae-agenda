@@ -313,7 +313,9 @@
 .pageLight .actionBtnRow .outline,
 .page[data-theme="light"] .actionBtnRow .outline,
 .pageLight .serviceTopButtons .outline,
-.page[data-theme="light"] .serviceTopButtons .outline {
+.page[data-theme="light"] .serviceTopButtons .outline,
+:root[data-theme="light"] .outline,
+:global([data-theme="light"]) .outline {
   background: #ffffff !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
@@ -327,9 +329,11 @@
 .pageLight .actionBtnRow .outline svg,
 .page[data-theme="light"] .actionBtnRow .outline svg,
 .pageLight .serviceTopButtons .outline svg,
-.page[data-theme="light"] .serviceTopButtons .outline svg {
+.page[data-theme="light"] .serviceTopButtons .outline svg,
+:root[data-theme="light"] .outline svg,
+:global([data-theme="light"]) .outline svg {
   color: #0f172a !important;
-  stroke: currentColor !important;
+  stroke: #0f172a !important;
 }
 
 .pageLight .outline:hover:not(:disabled),
@@ -343,16 +347,56 @@
 .pageLight .actionBtnRow .outline:hover:not(:disabled),
 .page[data-theme="light"] .actionBtnRow .outline:hover:not(:disabled),
 .pageLight .serviceTopButtons .outline:hover:not(:disabled),
-.page[data-theme="light"] .serviceTopButtons .outline:hover:not(:disabled) {
+.page[data-theme="light"] .serviceTopButtons .outline:hover:not(:disabled),
+:root[data-theme="light"] .outline:hover:not(:disabled),
+:global([data-theme="light"]) .outline:hover:not(:disabled) {
   background: #f1f5f9 !important;
   color: #09090b !important;
   border-color: #94a3b8 !important;
 }
 
 .pageLight .button:not(.outline),
-.page[data-theme="light"] .button:not(.outline) {
+.page[data-theme="light"] .button:not(.outline),
+:root[data-theme="light"] .button:not(.outline),
+:global([data-theme="light"]) .button:not(.outline) {
   border-color: color-mix(in srgb, var(--accent) 70%, #000000 30%);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Modo Claro: Botões desabilitados com fundo claro e texto escuro perfeitamente legível */
+.pageLight .button:disabled,
+.page[data-theme="light"] .button:disabled,
+:root[data-theme="light"] .button:disabled,
+:global([data-theme="light"]) .button:disabled,
+.pageLight a.button:disabled,
+.page[data-theme="light"] a.button:disabled,
+.pageLight button.button:disabled,
+.page[data-theme="light"] button.button:disabled,
+:root[data-theme="light"] button.button:disabled,
+:global([data-theme="light"]) button.button:disabled,
+.pageLight .button:disabled:hover,
+.page[data-theme="light"] .button:disabled:hover,
+:root[data-theme="light"] .button:disabled:hover,
+:global([data-theme="light"]) .button:disabled:hover {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+.pageLight .button:disabled svg,
+.page[data-theme="light"] .button:disabled svg,
+:root[data-theme="light"] .button:disabled svg,
+:global([data-theme="light"]) .button:disabled svg,
+.pageLight a.button:disabled svg,
+.page[data-theme="light"] a.button:disabled svg,
+.pageLight button.button:disabled svg,
+.page[data-theme="light"] button.button:disabled svg,
+:root[data-theme="light"] button.button:disabled svg,
+:global([data-theme="light"]) button.button:disabled svg {
+  color: #334155 !important;
+  stroke: #334155 !important;
 }
 
 .pageLight .summaryItem {
@@ -1710,11 +1754,27 @@ button.button:hover:not(:disabled),
   color: var(--accent-contrast) !important;
 }
 
-.button:disabled {
+.button:disabled,
+a.button:disabled,
+button.button:disabled,
+.page a.button:disabled,
+.page button.button:disabled,
+.page .button:disabled {
   background: var(--booking-surface-hover) !important;
   color: var(--booking-text-disabled) !important;
   border-color: var(--booking-border) !important;
-  cursor: not-allowed;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+.button:disabled svg,
+a.button:disabled svg,
+button.button:disabled svg,
+.page a.button:disabled svg,
+.page button.button:disabled svg,
+.page .button:disabled svg {
+  color: var(--booking-text-disabled) !important;
+  stroke: var(--booking-text-disabled) !important;
 }
 
 .outline,
