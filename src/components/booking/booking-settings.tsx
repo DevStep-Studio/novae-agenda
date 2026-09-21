@@ -23,7 +23,6 @@ import {
   Download,
   Zap,
   Upload,
-  Monitor,
   Coffee,
   Crop,
   Film,
@@ -36,7 +35,6 @@ import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
 import { BrandingStudio } from "./branding-studio";
 import { LocationMapCard } from "./location-map-card";
-import { PageBuilderEditor } from "./page-builder/page-builder-editor";
 import { PromoCarouselEditor } from "./promo-carousel-editor";
 import { getDefaultLunch, isLunchActive, sanitizeLunch } from "@/lib/schedule-utils";
 import {
@@ -101,16 +99,6 @@ export function BookingSettings() {
   const [color, setColor] = useState("#234e3d");
   const [activeTab, setActiveTab] = useState<"branding" | "carousel" | "link" | "schedules" | "extras">("branding");
   const [promoBanners, setPromoBanners] = useState<PromoBannersConfig>(DEFAULT_PROMO_BANNERS);
-  const [showPageBuilder, setShowPageBuilder] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
-
-  useEffect(() => {
-    const mql = window.matchMedia("(max-width: 767.98px)");
-    setIsMobileViewport(mql.matches);
-    const onChange = (e: MediaQueryListEvent) => setIsMobileViewport(e.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
 
   // State for toggles
   const [publicEnabled, setPublicEnabled] = useState(true);
@@ -484,66 +472,6 @@ export function BookingSettings() {
 
   const c = data.company;
 
-  if (showPageBuilder) {
-    return (
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 99999,
-          width: "100vw",
-          height: "100vh",
-          backgroundColor: "#09090b",
-        }}
-      >
-        {isMobileViewport ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 16,
-              height: "100%",
-              padding: "32px 24px",
-              textAlign: "center",
-              color: "#f2f7f4",
-            }}
-          >
-            <Monitor size={40} style={{ color: "#dcff4c" }} />
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Disponível apenas no computador</h2>
-            <p style={{ margin: 0, maxWidth: 320, fontSize: 14, color: "#a3a3a3", lineHeight: 1.5 }}>
-              O construtor visual de páginas precisa de mais espaço de tela para arrastar e organizar blocos. Acesse pelo navegador do seu computador para personalizar sua página.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowPageBuilder(false)}
-              style={{
-                marginTop: 8,
-                minHeight: 44,
-                padding: "0 20px",
-                borderRadius: 8,
-                border: "1px solid #333",
-                background: "transparent",
-                color: "#f2f7f4",
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
-              Voltar
-            </button>
-          </div>
-        ) : (
-          <PageBuilderEditor
-            onExit={() => setShowPageBuilder(false)}
-            onSaved={() => void load()}
-          />
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className={styles.container}>
       {/* Top Header */}
@@ -566,15 +494,6 @@ export function BookingSettings() {
         >
           <Palette size={16} />
           Identidade & Branding Studio
-        </button>
-        <button
-          type="button"
-          className={`${styles.tabBtn} ${styles.desktopOnlyPageBuilderTab}`}
-          style={{ color: "#dcff4c", borderColor: "rgba(220, 255, 76, 0.3)" }}
-          onClick={() => setShowPageBuilder(true)}
-        >
-          <Sparkles size={16} />
-          Page Builder 2.0 (Visual)
         </button>
         <button
           type="button"
@@ -735,25 +654,6 @@ export function BookingSettings() {
             >
               <QrCode size={14} />
               QR Code
-            </button>
-
-            <button
-              type="button"
-              className={`${styles.btnSecondary} ${styles.btnSecondaryFull} ${styles.desktopOnlyPageBuilderBtn}`}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: "rgba(220, 255, 76, 0.08)",
-                color: "#dcff4c",
-                borderColor: "rgba(220, 255, 76, 0.3)",
-                fontWeight: 600,
-              }}
-              onClick={() => setShowPageBuilder(true)}
-              title="Abrir construtor visual de página"
-            >
-              <Sparkles size={14} />
-              Page Builder (Visual)
             </button>
           </div>
         </div>

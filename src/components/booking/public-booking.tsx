@@ -63,7 +63,6 @@ import {
   MembershipAccessModal,
 } from "./membership-showcase";
 import { BookingPromoCarousel } from "./booking-promo-carousel";
-import { PageBuilderRenderer } from "./page-builder/page-builder-renderer";
 
 function generateId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -881,31 +880,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       </div>
     </>
   );
-
-  // If Page Builder is published and active, render it directly as the root view on Step 0
-  if (step === 0 && (company as any).pageBuilder?.layout) {
-    return (
-      <div style={{ minHeight: "100vh", backgroundColor: (company as any).pageBuilder.layout.globalTokens?.backgroundColor || "#09090b" }}>
-        <PageBuilderRenderer
-          document={(company as any).pageBuilder.layout}
-          mode="public"
-          catalog={catalog}
-          selectedServiceIds={items.map((i) => i.serviceId)}
-          onToggleService={(serviceId) => {
-            if (items.some((i) => i.serviceId === serviceId)) {
-              changeItems(items.filter((i) => i.serviceId !== serviceId));
-            } else {
-              changeItems([...items, { serviceId, employeeId: null }]);
-            }
-          }}
-          onContinueBooking={() => {
-            if (items.length > 0) go(1);
-          }}
-        />
-        <ClientNoticeModal />
-      </div>
-    );
-  }
 
   return (
     <PublicFrame
