@@ -8,13 +8,19 @@ export type ClientDTO = {
   email: string | null;
   photoUrl?: string | null;
   notes: string | null;
+  internalNotes?: string | null;
   active: boolean;
+  initials?: string;
+  color?: string;
   visits: number;
   spent: number;
+  firstVisit?: string | null;
   lastVisit: string | null;
   nextVisit: string | null;
   createdAt: string;
+  hasActiveMembership?: boolean;
   isMembershipActive?: boolean;
+  membershipPlanName?: string | null;
 };
 
 /** GET /api/clients — `q` is matched server-side against name/phone/email. */
