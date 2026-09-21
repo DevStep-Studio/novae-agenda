@@ -1767,8 +1767,7 @@ button.button:disabled,
 .page a.button:disabled,
 .page button.button:disabled,
 .page .button:disabled,
-.button[disabled],
-button[disabled] {
+.button[disabled] {
   background: var(--booking-surface-hover, #27272f) !important;
   color: var(--booking-text-disabled, #71717a) !important;
   border-color: var(--booking-border, #383844) !important;
@@ -1783,8 +1782,7 @@ button.button:disabled svg,
 .page a.button:disabled svg,
 .page button.button:disabled svg,
 .page .button:disabled svg,
-.button[disabled] svg,
-button[disabled] svg {
+.button[disabled] svg {
   color: var(--booking-text-disabled, #71717a) !important;
   stroke: var(--booking-text-disabled, #71717a) !important;
 }
