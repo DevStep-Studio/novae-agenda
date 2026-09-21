@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { View, type ViewProps } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { useTheme } from "@/hooks/use-theme";
 
@@ -14,14 +14,23 @@ export interface ScreenProps extends ViewProps {
   header?: ReactNode;
   /** Opt out of the default 20px horizontal padding for full-bleed content (e.g. login's banner image). */
   noPadding?: boolean;
+  /**
+   * Explicit edges for SafeAreaView. Defaults to skipping top when header is present,
+   * and skipping bottom because BottomTabBar and scroll views manage their own bottom insets,
+   * avoiding double-padding / black bar above the navbar.
+   */
+  edges?: readonly Edge[];
 }
 
-export function Screen({ header, noPadding, style, children, ...rest }: ScreenProps) {
+export function Screen({ header, noPadding, edges, style, children, ...rest }: ScreenProps) {
   const { colors } = useTheme();
+
+  const resolvedEdges: readonly Edge[] =
+    edges ?? (header ? ["left", "right"] : ["top", "left", "right"]);
 
   return (
     <SafeAreaView
-      edges={header ? ["left", "right", "bottom"] : ["top", "left", "right", "bottom"]}
+      edges={resolvedEdges}
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       {header}
