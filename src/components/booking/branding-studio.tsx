@@ -28,6 +28,11 @@ import {
   MapPin,
   Calendar,
   Crop,
+  Film,
+  Video,
+  Plus,
+  ExternalLink,
+  Layers,
 } from "lucide-react";
 import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
 import { api } from "@/lib/api-client";
@@ -44,11 +49,15 @@ import {
   COPY_OVERRIDE_KEYS,
   COPY_OVERRIDE_LABELS,
   DEFAULT_SECTIONS_CONFIG,
+  DEFAULT_PROMO_BANNERS,
   isSectionVisible,
   resolveCopy,
   SECTION_LABELS,
+  parsePromoBanners,
   type CopyOverrides,
   type SectionConfig,
+  type PromoBannersConfig,
+  type PromoBannerItem,
 } from "@/lib/booking/customization";
 import {
   DEFAULT_FONT_PACK,
@@ -61,6 +70,7 @@ import { prepareImageUpload } from "@/lib/image-upload-client";
 import { b, Price, PublicFrame } from "./primitives";
 import { PreviewToolbar } from "./preview-toolbar";
 import { PageBuilderEditor } from "./page-builder/page-builder-editor";
+import { BookingPromoCarousel } from "./booking-promo-carousel";
 import styles from "./branding-studio.module.css";
 
 type BrandingData = {
@@ -75,6 +85,7 @@ type BrandingData = {
   bookingFontFamily: string;
   bookingCopyOverrides: CopyOverrides;
   bookingSectionsConfig: SectionConfig[];
+  bookingPromoBanners?: PromoBannersConfig;
   businessType?: string | null;
   publicDescription?: string | null;
   address?: string | null;
@@ -94,6 +105,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
   const [fontFamily, setFontFamily] = useState<FontPackId>(DEFAULT_FONT_PACK);
   const [copyOverrides, setCopyOverrides] = useState<CopyOverrides>({});
   const [sectionsConfig, setSectionsConfig] = useState<SectionConfig[]>(DEFAULT_SECTIONS_CONFIG);
+  const [promoBanners, setPromoBanners] = useState<PromoBannersConfig>(DEFAULT_PROMO_BANNERS);
 
   // Studio Preview States
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
@@ -125,6 +137,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       setFontFamily(isFontPackId(res.bookingFontFamily) ? res.bookingFontFamily : DEFAULT_FONT_PACK);
       setCopyOverrides(res.bookingCopyOverrides || {});
       setSectionsConfig(res.bookingSectionsConfig?.length ? res.bookingSectionsConfig : DEFAULT_SECTIONS_CONFIG);
+      setPromoBanners(parsePromoBanners(res.bookingPromoBanners));
 
       // Set initial preview theme
       if (res.bookingThemeMode === "light") {
@@ -152,7 +165,8 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       bookingThemeMode !== initialData.bookingThemeMode ||
       fontFamily !== initialData.bookingFontFamily ||
       JSON.stringify(copyOverrides) !== JSON.stringify(initialData.bookingCopyOverrides) ||
-      JSON.stringify(sectionsConfig) !== JSON.stringify(initialData.bookingSectionsConfig));
+      JSON.stringify(sectionsConfig) !== JSON.stringify(initialData.bookingSectionsConfig) ||
+      JSON.stringify(promoBanners) !== JSON.stringify(initialData.bookingPromoBanners || DEFAULT_PROMO_BANNERS));
 
   // Derived Palette
   const palette = createBrandPalette(primaryColor, previewTheme);
@@ -317,6 +331,112 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
     }
   };
 
+  // Promo Banner Handlers
+  const handleAddPromoItem = () => {
+    if (promoBanners.items.length >= 3) {
+      notify("Você pode adicionar no máximo 3 artes.", "error");
+      return;
+    }
+    const newItem: PromoBannerItem = {
+      id: `banner-${Date.now()}`,
+      type: "image",
+      url: "",
+      title: "",
+      subtitle: "",
+      badge: "",
+      linkUrl: "",
+      buttonText: "Saiba mais",
+    };
+    setPromoBanners((prev) => ({
+      ...prev,
+      enabled: true,
+      items: [...prev.items, newItem],
+    }));
+  };
+
+  const handleRemovePromoItem = (index: number) => {
+    setPromoBanners((prev) => {
+      const items = prev.items.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        items,
+      };
+    });
+  };
+
+  const handleMovePromoItem = (index: number, direction: -1 | 1) => {
+    setPromoBanners((prev) => {
+      const targetIdx = index + direction;
+      if (targetIdx < 0 || targetIdx >= prev.items.length) return prev;
+      const items = [...prev.items];
+      const temp = items[index];
+      items[index] = items[targetIdx];
+      items[targetIdx] = temp;
+      return { ...prev, items };
+    });
+  };
+
+  const handleUpdatePromoItem = (index: number, updates: Partial<PromoBannerItem>) => {
+    setPromoBanners((prev) => {
+      const items = [...prev.items];
+      if (items[index]) {
+        items[index] = { ...items[index], ...updates };
+      }
+      return { ...prev, items };
+    });
+  };
+
+  const handlePromoImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await prepareImageUpload(file, {
+        maxDimension: 1200,
+        quality: 0.88,
+        maxBytes: 5 * 1024 * 1024,
+      });
+      handleUpdatePromoItem(index, { type: "image", url: dataUrl });
+      notify("Imagem da arte carregada com sucesso!");
+    } catch (err: unknown) {
+      notify(err instanceof Error ? err.message : "Erro ao processar imagem.", "error");
+    }
+    e.target.value = "";
+  };
+
+  const handlePromoVideoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 20 * 1024 * 1024) {
+      notify("O vídeo deve ter no máximo 20MB.", "error");
+      return;
+    }
+
+    if (!file.type.startsWith("video/")) {
+      notify("Por favor, selecione um arquivo de vídeo válido (MP4, WebM, MOV).", "error");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const videoDataUrl = String(reader.result);
+      handleUpdatePromoItem(index, { type: "video", url: videoDataUrl });
+      notify("Vídeo da arte carregado com sucesso!");
+    };
+    reader.onerror = () => {
+      notify("Não foi possível carregar este vídeo.", "error");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   // Save Branding to Server
   const handleSave = async () => {
     if (!isValidHexColor(primaryColor)) {
@@ -336,6 +456,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         bookingFontFamily: string;
         bookingCopyOverrides: CopyOverrides;
         bookingSectionsConfig: SectionConfig[];
+        bookingPromoBanners: PromoBannersConfig;
       }>("/api/business/branding", {
         method: "PUT",
         body: JSON.stringify({
@@ -348,6 +469,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
           bookingFontFamily: fontFamily,
           bookingCopyOverrides: copyOverrides,
           bookingSectionsConfig: sectionsConfig,
+          bookingPromoBanners: promoBanners,
         }),
       });
 
@@ -363,6 +485,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
         bookingFontFamily: res?.bookingFontFamily || fontFamily,
         bookingCopyOverrides: res?.bookingCopyOverrides || copyOverrides,
         bookingSectionsConfig: res?.bookingSectionsConfig || sectionsConfig,
+        bookingPromoBanners: res?.bookingPromoBanners || promoBanners,
       };
 
       setInitialData(updated);
@@ -371,9 +494,10 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       if (res?.coverUrl) setCoverUrl(res.coverUrl);
       if (res?.bookingCopyOverrides) setCopyOverrides(res.bookingCopyOverrides);
       if (res?.bookingSectionsConfig?.length) setSectionsConfig(res.bookingSectionsConfig);
+      if (res?.bookingPromoBanners) setPromoBanners(res.bookingPromoBanners);
 
       setSaveSuccess(true);
-      notify("Identidade visual atualizada com sucesso!");
+      notify("Identidade visual e banners atualizados com sucesso!");
       onSaved?.();
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
@@ -394,6 +518,7 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
       setFontFamily(DEFAULT_FONT_PACK);
       setCopyOverrides({});
       setSectionsConfig(DEFAULT_SECTIONS_CONFIG);
+      setPromoBanners(DEFAULT_PROMO_BANNERS);
       notify("Identidade padrão restaurada. Clique em 'Salvar alterações' para confirmar.");
     }
   };
@@ -969,6 +1094,278 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
             ))}
           </section>
 
+          {/* Card: Carrossel Promocional (Abaixo de Seu Agendamento) */}
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3 className={styles.cardTitle}>
+                <Film size={16} /> Carrossel Promocional (Abaixo de Seu Agendamento)
+              </h3>
+            </div>
+            <span className={styles.fieldHint}>
+              Exiba de 1 até 3 artes promocionais (fotos ou vídeos) rotativas logo abaixo do resumo &quot;Seu agendamento&quot;. Se o recurso estiver desligado ou sem mídias, nada será exibido.
+            </span>
+
+            {/* Toggle Switch */}
+            <div
+              className={styles.checkRow}
+              role="switch"
+              aria-checked={promoBanners.enabled}
+              tabIndex={0}
+              onClick={() =>
+                setPromoBanners((prev) => ({
+                  ...prev,
+                  enabled: !prev.enabled,
+                }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setPromoBanners((prev) => ({
+                    ...prev,
+                    enabled: !prev.enabled,
+                  }));
+                }
+              }}
+            >
+              <div className={styles.checkInfo}>
+                <span className={styles.checkTitle}>Ativar banner promocional na página</span>
+                <span className={styles.checkSub}>
+                  {promoBanners.enabled
+                    ? `${promoBanners.items.length} ${promoBanners.items.length === 1 ? "arte configurada" : "artes configuradas"}`
+                    : "Banner desativado"}
+                </span>
+              </div>
+              <div className={`${styles.switch} ${promoBanners.enabled ? styles.switchActive : ""}`}>
+                <div
+                  className={`${styles.switchKnob} ${promoBanners.enabled ? styles.switchKnobActive : ""}`}
+                />
+              </div>
+            </div>
+
+            {promoBanners.enabled && (
+              <>
+                {promoBanners.items.length === 0 ? (
+                  <div className={styles.bannerEmptyNotice}>
+                    <Sparkles size={24} style={{ color: "var(--primary, #dcff4c)" }} />
+                    <span className={styles.bannerEmptyNoticeTitle}>Nenhuma arte adicionada ainda</span>
+                    <span className={styles.bannerEmptyNoticeSub}>
+                      Adicione fotos ou vídeos com textos e links para destacar ofertas, combos ou novidades no seu link.
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.btnAddBanner}
+                      onClick={handleAddPromoItem}
+                    >
+                      <Plus size={15} /> Adicionar 1ª Arte (Foto ou Vídeo)
+                    </button>
+                  </div>
+                ) : (
+                  <div className={styles.bannerList}>
+                    {promoBanners.items.map((item, index) => (
+                      <div className={styles.bannerItemCard} key={item.id || index}>
+                        {/* Header */}
+                        <div className={styles.bannerItemHeader}>
+                          <div className={styles.bannerItemIndex}>
+                            <span className={styles.bannerItemIndexBadge}>Arte #{index + 1}</span>
+                            <span>{item.type === "video" ? "Vídeo Promocional" : "Foto / Imagem"}</span>
+                          </div>
+                          <div className={styles.bannerItemControls}>
+                            <button
+                              type="button"
+                              className={styles.btnControl}
+                              disabled={index === 0}
+                              onClick={() => handleMovePromoItem(index, -1)}
+                              title="Mover para cima"
+                              aria-label="Mover arte para cima"
+                            >
+                              <ArrowUp size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.btnControl}
+                              disabled={index === promoBanners.items.length - 1}
+                              onClick={() => handleMovePromoItem(index, 1)}
+                              title="Mover para baixo"
+                              aria-label="Mover arte para baixo"
+                            >
+                              <ArrowDown size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.btnControl} ${styles.btnControlDanger}`}
+                              onClick={() => handleRemovePromoItem(index)}
+                              title="Remover arte"
+                              aria-label="Remover arte"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Media Row */}
+                        <div className={styles.bannerMediaRow}>
+                          {/* Thumbnail / Video Preview */}
+                          <div className={styles.bannerMediaPreview}>
+                            {item.url ? (
+                              item.type === "video" ? (
+                                <video
+                                  src={item.url}
+                                  autoPlay
+                                  muted
+                                  loop
+                                  playsInline
+                                />
+                              ) : (
+                                <img src={item.url} alt={item.title || `Arte #${index + 1}`} />
+                              )
+                            ) : (
+                              <div className={styles.bannerMediaPlaceholder}>
+                                {item.type === "video" ? <Video size={20} /> : <ImageIcon size={20} />}
+                                <span>Sem mídia</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Upload / URL controls */}
+                          <div className={styles.bannerMediaInputs}>
+                            {/* Type Switcher */}
+                            <div className={styles.bannerTypeSelector}>
+                              <button
+                                type="button"
+                                className={`${styles.bannerTypeBtn} ${item.type === "image" ? styles.bannerTypeBtnActive : ""}`}
+                                onClick={() => handleUpdatePromoItem(index, { type: "image" })}
+                              >
+                                <ImageIcon size={13} /> Imagem / Foto
+                              </button>
+                              <button
+                                type="button"
+                                className={`${styles.bannerTypeBtn} ${item.type === "video" ? styles.bannerTypeBtnActive : ""}`}
+                                onClick={() => handleUpdatePromoItem(index, { type: "video" })}
+                              >
+                                <Video size={13} /> Vídeo
+                              </button>
+                            </div>
+
+                            {/* File Upload Button + Hidden Input */}
+                            <div className={styles.bannerUploadBtnGroup}>
+                              <label className={styles.btnUploadMedia}>
+                                <Upload size={13} />
+                                {item.url ? "Substituir arquivo" : `Carregar ${item.type === "video" ? "vídeo (MP4/WebM)" : "foto (PNG/JPG)"}`}
+                                <input
+                                  type="file"
+                                  accept={item.type === "video" ? "video/mp4,video/webm,video/quicktime" : "image/jpeg,image/png,image/webp"}
+                                  style={{ display: "none" }}
+                                  onChange={(e) =>
+                                    item.type === "video"
+                                      ? void handlePromoVideoUpload(e, index)
+                                      : void handlePromoImageUpload(e, index)
+                                  }
+                                />
+                              </label>
+
+                              {item.url && (
+                                <button
+                                  type="button"
+                                  className={styles.btnLinkSmall}
+                                  onClick={() => handleUpdatePromoItem(index, { url: "" })}
+                                >
+                                  Limpar mídia
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Direct URL input */}
+                            <input
+                              type="url"
+                              className={styles.textInput}
+                              placeholder={item.type === "video" ? "Ou insira a URL direta do vídeo (MP4/WebM)" : "Ou insira a URL direta da imagem (HTTPS)"}
+                              value={item.url && !item.url.startsWith("data:") ? item.url : ""}
+                              onChange={(e) => handleUpdatePromoItem(index, { url: e.target.value })}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Text Fields */}
+                        <div className={styles.bannerInputGrid}>
+                          <div className={styles.field}>
+                            <label className={styles.fieldLabel}>Título da arte (opcional)</label>
+                            <input
+                              type="text"
+                              className={styles.textInput}
+                              placeholder="Ex: Combo Especial de Verão"
+                              maxLength={80}
+                              value={item.title || ""}
+                              onChange={(e) => handleUpdatePromoItem(index, { title: e.target.value })}
+                            />
+                          </div>
+
+                          <div className={styles.field}>
+                            <label className={styles.fieldLabel}>Tag de destaque (opcional)</label>
+                            <input
+                              type="text"
+                              className={styles.textInput}
+                              placeholder="Ex: 20% OFF, Novidade, Destaque"
+                              maxLength={30}
+                              value={item.badge || ""}
+                              onChange={(e) => handleUpdatePromoItem(index, { badge: e.target.value })}
+                            />
+                          </div>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.fieldLabel}>Subtítulo / Descrição da chamada (opcional)</label>
+                          <input
+                            type="text"
+                            className={styles.textInput}
+                            placeholder="Ex: Válido até o fim do mês em todos os serviços selecionados."
+                            maxLength={160}
+                            value={item.subtitle || ""}
+                            onChange={(e) => handleUpdatePromoItem(index, { subtitle: e.target.value })}
+                          />
+                        </div>
+
+                        <div className={styles.bannerInputGrid}>
+                          <div className={styles.field}>
+                            <label className={styles.fieldLabel}>Link do botão (opcional)</label>
+                            <input
+                              type="url"
+                              className={styles.textInput}
+                              placeholder="Ex: https://wa.me/5511... ou página externa"
+                              value={item.linkUrl || ""}
+                              onChange={(e) => handleUpdatePromoItem(index, { linkUrl: e.target.value })}
+                            />
+                          </div>
+
+                          <div className={styles.field}>
+                            <label className={styles.fieldLabel}>Texto do botão</label>
+                            <input
+                              type="text"
+                              className={styles.textInput}
+                              placeholder="Ex: Saiba mais, Aproveitar"
+                              maxLength={40}
+                              value={item.buttonText || ""}
+                              onChange={(e) => handleUpdatePromoItem(index, { buttonText: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {promoBanners.items.length < 3 && (
+                      <button
+                        type="button"
+                        className={styles.btnAddBanner}
+                        onClick={handleAddPromoItem}
+                      >
+                        <Plus size={15} /> Adicionar outra arte ({promoBanners.items.length}/3)
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+
           {/* Action Bar */}
           <div className={styles.actionBar}>
             <button
@@ -1377,87 +1774,98 @@ export function BrandingStudio({ onSaved }: { onSaved?: () => void } = {}) {
                         </div>
                       </div>
                     )}
+                    {viewport === "mobile" && promoBanners.enabled && promoBanners.items.some((it) => Boolean(it.url)) && (
+                      <div style={{ marginTop: 20 }}>
+                        <BookingPromoCarousel promoBanners={promoBanners} />
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right Column: Desktop Sticky Summary Card */}
-                  <aside className={b.summary} aria-label="Resumo do agendamento">
-                    <h2>Seu agendamento</h2>
+                  {/* Right Column: Desktop Sticky Summary Card & Promo Banner */}
+                  <div className={b.summaryColumn}>
+                    <aside className={b.summary} aria-label="Resumo do agendamento">
+                      <h2>Seu agendamento</h2>
 
-                    {selectedServices.length === 0 ? (
-                      <div className={b.summaryEmpty}>
-                        <Sparkles size={18} style={{ color: "var(--accent)" }} />
-                        <span>Nenhum serviço selecionado</span>
-                        <small style={{ color: "var(--booking-text-muted)" }}>
-                          Escolha um serviço ao lado para continuar.
-                        </small>
-                      </div>
-                    ) : (
-                      <>
-                        {selectedServices.map((service) => (
-                          <div className={b.summaryItem} key={service.id}>
-                            <div className={b.summaryItemRow}>
-                              <div className={b.summaryItemLeft}>
-                                <div className={b.summaryItemInfo}>
-                                  <h3>{service.name}</h3>
-                                  <div className={b.summaryItemMeta}>
-                                    <span>{service.durationMinutes} min</span>
-                                    <Price amount={service.price} className={b.summaryItemPrice} />
+                      {selectedServices.length === 0 ? (
+                        <div className={b.summaryEmpty}>
+                          <Sparkles size={18} style={{ color: "var(--accent)" }} />
+                          <span>Nenhum serviço selecionado</span>
+                          <small style={{ color: "var(--booking-text-muted)" }}>
+                            Escolha um serviço ao lado para continuar.
+                          </small>
+                        </div>
+                      ) : (
+                        <>
+                          {selectedServices.map((service) => (
+                            <div className={b.summaryItem} key={service.id}>
+                              <div className={b.summaryItemRow}>
+                                <div className={b.summaryItemLeft}>
+                                  <div className={b.summaryItemInfo}>
+                                    <h3>{service.name}</h3>
+                                    <div className={b.summaryItemMeta}>
+                                      <span>{service.durationMinutes} min</span>
+                                      <Price amount={service.price} className={b.summaryItemPrice} />
+                                    </div>
                                   </div>
                                 </div>
+                                <button
+                                  type="button"
+                                  className={b.remove}
+                                  aria-label={`Remover ${service.name}`}
+                                  onClick={() =>
+                                    setSelectedServiceIds((prev) =>
+                                      prev.filter((id) => id !== service.id),
+                                    )
+                                  }
+                                >
+                                  <Trash2 size={13} />
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                className={b.remove}
-                                aria-label={`Remover ${service.name}`}
-                                onClick={() =>
-                                  setSelectedServiceIds((prev) =>
-                                    prev.filter((id) => id !== service.id),
-                                  )
-                                }
-                              >
-                                <Trash2 size={13} />
-                              </button>
                             </div>
-                          </div>
-                        ))}
+                          ))}
 
-                        <div className={b.total}>
-                          <div>
-                            Total
-                            <span
-                              className={b.muted}
-                              style={{ display: "block", fontWeight: 400, fontSize: 11 }}
+                          <div className={b.total}>
+                            <div>
+                              Total
+                              <span
+                                className={b.muted}
+                                style={{ display: "block", fontWeight: 400, fontSize: 11 }}
+                              >
+                                {totalMinutes} min ({selectedServices.length}{" "}
+                                {selectedServices.length === 1 ? "serviço" : "serviços"})
+                              </span>
+                            </div>
+                            <strong>
+                              <Price amount={totalPrice} />
+                            </strong>
+                          </div>
+
+                          <div className={b.summaryFooter}>
+                            <button
+                              type="button"
+                              className={`${b.button} ${b.wide}`}
+                              onClick={() =>
+                                setPreviewStep((prev) => (prev < 2 ? prev + 1 : 0))
+                              }
                             >
-                              {totalMinutes} min ({selectedServices.length}{" "}
-                              {selectedServices.length === 1 ? "serviço" : "serviços"})
-                            </span>
+                              <span>
+                                {previewStep === 0
+                                  ? resolveCopy(copyOverrides, "ctaContinue")
+                                  : previewStep === 1
+                                    ? "Revisar agendamento"
+                                    : resolveCopy(copyOverrides, "ctaConfirm")}
+                              </span>
+                              <ArrowRight size={14} />
+                            </button>
                           </div>
-                          <strong>
-                            <Price amount={totalPrice} />
-                          </strong>
-                        </div>
+                        </>
+                      )}
+                    </aside>
 
-                        <div className={b.summaryFooter}>
-                          <button
-                            type="button"
-                            className={`${b.button} ${b.wide}`}
-                            onClick={() =>
-                              setPreviewStep((prev) => (prev < 2 ? prev + 1 : 0))
-                            }
-                          >
-                            <span>
-                              {previewStep === 0
-                                ? resolveCopy(copyOverrides, "ctaContinue")
-                                : previewStep === 1
-                                  ? "Revisar agendamento"
-                                  : resolveCopy(copyOverrides, "ctaConfirm")}
-                            </span>
-                            <ArrowRight size={14} />
-                          </button>
-                        </div>
-                      </>
+                    {promoBanners.enabled && promoBanners.items.some((it) => Boolean(it.url)) && (
+                      <BookingPromoCarousel promoBanners={promoBanners} />
                     )}
-                  </aside>
+                  </div>
                 </div>
 
                 {/* Mobile Sticky Bottom Bar */}

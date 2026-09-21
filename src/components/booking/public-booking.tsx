@@ -62,6 +62,7 @@ import {
   ActiveMembershipBanner,
   MembershipAccessModal,
 } from "./membership-showcase";
+import { BookingPromoCarousel } from "./booking-promo-carousel";
 import { PageBuilderRenderer } from "./page-builder/page-builder-renderer";
 
 function downloadBookingIcs(booking: {
@@ -2462,10 +2463,15 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               )}
             </div>
 
-            {/* DESKTOP STICKY SUMMARY CARD */}
-            <aside className={b.summary} aria-label="Resumo do agendamento">
-              {renderSummaryContent(false)}
-            </aside>
+            {/* DESKTOP STICKY SUMMARY CARD & PROMO BANNER */}
+            <div className={b.summaryColumn}>
+              <aside className={b.summary} aria-label="Resumo do agendamento">
+                {renderSummaryContent(false)}
+              </aside>
+              {company.promoBanners?.enabled && (company.promoBanners?.items?.length ?? 0) > 0 && (
+                <BookingPromoCarousel promoBanners={company.promoBanners} />
+              )}
+            </div>
           </div>
         )}
 
@@ -2554,6 +2560,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               </div>
               <div className={b.bottomSheetBody}>
                 {renderSummaryContent(true)}
+                {company.promoBanners?.enabled && (company.promoBanners?.items?.length ?? 0) > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <BookingPromoCarousel promoBanners={company.promoBanners} />
+                  </div>
+                )}
               </div>
             </div>
           </>

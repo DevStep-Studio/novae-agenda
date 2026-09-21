@@ -9,10 +9,11 @@ import {
   COPY_OVERRIDE_KEYS,
   parseCopyOverrides,
   parseSectionsConfig,
+  parsePromoBanners,
   SECTION_IDS,
 } from "@/lib/booking/customization";
 import { DEFAULT_FONT_PACK, FONT_PACK_IDS } from "@/lib/booking/fonts";
-import { saveBrandingImage } from "@/lib/storage";
+import { saveBrandingImage, saveBrandingMedia } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,9 @@ export async function GET() {
       bookingSectionsConfig: parseSectionsConfig(
         settingsMap.booking_sections_config || settingsMap.bookingSectionsConfig,
       ),
+      bookingPromoBanners: parsePromoBanners(
+        settingsMap.booking_promo_banners || settingsMap.bookingPromoBanners,
+      ),
       businessType: company.businessType,
       publicDescription: company.publicDescription,
       address: company.address || null,
@@ -74,6 +78,29 @@ const flexibleImageSchema = z
       /^\/(?!\/)/.test(v),
     "Use uma imagem válida (upload, HTTPS ou caminho local).",
   );
+
+const flexibleMediaSchema = z
+  .string()
+  .refine(
+    (v) =>
+      !v ||
+      v.startsWith("data:image/") ||
+      v.startsWith("data:video/") ||
+      /^https?:\/\//.test(v) ||
+      /^\/(?!\/)/.test(v),
+    "Use uma mídia válida (imagem, vídeo ou URL).",
+  );
+
+const promoBannerItemSchema = z.object({
+  id: z.string().optional(),
+  type: z.enum(["image", "video"]).default("image"),
+  url: flexibleMediaSchema,
+  title: z.string().max(80).optional().nullable(),
+  subtitle: z.string().max(140).optional().nullable(),
+  badge: z.string().max(30).optional().nullable(),
+  linkUrl: z.string().max(300).optional().nullable(),
+  buttonText: z.string().max(40).optional().nullable(),
+});
 
 const brandingSchema = z.object({
   logoUrl: flexibleImageSchema.optional().nullable(),
@@ -103,6 +130,13 @@ const brandingSchema = z.object({
       }),
     )
     .default([]),
+  bookingPromoBanners: z
+    .object({
+      enabled: z.boolean().default(false),
+      items: z.array(promoBannerItemSchema).max(3).default([]),
+    })
+    .optional()
+    .default({ enabled: false, items: [] }),
 });
 
 export async function PUT(request: Request) {
@@ -152,6 +186,25 @@ export async function PUT(request: Request) {
     // corrupt the live public page.
     const normalizedCopyOverrides = parseCopyOverrides(body.bookingCopyOverrides);
     const normalizedSectionsConfig = parseSectionsConfig(body.bookingSectionsConfig);
+    const normalizedPromoBanners = parsePromoBanners(body.bookingPromoBanners);
+
+    const savedPromoItems = await Promise.all(
+      normalizedPromoBanners.items.map(async (item) => {
+        let finalUrl = item.url;
+        if (finalUrl.startsWith("data:")) {
+          finalUrl = await saveBrandingMedia(finalUrl);
+        }
+        return {
+          ...item,
+          url: finalUrl,
+        };
+      }),
+    );
+
+    const effectivePromoBanners = {
+      enabled: Boolean(normalizedPromoBanners.enabled && savedPromoItems.length > 0),
+      items: savedPromoItems,
+    };
 
     await db.transaction(async (tx) => {
       // 3. Update company record
@@ -219,6 +272,9 @@ export async function PUT(request: Request) {
       const sectionsConfigJson = JSON.stringify(normalizedSectionsConfig);
       await upsertSetting("booking_sections_config", sectionsConfigJson);
       await upsertSetting("bookingSectionsConfig", sectionsConfigJson);
+      const promoBannersJson = JSON.stringify(effectivePromoBanners);
+      await upsertSetting("booking_promo_banners", promoBannersJson);
+      await upsertSetting("bookingPromoBanners", promoBannersJson);
 
       // 5. Log audit event
       await tx.insert(auditLogs).values({
@@ -233,6 +289,7 @@ export async function PUT(request: Request) {
           bookingFontFamily: body.bookingFontFamily,
           hasLogo: Boolean(storedLogoUrl),
           hasCover: Boolean(storedCoverUrl),
+          hasPromoBanners: Boolean(effectivePromoBanners.enabled),
         },
       });
     });
@@ -248,6 +305,7 @@ export async function PUT(request: Request) {
         bookingFontFamily: body.bookingFontFamily,
         bookingCopyOverrides: normalizedCopyOverrides,
         bookingSectionsConfig: normalizedSectionsConfig,
+        bookingPromoBanners: effectivePromoBanners,
       },
     });
   } catch (error) {

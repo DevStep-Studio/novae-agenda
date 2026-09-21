@@ -19,7 +19,7 @@ import {
 import type { DbExecutor } from "@/lib/availability";
 import type { PageBuilderDocument } from "@/components/booking/page-builder/page-builder-types";
 import { BookingError } from "./errors";
-import { parseCopyOverrides, parseSectionsConfig } from "./customization";
+import { parseCopyOverrides, parseSectionsConfig, parsePromoBanners } from "./customization";
 import { DEFAULT_FONT_PACK } from "./fonts";
 import { getCompanySettings } from "@/lib/settings";
 import { localDate } from "./time";
@@ -302,6 +302,7 @@ export async function publicCatalog(slug: string) {
       bookingFontFamily: settingsMap.booking_font_family || settingsMap.bookingFontFamily || DEFAULT_FONT_PACK,
       copyOverrides: parseCopyOverrides(settingsMap.booking_copy_overrides || settingsMap.bookingCopyOverrides),
       sectionsConfig: parseSectionsConfig(settingsMap.booking_sections_config || settingsMap.bookingSectionsConfig),
+      promoBanners: parsePromoBanners(settingsMap.booking_promo_banners || settingsMap.bookingPromoBanners),
       address: company.address,
       phone: resolvedPhone,
       whatsapp: resolvedWhatsapp,

@@ -145,3 +145,60 @@ export function isSectionVisible(
   if (!config) return true;
   return config.find((s) => s.id === id)?.visible !== false;
 }
+
+// ---------------------------------------------------------------------------
+// Promo Banners (Carousel) - 1 to 3 items (photos or videos)
+// ---------------------------------------------------------------------------
+
+export type PromoBannerItem = {
+  id: string;
+  type: "image" | "video";
+  url: string;
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  linkUrl?: string;
+  buttonText?: string;
+};
+
+export type PromoBannersConfig = {
+  enabled: boolean;
+  items: PromoBannerItem[];
+};
+
+export const DEFAULT_PROMO_BANNERS: PromoBannersConfig = {
+  enabled: false,
+  items: [],
+};
+
+export function parsePromoBanners(raw: unknown): PromoBannersConfig {
+  if (!raw) return { enabled: false, items: [] };
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!parsed || typeof parsed !== "object") return { enabled: false, items: [] };
+    const enabled = Boolean((parsed as Record<string, unknown>).enabled);
+    const rawItems = Array.isArray((parsed as Record<string, unknown>).items)
+      ? (parsed as Record<string, unknown>).items
+      : [];
+    const items: PromoBannerItem[] = [];
+    for (const item of rawItems as Record<string, unknown>[]) {
+      if (items.length >= 3) break;
+      if (item && typeof item === "object" && typeof item.url === "string" && item.url.trim()) {
+        items.push({
+          id: String(item.id || `banner-${items.length + 1}`),
+          type: item.type === "video" ? "video" : "image",
+          url: String(item.url).trim(),
+          title: typeof item.title === "string" && item.title.trim() ? item.title.trim().slice(0, 80) : undefined,
+          subtitle: typeof item.subtitle === "string" && item.subtitle.trim() ? item.subtitle.trim().slice(0, 140) : undefined,
+          badge: typeof item.badge === "string" && item.badge.trim() ? item.badge.trim().slice(0, 30) : undefined,
+          linkUrl: typeof item.linkUrl === "string" && item.linkUrl.trim() ? item.linkUrl.trim().slice(0, 300) : undefined,
+          buttonText: typeof item.buttonText === "string" && item.buttonText.trim() ? item.buttonText.trim().slice(0, 40) : undefined,
+        });
+      }
+    }
+    return { enabled: enabled && items.length > 0, items };
+  } catch {
+    return { enabled: false, items: [] };
+  }
+}
+

@@ -17,6 +17,47 @@ export async function saveBrandingImage(
   return saveUploadedImage(imageInput, { folder: "branding", previousUrl, allowSvg: true });
 }
 
+/** Persists validated image or video data in the branding upload directory. */
+export async function saveBrandingMedia(
+  mediaInput: string,
+  previousUrl?: string | null
+): Promise<string> {
+  if (mediaInput.startsWith("data:video/")) {
+    await ensureUploadsDir("branding");
+    const match = mediaInput.match(/^data:video\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error("Formato de vídeo base64 inválido.");
+    }
+    let mimeSubtype = match[1].toLowerCase();
+    if (mimeSubtype === "quicktime") mimeSubtype = "mov";
+    const allowedExts = ["mp4", "webm", "mov", "ogg"];
+    if (!allowedExts.includes(mimeSubtype)) {
+      throw new Error("Formato de vídeo não suportado. Use MP4, WebM ou MOV.");
+    }
+    const buffer = Buffer.from(match[2], "base64");
+    if (buffer.length > 20 * 1024 * 1024) {
+      throw new Error("O arquivo de vídeo não pode ultrapassar 20MB.");
+    }
+    const filename = `${crypto.randomUUID()}.${mimeSubtype}`;
+    const uploadDir = path.join(UPLOADS_ROOT, "branding");
+    const filePath = path.join(uploadDir, filename);
+    await fs.writeFile(filePath, buffer);
+    if (previousUrl && previousUrl.startsWith("/uploads/branding/")) {
+      try {
+        const prevFilename = path.basename(previousUrl);
+        await fs.unlink(path.join(uploadDir, prevFilename));
+      } catch {
+        // Ignore
+      }
+    }
+    return `/uploads/branding/${filename}`;
+  }
+  if (mediaInput.startsWith("data:image/")) {
+    return saveUploadedImage(mediaInput, { folder: "branding", previousUrl, allowSvg: true });
+  }
+  return mediaInput;
+}
+
 export async function saveProfessionalImage(
   imageInput: string,
   previousUrl?: string | null,

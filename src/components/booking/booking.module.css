@@ -599,6 +599,12 @@
     align-items: start;
   }
 }
+.previewPage:not(.previewMobile) .summaryColumn {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 .previewPage:not(.previewMobile) .summary {
   position: static;
   padding: 14px;
@@ -726,6 +732,7 @@
 .previewMobile .layout {
   display: block;
 }
+.previewMobile .summaryColumn,
 .previewMobile .summary {
   display: none;
 }
@@ -2640,6 +2647,20 @@ button.outline:hover:not(:disabled),
 /* =========================================================
    "SEU AGENDAMENTO" SUMMARY CARD (DESKTOP)
    ========================================================= */
+.summaryColumn {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  width: 100%;
+}
+
+.summaryColumn .summary {
+  position: static;
+}
+
 .summary {
   position: sticky;
   top: 24px;
@@ -4004,6 +4025,7 @@ button.outline:hover:not(:disabled),
     grid-template-columns: 1fr;
     gap: 24px;
   }
+  .summaryColumn,
   .summary {
     display: none; /* Replaced by mobileBottomBar and BottomSheet */
   }
