@@ -585,110 +585,194 @@ export default function OwnerHomeScreen() {
         );
       }
 
-      case "showKpis":
+      case "showKpis": {
+        const kpis = [
+          {
+            id: "appointments",
+            label: "Atendimentos hoje",
+            value: stats?.today.appointments ?? 0,
+            subtitle: "agendados para hoje",
+            icon: CalendarDays,
+          },
+          {
+            id: "forecast",
+            label: "Receita prevista",
+            value: formatDashboardCurrency(forecast),
+            subtitle: "para hoje",
+            icon: TrendingUp,
+          },
+          {
+            id: "realized",
+            label: "Receita realizada",
+            value: formatDashboardCurrency(realized),
+            subtitle: "já recebida hoje",
+            icon: WalletCards,
+          },
+          {
+            id: "pending",
+            label: "Receita pendente",
+            value: formatDashboardCurrency(pendingAmount),
+            subtitle: "a receber hoje",
+            icon: CircleDollarSign,
+          },
+          {
+            id: "clients",
+            label: "Clientes atendidos",
+            value: stats?.today.clientsServed ?? 0,
+            subtitle: "finalizados hoje",
+            icon: Users,
+          },
+        ];
+
+        const isOddTotal = kpis.length % 2 !== 0;
+
         return (
           <View key="showKpis" style={styles.kpiGrid}>
-            {/* Card 1: Atendimentos hoje */}
-            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
-                  <CalendarDays size={16} color={textTitle} />
-                </View>
-                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
-                  Atendimentos hoje
-                </Text>
-              </View>
-              <View style={{ gap: 2, marginTop: 10 }}>
-                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
-                  {stats?.today.appointments ?? 0}
-                </Text>
-                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
-                  agendados para hoje
-                </Text>
-              </View>
-            </View>
+            {kpis.map((kpi, index) => {
+              const isLast = index === kpis.length - 1;
+              const isFullWidth = isLast && isOddTotal;
+              const IconComponent = kpi.icon;
 
-            {/* Card 2: Receita prevista */}
-            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
-                  <TrendingUp size={16} color={textTitle} />
-                </View>
-                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
-                  Receita prevista
-                </Text>
-              </View>
-              <View style={{ gap: 2, marginTop: 10 }}>
-                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
-                  {formatDashboardCurrency(forecast)}
-                </Text>
-                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
-                  para hoje
-                </Text>
-              </View>
-            </View>
+              if (isFullWidth) {
+                return (
+                  <View
+                    key={kpi.id}
+                    style={[
+                      styles.kpiCard,
+                      styles.kpiCardFull,
+                      { backgroundColor: cardBg, borderColor: cardBorder },
+                    ]}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        width: "100%",
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 12,
+                          flex: 1,
+                          minWidth: 0,
+                        }}
+                      >
+                        <View
+                          style={[
+                            styles.kpiIconBox,
+                            {
+                              backgroundColor: isDark
+                                ? "rgba(255, 255, 255, 0.06)"
+                                : "#f1f5f9",
+                            },
+                          ]}
+                        >
+                          <IconComponent size={18} color={textTitle} />
+                        </View>
+                        <View style={{ gap: 2, flex: 1 }}>
+                          <Text
+                            style={{
+                              color: textMuted,
+                              fontSize: 13,
+                              fontWeight: "500",
+                            }}
+                          >
+                            {kpi.label}
+                          </Text>
+                          <Text
+                            style={{
+                              color: isDark ? "#6b7280" : "#94a3b8",
+                              fontSize: 11.5,
+                            }}
+                          >
+                            {kpi.subtitle}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text
+                        style={{
+                          color: textTitle,
+                          fontSize: 24,
+                          fontWeight: "800",
+                          letterSpacing: -0.3,
+                          paddingLeft: 8,
+                        }}
+                      >
+                        {kpi.value}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              }
 
-            {/* Card 3: Receita realizada */}
-            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
-                  <WalletCards size={16} color={textTitle} />
-                </View>
-                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
-                  Receita realizada
-                </Text>
-              </View>
-              <View style={{ gap: 2, marginTop: 10 }}>
-                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
-                  {formatDashboardCurrency(realized)}
-                </Text>
-                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
-                  já recebida hoje
-                </Text>
-              </View>
-            </View>
+              return (
+                <View
+                  key={kpi.id}
+                  style={[
+                    styles.kpiCard,
+                    { backgroundColor: cardBg, borderColor: cardBorder },
+                  ]}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.kpiIconBox,
+                        {
+                          backgroundColor: isDark
+                            ? "rgba(255, 255, 255, 0.06)"
+                            : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <IconComponent size={16} color={textTitle} />
+                    </View>
+                  </View>
 
-            {/* Card 4: Receita pendente */}
-            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
-                  <CircleDollarSign size={16} color={textTitle} />
+                  <View style={{ gap: 3, marginTop: 10 }}>
+                    <Text
+                      style={{
+                        color: textMuted,
+                        fontSize: 12.5,
+                        fontWeight: "500",
+                        lineHeight: 16,
+                      }}
+                    >
+                      {kpi.label}
+                    </Text>
+                    <Text
+                      style={{
+                        color: textTitle,
+                        fontSize: 22,
+                        fontWeight: "800",
+                        letterSpacing: -0.3,
+                      }}
+                    >
+                      {kpi.value}
+                    </Text>
+                    <Text
+                      style={{
+                        color: isDark ? "#6b7280" : "#94a3b8",
+                        fontSize: 11.5,
+                      }}
+                    >
+                      {kpi.subtitle}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
-                  Receita pendente
-                </Text>
-              </View>
-              <View style={{ gap: 2, marginTop: 10 }}>
-                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
-                  {formatDashboardCurrency(pendingAmount)}
-                </Text>
-                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
-                  a receber hoje
-                </Text>
-              </View>
-            </View>
-
-            {/* Card 5: Clientes atendidos */}
-            <View style={[styles.kpiCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={[styles.kpiIconBox, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9" }]}>
-                  <Users size={16} color={textTitle} />
-                </View>
-                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1 }} numberOfLines={1}>
-                  Clientes atendidos
-                </Text>
-              </View>
-              <View style={{ gap: 2, marginTop: 10 }}>
-                <Text style={{ color: textTitle, fontSize: 22, fontWeight: "800", letterSpacing: -0.3 }}>
-                  {stats?.today.clientsServed ?? 0}
-                </Text>
-                <Text style={{ color: isDark ? "#6b7280" : "#94a3b8", fontSize: 11.5 }}>
-                  finalizados hoje
-                </Text>
-              </View>
-            </View>
+              );
+            })}
           </View>
         );
+      }
 
       case "showSubmetrics":
         return (
@@ -1128,7 +1212,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     justifyContent: "space-between",
-    minHeight: 110,
+    minHeight: 120,
+  },
+  kpiCardFull: {
+    width: "100%",
+    minHeight: 76,
+    justifyContent: "center",
   },
   kpiIconBox: {
     width: 36,
