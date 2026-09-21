@@ -152,16 +152,16 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const isDark = resolvedTheme === "dark";
 
-  // Determine active primary color (Session DB config > Local Storage > Default)
+  // Determine active primary color (Local Storage Override > Session DB config > Default)
   const activePrimaryColor = useMemo(() => {
-    if (session?.company?.primaryColor) {
-      return session.company.primaryColor;
-    }
     if (localPrimaryColor) {
       return localPrimaryColor;
     }
+    if (session?.company?.primaryColor) {
+      return session.company.primaryColor;
+    }
     return "#dcff4c"; // Brand lime default
-  }, [session?.company?.primaryColor, localPrimaryColor]);
+  }, [localPrimaryColor, session?.company?.primaryColor]);
 
   const primaryForeground = useMemo(() => {
     return isLightHex(activePrimaryColor) ? "#0a0a0a" : "#ffffff";

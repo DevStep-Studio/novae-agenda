@@ -118,7 +118,7 @@ function isLightHex(hex: string): boolean {
 
 export default function PerfilPersonalizacaoScreen() {
   const { session, refresh, signOut } = useSession();
-  const { themeMode, setThemeMode, setPrimaryColorOverride } = useTheme();
+  const { themeMode, setThemeMode, setPrimaryColorOverride, primaryColor: themePrimaryColor } = useTheme();
 
   const [activeTab, setActiveTab] = useState<"visual" | "dados" | "widgets" | "atalhos">("visual");
   const [saving, setSaving] = useState(false);
@@ -130,7 +130,7 @@ export default function PerfilPersonalizacaoScreen() {
   const [phone, setPhone] = useState(session?.phone || session?.company?.phone || "");
   const [companyName, setCompanyName] = useState(session?.company?.name || "Moa Tattoo");
   const [businessType, setBusinessType] = useState(session?.company?.businessType || "");
-  const [primaryColor, setPrimaryColor] = useState(session?.company?.primaryColor || "#f5f5f5");
+  const [primaryColor, setPrimaryColor] = useState(session?.company?.primaryColor || themePrimaryColor || "#dcff4c");
   const [avatarUrl, setAvatarUrl] = useState(
     session?.avatarUrl || session?.company?.logoUrl || ""
   );
@@ -668,7 +668,7 @@ export default function PerfilPersonalizacaoScreen() {
                 <TextInput
                   value={primaryColor}
                   onChangeText={setPrimaryColor}
-                  placeholder="#3b82f6"
+                  placeholder="#dcff4c"
                   placeholderTextColor="#52525b"
                   maxLength={9}
                   style={{
@@ -686,7 +686,7 @@ export default function PerfilPersonalizacaoScreen() {
                 />
 
                 <Pressable
-                  onPress={() => setPrimaryColor("#3b82f6")}
+                  onPress={() => setPrimaryColor("#dcff4c")}
                   className="px-3 rounded-lg border items-center justify-center"
                   style={{
                     backgroundColor: "#16171e",

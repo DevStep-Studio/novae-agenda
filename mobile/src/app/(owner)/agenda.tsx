@@ -42,6 +42,7 @@ import { getServices, type ServiceDTO } from "@/lib/services";
 import { getClients, type ClientDTO } from "@/lib/clients";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   weekday: "long",
@@ -53,7 +54,8 @@ function dateLabel(date: string): string {
   try {
     const d = new Date(`${date}T12:00:00`);
     if (Number.isNaN(d.getTime())) return date;
-    return dateFormatter.format(d);
+    const formatted = dateFormatter.format(d);
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
   } catch {
     return date;
   }
@@ -77,6 +79,7 @@ const TIME_SLOTS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
 
 export default function AgendaScreen() {
   const { session } = useSession();
+  const { isDark, primaryColor, primarySoft, primaryForeground } = useTheme();
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const [calMode, setCalMode] = useState<CalendarMode>("day");
   const [appointments, setAppointments] = useState<AppointmentDTO[]>([]);
@@ -289,13 +292,13 @@ export default function AgendaScreen() {
         className="flex-1"
         contentContainerStyle={{ gap: 14, paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {/* 1. Header Section */}
         <View className="gap-1">
           <Text
             style={{
-              color: colors.primary,
+              color: primaryColor,
               fontSize: 11,
               fontWeight: "700",
               textTransform: "uppercase",
@@ -306,13 +309,12 @@ export default function AgendaScreen() {
           </Text>
           <Text
             style={{
-              color: "#ffffff",
-              fontSize: 26,
+              color: isDark ? "#ffffff" : "#0f172a",
+              fontSize: 22,
               fontWeight: "800",
-              letterSpacing: -0.5,
-              textTransform: "lowercase",
+              letterSpacing: -0.4,
+              lineHeight: 28,
             }}
-            numberOfLines={1}
           >
             {dateLabel(selectedDate)}
           </Text>
@@ -473,7 +475,7 @@ export default function AgendaScreen() {
                   className="flex-row items-center gap-1.5 px-3 py-1 rounded-full border"
                   style={{
                     backgroundColor: isSelected ? "#2a2b32" : "#1b1c20",
-                    borderColor: isSelected ? colors.primary : "rgba(255, 255, 255, 0.08)",
+                    borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
                   }}
                 >
                   <View
@@ -502,7 +504,7 @@ export default function AgendaScreen() {
         {/* 6. Multi-Professional Timetable Grid */}
         {loading ? (
           <View className="py-12 items-center justify-center">
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={primaryColor} />
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="rounded-xl border" style={{ borderColor: "rgba(255, 255, 255, 0.08)", backgroundColor: "#111216" }}>
@@ -612,13 +614,13 @@ export default function AgendaScreen() {
                               className="p-2 rounded-lg border gap-0.5"
                               style={{
                                 backgroundColor: "#162820",
-                                borderColor: colors.primary,
+                                borderColor: primaryColor,
                               }}
                             >
                               <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }} numberOfLines={1}>
                                 {apt.clientName || "Cliente"}
                               </Text>
-                              <Text style={{ color: colors.primary, fontSize: 10.5, fontWeight: "600" }} numberOfLines={1}>
+                              <Text style={{ color: primaryColor, fontSize: 10.5, fontWeight: "600" }} numberOfLines={1}>
                                 {apt.serviceName || "Serviço"} · {apt.startTime}
                               </Text>
                             </View>
@@ -765,13 +767,13 @@ export default function AgendaScreen() {
                         onPress={() => setFormServiceId(s.id)}
                         className="p-3 rounded-xl border mr-2"
                         style={{
-                          backgroundColor: isSelected ? "rgba(220, 255, 76, 0.12)" : "#18191e",
-                          borderColor: isSelected ? colors.primary : "rgba(255, 255, 255, 0.08)",
+                          backgroundColor: isSelected ? primarySoft : "#18191e",
+                          borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
                           minWidth: 140,
                         }}
                       >
                         <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>{s.name}</Text>
-                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600", marginTop: 2 }}>
+                        <Text style={{ color: primaryColor, fontSize: 12, fontWeight: "600", marginTop: 2 }}>
                           R$ {s.price} · {s.durationMinutes} min
                         </Text>
                       </Pressable>
@@ -793,10 +795,10 @@ export default function AgendaScreen() {
                         className="px-3 py-2 rounded-xl border mr-2 flex-row items-center gap-2"
                         style={{
                           backgroundColor: isSelected ? "#2a2b32" : "#18191e",
-                          borderColor: isSelected ? colors.primary : "rgba(255, 255, 255, 0.08)",
+                          borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
                         }}
                       >
-                        <User size={14} color={isSelected ? colors.primary : "#9ca3af"} />
+                        <User size={14} color={isSelected ? primaryColor : "#9ca3af"} />
                         <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>{e.name}</Text>
                       </Pressable>
                     );
@@ -900,7 +902,7 @@ export default function AgendaScreen() {
               </View>
               <View className="flex-row justify-between items-center">
                 <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Valor:</Text>
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "800" }}>
+                <Text style={{ color: primaryColor, fontSize: 14, fontWeight: "800" }}>
                   {formatBRL(detailAppointment?.total || 0)}
                 </Text>
               </View>

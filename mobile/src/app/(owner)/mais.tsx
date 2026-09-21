@@ -127,8 +127,11 @@ const SECTIONS: SectionItem[] = [
   },
 ];
 
+import { useTheme } from "@/hooks/use-theme";
+
 export default function OwnerMoreScreen() {
   const { session, signOut } = useSession();
+  const { primaryColor, primarySoft } = useTheme();
 
   return (
     <Screen header={<TopBar title="Menu" company={session?.company.name} />} style={{ paddingTop: 16, gap: 16 }}>
@@ -154,7 +157,7 @@ export default function OwnerMoreScreen() {
           <View className="flex-row items-center gap-1.5 mt-0.5">
             <View
               style={{
-                backgroundColor: colors.primarySoft,
+                backgroundColor: primarySoft,
                 paddingHorizontal: 7,
                 paddingVertical: 2,
                 borderRadius: radius.pill,
@@ -162,7 +165,7 @@ export default function OwnerMoreScreen() {
             >
               <Text
                 style={{
-                  color: colors.primary,
+                  color: primaryColor,
                   fontSize: 10,
                   fontWeight: "700",
                   textTransform: "uppercase",
@@ -182,6 +185,7 @@ export default function OwnerMoreScreen() {
       >
         {SECTIONS.map((section) => {
           const IconComponent = section.icon;
+          const resolvedIconColor = section.iconColor === colors.primary ? primaryColor : section.iconColor;
 
           return (
             <Pressable
@@ -201,7 +205,7 @@ export default function OwnerMoreScreen() {
                     borderRadius: radius.sm,
                   }}
                 >
-                  <IconComponent size={20} color={section.iconColor} />
+                  <IconComponent size={20} color={resolvedIconColor} />
                 </View>
 
                 <View className="gap-0.5 flex-1">
@@ -219,7 +223,7 @@ export default function OwnerMoreScreen() {
                     {section.badge && (
                       <View
                         style={{
-                          backgroundColor: colors.primarySoft,
+                          backgroundColor: primarySoft,
                           paddingHorizontal: 6,
                           paddingVertical: 2,
                           borderRadius: radius.pill,
@@ -227,7 +231,7 @@ export default function OwnerMoreScreen() {
                       >
                         <Text
                           style={{
-                            color: section.badgeColor || colors.primary,
+                            color: primaryColor,
                             fontSize: 9,
                             fontWeight: "800",
                           }}

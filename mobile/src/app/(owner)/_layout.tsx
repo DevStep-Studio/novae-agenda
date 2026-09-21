@@ -5,14 +5,16 @@ import { ActivityIndicator, View } from "react-native";
 import { BottomTabBar } from "@/components/ui/bottom-tab-bar";
 import { colors } from "@/constants/design-tokens";
 import { useSession } from "@/lib/session-context";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function OwnerLayout() {
   const { session, loading } = useSession();
+  const { primaryColor } = useTheme();
 
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={primaryColor} />
       </View>
     );
   }

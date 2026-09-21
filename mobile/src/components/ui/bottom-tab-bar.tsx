@@ -4,10 +4,13 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 
 import { bottomNav } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 
 // .mobile-bottom-nav / .mobile-nav-item / .mobile-nav-indicator / .mobile-nav-add-btn
 // globals.css:8589-8706. Pixel perfect match with web responsive bottom bar.
 export function BottomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+  const { primaryColor } = useTheme();
+
   const visibleRoutes = state.routes.filter((route) => {
     const { options } = descriptors[route.key];
     if ((options as any).href === null) return false;
@@ -19,7 +22,7 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
     const { options } = descriptors[route.key];
     const label = options.title ?? route.name;
     const focused = state.routes[state.index]?.key === route.key;
-    const color = focused ? bottomNav.itemActiveColor : bottomNav.itemInactiveColor;
+    const color = focused ? primaryColor : bottomNav.itemInactiveColor;
 
     return (
       <Pressable
@@ -45,7 +48,7 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
             style={{
               width: bottomNav.indicatorWidth,
               height: bottomNav.indicatorHeight,
-              backgroundColor: bottomNav.itemActiveColor,
+              backgroundColor: primaryColor,
               borderRadius: 99,
               marginTop: 2,
             }}
