@@ -26,6 +26,7 @@ import {
   Monitor,
   Coffee,
   Crop,
+  Film,
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
@@ -36,7 +37,13 @@ import { ErrorMessage, money, Skeleton } from "./primitives";
 import { BrandingStudio } from "./branding-studio";
 import { LocationMapCard } from "./location-map-card";
 import { PageBuilderEditor } from "./page-builder/page-builder-editor";
+import { PromoCarouselEditor } from "./promo-carousel-editor";
 import { getDefaultLunch, isLunchActive, sanitizeLunch } from "@/lib/schedule-utils";
+import {
+  type PromoBannersConfig,
+  DEFAULT_PROMO_BANNERS,
+  parsePromoBanners,
+} from "@/lib/booking/customization";
 import type { companies, coupons, products } from "@/db/schema";
 import styles from "./booking-settings.module.css";
 
@@ -52,6 +59,7 @@ type Schedule = {
 
 type Data = {
   company: typeof companies.$inferSelect;
+  promoBanners?: PromoBannersConfig;
   schedules: Schedule[];
   products: Array<typeof products.$inferSelect>;
   coupons: Array<typeof coupons.$inferSelect>;
@@ -91,7 +99,8 @@ export function BookingSettings() {
   const [interval, setIntervalValue] = useState(30);
   const [cancellation, setCancellation] = useState(24);
   const [color, setColor] = useState("#234e3d");
-  const [activeTab, setActiveTab] = useState<"branding" | "link" | "schedules" | "extras">("branding");
+  const [activeTab, setActiveTab] = useState<"branding" | "carousel" | "link" | "schedules" | "extras">("branding");
+  const [promoBanners, setPromoBanners] = useState<PromoBannersConfig>(DEFAULT_PROMO_BANNERS);
   const [showPageBuilder, setShowPageBuilder] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
 
@@ -157,6 +166,9 @@ export function BookingSettings() {
     setAddressValue(result.company.address ?? "");
     setPhoneValue(formatPhoneDisplay(result.company.phone));
     setWhatsappValue(formatPhoneDisplay(result.company.whatsapp));
+    if (result.promoBanners) {
+      setPromoBanners(parsePromoBanners(result.promoBanners));
+    }
 
     if (result.company.publicSlug) {
       setUrl(`${window.location.origin}/agendar/${result.company.publicSlug}`);
@@ -230,6 +242,7 @@ export function BookingSettings() {
           cancellationHours: cancellation,
           allowProducts,
           timezone: f.get("timezone"),
+          promoBanners,
         }),
       });
       await load();
@@ -565,6 +578,14 @@ export function BookingSettings() {
         </button>
         <button
           type="button"
+          className={`${styles.tabBtn} ${activeTab === "carousel" ? styles.tabBtnActive : ""}`}
+          onClick={() => setActiveTab("carousel")}
+        >
+          <Film size={16} />
+          Carrossel Promocional
+        </button>
+        <button
+          type="button"
           className={`${styles.tabBtn} ${activeTab === "link" ? styles.tabBtnActive : ""}`}
           onClick={() => setActiveTab("link")}
         >
@@ -592,6 +613,65 @@ export function BookingSettings() {
       {/* Tab: Branding Studio */}
       {activeTab === "branding" && (
         <BrandingStudio onSaved={() => void load()} />
+      )}
+
+      {/* Tab: Carrossel Promocional Dedicado */}
+      {activeTab === "carousel" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <PromoCarouselEditor
+            promoBanners={promoBanners}
+            onChange={setPromoBanners}
+            notify={notify}
+          />
+          <div className={styles.saveBar}>
+            <span className={styles.saveBarText}>
+              Suas alterações no carrossel serão salvas e exibidas no link público.
+            </span>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  await api("/api/booking-settings", {
+                    method: "PUT",
+                    body: JSON.stringify({
+                      slug: slug.trim(),
+                      enabled: publicEnabled,
+                      name: data?.company.name || "",
+                      description: data?.company.publicDescription || "",
+                      category: data?.company.businessType || "",
+                      address: addressValue,
+                      phone: phoneValue,
+                      whatsapp: whatsappValue,
+                      instagram: data?.company.instagram || "",
+                      logoUrl: logoUrl.trim() || null,
+                      photos: photosText.split("\n").map((s) => s.trim()).filter(Boolean),
+                      color,
+                      showPhone,
+                      showInstagram,
+                      cancellationHours: cancellation,
+                      allowProducts,
+                      timezone: data?.company.timezone || "America/Sao_Paulo",
+                      promoBanners,
+                    }),
+                  });
+                  await load();
+                  await reloadSession();
+                  notify("Carrossel promocional atualizado com sucesso!");
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Salvando..." : "Salvar carrossel"}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Tab: Link & Informações */}
@@ -1305,6 +1385,13 @@ export function BookingSettings() {
             </div>
           </div>
         </section>
+
+        {/* Card: Carrossel Promocional (1 a 3 artes) */}
+        <PromoCarouselEditor
+          promoBanners={promoBanners}
+          onChange={setPromoBanners}
+          notify={notify}
+        />
 
           {/* Save Bar */}
           <div className={styles.saveBar}>

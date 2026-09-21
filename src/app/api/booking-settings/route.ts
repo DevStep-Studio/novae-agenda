@@ -6,6 +6,7 @@ import {
   auditLogs,
   bookingEvents,
   companies,
+  companySettings,
   coupons,
   employeeSchedules,
   employees,
@@ -13,6 +14,7 @@ import {
 } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { BookingError, bookingError, sameOrigin } from "@/lib/booking/errors";
+import { parsePromoBanners } from "@/lib/booking/customization";
 import {
   accessibleColor,
   safeImageUrl,
@@ -28,7 +30,7 @@ export async function GET() {
     .select()
     .from(companies)
     .where(eq(companies.id, companyId));
-  const [schedules, extras, promotions, funnel] = await Promise.all([
+  const [schedules, extras, promotions, funnel, settingsRows] = await Promise.all([
     db
       .select({
         id: employeeSchedules.id,
@@ -50,9 +52,19 @@ export async function GET() {
       .from(bookingEvents)
       .where(eq(bookingEvents.companyId, companyId))
       .groupBy(bookingEvents.event),
+    db.select().from(companySettings).where(eq(companySettings.companyId, companyId)),
   ]);
+
+  const settingsMap: Record<string, string> = {};
+  for (const row of settingsRows) {
+    if (row.key && row.value) settingsMap[row.key] = row.value;
+  }
+  const promoBanners = parsePromoBanners(
+    settingsMap.booking_promo_banners || settingsMap.bookingPromoBanners
+  );
+
   return Response.json({
-    data: { company, schedules, products: extras, coupons: promotions, funnel },
+    data: { company, promoBanners, schedules, products: extras, coupons: promotions, funnel },
   });
 }
 const profileSchema = z.object({
@@ -97,6 +109,8 @@ const profileSchema = z.object({
       return false;
     }
   }, "Fuso inválido."),
+  promoBanners: z.any().optional(),
+  bookingPromoBanners: z.any().optional(),
 });
 export async function PUT(request: Request) {
   try {
@@ -146,6 +160,38 @@ export async function PUT(request: Request) {
           updatedAt: new Date(),
         })
         .where(eq(companies.id, companyId));
+
+      if (d.promoBanners !== undefined || d.bookingPromoBanners !== undefined) {
+        const parsedBanners = parsePromoBanners(d.promoBanners ?? d.bookingPromoBanners);
+        const json = JSON.stringify(parsedBanners);
+        await tx
+          .insert(companySettings)
+          .values({
+            companyId,
+            key: "booking_promo_banners",
+            value: json,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              value: json,
+              updatedAt: new Date(),
+            },
+          });
+        await tx
+          .insert(companySettings)
+          .values({
+            companyId,
+            key: "bookingPromoBanners",
+            value: json,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              value: json,
+              updatedAt: new Date(),
+            },
+          });
+      }
+
       await tx
         .insert(auditLogs)
         .values({
