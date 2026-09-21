@@ -1,30 +1,124 @@
 .mapContainer {
   position: relative;
   width: 100%;
-  height: 240px;
-  border-radius: 16px;
+  height: 250px;
+  border-radius: 18px;
   overflow: hidden;
-  border: 1px solid var(--border, #27272a);
-  background: var(--surface-secondary, #18181b);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  background: #121316;
+  color: #f4f4f5;
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.35);
   margin: 16px 0;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.mapIframe {
+:root[data-theme="light"] .mapContainer {
+  background: #f8fafc;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+}
+
+.mapContainer:hover {
+  border-color: rgba(236, 72, 153, 0.35);
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="light"] .mapContainer:hover {
+  border-color: rgba(236, 72, 153, 0.4);
+  box-shadow: 0 8px 25px -2px rgba(0, 0, 0, 0.12);
+}
+
+/* Vector Map Canvas */
+.vectorMapCanvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  border: none;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.mapGridSvg {
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
-:root[data-theme="dark"] .mapIframe,
-:root:not([data-theme="light"]) .mapIframe {
-  filter: invert(90%) hue-rotate(180deg) brightness(92%) contrast(90%);
-}
-
-.pinOverlay {
+.ambientGlowPink {
   position: absolute;
   top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.2) 0%, rgba(236, 72, 153, 0) 70%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.ambientGlowBlue {
+  position: absolute;
+  top: 25%;
+  right: 15%;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%);
+  filter: blur(25px);
+  pointer-events: none;
+}
+
+/* Map Controls / GPS Hint */
+.mapControlsBadge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(18, 19, 22, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  font-weight: 600;
+  color: #a1a1aa;
+  letter-spacing: 0.02em;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+:root[data-theme="light"] .mapControlsBadge {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #64748b;
+}
+
+.compassIcon {
+  color: #ec4899;
+}
+
+.mapContainer:hover .mapControlsBadge {
+  color: #ffffff;
+  border-color: rgba(236, 72, 153, 0.4);
+  background: rgba(18, 19, 22, 0.9);
+}
+
+:root[data-theme="light"] .mapContainer:hover .mapControlsBadge {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+/* Pin Overlay */
+.pinOverlay {
+  position: absolute;
+  top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
@@ -34,19 +128,28 @@
   z-index: 2;
 }
 
-.pinPulse {
+.pinPulseRing {
   position: absolute;
-  width: 44px;
-  height: 44px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
-  background: rgba(236, 72, 153, 0.35);
-  animation: pulse 2s infinite ease-out;
+  background: rgba(236, 72, 153, 0.3);
+  animation: pulseRadar 2.2s infinite ease-out;
 }
 
-@keyframes pulse {
+.pinPulseRingSecondary {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(244, 63, 94, 0.15);
+  animation: pulseRadar 2.2s infinite ease-out 0.6s;
+}
+
+@keyframes pulseRadar {
   0% {
-    transform: scale(0.6);
-    opacity: 0.8;
+    transform: scale(0.4);
+    opacity: 0.9;
   }
   100% {
     transform: scale(1.6);
@@ -56,42 +159,67 @@
 
 .pinBadge {
   position: relative;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%);
   border: 2.5px solid #ffffff;
-  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.45);
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.5), 0 0 20px rgba(236, 72, 153, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
+  z-index: 2;
+  transition: transform 0.2s ease;
 }
 
+.mapContainer:hover .pinBadge {
+  transform: scale(1.12);
+}
+
+.pinShadow {
+  position: absolute;
+  bottom: -6px;
+  width: 18px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  filter: blur(2px);
+}
+
+/* Floating Bottom Card */
 .floatingCard {
   position: absolute;
   bottom: 12px;
   left: 12px;
   right: 12px;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(24, 24, 27, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
-  padding: 10px 12px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   z-index: 3;
-  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.22), 0 4px 10px -2px rgba(0, 0, 0, 0.12);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.4), 0 4px 10px -2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-:root[data-theme="dark"] .floatingCard,
-:root:not([data-theme="light"]) .floatingCard {
-  background: rgba(24, 24, 27, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+:root[data-theme="light"] .floatingCard {
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.06);
+}
+
+.floatingCard:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+:root[data-theme="light"] .floatingCard:hover {
+  border-color: rgba(0, 0, 0, 0.15);
 }
 
 .cardMain {
@@ -100,6 +228,8 @@
   gap: 10px;
   min-width: 0;
   flex: 1;
+  cursor: pointer;
+  text-decoration: none;
 }
 
 .avatar {
@@ -108,20 +238,20 @@
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 1.5px solid rgba(0, 0, 0, 0.1);
-  background: var(--surface-secondary, #27272a);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: #27272a;
 }
 
-:root[data-theme="dark"] .avatar,
-:root:not([data-theme="light"]) .avatar {
-  border-color: rgba(255, 255, 255, 0.15);
+:root[data-theme="light"] .avatar {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: #f1f5f9;
 }
 
 .avatarFallback {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary, #3b82f6), #1d4ed8);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: #ffffff;
   font-weight: 700;
   font-size: 16px;
@@ -141,7 +271,7 @@
 .companyTitle {
   font-size: 13.5px;
   font-weight: 700;
-  color: #18181b;
+  color: #f4f4f5;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -149,14 +279,13 @@
   letter-spacing: -0.2px;
 }
 
-:root[data-theme="dark"] .companyTitle,
-:root:not([data-theme="light"]) .companyTitle {
-  color: #f4f4f5;
+:root[data-theme="light"] .companyTitle {
+  color: #0f172a;
 }
 
 .companyAddress {
   font-size: 11.5px;
-  color: #71717a;
+  color: #a1a1aa;
   margin: 0;
   line-height: 1.3;
   display: -webkit-box;
@@ -166,9 +295,8 @@
   word-break: break-word;
 }
 
-:root[data-theme="dark"] .companyAddress,
-:root:not([data-theme="light"]) .companyAddress {
-  color: #a1a1aa;
+:root[data-theme="light"] .companyAddress {
+  color: #64748b;
 }
 
 .cardActions {
@@ -180,55 +308,83 @@
 
 .divider {
   width: 1px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.1);
+  height: 28px;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-:root[data-theme="dark"] .divider,
-:root:not([data-theme="light"]) .divider {
-  background: rgba(255, 255, 255, 0.12);
+:root[data-theme="light"] .divider {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .navButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
+  gap: 6px;
+  padding: 8px 10px;
+  min-height: 38px;
   border-radius: 10px;
-  background: transparent;
-  color: #2563eb;
-  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
 }
 
-:root[data-theme="dark"] .navButton,
-:root:not([data-theme="light"]) .navButton {
-  color: #60a5fa;
+:root[data-theme="light"] .navButton {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
 }
 
 .navButton:hover {
-  background: rgba(37, 99, 235, 0.12);
-  transform: scale(1.08);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+:root[data-theme="light"] .navButton:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .navButton:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+}
+
+.navButtonPrimary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff !important;
+  border: none;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
+  padding: 8px 12px;
+}
+
+.navButtonPrimary:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.5);
+  color: #ffffff !important;
 }
 
 .navButtonIcon {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
 }
 
-/* Compact version for small screens or within modal tickets */
+.navButtonLabel {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Compact version for small screens or inside booking modal tickets */
 .compact {
-  height: 200px;
-  border-radius: 12px;
+  height: 210px;
+  border-radius: 14px;
   margin: 12px 0;
 }
 
@@ -245,17 +401,10 @@
   height: 36px;
 }
 
-.compact .navButton {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-}
-
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .mapContainer {
-    height: 210px;
-    margin: 12px 0;
+    height: 220px;
+    margin: 14px 0;
   }
   .floatingCard {
     bottom: 8px;
@@ -270,5 +419,11 @@
   .companyAddress {
     font-size: 11px;
     -webkit-line-clamp: 1;
+  }
+  .navButtonLabel {
+    display: none;
+  }
+  .navButtonPrimary {
+    padding: 8px 10px;
   }
 }

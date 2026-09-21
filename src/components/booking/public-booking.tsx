@@ -31,7 +31,7 @@ import {
   User,
   Camera,
 } from "lucide-react";
-import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
+import { api, ApiError, formatPhoneForWhatsApp, formatPhoneDisplay } from "@/lib/api-client";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import type { PublicCatalog } from "@/lib/booking/catalog";
@@ -1704,7 +1704,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           {company.phone && (
                             <p style={{ marginTop: 4 }}>
                               <a href={`tel:${company.phone.replace(/[^+\d]/g, "")}`}>
-                                {company.phone}
+                                {formatPhoneDisplay(company.phone)}
                               </a>
                             </p>
                           )}
