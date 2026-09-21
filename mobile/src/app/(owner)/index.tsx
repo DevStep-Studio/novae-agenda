@@ -33,7 +33,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 
 import { Button } from "@/components/ui/button";
@@ -77,7 +77,7 @@ function formatDashboardCurrency(val: number | null | undefined): string {
 }
 
 export default function OwnerHomeScreen() {
-  const { session, signOut } = useSession();
+  const { session, refresh, signOut } = useSession();
   const { isDark, colors: themeColors, primaryColor, primaryForeground } = useTheme();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
@@ -137,6 +137,7 @@ export default function OwnerHomeScreen() {
           appointments: [],
         })),
         api<SetupStatus>("/api/company/setup-status").catch(() => null),
+        refresh().catch(() => null),
       ]);
       setStats(statsData);
       setAppointments(aptsData?.appointments || []);
@@ -146,7 +147,7 @@ export default function OwnerHomeScreen() {
         err instanceof ApiError ? err.message : "Não foi possível carregar o painel."
       );
     }
-  }, []);
+  }, [refresh]);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,6 +160,14 @@ export default function OwnerHomeScreen() {
       cancelled = true;
     };
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      setLogoLoadError(false);
+      setBannerLoadError(false);
+    }, [load])
+  );
 
   async function onRefresh() {
     setRefreshing(true);
@@ -175,17 +184,23 @@ export default function OwnerHomeScreen() {
       error.toLowerCase().includes("sessão") ||
       error.toLowerCase().includes("autenticação"));
 
-  const firstName = session?.name ? session.name.split(" ")[0] : "Moa";
+  const firstName = session?.name ? session.name.split(" ")[0] : "você";
   const defaultBanner =
     "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
-  const rawBannerUrl = session?.company?.bannerUrl || defaultBanner;
+  const rawBannerUrl = session?.company?.bannerUrl || session?.bannerUrl || defaultBanner;
   const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl;
   const bannerUrl = resolveImageUrl(rawBannerUrl) || defaultBanner;
   const logoUrl = resolveImageUrl(rawLogoUrl);
   const [bannerLoadError, setBannerLoadError] = useState(false);
   const [logoLoadError, setLogoLoadError] = useState(false);
-  const companyName = session?.company?.name || "Moa Tattoo";
-  const initials = (companyName || firstName || "MO")
+
+  useEffect(() => {
+    setLogoLoadError(false);
+    setBannerLoadError(false);
+  }, [logoUrl, bannerUrl]);
+
+  const companyName = session?.company?.name || "Estabelecimento";
+  const initials = (companyName || firstName || "RE")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -232,74 +247,38 @@ export default function OwnerHomeScreen() {
               {
                 backgroundColor: cardBg,
                 borderColor: cardBorder,
-                minHeight: 160,
+                borderWidth: 1,
+                borderRadius: 14,
                 overflow: "hidden",
                 position: "relative",
               },
             ]}
           >
-            {/* Background Cover Image with Dark Overlay */}
-            <Image
-              source={{ uri: bannerLoadError ? defaultBanner : bannerUrl }}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                opacity: 0.35,
-              }}
-              contentFit="cover"
-              onError={() => setBannerLoadError(true)}
-            />
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: isDark ? "rgba(10, 11, 14, 0.72)" : "rgba(240, 245, 250, 0.75)",
-              }}
-            />
-
-            <View style={{ padding: 16, gap: 10 }}>
-              {/* Top Tag Badge */}
-              <View
+            {/* Background Cover Image with Clean Subtle Opacity (No harsh gradient) */}
+            {bannerUrl ? (
+              <Image
+                source={{ uri: bannerLoadError ? defaultBanner : bannerUrl }}
                 style={{
-                  alignSelf: "flex-start",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 6,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 6,
-                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.06)",
-                  borderWidth: 1,
-                  borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  opacity: 0.08,
                 }}
-              >
-                <Sparkles size={11} color={primaryColor} />
-                <Text
-                  style={{
-                    color: textTitle,
-                    fontSize: 10.5,
-                    fontWeight: "700",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.6,
-                  }}
-                >
-                  {companyName}
-                </Text>
-              </View>
+                contentFit="cover"
+                onError={() => setBannerLoadError(true)}
+              />
+            ) : null}
 
+            <View style={{ padding: 18, gap: 14 }}>
               {/* Title & Greeting Subtitle */}
-              <View style={{ gap: 4, marginTop: 2 }}>
+              <View style={{ gap: 4 }}>
                 <Text
                   style={{
                     color: textTitle,
-                    fontSize: 21,
-                    fontWeight: "800",
+                    fontSize: 20,
+                    fontWeight: "700",
                     letterSpacing: -0.3,
                   }}
                 >
@@ -308,8 +287,8 @@ export default function OwnerHomeScreen() {
                 <Text
                   style={{
                     color: textMuted,
-                    fontSize: 12.5,
-                    lineHeight: 17,
+                    fontSize: 13,
+                    lineHeight: 18,
                   }}
                 >
                   {(stats?.today.appointments ?? 0) === 0
@@ -320,37 +299,45 @@ export default function OwnerHomeScreen() {
                 </Text>
               </View>
 
-              {/* Bottom Row: Personalizar Capa Button + Logo Box */}
-              <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 6 }}>
+              {/* Bottom Row: Personalizar Capa Button + Logo/Profile Photo Box */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingTop: 4,
+                }}
+              >
                 <Pressable
                   onPress={() => router.push("/(owner)/perfil" as any)}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     gap: 6,
+                    height: 36,
                     paddingHorizontal: 12,
-                    paddingVertical: 8,
                     borderRadius: 8,
-                    backgroundColor: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(255, 255, 255, 0.85)",
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
                     borderWidth: 1,
-                    borderColor: isDark ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)",
                   }}
                 >
                   <ImagePlus size={14} color={textTitle} />
-                  <Text style={{ color: textTitle, fontSize: 12.5, fontWeight: "600" }}>
+                  <Text style={{ color: textTitle, fontSize: 12, fontWeight: "600" }}>
                     Personalizar capa
                   </Text>
                 </Pressable>
 
-                <View
+                <Pressable
+                  onPress={() => router.push("/(owner)/perfil" as any)}
                   style={{
-                    width: 68,
-                    height: 68,
-                    borderRadius: 14,
+                    width: 60,
+                    height: 60,
+                    borderRadius: 12,
                     overflow: "hidden",
                     borderWidth: 1,
-                    backgroundColor: isDark ? "#0a0a0a" : "#e2e8f0",
-                    borderColor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.15)",
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f1f5f9",
+                    borderColor: isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
@@ -363,11 +350,11 @@ export default function OwnerHomeScreen() {
                       onError={() => setLogoLoadError(true)}
                     />
                   ) : (
-                    <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800" }}>
+                    <Text style={{ color: textTitle, fontSize: 17, fontWeight: "700" }}>
                       {initials}
                     </Text>
                   )}
-                </View>
+                </Pressable>
               </View>
             </View>
           </View>
