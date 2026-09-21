@@ -12,7 +12,6 @@ import {
   Clock,
   ImagePlus,
   Plus,
-  Share2,
   SlidersHorizontal,
   Sparkles,
   TrendingUp,
@@ -28,7 +27,6 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -415,65 +413,25 @@ export default function OwnerHomeScreen() {
               },
             ]}
           >
-            {/* Header: Title + Progress summary on left, minimalist share pill on right */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-              }}
-            >
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Sparkles size={15} color={primaryColor} />
-                  <Text
-                    style={{
-                      color: textTitle,
-                      fontSize: 14,
-                      fontWeight: "700",
-                      letterSpacing: -0.2,
-                    }}
-                    numberOfLines={1}
-                  >
-                    Checklist de Configuração
-                  </Text>
-                </View>
-                <Text style={{ color: textMuted, fontSize: 11.5 }}>
-                  {completedStepsCount} de {totalStepsCount} concluídos ({progressPercent}%)
+            {/* Header: Title + Progress summary */}
+            <View style={{ gap: 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Sparkles size={15} color={primaryColor} />
+                <Text
+                  style={{
+                    color: textTitle,
+                    fontSize: 14,
+                    fontWeight: "700",
+                    letterSpacing: -0.2,
+                  }}
+                  numberOfLines={1}
+                >
+                  Checklist de Configuração
                 </Text>
               </View>
-
-              {setupStatus.publicUrl ? (
-                <Pressable
-                  onPress={() => {
-                    void Share.share({
-                      message: `Agende seu horário online no ${companyName}: ${setupStatus.publicUrl}`,
-                      url: setupStatus.publicUrl,
-                    });
-                  }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    height: 32,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
-                    backgroundColor: isDark
-                      ? "rgba(255, 255, 255, 0.06)"
-                      : "rgba(0, 0, 0, 0.04)",
-                    borderWidth: 1,
-                    borderColor: isDark
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.08)",
-                  }}
-                >
-                  <Share2 size={13} color={textTitle} />
-                  <Text style={{ color: textTitle, fontSize: 12, fontWeight: "600" }}>
-                    Compartilhar
-                  </Text>
-                </Pressable>
-              ) : null}
+              <Text style={{ color: textMuted, fontSize: 11.5 }}>
+                {completedStepsCount} de {totalStepsCount} concluídos ({progressPercent}%)
+              </Text>
             </View>
 
             {/* Subtle Progress Bar */}
