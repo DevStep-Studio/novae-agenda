@@ -13,7 +13,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, typography } from "@/constants/design-tokens";
-import { resolveImageUrl } from "@/lib/api-client";
+import { resolveImageUrl, resolveImageUrlWithFallback } from "@/lib/api-client";
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -46,7 +46,8 @@ export function TopBar({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(propUnreadCount ?? 1);
-  const [imageError, setImageError] = useState(false);
+  const [avatarFailedPrimary, setAvatarFailedPrimary] = useState(false);
+  const [avatarFailedFallback, setAvatarFailedFallback] = useState(false);
 
   // Sync prop unreadCount if provided
   useEffect(() => {
@@ -96,7 +97,14 @@ export function TopBar({
 
   const companyName = company || session?.company?.name || "Moa Tattoo";
   const rawAvatarUrl = session?.company?.logoUrl || session?.avatarUrl;
-  const avatarUrl = resolveImageUrl(rawAvatarUrl);
+  const avatarUris = resolveImageUrlWithFallback(rawAvatarUrl);
+
+  const activeAvatarUrl = !avatarFailedPrimary
+    ? avatarUris.primary
+    : !avatarFailedFallback
+    ? avatarUris.fallback
+    : null;
+
   const initials = (session?.name || companyName || "MO")
     .split(" ")
     .filter(Boolean)
@@ -292,13 +300,19 @@ export function TopBar({
                 borderColor: "rgba(255, 255, 255, 0.15)",
               }}
             >
-              {avatarUrl && !imageError ? (
+              {activeAvatarUrl ? (
                 <Image
-                  source={{ uri: avatarUrl }}
+                  source={{ uri: activeAvatarUrl }}
                   style={{ width: 36, height: 36 }}
                   contentFit="cover"
                   priority="high"
-                  onError={() => setImageError(true)}
+                  onError={() => {
+                    if (!avatarFailedPrimary && avatarUris.fallback && avatarUris.fallback !== avatarUris.primary) {
+                      setAvatarFailedPrimary(true);
+                    } else {
+                      setAvatarFailedFallback(true);
+                    }
+                  }}
                 />
               ) : (
                 <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>

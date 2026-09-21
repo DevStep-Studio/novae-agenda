@@ -24,7 +24,7 @@ import {
   UserRound,
 } from "lucide-react-native";
 import { Image } from "expo-image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -41,7 +41,7 @@ import { router } from "expo-router";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
-import { api, resolveImageUrl } from "@/lib/api-client";
+import { api, resolveImageUrl, resolveImageUrlWithFallback } from "@/lib/api-client";
 import { useSession } from "@/lib/session-context";
 import { useTheme } from "@/hooks/use-theme";
 import { Sun, Moon } from "lucide-react-native";
@@ -126,15 +126,19 @@ export default function PerfilPersonalizacaoScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Profile Form States
-  const [name, setName] = useState(session?.name || "Moa Tattoo");
+  const [name, setName] = useState(session?.name || "PL");
   const [phone, setPhone] = useState(session?.phone || session?.company?.phone || "");
-  const [companyName, setCompanyName] = useState(session?.company?.name || "Moa Tattoo");
+  const [companyName, setCompanyName] = useState(session?.company?.name || "Barbearia Pelly");
   const [businessType, setBusinessType] = useState(session?.company?.businessType || "");
-  const [primaryColor, setPrimaryColor] = useState(session?.company?.primaryColor || themePrimaryColor || "#dcff4c");
+  const [primaryColor, setPrimaryColor] = useState(
+    session?.company?.primaryColor || themePrimaryColor || "#3b82f6"
+  );
   const [avatarUrl, setAvatarUrl] = useState(
     session?.avatarUrl || session?.company?.logoUrl || ""
   );
-  const [bannerUrl, setBannerUrl] = useState(session?.company?.bannerUrl || "");
+  const [bannerUrl, setBannerUrl] = useState(
+    session?.company?.bannerUrl || session?.bannerUrl || ""
+  );
 
   // Dashboard Preferences State
   const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
@@ -151,9 +155,9 @@ export default function PerfilPersonalizacaoScreen() {
   // Sync state if session updates
   useEffect(() => {
     if (session) {
-      setName(session.name || "Moa Tattoo");
+      setName(session.name || "PL");
       setPhone(session.phone || session.company?.phone || "");
-      setCompanyName(session.company?.name || "Moa Tattoo");
+      setCompanyName(session.company?.name || "Barbearia Pelly");
       setBusinessType(session.company?.businessType || "");
       if (session.company?.primaryColor) {
         setPrimaryColor(session.company.primaryColor);
@@ -161,8 +165,8 @@ export default function PerfilPersonalizacaoScreen() {
       if (session.avatarUrl || session.company?.logoUrl) {
         setAvatarUrl(session.avatarUrl || session.company?.logoUrl || "");
       }
-      if (session.company?.bannerUrl) {
-        setBannerUrl(session.company.bannerUrl);
+      if (session.company?.bannerUrl || session.bannerUrl) {
+        setBannerUrl(session.company?.bannerUrl || session.bannerUrl || "");
       }
       if (session.company?.dashboardPreferences) {
         setDashboardPrefs((prev) => ({
@@ -174,14 +178,57 @@ export default function PerfilPersonalizacaoScreen() {
   }, [session]);
 
   const defaultBanner =
-    "https://images.unsplash.com/photo-1598371839696-5c5bb00bdc28?auto=format&fit=crop&w=1200&q=80";
-  const displayBanner = resolveImageUrl(bannerUrl) || defaultBanner;
-  const resolvedAvatarUrl = resolveImageUrl(avatarUrl);
-  const [bannerLoadError, setBannerLoadError] = useState(false);
-  const [avatarLoadError, setAvatarLoadError] = useState(false);
+    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
+
+  const bannerUris = useMemo(() => resolveImageUrlWithFallback(bannerUrl), [bannerUrl]);
+  const avatarUris = useMemo(() => resolveImageUrlWithFallback(avatarUrl), [avatarUrl]);
+
+  const [bannerFailedPrimary, setBannerFailedPrimary] = useState(false);
+  const [bannerFailedFallback, setBannerFailedFallback] = useState(false);
+  const [avatarFailedPrimary, setAvatarFailedPrimary] = useState(false);
+  const [avatarFailedFallback, setAvatarFailedFallback] = useState(false);
+
+  useEffect(() => {
+    setBannerFailedPrimary(false);
+    setBannerFailedFallback(false);
+  }, [bannerUrl]);
+
+  useEffect(() => {
+    setAvatarFailedPrimary(false);
+    setAvatarFailedFallback(false);
+  }, [avatarUrl]);
+
+  const activeBannerUri = !bannerFailedPrimary
+    ? (bannerUris.primary || defaultBanner)
+    : !bannerFailedFallback
+    ? (bannerUris.fallback || defaultBanner)
+    : defaultBanner;
+
+  const activeAvatarUri = !avatarFailedPrimary
+    ? avatarUris.primary
+    : !avatarFailedFallback
+    ? avatarUris.fallback
+    : null;
+
+  const handleBannerError = () => {
+    if (!bannerFailedPrimary && bannerUris.fallback && bannerUris.fallback !== bannerUris.primary) {
+      setBannerFailedPrimary(true);
+    } else {
+      setBannerFailedFallback(true);
+    }
+  };
+
+  const handleAvatarError = () => {
+    if (!avatarFailedPrimary && avatarUris.fallback && avatarUris.fallback !== avatarUris.primary) {
+      setAvatarFailedPrimary(true);
+    } else {
+      setAvatarFailedFallback(true);
+    }
+  };
+
   const publicSlug = session?.company?.publicSlug || session?.company?.slug;
 
-  const initials = (companyName || name || "MO")
+  const initials = (name || session?.name || companyName || "PL")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -189,7 +236,7 @@ export default function PerfilPersonalizacaoScreen() {
     .join("");
 
   const handleOpenPublicPage = async () => {
-    const slug = publicSlug || "moatattoo";
+    const slug = publicSlug || "barbeariapelly";
     const url = `https://usereservei.com.br/${slug}`;
     try {
       await Share.share({
@@ -217,7 +264,6 @@ export default function PerfilPersonalizacaoScreen() {
           ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
           : asset.uri;
         setBannerUrl(dataUrl);
-        setBannerLoadError(false);
         Alert.alert("Banner Selecionado", "Clique em 'Salvar alterações' para aplicar a todos.");
       }
     } catch {
@@ -243,7 +289,6 @@ export default function PerfilPersonalizacaoScreen() {
           ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
           : asset.uri;
         setAvatarUrl(dataUrl);
-        setAvatarLoadError(false);
         Alert.alert("Logo / Foto Selecionada", "Clique em 'Salvar alterações' para aplicar a todos.");
       }
     } catch {
@@ -307,66 +352,68 @@ export default function PerfilPersonalizacaoScreen() {
         contentContainerStyle={{ gap: 16, paddingBottom: 40, paddingHorizontal: 4 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* 1. Minimalist Info Notice Banner */}
+        {/* 1. Shared Visual Identity Notice Banner (Web Parity) */}
         <View
           className="p-4 rounded-2xl border"
           style={{
             backgroundColor: "#121318",
-            borderColor: "rgba(255, 255, 255, 0.07)",
+            borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-start gap-3.5">
             <View
-              className="items-center justify-center rounded-xl"
+              className="items-center justify-center rounded-xl border mt-0.5"
               style={{
-                width: 38,
-                height: 38,
-                backgroundColor: "#ffffff",
+                width: 40,
+                height: 40,
+                backgroundColor: "rgba(255, 255, 255, 0.06)",
+                borderColor: "rgba(255, 255, 255, 0.12)",
               }}
             >
-              <Shield size={20} color="#000000" strokeWidth={2.4} />
+              <ShieldCheck size={20} color="#ffffff" strokeWidth={2} />
             </View>
 
-            <View className="flex-1">
+            <View className="flex-1 gap-1">
               <Text
                 style={{
                   color: "#ffffff",
-                  fontSize: 14,
+                  fontSize: 14.5,
                   fontWeight: "700",
-                  lineHeight: 18,
+                  lineHeight: 20,
                 }}
               >
-                Identidade Visual Compartilhada
+                Identidade Visual Compartilhada para Toda a Equipe
               </Text>
               <Text
                 style={{
                   color: "#9ca3af",
-                  fontSize: 12,
-                  marginTop: 2,
+                  fontSize: 12.5,
+                  lineHeight: 18,
                 }}
               >
-                Preferências herdadas por toda a equipe de{" "}
-                <Text style={{ color: "#ffffff", fontWeight: "600" }}>{companyName}</Text>
+                Você está editando as preferências visuais de{" "}
+                <Text style={{ color: "#ffffff", fontWeight: "700" }}>{companyName}</Text>.
+                {"\n"}Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
               </Text>
             </View>
           </View>
         </View>
 
-        {/* 2. Hero Live Preview Card (Clean Minimalist Design) */}
+        {/* 2. Hero Live Preview Card (Matching Web Exactly) */}
         <View
-          className="rounded-3xl border overflow-hidden"
+          className="rounded-2xl border overflow-hidden"
           style={{
-            backgroundColor: "#111216",
+            backgroundColor: "#121318",
             borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
           {/* Cover background */}
-          <View style={{ height: 145, position: "relative", backgroundColor: "#181920" }}>
+          <View style={{ height: 160, position: "relative", backgroundColor: "#181920" }}>
             <Image
-              source={{ uri: bannerLoadError ? defaultBanner : displayBanner }}
+              source={{ uri: activeBannerUri }}
               style={{ width: "100%", height: "100%" }}
               contentFit="cover"
-              onError={() => setBannerLoadError(true)}
+              onError={handleBannerError}
             />
             {/* Linear Gradient Fade Overlay */}
             <View
@@ -376,87 +423,69 @@ export default function PerfilPersonalizacaoScreen() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(10, 11, 14, 0.42)",
+                backgroundColor: "rgba(10, 11, 14, 0.55)",
               }}
             />
           </View>
 
-          {/* Card Info & Overlapping Avatar */}
-          <View className="p-4 pt-0 gap-3.5">
-            <View className="flex-row items-end justify-between" style={{ marginTop: -40 }}>
+          {/* Overlapping Avatar, Info & Hero Buttons */}
+          <View className="px-4 pb-4 pt-0 gap-3.5">
+            <View className="flex-row items-end gap-3.5" style={{ marginTop: -40 }}>
               <View
-                className="items-center justify-center rounded-2xl overflow-hidden border-2"
+                className="items-center justify-center rounded-2xl overflow-hidden"
                 style={{
                   width: 80,
                   height: 80,
                   backgroundColor: "#181920",
-                  borderColor: "#ffffff",
+                  borderWidth: 3.5,
+                  borderColor: "#121318",
                   shadowColor: "#000000",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.35,
-                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 0.45,
+                  shadowRadius: 10,
                 }}
               >
-                {resolvedAvatarUrl && !avatarLoadError ? (
+                {activeAvatarUri ? (
                   <Image
-                    source={{ uri: resolvedAvatarUrl }}
+                    source={{ uri: activeAvatarUri }}
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
-                    onError={() => setAvatarLoadError(true)}
+                    onError={handleAvatarError}
                   />
                 ) : (
-                  <Text style={{ color: "#ffffff", fontSize: 26, fontWeight: "800" }}>
+                  <Text style={{ color: "#ffffff", fontSize: 28, fontWeight: "800" }}>
                     {initials}
                   </Text>
                 )}
               </View>
 
-              {/* Status Tag */}
-              <View
-                className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full border mb-1"
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.06)",
-                  borderColor: "rgba(255, 255, 255, 0.12)",
-                }}
-              >
-                <View
+              <View className="flex-1 gap-0.5 pb-1">
+                <Text
                   style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: "#10b981",
+                    color: "#ffffff",
+                    fontSize: 22,
+                    fontWeight: "800",
+                    letterSpacing: -0.4,
                   }}
-                />
-                <Text style={{ color: "#ffffff", fontSize: 11, fontWeight: "600" }}>
-                  Ao vivo
+                  numberOfLines={1}
+                >
+                  {name || session?.name || "PL"}
+                </Text>
+                <Text style={{ color: "#9ca3af", fontSize: 13, fontWeight: "500" }} numberOfLines={1}>
+                  {companyName} · Proprietário
                 </Text>
               </View>
             </View>
 
-            <View className="gap-0.5">
-              <Text
-                style={{
-                  color: "#ffffff",
-                  fontSize: 22,
-                  fontWeight: "800",
-                  letterSpacing: -0.4,
-                }}
-              >
-                {companyName}
-              </Text>
-              <Text style={{ color: "#9ca3af", fontSize: 13, fontWeight: "500" }}>
-                {companyName} · Proprietário
-              </Text>
-            </View>
-
-            {/* Actions Row */}
+            {/* Hero Actions Row: [ Página de Agendamento ] & [ Salvar alterações ] */}
             <View className="flex-row items-center gap-2.5 pt-1">
               <Pressable
                 onPress={handleOpenPublicPage}
                 className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
                 style={{
                   backgroundColor: "#17181f",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  borderColor: "rgba(255, 255, 255, 0.12)",
+                  height: 44,
                 }}
               >
                 <Globe size={15} color="#ffffff" />
@@ -471,15 +500,19 @@ export default function PerfilPersonalizacaoScreen() {
               <Pressable
                 onPress={handleSave}
                 disabled={saving}
-                className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl"
-                style={{ backgroundColor: "#ffffff" }}
+                className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
+                style={{
+                  backgroundColor: "#52545d",
+                  borderColor: "rgba(255, 255, 255, 0.08)",
+                  height: 44,
+                }}
               >
                 {saving ? (
-                  <ActivityIndicator size="small" color="#000000" />
+                  <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <>
-                    <Check size={16} color="#000000" strokeWidth={2.5} />
-                    <Text style={{ color: "#000000", fontSize: 12.5, fontWeight: "700" }}>
+                    <Check size={16} color="#ffffff" strokeWidth={2.5} />
+                    <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>
                       Salvar alterações
                     </Text>
                   </>
@@ -489,7 +522,7 @@ export default function PerfilPersonalizacaoScreen() {
           </View>
         </View>
 
-        {/* 3. Minimalist Tab Bar */}
+        {/* 3. Navigation Tabs Bar */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -497,21 +530,22 @@ export default function PerfilPersonalizacaoScreen() {
         >
           <Pressable
             onPress={() => setActiveTab("visual")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "visual" ? "#1e1f26" : "transparent",
+              backgroundColor: activeTab === "visual" ? "#1e2027" : "#121318",
               borderColor:
                 activeTab === "visual"
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(255, 255, 255, 0.06)",
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.08)",
+              height: 46,
             }}
           >
-            <Palette size={15} color={activeTab === "visual" ? "#ffffff" : "#71717a"} />
+            <Palette size={16} color={activeTab === "visual" ? "#ffffff" : "#9ca3af"} />
             <Text
               style={{
-                color: activeTab === "visual" ? "#ffffff" : "#71717a",
-                fontSize: 12.5,
-                fontWeight: activeTab === "visual" ? "700" : "500",
+                color: activeTab === "visual" ? "#ffffff" : "#9ca3af",
+                fontSize: 13,
+                fontWeight: activeTab === "visual" ? "700" : "600",
               }}
             >
               Identidade Visual & Cores
@@ -520,21 +554,22 @@ export default function PerfilPersonalizacaoScreen() {
 
           <Pressable
             onPress={() => setActiveTab("dados")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "dados" ? "#1e1f26" : "transparent",
+              backgroundColor: activeTab === "dados" ? "#1e2027" : "#121318",
               borderColor:
                 activeTab === "dados"
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(255, 255, 255, 0.06)",
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.08)",
+              height: 46,
             }}
           >
-            <User size={15} color={activeTab === "dados" ? "#ffffff" : "#71717a"} />
+            <User size={16} color={activeTab === "dados" ? "#ffffff" : "#9ca3af"} />
             <Text
               style={{
-                color: activeTab === "dados" ? "#ffffff" : "#71717a",
-                fontSize: 12.5,
-                fontWeight: activeTab === "dados" ? "700" : "500",
+                color: activeTab === "dados" ? "#ffffff" : "#9ca3af",
+                fontSize: 13,
+                fontWeight: activeTab === "dados" ? "700" : "600",
               }}
             >
               Dados da Conta & Empresa
@@ -543,24 +578,25 @@ export default function PerfilPersonalizacaoScreen() {
 
           <Pressable
             onPress={() => setActiveTab("widgets")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "widgets" ? "#1e1f26" : "transparent",
+              backgroundColor: activeTab === "widgets" ? "#1e2027" : "#121318",
               borderColor:
                 activeTab === "widgets"
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(255, 255, 255, 0.06)",
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.08)",
+              height: 46,
             }}
           >
             <SlidersHorizontal
-              size={15}
-              color={activeTab === "widgets" ? "#ffffff" : "#71717a"}
+              size={16}
+              color={activeTab === "widgets" ? "#ffffff" : "#9ca3af"}
             />
             <Text
               style={{
-                color: activeTab === "widgets" ? "#ffffff" : "#71717a",
-                fontSize: 12.5,
-                fontWeight: activeTab === "widgets" ? "700" : "500",
+                color: activeTab === "widgets" ? "#ffffff" : "#9ca3af",
+                fontSize: 13,
+                fontWeight: activeTab === "widgets" ? "700" : "600",
               }}
             >
               Widgets do Início
@@ -569,21 +605,22 @@ export default function PerfilPersonalizacaoScreen() {
 
           <Pressable
             onPress={() => setActiveTab("atalhos")}
-            className="flex-row items-center justify-center gap-2 py-2.5 px-4 rounded-xl border"
+            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
             style={{
-              backgroundColor: activeTab === "atalhos" ? "#1e1f26" : "transparent",
+              backgroundColor: activeTab === "atalhos" ? "#1e2027" : "#121318",
               borderColor:
                 activeTab === "atalhos"
-                  ? "rgba(255, 255, 255, 0.2)"
-                  : "rgba(255, 255, 255, 0.06)",
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.08)",
+              height: 46,
             }}
           >
-            <Sparkles size={15} color={activeTab === "atalhos" ? "#ffffff" : "#71717a"} />
+            <Sparkles size={16} color={activeTab === "atalhos" ? "#ffffff" : "#9ca3af"} />
             <Text
               style={{
-                color: activeTab === "atalhos" ? "#ffffff" : "#71717a",
-                fontSize: 12.5,
-                fontWeight: activeTab === "atalhos" ? "700" : "500",
+                color: activeTab === "atalhos" ? "#ffffff" : "#9ca3af",
+                fontSize: 13,
+                fontWeight: activeTab === "atalhos" ? "700" : "600",
               }}
             >
               Ações & Links
@@ -594,27 +631,27 @@ export default function PerfilPersonalizacaoScreen() {
         {/* 4. Tab 1: Identidade Visual & Cores */}
         {activeTab === "visual" && (
           <View className="gap-4">
-            {/* Card: Cor Primária do Sistema */}
+            {/* Card 1: Cor Primária do Sistema */}
             <View
               className="p-5 rounded-2xl border gap-4"
               style={{
                 backgroundColor: "#121318",
-                borderColor: "rgba(255, 255, 255, 0.07)",
+                borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              <View className="gap-1">
+              <View className="gap-1.5">
                 <View className="flex-row items-center gap-2">
-                  <Palette size={17} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                  <Palette size={18} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
                     Cor Primária do Sistema
                   </Text>
                 </View>
-                <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                  Substitua a cor de destaque do Reservei para botões, badges e status.
+                <Text style={{ color: "#9ca3af", fontSize: 13, lineHeight: 18 }}>
+                  Substitua a cor de destaque do Reservei. Afeta botões, badges, status e links para você e todos os profissionais da sua empresa.
                 </Text>
               </View>
 
-              {/* Color Preset Circles Grid */}
+              {/* Color Preset Circles Grid (8 in row 1, 1 in row 2) */}
               <View className="flex-row flex-wrap gap-3 pt-1">
                 {PRIMARY_COLOR_PRESETS.map((preset) => {
                   const isSelected =
@@ -647,19 +684,19 @@ export default function PerfilPersonalizacaoScreen() {
                 })}
               </View>
 
-              {/* Custom Color Input Row */}
+              {/* Custom Color Hex Input Row */}
               <View
-                className="flex-row items-center gap-2.5 p-2 rounded-xl border"
+                className="flex-row items-center gap-2.5 p-2.5 rounded-xl border"
                 style={{
                   backgroundColor: "#0d0e12",
-                  borderColor: "rgba(255, 255, 255, 0.06)",
+                  borderColor: "rgba(255, 255, 255, 0.08)",
                 }}
               >
                 <View
                   className="rounded-lg border"
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: 38,
+                    height: 38,
                     backgroundColor: primaryColor,
                     borderColor: "rgba(255, 255, 255, 0.2)",
                   }}
@@ -668,100 +705,51 @@ export default function PerfilPersonalizacaoScreen() {
                 <TextInput
                   value={primaryColor}
                   onChangeText={setPrimaryColor}
-                  placeholder="#dcff4c"
+                  placeholder="#696969"
                   placeholderTextColor="#52525b"
                   maxLength={9}
                   style={{
                     flex: 1,
                     backgroundColor: "#16171e",
-                    borderColor: "rgba(255, 255, 255, 0.08)",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
                     borderWidth: 1,
                     borderRadius: 8,
                     paddingHorizontal: 12,
-                    height: 38,
+                    height: 40,
                     color: "#ffffff",
-                    fontSize: 13,
+                    fontSize: 13.5,
                     fontWeight: "600",
                   }}
                 />
 
                 <Pressable
-                  onPress={() => setPrimaryColor("#dcff4c")}
-                  className="px-3 rounded-lg border items-center justify-center"
+                  onPress={() => setPrimaryColor("#3b82f6")}
+                  className="px-3.5 rounded-lg border items-center justify-center"
                   style={{
-                    backgroundColor: "#16171e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    height: 38,
+                    backgroundColor: "#181920",
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    height: 40,
                   }}
                 >
-                  <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
+                  <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
                     Restaurar padrão
                   </Text>
                 </Pressable>
               </View>
             </View>
 
-            {/* Card: Modo de Exibição (Tema Claro / Escuro / Sistema) */}
-            <View
-              className="p-5 rounded-2xl border gap-3.5"
-              style={{
-                backgroundColor: "#121318",
-                borderColor: "rgba(255, 255, 255, 0.07)",
-              }}
-            >
-              <View className="gap-1">
-                <View className="flex-row items-center gap-2">
-                  <Sun size={17} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
-                    Modo de Exibição (Tema)
-                  </Text>
-                </View>
-                <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                  Escolha como a interface será exibida no seu celular.
-                </Text>
-              </View>
-
-              <View className="flex-row gap-2.5 pt-1">
-                {(["dark", "light", "system"] as const).map((mode) => {
-                  const isSelected = themeMode === mode;
-                  const label = mode === "dark" ? "Escuro" : mode === "light" ? "Claro" : "Automático";
-                  return (
-                    <Pressable
-                      key={mode}
-                      onPress={() => setThemeMode(mode)}
-                      className="flex-1 py-3 px-2 rounded-xl border items-center justify-center"
-                      style={{
-                        backgroundColor: isSelected ? "rgba(255, 255, 255, 0.12)" : "#0d0e12",
-                        borderColor: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: isSelected ? "#ffffff" : "#9ca3af",
-                          fontSize: 13,
-                          fontWeight: isSelected ? "700" : "500",
-                        }}
-                      >
-                        {label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Card: Banner de Capa */}
+            {/* Card 2: Banner de Capa */}
             <View
               className="p-5 rounded-2xl border gap-4"
               style={{
                 backgroundColor: "#121318",
-                borderColor: "rgba(255, 255, 255, 0.07)",
+                borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
-                  <ImagePlus size={17} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                  <ImagePlus size={18} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
                     Banner de Capa
                   </Text>
                 </View>
@@ -769,7 +757,7 @@ export default function PerfilPersonalizacaoScreen() {
                 <Pressable
                   onPress={handlePickBanner}
                   disabled={uploadingBanner}
-                  className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border"
+                  className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg border"
                   style={{
                     backgroundColor: "#181920",
                     borderColor: "rgba(255, 255, 255, 0.12)",
@@ -780,16 +768,16 @@ export default function PerfilPersonalizacaoScreen() {
                   ) : (
                     <>
                       <Upload size={13} color="#ffffff" />
-                      <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
-                        Upload
+                      <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
+                        Upload do Celular
                       </Text>
                     </>
                   )}
                 </Pressable>
               </View>
 
-              <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                Imagem decorativa de destaque exibida no topo do painel inicial.
+              <Text style={{ color: "#9ca3af", fontSize: 13, lineHeight: 18, marginTop: -4 }}>
+                Imagem decorativa de destaque exibida no topo do painel inicial para você e toda a equipe.
               </Text>
 
               {/* URL Input & Limpar Button */}
@@ -798,7 +786,6 @@ export default function PerfilPersonalizacaoScreen() {
                   value={bannerUrl}
                   onChangeText={(text) => {
                     setBannerUrl(text);
-                    setBannerLoadError(false);
                   }}
                   placeholder="https://exemplo.com/banner.jpg"
                   placeholderTextColor="#52525b"
@@ -818,14 +805,12 @@ export default function PerfilPersonalizacaoScreen() {
                   <Pressable
                     onPress={() => {
                       setBannerUrl("");
-                      setBannerLoadError(false);
                     }}
-                    className="px-3.5 rounded-10 border items-center justify-center"
+                    className="px-3.5 border items-center justify-center rounded-xl"
                     style={{
                       backgroundColor: "#181920",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
                       height: 42,
-                      borderRadius: 10,
                     }}
                   >
                     <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
@@ -837,11 +822,11 @@ export default function PerfilPersonalizacaoScreen() {
 
               {/* Banner Presets Grid */}
               <View className="gap-2.5 pt-1">
-                <Text style={{ fontSize: 12, fontWeight: "600", color: "#9ca3af" }}>
+                <Text style={{ fontSize: 12.5, fontWeight: "600", color: "#9ca3af" }}>
                   Sugestões de Capas Profissionais:
                 </Text>
 
-                <View className="flex-row flex-wrap gap-2.5">
+                <View className="flex-row flex-wrap gap-2.5 justify-between">
                   {BANNER_PRESETS.map((preset) => {
                     const isSelected = bannerUrl === preset.url;
                     return (
@@ -849,12 +834,11 @@ export default function PerfilPersonalizacaoScreen() {
                         key={preset.id}
                         onPress={() => {
                           setBannerUrl(preset.url);
-                          setBannerLoadError(false);
                         }}
                         className="rounded-xl overflow-hidden border"
                         style={{
-                          width: "48%",
-                          height: 56,
+                          width: "48.5%",
+                          height: 58,
                           position: "relative",
                           borderColor: isSelected
                             ? "#ffffff"
@@ -874,9 +858,10 @@ export default function PerfilPersonalizacaoScreen() {
                             left: 0,
                             right: 0,
                             bottom: 0,
-                            backgroundColor: "rgba(0, 0, 0, 0.5)",
-                            justifyContent: "center",
-                            paddingHorizontal: 10,
+                            backgroundColor: "rgba(0, 0, 0, 0.45)",
+                            justifyContent: "flex-end",
+                            paddingHorizontal: 8,
+                            paddingBottom: 6,
                           }}
                         >
                           <Text
@@ -897,18 +882,18 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
             </View>
 
-            {/* Card: Logomarca da Empresa / Foto */}
+            {/* Card 3: Logomarca da Empresa / Foto */}
             <View
               className="p-5 rounded-2xl border gap-4"
               style={{
                 backgroundColor: "#121318",
-                borderColor: "rgba(255, 255, 255, 0.07)",
+                borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
-                  <ImageIcon size={17} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+                  <ImageIcon size={18} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
                     Logomarca da Empresa / Foto
                   </Text>
                 </View>
@@ -916,7 +901,7 @@ export default function PerfilPersonalizacaoScreen() {
                 <Pressable
                   onPress={handlePickAvatar}
                   disabled={uploadingAvatar}
-                  className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg border"
+                  className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg border"
                   style={{
                     backgroundColor: "#181920",
                     borderColor: "rgba(255, 255, 255, 0.12)",
@@ -927,16 +912,16 @@ export default function PerfilPersonalizacaoScreen() {
                   ) : (
                     <>
                       <Upload size={13} color="#ffffff" />
-                      <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
-                        Upload
+                      <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
+                        Upload da Logo / Foto
                       </Text>
                     </>
                   )}
                 </Pressable>
               </View>
 
-              <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
-                Logotipo ou foto principal exibida no topo do menu lateral e página online.
+              <Text style={{ color: "#9ca3af", fontSize: 13, lineHeight: 18, marginTop: -4 }}>
+                Logotipo ou foto principal exibida no topo do menu lateral, banner de boas-vindas e página de agendamento online.
               </Text>
 
               {/* URL Input & Limpar Button */}
@@ -945,7 +930,6 @@ export default function PerfilPersonalizacaoScreen() {
                   value={avatarUrl}
                   onChangeText={(text) => {
                     setAvatarUrl(text);
-                    setAvatarLoadError(false);
                   }}
                   placeholder="https://exemplo.com/foto.jpg"
                   placeholderTextColor="#52525b"
@@ -965,14 +949,12 @@ export default function PerfilPersonalizacaoScreen() {
                   <Pressable
                     onPress={() => {
                       setAvatarUrl("");
-                      setAvatarLoadError(false);
                     }}
-                    className="px-3.5 border items-center justify-center"
+                    className="px-3.5 border items-center justify-center rounded-xl"
                     style={{
                       backgroundColor: "#181920",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
                       height: 42,
-                      borderRadius: 10,
                     }}
                   >
                     <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
@@ -984,8 +966,8 @@ export default function PerfilPersonalizacaoScreen() {
 
               {/* Suggested Avatars List */}
               <View className="gap-2.5 pt-1">
-                <Text style={{ fontSize: 12, fontWeight: "600", color: "#9ca3af" }}>
-                  Avatares Sugeridos:
+                <Text style={{ fontSize: 12.5, fontWeight: "600", color: "#9ca3af" }}>
+                  Avatares e Ícones Sugeridos:
                 </Text>
 
                 <View className="flex-row items-center gap-3.5">
@@ -996,12 +978,11 @@ export default function PerfilPersonalizacaoScreen() {
                         key={preset.id}
                         onPress={() => {
                           setAvatarUrl(preset.url);
-                          setAvatarLoadError(false);
                         }}
                         className="rounded-full overflow-hidden border-2"
                         style={{
-                          width: 46,
-                          height: 46,
+                          width: 44,
+                          height: 44,
                           borderColor: isSelected
                             ? "#ffffff"
                             : "rgba(255, 255, 255, 0.15)",
@@ -1397,33 +1378,37 @@ export default function PerfilPersonalizacaoScreen() {
           </View>
         )}
 
-        {/* 8. Minimalist Bottom Save Card */}
+        {/* 8. Bottom Save Card (Matching Screenshot 3) */}
         <View
-          className="p-4 rounded-2xl border gap-3"
+          className="p-4 rounded-2xl border gap-3.5"
           style={{
             backgroundColor: "#121318",
-            borderColor: "rgba(255, 255, 255, 0.07)",
+            borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          <View className="flex-row items-center gap-2.5">
-            <ShieldCheck size={18} color={primaryColor || "#3b82f6"} />
-            <Text style={{ color: "#71717a", fontSize: 12, flex: 1, lineHeight: 16 }}>
-              As personalizações aplicadas aqui valem para você e todos os profissionais desta empresa
+          <View className="flex-row items-start gap-2.5">
+            <ShieldCheck size={18} color="#9ca3af" style={{ marginTop: 1 }} />
+            <Text style={{ color: "#9ca3af", fontSize: 12.5, flex: 1, lineHeight: 17 }}>
+              As personalizações aplicadas aqui valem para você e todos os profissionais desta empresa.
             </Text>
           </View>
 
           <Pressable
             onPress={handleSave}
             disabled={saving}
-            className="flex-row items-center justify-center gap-2 py-3.5 px-4 rounded-xl"
-            style={{ backgroundColor: "#ffffff" }}
+            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
+            style={{
+              backgroundColor: "#52545d",
+              borderColor: "rgba(255, 255, 255, 0.08)",
+              height: 44,
+            }}
           >
             {saving ? (
-              <ActivityIndicator size="small" color="#000000" />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <>
-                <Check size={18} color="#000000" strokeWidth={2.5} />
-                <Text style={{ color: "#000000", fontSize: 14, fontWeight: "700" }}>
+                <Check size={16} color="#ffffff" strokeWidth={2.5} />
+                <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
                   Salvar alterações
                 </Text>
               </>

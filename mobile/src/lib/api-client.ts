@@ -244,4 +244,28 @@ export function resolveImageUrl(url?: string | null): string | null {
   return `${baseUrl}${normalizedPath}`;
 }
 
+export function resolveImageUrlWithFallback(url?: string | null): { primary: string | null; fallback: string | null } {
+  if (!url || typeof url !== "string") return { primary: null, fallback: null };
+  const trimmed = url.trim();
+  if (!trimmed) return { primary: null, fallback: null };
+
+  if (trimmed.startsWith("data:") || trimmed.startsWith("file://")) {
+    return { primary: trimmed, fallback: null };
+  }
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return { primary: trimmed, fallback: null };
+  }
+
+  const baseUrl = resolveApiBaseUrl();
+  const normalizedPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  const primary = `${baseUrl}${normalizedPath}`;
+  const fallback = `https://usereservei.com.br${normalizedPath}`;
+
+  return {
+    primary,
+    fallback: primary === fallback ? null : fallback,
+  };
+}
+
 export { formatPhoneForWhatsApp } from "./formatters";

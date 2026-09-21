@@ -71,3 +71,6 @@ Thumbs.db
 /backups/
 *.sql.gz
 
+# User uploads
+/public/uploads/
+
