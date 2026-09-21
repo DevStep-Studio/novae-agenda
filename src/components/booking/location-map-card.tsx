@@ -31,7 +31,9 @@ export function LocationMapCard({
 
   function handleCopyAddress(e: React.MouseEvent) {
     e.stopPropagation();
-    void navigator.clipboard.writeText(cleanAddress);
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(cleanAddress);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -142,7 +144,7 @@ export function LocationMapCard({
             />
           ) : (
             <div className={styles.avatarFallback}>
-              {companyName.slice(0, 1).toUpperCase()}
+              {(companyName || "E").slice(0, 1).toUpperCase()}
             </div>
           )}
 

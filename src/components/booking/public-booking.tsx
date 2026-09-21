@@ -65,6 +65,15 @@ import {
 import { BookingPromoCarousel } from "./booking-promo-carousel";
 import { PageBuilderRenderer } from "./page-builder/page-builder-renderer";
 
+function generateId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return "id-" + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+}
+
 function downloadBookingIcs(booking: {
   companyName: string;
   serviceNames: string;
@@ -85,7 +94,7 @@ function downloadBookingIcs(booking: {
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${crypto.randomUUID()}@reservei.com.br`,
+    `UID:${generateId()}@reservei.com.br`,
     `DTSTAMP:${nowIso}`,
     `DTSTART:${startIso}`,
     `DTEND:${endIso}`,
@@ -405,17 +414,17 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
 
   useEffect(() => {
     void api<import("@/shared/types").MembershipPlanDTO[]>(`/api/public/${company.slug}/membership-plans`)
-      .then((data) => setMembershipPlans(data || []))
+      .then((data) => setMembershipPlans(Array.isArray(data) ? data : []))
       .catch(() => setMembershipPlans([]));
 
     void api<import("@/shared/types").CustomerMembershipDTO>(`/api/my/membership?companySlug=${company.slug}`)
-      .then((data) => setCustomerMembership(data))
+      .then((data) => setCustomerMembership((data && (data as any).id) ? data : null))
       .catch(() => setCustomerMembership(null));
   }, [company.slug]);
 
   useEffect(() => {
-    setRequestId(crypto.randomUUID());
-    const initialSessionId = crypto.randomUUID();
+    setRequestId(generateId());
+    const initialSessionId = generateId();
     setSessionId(initialSessionId);
     try {
       const raw = sessionStorage.getItem(storageKey);
@@ -587,7 +596,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
   function changeItems(next: Selection) {
     setItems(next);
     setSlot(null);
-    setRequestId(crypto.randomUUID());
+    setRequestId(generateId());
   }
 
   function go(next: number) {
@@ -652,7 +661,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         );
         setSlot(null);
         setStep(2);
-        setRequestId(crypto.randomUUID());
+        setRequestId(generateId());
       }
     } finally {
       setBusy(false);
@@ -2571,7 +2580,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
         )}
 
         {/* Month Scheduler Modal for Active Mensalistas */}
-        {customerMembership && (
+        {customerMembership && customerMembership.id && (
           <MonthSchedulerModal
             customerMembershipId={customerMembership.id}
             clientName={customer?.name || "Cliente"}
@@ -2579,8 +2588,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
             onClose={() => setMonthSchedulerOpen(false)}
             onSuccess={() => {
               setMonthSchedulerOpen(false);
-              void api<import("@/shared/types").CustomerMembershipDTO>(`/api/my/membership?companySlug=${company.slug}`)
-                .then(setCustomerMembership)
+              void api<import("@/shared/types").CustomerMembershipDTO | null>(`/api/my/membership?companySlug=${company.slug}`)
+                .then((res) => {
+                  const item = (res && typeof res === "object" && "id" in res) ? res : null;
+                  setCustomerMembership(item);
+                })
                 .catch(() => {});
             }}
             notify={(msg) => alert(msg)}

@@ -24,7 +24,9 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw new ApiError(message, res.status);
   }
 
-  return body?.data as T;
+  return (body !== null && typeof body === "object" && "data" in body
+    ? body.data
+    : body) as T;
 }
 
 export function formatPhoneForWhatsApp(phone: string | null | undefined): string {

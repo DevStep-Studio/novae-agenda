@@ -78,7 +78,7 @@ export function MembershipPlanCard({
         <div className={styles.inclusionsSection}>
           <span className={styles.inclusionsLabel}>Serviços Inclusos:</span>
           <div className={styles.servicesList}>
-            {plan.services.map((svc) => (
+            {(plan.services || []).map((svc) => (
               <span key={svc.id} className={styles.serviceChip}>
                 <Check size={13} color="#34d399" />
                 {svc.name}
