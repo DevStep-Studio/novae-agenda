@@ -1420,6 +1420,15 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </>
                   )}
 
+                  {/* Top Promotional Carousel (when position is 'top' or default) */}
+                  {company.promoBanners?.enabled &&
+                    company.promoBanners?.position !== "sidebar" &&
+                    (company.promoBanners?.items?.length ?? 0) > 0 && (
+                      <div style={{ marginBottom: 26, width: "100%" }}>
+                        <BookingPromoCarousel promoBanners={company.promoBanners} />
+                      </div>
+                    )}
+
                   {/* Active Mensalista Banner */}
                   {customerMembership && customerMembership.status === "active" && (
                     <ActiveMembershipBanner
@@ -2445,9 +2454,11 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               <aside className={b.summary} aria-label="Resumo do agendamento">
                 {renderSummaryContent(false)}
               </aside>
-              {company.promoBanners?.enabled && (company.promoBanners?.items?.length ?? 0) > 0 && (
-                <BookingPromoCarousel promoBanners={company.promoBanners} />
-              )}
+              {company.promoBanners?.enabled &&
+                company.promoBanners?.position === "sidebar" &&
+                (company.promoBanners?.items?.length ?? 0) > 0 && (
+                  <BookingPromoCarousel promoBanners={company.promoBanners} />
+                )}
             </div>
           </div>
         )}
@@ -2537,11 +2548,13 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               </div>
               <div className={b.bottomSheetBody}>
                 {renderSummaryContent(true)}
-                {company.promoBanners?.enabled && (company.promoBanners?.items?.length ?? 0) > 0 && (
-                  <div style={{ marginTop: 16 }}>
-                    <BookingPromoCarousel promoBanners={company.promoBanners} />
-                  </div>
-                )}
+                {company.promoBanners?.enabled &&
+                  company.promoBanners?.position === "sidebar" &&
+                  (company.promoBanners?.items?.length ?? 0) > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <BookingPromoCarousel promoBanners={company.promoBanners} />
+                    </div>
+                  )}
               </div>
             </div>
           </>

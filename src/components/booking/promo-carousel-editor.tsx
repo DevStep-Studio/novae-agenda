@@ -42,6 +42,19 @@ export function PromoCarouselEditor({
     });
   };
 
+  const handleUpdateConfig = (updates: Partial<PromoBannersConfig>) => {
+    onChange({
+      ...promoBanners,
+      ...updates,
+    });
+  };
+
+  const currentAspect = promoBanners.aspectRatio || "portrait";
+  const currentPos = promoBanners.position || "top";
+  const currentStyle = promoBanners.contentStyle || "overlay";
+  const currentFit = promoBanners.fit || "cover";
+  const currentSpeed = promoBanners.autoplaySpeed ?? 5000;
+
   const handleAddItem = () => {
     if (promoBanners.items.length >= 3) {
       notify("Você pode adicionar no máximo 3 artes.", "error");
@@ -197,6 +210,197 @@ export function PromoCarouselEditor({
           <div className={`${styles.switchKnob} ${promoBanners.enabled ? styles.switchKnobActive : ""}`} />
         </div>
       </div>
+
+      {/* Carousel Format & Display Options */}
+      {promoBanners.enabled && (
+        <div className={styles.configSection}>
+          <div className={styles.configSectionHeader}>
+            <span className={styles.configSectionTitle}>
+              <Sparkles size={16} style={{ color: "var(--primary, #dcff4c)" }} />
+              Formato & Estilo de Exibição do Carrossel
+            </span>
+            <p className={styles.configSectionSub}>
+              Escolha as dimensões ideais para suas artes e como as informações serão apresentadas.
+            </p>
+          </div>
+
+          {/* Formatos: Retrato, Stories, Quadrado, Banner */}
+          <div className={styles.formatGrid}>
+            <div
+              className={`${styles.formatCard} ${currentAspect === "portrait" ? styles.formatCardActive : ""}`}
+              onClick={() => handleUpdateConfig({ aspectRatio: "portrait" })}
+              role="button"
+              tabIndex={0}
+              title="Proporção 4:5 - Ideal para fotos de cortes e tratamentos"
+            >
+              <div className={`${styles.formatVisual} ${styles.shapePortrait}`} />
+              <div className={styles.formatInfo}>
+                <span className={styles.formatTitle}>Retrato (4:5)</span>
+                <span className={styles.formatSub}>Feed Instagram / Cortes</span>
+              </div>
+            </div>
+
+            <div
+              className={`${styles.formatCard} ${currentAspect === "story" ? styles.formatCardActive : ""}`}
+              onClick={() => handleUpdateConfig({ aspectRatio: "story" })}
+              role="button"
+              tabIndex={0}
+              title="Proporção 9:16 - Formato vertical de celular / Reels"
+            >
+              <div className={`${styles.formatVisual} ${styles.shapeStory}`} />
+              <div className={styles.formatInfo}>
+                <span className={styles.formatTitle}>Stories (9:16)</span>
+                <span className={styles.formatSub}>Vertical / Reels</span>
+              </div>
+            </div>
+
+            <div
+              className={`${styles.formatCard} ${currentAspect === "square" ? styles.formatCardActive : ""}`}
+              onClick={() => handleUpdateConfig({ aspectRatio: "square" })}
+              role="button"
+              tabIndex={0}
+              title="Proporção 1:1 - Formato quadrado tradicional"
+            >
+              <div className={`${styles.formatVisual} ${styles.shapeSquare}`} />
+              <div className={styles.formatInfo}>
+                <span className={styles.formatTitle}>Quadrado (1:1)</span>
+                <span className={styles.formatSub}>Feed Tradicional</span>
+              </div>
+            </div>
+
+            <div
+              className={`${styles.formatCard} ${currentAspect === "banner" ? styles.formatCardActive : ""}`}
+              onClick={() => handleUpdateConfig({ aspectRatio: "banner" })}
+              role="button"
+              tabIndex={0}
+              title="Proporção 16:9 - Formato horizontal panorâmico"
+            >
+              <div className={`${styles.formatVisual} ${styles.shapeBanner}`} />
+              <div className={styles.formatInfo}>
+                <span className={styles.formatTitle}>Banner (16:9)</span>
+                <span className={styles.formatSub}>Paisagem / Horizontal</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Posição na Página */}
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <span className={styles.settingTitle}>Posição no Agendamento</span>
+              <span className={styles.settingSub}>Onde o carrossel será exibido para o cliente</span>
+            </div>
+            <div className={styles.pillGroup}>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentPos === "top" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ position: "top" })}
+              >
+                Topo da Página (Em Destaque)
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentPos === "sidebar" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ position: "sidebar" })}
+              >
+                Barra Lateral / Resumo
+              </button>
+            </div>
+          </div>
+
+          {/* Estilo Visual das Informações */}
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <span className={styles.settingTitle}>Apresentação dos Textos</span>
+              <span className={styles.settingSub}>Como títulos, selos e botões aparecem</span>
+            </div>
+            <div className={styles.pillGroup}>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentStyle === "overlay" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ contentStyle: "overlay" })}
+              >
+                Sobreposto (Gradiente Cinema)
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentStyle === "card" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ contentStyle: "card" })}
+              >
+                Card Abaixo da Arte
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentStyle === "clean" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ contentStyle: "clean" })}
+              >
+                Apenas Arte Limpa
+              </button>
+            </div>
+          </div>
+
+          {/* Enquadramento da Mídia */}
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <span className={styles.settingTitle}>Enquadramento da Imagem/Vídeo</span>
+              <span className={styles.settingSub}>Como a imagem preenche a moldura</span>
+            </div>
+            <div className={styles.pillGroup}>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentFit === "cover" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ fit: "cover" })}
+              >
+                Preencher Todo o Espaço (Cover)
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentFit === "contain" ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ fit: "contain" })}
+              >
+                Conter Sem Cortar (Contain)
+              </button>
+            </div>
+          </div>
+
+          {/* Velocidade de Transição */}
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <span className={styles.settingTitle}>Transição Automática (Autoplay)</span>
+              <span className={styles.settingSub}>Tempo para avançar para a próxima arte</span>
+            </div>
+            <div className={styles.pillGroup}>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentSpeed === 3000 ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ autoplaySpeed: 3000 })}
+              >
+                Rápido (3s)
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentSpeed === 5000 ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ autoplaySpeed: 5000 })}
+              >
+                Normal (5s)
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentSpeed === 7000 ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ autoplaySpeed: 7000 })}
+              >
+                Lento (7s)
+              </button>
+              <button
+                type="button"
+                className={`${styles.pillBtn} ${currentSpeed === 0 ? styles.pillBtnActive : ""}`}
+                onClick={() => handleUpdateConfig({ autoplaySpeed: 0 })}
+              >
+                Manual
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Carousel Items Editor */}
       {promoBanners.enabled && (
@@ -409,6 +613,33 @@ export function PromoCarouselEditor({
                         maxLength={30}
                       />
                     </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>Alinhamento do foco / corte:</label>
+                      <div className={styles.pillGroup}>
+                        <button
+                          type="button"
+                          className={`${styles.pillBtn} ${(item.focusPosition || "center") === "center" ? styles.pillBtnActive : ""}`}
+                          onClick={() => handleUpdateItem(index, { focusPosition: "center" })}
+                        >
+                          Centro
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.pillBtn} ${item.focusPosition === "top" ? styles.pillBtnActive : ""}`}
+                          onClick={() => handleUpdateItem(index, { focusPosition: "top" })}
+                        >
+                          Topo (Rosto/Corte)
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.pillBtn} ${item.focusPosition === "bottom" ? styles.pillBtnActive : ""}`}
+                          onClick={() => handleUpdateItem(index, { focusPosition: "bottom" })}
+                        >
+                          Base
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -431,7 +662,7 @@ export function PromoCarouselEditor({
               <span className={styles.previewLabel}>
                 <Eye size={14} /> Pré-visualização ao vivo do carrossel
               </span>
-              <div style={{ maxWidth: 420 }}>
+              <div style={{ maxWidth: promoBanners.aspectRatio === "banner" ? "100%" : 440, margin: "0 auto", width: "100%" }}>
                 <BookingPromoCarousel promoBanners={promoBanners} />
               </div>
             </div>

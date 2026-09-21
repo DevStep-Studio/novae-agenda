@@ -278,10 +278,137 @@
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
 }
 
+/* Aspect Ratio Modifiers */
+.aspectPortrait {
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.aspectPortrait .slidesTrack {
+  aspect-ratio: 4 / 5;
+  min-height: 280px;
+  max-height: 520px;
+}
+
+.aspectStory {
+  max-width: 360px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.aspectStory .slidesTrack {
+  aspect-ratio: 9 / 16;
+  min-height: 320px;
+  max-height: 580px;
+}
+
+.aspectSquare {
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.aspectSquare .slidesTrack {
+  aspect-ratio: 1 / 1;
+  min-height: 240px;
+  max-height: 440px;
+}
+
+.aspectBanner {
+  width: 100%;
+}
+
+.aspectBanner .slidesTrack {
+  aspect-ratio: 16 / 9;
+  min-height: 180px;
+  max-height: 320px;
+}
+
+/* Object Fit & Focus */
+.fitContain .mediaImage,
+.fitContain .mediaVideo {
+  object-fit: contain;
+}
+
+.fitCover .mediaImage,
+.fitCover .mediaVideo {
+  object-fit: cover;
+}
+
+.focusTop .mediaImage,
+.focusTop .mediaVideo {
+  object-position: top center;
+}
+
+.focusCenter .mediaImage,
+.focusCenter .mediaVideo {
+  object-position: center center;
+}
+
+.focusBottom .mediaImage,
+.focusBottom .mediaVideo {
+  object-position: bottom center;
+}
+
+/* Content Style: Card Below Media */
+.contentCardContainer {
+  background: var(--booking-surface, #121316);
+  border-top: 1px solid var(--booking-border, rgba(255, 255, 255, 0.08));
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+:root[data-theme="light"] .contentCardContainer {
+  background: #ffffff;
+  border-top-color: #e2e8f0;
+}
+
+.cardTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--booking-text-primary, #ffffff);
+  margin: 0;
+  line-height: 1.3;
+}
+
+:root[data-theme="light"] .cardTitle {
+  color: #0f172a;
+}
+
+.cardSubtitle {
+  font-size: 12.5px;
+  color: var(--booking-text-muted, #a1a1aa);
+  margin: 0;
+  line-height: 1.4;
+}
+
+:root[data-theme="light"] .cardSubtitle {
+  color: #64748b;
+}
+
+.cardActionWrapper {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+
 @media (max-width: 480px) {
-  .slidesTrack {
-    aspect-ratio: 16 / 10;
-    min-height: 180px;
+  .aspectPortrait {
+    max-width: 100%;
+  }
+  .aspectStory {
+    max-width: 100%;
+  }
+  .aspectSquare {
+    max-width: 100%;
+  }
+  .aspectBanner {
+    max-width: 100%;
   }
   .slideTitle {
     font-size: 13.5px;

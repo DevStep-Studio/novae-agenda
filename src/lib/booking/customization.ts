@@ -150,6 +150,11 @@ export function isSectionVisible(
 // Promo Banners (Carousel) - 1 to 3 items (photos or videos)
 // ---------------------------------------------------------------------------
 
+export type CarouselAspectRatio = "portrait" | "story" | "square" | "banner";
+export type CarouselPosition = "top" | "sidebar";
+export type CarouselContentStyle = "overlay" | "card" | "clean";
+export type CarouselFit = "cover" | "contain";
+
 export type PromoBannerItem = {
   id: string;
   type: "image" | "video";
@@ -159,27 +164,60 @@ export type PromoBannerItem = {
   badge?: string;
   linkUrl?: string;
   buttonText?: string;
+  focusPosition?: "center" | "top" | "bottom";
 };
 
 export type PromoBannersConfig = {
   enabled: boolean;
+  aspectRatio?: CarouselAspectRatio; // "portrait" (4:5) | "story" (9:16) | "square" (1:1) | "banner" (16:9)
+  position?: CarouselPosition; // "top" | "sidebar"
+  contentStyle?: CarouselContentStyle; // "overlay" | "card" | "clean"
+  fit?: CarouselFit; // "cover" | "contain"
+  autoplaySpeed?: number; // 0 = manual, 3000, 5000, 7000
   items: PromoBannerItem[];
 };
 
 export const DEFAULT_PROMO_BANNERS: PromoBannersConfig = {
   enabled: false,
+  aspectRatio: "portrait",
+  position: "top",
+  contentStyle: "overlay",
+  fit: "cover",
+  autoplaySpeed: 5000,
   items: [],
 };
 
 export function parsePromoBanners(raw: unknown): PromoBannersConfig {
-  if (!raw) return { enabled: false, items: [] };
+  if (!raw) return { ...DEFAULT_PROMO_BANNERS, items: [] };
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (!parsed || typeof parsed !== "object") return { enabled: false, items: [] };
-    const enabled = Boolean((parsed as Record<string, unknown>).enabled);
-    const rawItems = Array.isArray((parsed as Record<string, unknown>).items)
-      ? (parsed as Record<string, unknown>).items
-      : [];
+    if (!parsed || typeof parsed !== "object") return { ...DEFAULT_PROMO_BANNERS, items: [] };
+    const rec = parsed as Record<string, unknown>;
+    const enabled = Boolean(rec.enabled);
+
+    const validAspects: CarouselAspectRatio[] = ["portrait", "story", "square", "banner"];
+    const aspectRatio: CarouselAspectRatio = validAspects.includes(rec.aspectRatio as any)
+      ? (rec.aspectRatio as CarouselAspectRatio)
+      : "portrait";
+
+    const validPositions: CarouselPosition[] = ["top", "sidebar"];
+    const position: CarouselPosition = validPositions.includes(rec.position as any)
+      ? (rec.position as CarouselPosition)
+      : "top";
+
+    const validStyles: CarouselContentStyle[] = ["overlay", "card", "clean"];
+    const contentStyle: CarouselContentStyle = validStyles.includes(rec.contentStyle as any)
+      ? (rec.contentStyle as CarouselContentStyle)
+      : "overlay";
+
+    const validFits: CarouselFit[] = ["cover", "contain"];
+    const fit: CarouselFit = validFits.includes(rec.fit as any)
+      ? (rec.fit as CarouselFit)
+      : "cover";
+
+    const autoplaySpeed = typeof rec.autoplaySpeed === "number" ? rec.autoplaySpeed : 5000;
+
+    const rawItems = Array.isArray(rec.items) ? rec.items : [];
     const items: PromoBannerItem[] = [];
     for (const item of rawItems as Record<string, unknown>[]) {
       if (items.length >= 3) break;
@@ -193,12 +231,21 @@ export function parsePromoBanners(raw: unknown): PromoBannersConfig {
           badge: typeof item.badge === "string" && item.badge.trim() ? item.badge.trim().slice(0, 30) : undefined,
           linkUrl: typeof item.linkUrl === "string" && item.linkUrl.trim() ? item.linkUrl.trim().slice(0, 300) : undefined,
           buttonText: typeof item.buttonText === "string" && item.buttonText.trim() ? item.buttonText.trim().slice(0, 40) : undefined,
+          focusPosition: item.focusPosition === "top" || item.focusPosition === "bottom" ? item.focusPosition : "center",
         });
       }
     }
-    return { enabled: enabled && items.length > 0, items };
+    return {
+      enabled: enabled && items.length > 0,
+      aspectRatio,
+      position,
+      contentStyle,
+      fit,
+      autoplaySpeed,
+      items,
+    };
   } catch {
-    return { enabled: false, items: [] };
+    return { ...DEFAULT_PROMO_BANNERS, items: [] };
   }
 }
 

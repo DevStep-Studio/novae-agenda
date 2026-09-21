@@ -430,3 +430,192 @@
   align-items: center;
   gap: 6px;
 }
+
+/* Format & Display Configuration Section */
+.configSection {
+  background: var(--surface-secondary, #1a1b23);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.configSectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.configSectionTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.configSectionSub {
+  font-size: 12.5px;
+  color: var(--text-muted, #71717a);
+  margin: 0;
+}
+
+.formatGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .formatGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.formatCard {
+  background: var(--surface, #14151b);
+  border: 1.5px solid var(--border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.formatCard:hover {
+  border-color: rgba(220, 255, 76, 0.4);
+  background: var(--surface-hover, #20212c);
+  transform: translateY(-2px);
+}
+
+.formatCardActive {
+  border-color: var(--primary, #dcff4c) !important;
+  background: rgba(220, 255, 76, 0.07) !important;
+  box-shadow: 0 0 16px rgba(220, 255, 76, 0.15);
+}
+
+.formatVisual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.formatCardActive .formatVisual {
+  border-color: var(--primary, #dcff4c);
+  background: rgba(220, 255, 76, 0.2);
+}
+
+/* Shape sizes for visual representation */
+.shapePortrait {
+  width: 22px;
+  height: 28px;
+}
+
+.shapeStory {
+  width: 18px;
+  height: 32px;
+}
+
+.shapeSquare {
+  width: 24px;
+  height: 24px;
+}
+
+.shapeBanner {
+  width: 32px;
+  height: 18px;
+}
+
+.formatInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.formatTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+}
+
+.formatCardActive .formatTitle {
+  color: var(--primary, #dcff4c);
+}
+
+.formatSub {
+  font-size: 11px;
+  color: var(--text-muted, #71717a);
+  line-height: 1.2;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  flex-wrap: wrap;
+}
+
+.settingInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+}
+
+.settingTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.settingSub {
+  font-size: 11.5px;
+  color: var(--text-muted, #71717a);
+}
+
+.pillGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pillBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--surface, #14151b);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--text-secondary, #a1a1aa);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pillBtn:hover {
+  background: var(--surface-hover, #20212c);
+  color: var(--text-primary, #ffffff);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pillBtnActive {
+  background: var(--primary, #dcff4c) !important;
+  color: #090a0f !important;
+  border-color: var(--primary, #dcff4c) !important;
+  font-weight: 700;
+}

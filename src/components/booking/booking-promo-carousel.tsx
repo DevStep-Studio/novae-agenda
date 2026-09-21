@@ -17,6 +17,11 @@ export function BookingPromoCarousel({
   const items = promoBanners?.items || [];
   const enabled = promoBanners?.enabled && items.length > 0;
 
+  const aspectRatio = promoBanners?.aspectRatio || "portrait";
+  const contentStyle = promoBanners?.contentStyle || "overlay";
+  const fit = promoBanners?.fit || "cover";
+  const autoplaySpeed = promoBanners?.autoplaySpeed ?? 5000;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
@@ -36,14 +41,14 @@ export function BookingPromoCarousel({
 
   // Autoplay timer
   useEffect(() => {
-    if (!enabled || totalItems <= 1 || isHovered) return;
+    if (!enabled || totalItems <= 1 || isHovered || autoplaySpeed <= 0) return;
 
     const interval = setInterval(() => {
       handleNext();
-    }, 5000);
+    }, autoplaySpeed);
 
     return () => clearInterval(interval);
-  }, [enabled, totalItems, isHovered, handleNext]);
+  }, [enabled, totalItems, isHovered, autoplaySpeed, handleNext]);
 
   // Touch swipe support
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -74,9 +79,20 @@ export function BookingPromoCarousel({
 
   const currentItem = items[currentIndex] || items[0];
 
+  const aspectClass =
+    aspectRatio === "story"
+      ? styles.aspectStory
+      : aspectRatio === "square"
+        ? styles.aspectSquare
+        : aspectRatio === "banner"
+          ? styles.aspectBanner
+          : styles.aspectPortrait;
+
+  const fitClass = fit === "contain" ? styles.fitContain : styles.fitCover;
+
   return (
     <div
-      className={`${styles.carouselContainer} ${className}`}
+      className={`${styles.carouselContainer} ${aspectClass} ${fitClass} ${className}`}
       aria-label="Carrossel promocional"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -87,11 +103,24 @@ export function BookingPromoCarousel({
       <div className={styles.slidesTrack}>
         {items.map((item, idx) => {
           const isActive = idx === currentIndex;
+          const focusClass =
+            item.focusPosition === "top"
+              ? styles.focusTop
+              : item.focusPosition === "bottom"
+                ? styles.focusBottom
+                : styles.focusCenter;
+
           return (
             <div
               key={item.id || idx}
-              className={`${styles.slide} ${isActive ? styles.slideActive : styles.slideInactive}`}
+              className={`${styles.slide} ${isActive ? styles.slideActive : styles.slideInactive} ${focusClass}`}
               aria-hidden={!isActive}
+              onClick={() => {
+                if (contentStyle === "clean" && item.linkUrl) {
+                  window.open(item.linkUrl, "_blank", "noopener,noreferrer");
+                }
+              }}
+              style={contentStyle === "clean" && item.linkUrl ? { cursor: "pointer" } : undefined}
             >
               {/* Media Content: Image or Video */}
               <div className={styles.mediaWrapper}>
@@ -123,44 +152,76 @@ export function BookingPromoCarousel({
                   </div>
                 )}
 
-                {/* Dark Gradient Scrim Overlay */}
-                <div className={styles.gradientOverlay} />
+                {/* Dark Gradient Scrim Overlay (only for overlay style) */}
+                {contentStyle === "overlay" && <div className={styles.gradientOverlay} />}
               </div>
 
-              {/* Text & Action Overlay */}
-              <div className={styles.contentOverlay}>
-                {item.badge && (
-                  <div className={styles.badgeWrapper}>
-                    <span className={styles.badgeTag}>
-                      <Sparkles size={11} className={styles.badgeIcon} />
-                      {item.badge}
-                    </span>
-                  </div>
-                )}
+              {/* Text & Action Overlay (only for overlay style) */}
+              {contentStyle === "overlay" && (
+                <div className={styles.contentOverlay}>
+                  {item.badge && (
+                    <div className={styles.badgeWrapper}>
+                      <span className={styles.badgeTag}>
+                        <Sparkles size={11} className={styles.badgeIcon} />
+                        {item.badge}
+                      </span>
+                    </div>
+                  )}
 
-                {item.title && <h3 className={styles.slideTitle}>{item.title}</h3>}
+                  {item.title && <h3 className={styles.slideTitle}>{item.title}</h3>}
 
-                {item.subtitle && <p className={styles.slideSubtitle}>{item.subtitle}</p>}
+                  {item.subtitle && <p className={styles.slideSubtitle}>{item.subtitle}</p>}
 
-                {item.linkUrl && (
-                  <div className={styles.actionWrapper}>
-                    <a
-                      href={item.linkUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.actionButton}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span>{item.buttonText || "Saiba mais"}</span>
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                )}
-              </div>
+                  {item.linkUrl && (
+                    <div className={styles.actionWrapper}>
+                      <a
+                        href={item.linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.actionButton}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span>{item.buttonText || "Saiba mais"}</span>
+                        <ExternalLink size={13} />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {/* Card Content Below Media (for 'card' style) */}
+      {contentStyle === "card" && (currentItem.title || currentItem.subtitle || currentItem.badge || currentItem.linkUrl) && (
+        <div className={styles.contentCardContainer}>
+          {currentItem.badge && (
+            <div className={styles.badgeWrapper}>
+              <span className={styles.badgeTag}>
+                <Sparkles size={11} className={styles.badgeIcon} />
+                {currentItem.badge}
+              </span>
+            </div>
+          )}
+          {currentItem.title && <h3 className={styles.cardTitle}>{currentItem.title}</h3>}
+          {currentItem.subtitle && <p className={styles.cardSubtitle}>{currentItem.subtitle}</p>}
+          {currentItem.linkUrl && (
+            <div className={styles.cardActionWrapper}>
+              <a
+                href={currentItem.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.actionButton}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <span>{currentItem.buttonText || "Saiba mais"}</span>
+                <ExternalLink size={13} />
+              </a>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation Arrows (Only if multiple items) */}
       {totalItems > 1 && (
