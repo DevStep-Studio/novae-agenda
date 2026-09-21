@@ -50,6 +50,11 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "long",
 });
 
+const monthFormatter = new Intl.DateTimeFormat("pt-BR", {
+  month: "long",
+  year: "numeric",
+});
+
 function dateLabel(date: string): string {
   try {
     const d = new Date(`${date}T12:00:00`);
@@ -61,10 +66,75 @@ function dateLabel(date: string): string {
   }
 }
 
-function shiftDate(date: string, days: number): string {
+function getWeekDays(date: string): string[] {
+  const start = new Date(`${date}T12:00:00Z`);
+  const monday = new Date(start);
+  monday.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setUTCDate(monday.getUTCDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+}
+
+function getMonthCells(anchorDate: string): Array<{ day: number; date: string } | null> {
+  const today = todayKey();
+  const safeAnchor = anchorDate && anchorDate.length >= 10 ? anchorDate : today;
+  const year = Number(safeAnchor.slice(0, 4)) || new Date().getFullYear();
+  const month = (Number(safeAnchor.slice(5, 7)) || (new Date().getMonth() + 1)) - 1;
+  const first = new Date(Date.UTC(year, month, 1));
+  const startOffset = (first.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const cells: Array<{ day: number; date: string } | null> = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    cells.push({
+      day: d,
+      date: `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+    });
+  }
+  return cells;
+}
+
+function getCalendarTitle(date: string, mode: CalendarMode): string {
+  try {
+    if (mode === "month") {
+      const d = new Date(`${date}T12:00:00`);
+      if (Number.isNaN(d.getTime())) return "Mês";
+      const formatted = monthFormatter.format(d);
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+    if (mode === "week") {
+      const days = getWeekDays(date);
+      const monday = new Date(`${days[0]}T12:00:00Z`);
+      const sunday = new Date(`${days[6]}T12:00:00Z`);
+      const monDay = String(monday.getUTCDate()).padStart(2, "0");
+      const sunDay = String(sunday.getUTCDate()).padStart(2, "0");
+      const monMonth = monday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+      const sunMonth = sunday.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
+      const year = sunday.getUTCFullYear();
+
+      if (monMonth === sunMonth) {
+        return `${monDay} a ${sunDay} de ${monMonth}, ${year}`;
+      }
+      return `${monDay} de ${monMonth} a ${sunDay} de ${sunMonth}, ${year}`;
+    }
+    return dateLabel(date);
+  } catch {
+    return "Agenda";
+  }
+}
+
+function changeDateByMode(date: string, mode: CalendarMode, direction: number): string {
   const d = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return todayKey();
-  d.setUTCDate(d.getUTCDate() + days);
+  if (mode === "day") {
+    d.setUTCDate(d.getUTCDate() + direction);
+  } else if (mode === "week") {
+    d.setUTCDate(d.getUTCDate() + direction * 7);
+  } else if (mode === "month") {
+    d.setUTCMonth(d.getUTCMonth() + direction);
+  }
   return d.toISOString().slice(0, 10);
 }
 
@@ -120,11 +190,25 @@ export default function AgendaScreen() {
   const currentTimeStr = `${String(currentHour).padStart(2, "0")}:${String(currentMin).padStart(2, "0")}`;
   const isToday = selectedDate === todayKey();
 
-  const load = useCallback(async (date: string) => {
+  const load = useCallback(async (date: string, mode: CalendarMode = calMode) => {
     setError(null);
     try {
+      let from = date;
+      let to = date;
+      if (mode === "week") {
+        const days = getWeekDays(date);
+        from = days[0];
+        to = days[days.length - 1];
+      } else if (mode === "month") {
+        const ym = date.slice(0, 7);
+        const [yStr, mStr] = ym.split("-");
+        const daysInMonth = new Date(Date.UTC(Number(yStr), Number(mStr), 0)).getUTCDate();
+        from = `${ym}-01`;
+        to = `${ym}-${String(daysInMonth).padStart(2, "0")}`;
+      }
+
       const [aptsData, empsData, servsData, clientsData] = await Promise.all([
-        getAppointments({ from: date, to: date }),
+        getAppointments({ from, to }),
         getEmployees().catch(() => []),
         getServices().catch(() => []),
         getClients().catch(() => []),
@@ -136,34 +220,52 @@ export default function AgendaScreen() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível carregar a agenda.");
     }
-  }, []);
+  }, [calMode]);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     async function run() {
-      await load(selectedDate);
+      await load(selectedDate, calMode);
       if (!cancelled) setLoading(false);
     }
     run();
     return () => {
       cancelled = true;
     };
-  }, [selectedDate, load]);
+  }, [selectedDate, calMode, load]);
 
   async function onRefresh() {
     setRefreshing(true);
-    await load(selectedDate);
+    await load(selectedDate, calMode);
     setRefreshing(false);
   }
 
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
+  const monthCells = useMemo(() => getMonthCells(selectedDate), [selectedDate]);
+  const calendarTitle = useMemo(() => getCalendarTitle(selectedDate, calMode), [selectedDate, calMode]);
+
+  const filteredAppointments = useMemo(() => {
+    if (employeeFilter === "all") return appointments;
+    return appointments.filter((a) => a.employeeId === employeeFilter);
+  }, [appointments, employeeFilter]);
+
   const { activeCount, projectedRevenue } = useMemo(() => {
-    const active = appointments.filter((a) => a.status !== "cancelled");
+    let list = filteredAppointments;
+    if (calMode === "day") {
+      list = list.filter((a) => a.date === selectedDate);
+    } else if (calMode === "week") {
+      list = list.filter((a) => weekDays.includes(a.date));
+    } else if (calMode === "month") {
+      const ym = selectedDate.slice(0, 7);
+      list = list.filter((a) => a.date.startsWith(ym));
+    }
+    const active = list.filter((a) => a.status !== "cancelled");
     return {
       activeCount: active.length,
       projectedRevenue: active.reduce((sum, a) => sum + (a.total || 0), 0),
     };
-  }, [appointments]);
+  }, [filteredAppointments, calMode, selectedDate, weekDays]);
 
   const visibleEmployees = useMemo(() => {
     if (employeeFilter !== "all") {
@@ -174,18 +276,20 @@ export default function AgendaScreen() {
     return active.length > 0 ? active : employees;
   }, [employees, employeeFilter]);
 
-  const handleSlotPress = (empId: string, time: string) => {
+  const handleSlotPress = (empId: string, time: string, date: string = selectedDate) => {
     const apt = appointments.find(
       (a) =>
-        a.employeeId === empId &&
+        (empId ? a.employeeId === empId : true) &&
+        a.date === date &&
         a.startTime.startsWith(time.slice(0, 2)) &&
         a.status !== "cancelled"
     );
     if (apt) {
       setDetailAppointment(apt);
     } else {
-      setFormEmployeeId(empId);
+      if (empId) setFormEmployeeId(empId);
       setFormTime(time);
+      setSelectedDate(date);
       if (services.length > 0 && !formServiceId) {
         setFormServiceId(services[0].id);
       }
@@ -316,7 +420,7 @@ export default function AgendaScreen() {
               lineHeight: 28,
             }}
           >
-            {dateLabel(selectedDate)}
+            {calendarTitle}
           </Text>
           <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
             {activeCount} {activeCount === 1 ? "atendimento" : "atendimentos"} · {formatBRL(projectedRevenue)} previsto
@@ -341,7 +445,7 @@ export default function AgendaScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setSelectedDate((d) => shiftDate(d, -1))}
+              onPress={() => setSelectedDate((d) => changeDateByMode(d, calMode, -1))}
               hitSlop={8}
               className="p-1.5 rounded-lg"
             >
@@ -349,7 +453,7 @@ export default function AgendaScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setSelectedDate((d) => shiftDate(d, 1))}
+              onPress={() => setSelectedDate((d) => changeDateByMode(d, calMode, 1))}
               hitSlop={8}
               className="p-1.5 rounded-lg"
             >
@@ -367,7 +471,7 @@ export default function AgendaScreen() {
             }}
             numberOfLines={1}
           >
-            {dateLabel(selectedDate)}
+            {calendarTitle}
           </Text>
         </View>
 
@@ -501,12 +605,13 @@ export default function AgendaScreen() {
           </View>
         </View>
 
-        {/* 6. Multi-Professional Timetable Grid */}
+        {/* 6. Calendar View: Dia / Semana / Mês */}
         {loading ? (
           <View className="py-12 items-center justify-center">
             <ActivityIndicator color={primaryColor} />
           </View>
-        ) : (
+        ) : calMode === "day" ? (
+          /* Modo Dia: Grade Multi-Profissional */
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="rounded-xl border" style={{ borderColor: "rgba(255, 255, 255, 0.08)", backgroundColor: "#111216" }}>
             <View>
               {/* Table Header: Time Slot Column + Professional Columns */}
@@ -531,7 +636,7 @@ export default function AgendaScreen() {
                     .map((p) => p[0]?.toUpperCase())
                     .join("");
 
-                  const countEmp = appointments.filter((a) => a.employeeId === emp.id && a.status !== "cancelled").length;
+                  const countEmp = filteredAppointments.filter((a) => a.employeeId === emp.id && a.date === selectedDate && a.status !== "cancelled").length;
 
                   return (
                     <View
@@ -591,9 +696,10 @@ export default function AgendaScreen() {
 
                     {/* Professional slot cells */}
                     {visibleEmployees.map((emp) => {
-                      const apt = appointments.find(
+                      const apt = filteredAppointments.find(
                         (a) =>
                           a.employeeId === emp.id &&
+                          a.date === selectedDate &&
                           a.startTime.startsWith(time.slice(0, 2)) &&
                           a.status !== "cancelled"
                       );
@@ -601,7 +707,7 @@ export default function AgendaScreen() {
                       return (
                         <Pressable
                           key={emp.id}
-                          onPress={() => handleSlotPress(emp.id, time)}
+                          onPress={() => handleSlotPress(emp.id, time, selectedDate)}
                           className="border-r p-1.5 justify-center"
                           style={{
                             width: 190,
@@ -629,7 +735,7 @@ export default function AgendaScreen() {
                       );
                     })}
 
-                    {/* Real-time Indicator Line (like in web screenshot) */}
+                    {/* Real-time Indicator Line */}
                     {isCurrentHourSlot && (
                       <View
                         style={{
@@ -667,9 +773,299 @@ export default function AgendaScreen() {
               })}
             </View>
           </ScrollView>
+        ) : calMode === "week" ? (
+          /* Modo Semana: Grade dos 7 Dias da Semana */
+          <View className="gap-3">
+            {/* Header Track com os 7 Dias */}
+            <View
+              className="flex-row items-center justify-between p-1.5 rounded-xl border"
+              style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+            >
+              {weekDays.map((day, idx) => {
+                const isDayToday = day === todayKey();
+                const isDaySelected = day === selectedDate;
+                const dayLabels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+                const dayAptsCount = filteredAppointments.filter((a) => a.date === day && a.status !== "cancelled").length;
+
+                return (
+                  <Pressable
+                    key={day}
+                    onPress={() => {
+                      setSelectedDate(day);
+                      setCalMode("day");
+                    }}
+                    className="flex-1 items-center justify-center py-2 rounded-lg"
+                    style={{
+                      backgroundColor: isDaySelected
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : isDayToday
+                        ? "rgba(255, 255, 255, 0.04)"
+                        : "transparent",
+                      borderWidth: isDaySelected ? 1 : 0,
+                      borderColor: isDaySelected ? "rgba(255, 255, 255, 0.2)" : "transparent",
+                    }}
+                  >
+                    <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>
+                      {dayLabels[idx]}
+                    </Text>
+                    <Text
+                      style={{
+                        color: isDayToday ? primaryColor : "#ffffff",
+                        fontSize: 14,
+                        fontWeight: "700",
+                        marginTop: 1,
+                      }}
+                    >
+                      {day.slice(8, 10)}
+                    </Text>
+                    <Text style={{ color: colors.textMuted, fontSize: 10, marginTop: 1 }}>
+                      {dayAptsCount}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Timetable da Semana com Scroll Horizontal */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="rounded-xl border"
+              style={{ borderColor: "rgba(255, 255, 255, 0.08)", backgroundColor: "#111216" }}
+            >
+              <View>
+                {/* Cabeçalho da Tabela da Semana */}
+                <View
+                  className="flex-row border-b"
+                  style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)", backgroundColor: "#16171c" }}
+                >
+                  <View
+                    className="items-center justify-center border-r p-2.5"
+                    style={{ width: 65, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                  >
+                    <View className="flex-row items-center gap-1">
+                      <Clock size={12} color={colors.textMuted} />
+                      <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "600" }}>Hora</Text>
+                    </View>
+                  </View>
+
+                  {weekDays.map((day, idx) => {
+                    const dayLabels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+                    const isDayToday = day === todayKey();
+                    const dayAptsCount = filteredAppointments.filter((a) => a.date === day && a.status !== "cancelled").length;
+
+                    return (
+                      <Pressable
+                        key={day}
+                        onPress={() => {
+                          setSelectedDate(day);
+                          setCalMode("day");
+                        }}
+                        className="items-center justify-center p-2.5 border-r"
+                        style={{ width: 140, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                      >
+                        <Text style={{ color: isDayToday ? primaryColor : "#ffffff", fontSize: 12.5, fontWeight: "700" }}>
+                          {dayLabels[idx]} {day.slice(8, 10)}
+                        </Text>
+                        <Text style={{ color: colors.textMuted, fontSize: 10.5 }}>
+                          {dayAptsCount} {dayAptsCount === 1 ? "atendimento" : "atendimentos"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {/* Linhas de Horário da Semana */}
+                {TIME_SLOTS.map((time) => {
+                  return (
+                    <View
+                      key={time}
+                      className="flex-row border-b relative"
+                      style={{
+                        borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                        minHeight: 56,
+                      }}
+                    >
+                      {/* Rótulo de Horário */}
+                      <View
+                        className="items-center justify-center border-r p-2"
+                        style={{ width: 65, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                      >
+                        <Text style={{ color: colors.textMuted, fontSize: 11.5, fontWeight: "500" }}>
+                          {time}
+                        </Text>
+                      </View>
+
+                      {/* Células por Dia da Semana */}
+                      {weekDays.map((day) => {
+                        const aptsInSlot = filteredAppointments.filter(
+                          (a) =>
+                            a.date === day &&
+                            a.startTime.startsWith(time.slice(0, 2)) &&
+                            a.status !== "cancelled"
+                        );
+
+                        return (
+                          <Pressable
+                            key={day}
+                            onPress={() => {
+                              if (aptsInSlot.length > 0) {
+                                setDetailAppointment(aptsInSlot[0]);
+                              } else {
+                                handleSlotPress("", time, day);
+                              }
+                            }}
+                            className="border-r p-1.5 justify-center"
+                            style={{
+                              width: 140,
+                              borderRightColor: "rgba(255, 255, 255, 0.08)",
+                              backgroundColor: aptsInSlot.length > 0 ? "rgba(16, 185, 129, 0.12)" : "transparent",
+                            }}
+                          >
+                            {aptsInSlot.map((apt) => (
+                              <View
+                                key={apt.id}
+                                className="p-1.5 rounded-lg border gap-0.5"
+                                style={{
+                                  backgroundColor: "#162820",
+                                  borderColor: primaryColor,
+                                }}
+                              >
+                                <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }} numberOfLines={1}>
+                                  {apt.clientName || "Cliente"}
+                                </Text>
+                                <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "600" }} numberOfLines={1}>
+                                  {apt.serviceName || "Serviço"} · {apt.startTime}
+                                </Text>
+                              </View>
+                            ))}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </View>
+        ) : (
+          /* Modo Mês: Grade Mensal Completa */
+          <View
+            className="p-3 rounded-xl border"
+            style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.08)" }}
+          >
+            {/* Cabeçalho dos Dias da Semana */}
+            <View className="flex-row border-b pb-2 mb-2" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+              {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((w) => (
+                <View key={w} style={{ flex: 1, alignItems: "center" }}>
+                  <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "700" }}>{w}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Células do Calendário Mensal */}
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              {monthCells.map((cell, idx) => {
+                if (!cell) {
+                  return (
+                    <View
+                      key={`empty-${idx}`}
+                      style={{
+                        width: "14.285%",
+                        minHeight: 64,
+                        padding: 2,
+                        opacity: 0.25,
+                      }}
+                    />
+                  );
+                }
+
+                const isCellToday = cell.date === todayKey();
+                const isCellSelected = cell.date === selectedDate;
+                const cellApts = filteredAppointments.filter(
+                  (a) => a.date === cell.date && a.status !== "cancelled"
+                );
+
+                return (
+                  <Pressable
+                    key={cell.date}
+                    onPress={() => {
+                      setSelectedDate(cell.date);
+                      setCalMode("day");
+                    }}
+                    style={{
+                      width: "14.285%",
+                      minHeight: 64,
+                      padding: 2,
+                      borderRadius: 8,
+                      backgroundColor: isCellSelected
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : isCellToday
+                        ? "rgba(255, 255, 255, 0.03)"
+                        : "transparent",
+                      borderWidth: isCellSelected ? 1 : isCellToday ? 1 : 0,
+                      borderColor: isCellSelected
+                        ? "rgba(255, 255, 255, 0.25)"
+                        : isCellToday
+                        ? primaryColor
+                        : "transparent",
+                    }}
+                  >
+                    {/* Topo da Célula: Dia + indicador Hoje */}
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 2 }}>
+                      <Text
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: isCellToday || isCellSelected ? "800" : "500",
+                          color: isCellToday ? primaryColor : "#ffffff",
+                        }}
+                      >
+                        {cell.day}
+                      </Text>
+                      {isCellToday ? (
+                        <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: primaryColor }} />
+                      ) : null}
+                    </View>
+
+                    {/* Chips de Agendamento */}
+                    <View style={{ gap: 2, marginTop: 2 }}>
+                      {cellApts.slice(0, 2).map((apt) => (
+                        <Pressable
+                          key={apt.id}
+                          onPress={() => setDetailAppointment(apt)}
+                          style={{
+                            backgroundColor: "rgba(16, 185, 129, 0.2)",
+                            borderRadius: 4,
+                            paddingHorizontal: 3,
+                            paddingVertical: 1,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 8.5,
+                              fontWeight: "700",
+                              color: "#10b981",
+                            }}
+                            numberOfLines={1}
+                          >
+                            {apt.startTime.slice(0, 5)} {apt.clientName?.split(" ")[0] || "Cli"}
+                          </Text>
+                        </Pressable>
+                      ))}
+                      {cellApts.length > 2 ? (
+                        <Text style={{ fontSize: 8, color: colors.textMuted, fontWeight: "600", paddingHorizontal: 2 }}>
+                          +{cellApts.length - 2} mais
+                        </Text>
+                      ) : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         )}
 
-        {/* 7. Bottom Empty State Notice (Verbatim from Web App Screenshot) */}
+        {/* 7. Bottom Empty State Notice */}
         <View
           className="flex-row items-center gap-2.5 p-4 rounded-xl border"
           style={{
@@ -680,8 +1076,8 @@ export default function AgendaScreen() {
           <Calendar size={18} color={colors.textMuted} />
           <Text style={{ color: colors.textMuted, fontSize: 12.5, lineHeight: 17, flex: 1 }}>
             {activeCount > 0
-              ? `${activeCount} agendamentos cadastrados para este dia. Toque em qualquer atendimento para gerenciar.`
-              : "Nenhum atendimento agendado para este dia. Clique em qualquer horário para criar."}
+              ? `${activeCount} ${activeCount === 1 ? "agendamento cadastrado" : "agendamentos cadastrados"} para ${calMode === "day" ? "este dia" : calMode === "week" ? "esta semana" : "este mês"}. Toque em qualquer atendimento para gerenciar.`
+              : `Nenhum atendimento agendado para ${calMode === "day" ? "este dia" : calMode === "week" ? "esta semana" : "este mês"}. Clique em qualquer horário para criar.`}
           </Text>
         </View>
       </ScrollView>
