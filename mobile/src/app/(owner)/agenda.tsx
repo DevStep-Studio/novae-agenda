@@ -528,10 +528,10 @@ export default function AgendaScreen() {
               setNewModalVisible(true);
             }}
             className="flex-1 flex-row items-center justify-center gap-1.5 py-3 px-3 rounded-xl"
-            style={{ backgroundColor: "#ffffff" }}
+            style={{ backgroundColor: primaryColor }}
           >
-            <Plus size={16} color="#000000" strokeWidth={2.5} />
-            <Text style={{ color: "#000000", fontSize: 13, fontWeight: "700" }}>
+            <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+            <Text style={{ color: primaryForeground, fontSize: 13, fontWeight: "700" }}>
               Novo agendamento
             </Text>
           </Pressable>

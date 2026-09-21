@@ -5,11 +5,13 @@ import { router } from "expo-router";
 
 import { bottomNav } from "@/constants/design-tokens";
 import { useTheme } from "@/hooks/use-theme";
+import { useSession } from "@/lib/session-context";
 
 // .mobile-bottom-nav / .mobile-nav-item / .mobile-nav-indicator / .mobile-nav-add-btn
 // globals.css:8589-8706. Pixel perfect match with web responsive bottom bar.
 export function BottomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
-  const { primaryColor } = useTheme();
+  const { session } = useSession();
+  const { primaryColor, primaryForeground } = useTheme();
 
   const visibleRoutes = state.routes.filter((route) => {
     const { options } = descriptors[route.key];
@@ -89,7 +91,11 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
           marginTop: -14,
         }}
         onPress={() => {
-          router.push("/(owner)/agenda");
+          if (session?.role === "employee") {
+            router.push("/(employee)");
+          } else {
+            router.push("/(owner)/agenda");
+          }
         }}
       >
         <View
@@ -97,7 +103,7 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
             width: bottomNav.addButtonSize,
             height: bottomNav.addButtonSize,
             borderRadius: bottomNav.addButtonSize / 2,
-            backgroundColor: "#ffffff",
+            backgroundColor: primaryColor,
             alignItems: "center",
             justifyContent: "center",
             shadowColor: "#000",
@@ -107,7 +113,7 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
             elevation: 6,
           }}
         >
-          <Plus size={24} color="#000000" strokeWidth={2.5} />
+          <Plus size={24} color={primaryForeground} strokeWidth={2.5} />
         </View>
         <Text style={{ color: bottomNav.itemInactiveColor, fontSize: 11, fontWeight: "500" }}>Novo</Text>
       </Pressable>

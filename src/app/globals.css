@@ -8674,8 +8674,8 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
     height: 48px !important;
     min-width: 48px !important;
     border-radius: 50% !important;
-    background: #ffffff !important;
-    color: #000000 !important;
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
     border: none !important;
     display: grid !important;
     place-items: center !important;
@@ -8686,7 +8686,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   }
   .mobile-nav-add-btn:active {
     transform: scale(0.92) translateY(1px) !important;
-    background: #f1f5f9 !important;
+    opacity: 0.9 !important;
   }
 
   .mobile-nav-add-label {

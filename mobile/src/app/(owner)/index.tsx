@@ -1202,11 +1202,11 @@ export default function OwnerHomeScreen() {
                     borderRadius: 12,
                     height: 44,
                     paddingHorizontal: 12,
-                    backgroundColor: isDark ? "#ffffff" : primaryColor,
+                    backgroundColor: primaryColor,
                   }}
                 >
-                  <Plus size={18} color={isDark ? "#000000" : primaryForeground} strokeWidth={2.5} />
-                  <Text style={{ color: isDark ? "#000000" : primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                  <Plus size={18} color={primaryForeground} strokeWidth={2.5} />
+                  <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
                     Novo agendamento
                   </Text>
                 </Pressable>

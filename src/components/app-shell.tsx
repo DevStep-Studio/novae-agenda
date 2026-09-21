@@ -7433,7 +7433,7 @@ export function AppShell({ initialView }: { initialView?: ViewKey } = {}) {
             title="Novo Agendamento"
             aria-label="Novo agendamento"
           >
-            <Plus size={22} color="#000000" strokeWidth={2.6} />
+            <Plus size={22} color="currentColor" strokeWidth={2.6} />
           </button>
           <span className="mobile-nav-add-label">Novo</span>
         </div>
