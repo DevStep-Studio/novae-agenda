@@ -340,11 +340,12 @@ function DashboardPage({
             onClick={() => setCustomizing(true)}
             title="Personalizar seções visíveis na página inicial"
           >
-            <SlidersHorizontal size={14} />
+            <SlidersHorizontal size={15} />
             <span>Personalizar início</span>
           </button>
           <Button onClick={onNew}>
-            <Plus size={17} /> Novo agendamento
+            <Plus size={15} />
+            <span>Novo agendamento</span>
           </Button>
         </div>
       </div>

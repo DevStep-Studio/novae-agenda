@@ -1389,21 +1389,41 @@ a.button:not(.button-secondary):not(.button-ghost):not(.button-danger) svg,
   align-items: center;
   gap: 10px;
 }
+.dashboard-header-actions .customize-toggle-btn,
+.dashboard-header-actions .button,
+.dashboard-header-actions button {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  line-height: 1;
+}
 .customize-toggle-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: var(--radius-sm);
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm, 8px);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: none !important;
+  box-sizing: border-box;
+  line-height: 1;
 }
 .customize-toggle-btn:hover {
   background: var(--surface-hover);
