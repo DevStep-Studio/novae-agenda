@@ -1,4 +1,4 @@
-import { Plus, Tag, X } from "lucide-react-native";
+import { Check, Clock3, Edit2, Layers, Plus, Sparkles, Tag, Trash2, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,19 +13,29 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
-import { ServiceCard } from "@/components/ui/service-card";
 import { Screen } from "@/components/ui/screen";
+import { ServiceCard } from "@/components/ui/service-card";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError, api } from "@/lib/api-client";
-import { getServices, type ServiceDTO } from "@/lib/services";
+import {
+  deleteService,
+  getServices,
+  updateService,
+  type ServiceDTO,
+} from "@/lib/services";
 import { useSession } from "@/lib/session-context";
 
+type SubTab = "services" | "memberships";
 type Filter = "Todos" | "Ativos" | "Inativos";
 const FILTERS: Filter[] = ["Todos", "Ativos", "Inativos"];
 
 export default function ServicosScreen() {
   const { session } = useSession();
+  const { isDark, primaryColor, primarySoft, primaryForeground } = useTheme();
+
+  const [subTab, setSubTab] = useState<SubTab>("services");
   const [services, setServices] = useState<ServiceDTO[] | null>(null);
   const [filter, setFilter] = useState<Filter>("Todos");
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +49,14 @@ export default function ServicosScreen() {
   const [newPrice, setNewPrice] = useState("");
   const [newDuration, setNewDuration] = useState("30");
   const [newDescription, setNewDescription] = useState("");
+
+  // Edit Service Modal
+  const [editingService, setEditingService] = useState<ServiceDTO | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editDuration, setEditDuration] = useState("30");
+  const [editDescription, setEditDescription] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +124,65 @@ export default function ServicosScreen() {
     }
   };
 
+  const handleOpenEdit = (service: ServiceDTO) => {
+    setEditingService(service);
+    setEditName(service.name);
+    setEditPrice(String(service.price || "0"));
+    setEditDuration(String(service.durationMinutes || "30"));
+    setEditDescription(service.description || "");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingService) return;
+    if (!editName.trim()) {
+      Alert.alert("Erro", "O nome do serviço é obrigatório.");
+      return;
+    }
+    const priceNum = parseFloat(editPrice.replace(",", ".")) || 0;
+    const durNum = parseInt(editDuration, 10) || 30;
+
+    setSavingEdit(true);
+    try {
+      await updateService(editingService.id, {
+        name: editName.trim(),
+        price: priceNum,
+        durationMinutes: durNum,
+        description: editDescription.trim() || null,
+      });
+
+      setEditingService(null);
+      await load();
+      Alert.alert("Sucesso", "Serviço atualizado com sucesso!");
+    } catch (err: any) {
+      Alert.alert("Erro", err?.message || "Não foi possível salvar as alterações.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteService = async (service: ServiceDTO) => {
+    Alert.alert(
+      "Excluir serviço",
+      `Tem certeza que deseja excluir permanentemente o serviço "${service.name}"? Esta ação não pode ser desfeita.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir serviço",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteService(service.id);
+              await load();
+              Alert.alert("Sucesso", `Serviço "${service.name}" excluído.`);
+            } catch (err: any) {
+              Alert.alert("Erro", err?.message || "Não foi possível excluir o serviço.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const visible = useMemo(() => {
     const list = services ?? [];
     if (filter === "Todos") return list;
@@ -113,97 +190,186 @@ export default function ServicosScreen() {
   }, [services, filter]);
 
   return (
-    <Screen header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />} style={{ paddingTop: 16 }}>
-      <View className="gap-3.5">
-        <View>
-          <Text style={{ color: colors.primary, ...typography.eyebrow }}>CATÁLOGO DE SERVIÇOS</Text>
-          <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Serviços Avulsos</Text>
-          <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-            Crie experiências claras para seus clientes e sua equipe.
-          </Text>
+    <Screen header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />} style={{ paddingTop: 14 }}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ gap: 16, paddingBottom: 30 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
+      >
+        {/* 1. Top Sub-tabs: Serviços Avulsos | Planos Mensais */}
+        <View className="flex-row border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+          <Pressable
+            onPress={() => setSubTab("services")}
+            className="py-3 px-4 flex-row items-center gap-2"
+            style={{
+              borderBottomWidth: 2,
+              borderBottomColor: subTab === "services" ? "#ffffff" : "transparent",
+            }}
+          >
+            <Text
+              style={{
+                color: subTab === "services" ? "#ffffff" : colors.textMuted,
+                fontSize: 14,
+                fontWeight: subTab === "services" ? "700" : "500",
+              }}
+            >
+              Serviços Avulsos
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setSubTab("memberships")}
+            className="py-3 px-4 flex-row items-center gap-2"
+            style={{
+              borderBottomWidth: 2,
+              borderBottomColor: subTab === "memberships" ? "#ffffff" : "transparent",
+            }}
+          >
+            <Text
+              style={{
+                color: subTab === "memberships" ? "#ffffff" : colors.textMuted,
+                fontSize: 14,
+                fontWeight: subTab === "memberships" ? "700" : "500",
+              }}
+            >
+              Planos Mensais
+            </Text>
+          </Pressable>
         </View>
 
-        {/* Action Button */}
-        <Pressable
-          onPress={() => setCreateModalVisible(true)}
-          className="h-10 flex-row items-center justify-center gap-1.5 rounded-lg px-3"
-          style={{ backgroundColor: "#ffffff" }}
-        >
-          <Plus size={16} color="#000000" strokeWidth={2.5} />
-          <Text style={{ color: "#000000", fontSize: 13, fontWeight: "700" }}>+ Novo serviço</Text>
-        </Pressable>
-      </View>
+        {subTab === "memberships" ? (
+          /* View: Planos Mensais */
+          <View className="p-6 rounded-2xl border items-center text-center gap-3" style={{ backgroundColor: "#121316", borderColor: "rgba(255, 255, 255, 0.08)" }}>
+            <Layers size={36} color={primaryColor} />
+            <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "700", textAlign: "center" }}>
+              Clubes e Assinaturas Mensais
+            </Text>
+            <Text style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", lineHeight: 18 }}>
+              Crie planos recorrentes para fidelizar seus clientes com agendamentos ilimitados ou créditos periódicos.
+            </Text>
+            <Pressable
+              onPress={() => setSubTab("services")}
+              className="mt-2 px-4 py-2.5 rounded-xl border"
+              style={{ backgroundColor: "#1c1d22", borderColor: "rgba(255, 255, 255, 0.12)" }}
+            >
+              <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>Voltar para Serviços Avulsos</Text>
+            </Pressable>
+          </View>
+        ) : (
+          /* View: Serviços Avulsos */
+          <>
+            {/* 2. Header Section */}
+            <View className="gap-1">
+              <Text
+                style={{
+                  color: primaryColor,
+                  fontSize: 11,
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                }}
+              >
+                CATÁLOGO DE SERVIÇOS
+              </Text>
+              <Text
+                style={{
+                  color: "#ffffff",
+                  fontSize: 24,
+                  fontWeight: "800",
+                  letterSpacing: -0.4,
+                }}
+              >
+                Serviços Avulsos
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
+                Crie experiências claras para seus clientes e sua equipe.
+              </Text>
 
-      {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center p-6 gap-3">
-          <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
-          <Button label="Tentar novamente" onPress={load} />
-        </View>
-      ) : (
-        <ScrollView
-          className="flex-1 mt-4"
-          contentContainerClassName="gap-4 pb-6"
-          showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        >
-          <View className="flex-row gap-2">
-            {FILTERS.map((f) => {
-              const active = filter === f;
-              const count = f === "Todos" ? services?.length ?? 0 : services?.filter((s) => s.active === (f === "Ativos")).length ?? 0;
-              return (
+              {/* Action Button: + Novo serviço */}
+              <View className="mt-3">
                 <Pressable
-                  key={f}
-                  className="px-3.5 py-1.5 rounded-full border flex-row items-center gap-1.5"
-                  style={{
-                    backgroundColor: active ? colors.primary : colors.surface,
-                    borderColor: active ? colors.primary : colors.border,
-                  }}
-                  onPress={() => setFilter(f)}
+                  onPress={() => setCreateModalVisible(true)}
+                  className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl"
+                  style={{ backgroundColor: primaryColor }}
                 >
-                  <Text
-                    style={{
-                      color: active ? colors.primaryForeground : colors.textSecondary,
-                      fontSize: 12.5,
-                      fontWeight: active ? "700" : "500",
-                    }}
-                  >
-                    {f}
-                  </Text>
-                  <Text
-                    style={{
-                      color: active ? colors.primaryForeground : colors.textMuted,
-                      fontSize: 11,
-                      fontWeight: "700",
-                      opacity: 0.8,
-                    }}
-                  >
-                    ({count})
+                  <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+                  <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                    Novo serviço
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-
-          {visible.length === 0 ? (
-            <View className="items-center gap-1 py-16">
-              <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: "600" }}>Nenhum serviço</Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13 }}>Cadastre serviços para começar a agendar.</Text>
+              </View>
             </View>
-          ) : (
-            <View className="gap-3">
-              {visible.map((service) => (
-                <ServiceCard key={service.id} service={service} onToggled={handleToggled} />
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      )}
 
-      {/* Modal: Cadastro de Novo Serviço */}
+            {/* 3. Filter Tabs: Todos | Ativos | Inativos */}
+            <View className="flex-row border-b pt-1" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+              {FILTERS.map((tab) => {
+                const isActive = filter === tab;
+                const count =
+                  tab === "Todos"
+                    ? services?.length ?? 0
+                    : services?.filter((s) => s.active === (tab === "Ativos")).length ?? 0;
+
+                return (
+                  <Pressable
+                    key={tab}
+                    onPress={() => setFilter(tab)}
+                    className="py-2.5 px-4 mr-2"
+                    style={{
+                      borderBottomWidth: 2,
+                      borderBottomColor: isActive ? "#ffffff" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isActive ? "#ffffff" : colors.textMuted,
+                        fontSize: 13.5,
+                        fontWeight: isActive ? "700" : "500",
+                      }}
+                    >
+                      {tab}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* 4. Service Cards Grid */}
+            {loading ? (
+              <View className="py-16 items-center justify-center">
+                <ActivityIndicator color={primaryColor} />
+              </View>
+            ) : error ? (
+              <View className="py-12 items-center justify-center p-6 gap-3">
+                <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
+                <Button label="Tentar novamente" onPress={load} />
+              </View>
+            ) : visible.length === 0 ? (
+              <View className="items-center gap-2 py-16">
+                <Tag size={32} color={colors.textMuted} />
+                <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "600" }}>Nenhum serviço encontrado</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: "center" }}>
+                  Cadastre serviços avulsos para exibir na sua página e agenda.
+                </Text>
+              </View>
+            ) : (
+              <View className="gap-4">
+                {visible.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    onToggled={handleToggled}
+                    onEdit={handleOpenEdit}
+                    onDelete={handleDeleteService}
+                  />
+                ))}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      {/* Modal: Cadastrar Novo Serviço */}
       <Modal
         visible={createModalVisible}
         transparent
@@ -227,7 +393,7 @@ export default function ServicosScreen() {
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
               <View className="gap-1.5">
                 <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>NOME DO SERVIÇO *</Text>
                 <TextInput
@@ -250,11 +416,11 @@ export default function ServicosScreen() {
 
               <View className="flex-row gap-3">
                 <View className="flex-1 gap-1.5">
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>PREÇO (R$) *</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>PREÇO (R$)</Text>
                   <TextInput
                     value={newPrice}
                     onChangeText={setNewPrice}
-                    placeholder="Ex: 50,00"
+                    placeholder="35,00"
                     placeholderTextColor={colors.textDisabled}
                     keyboardType="numeric"
                     style={{
@@ -271,7 +437,7 @@ export default function ServicosScreen() {
                 </View>
 
                 <View className="flex-1 gap-1.5">
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>DURAÇÃO (MIN) *</Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>DURAÇÃO (MIN)</Text>
                   <TextInput
                     value={newDuration}
                     onChangeText={setNewDuration}
@@ -297,7 +463,7 @@ export default function ServicosScreen() {
                 <TextInput
                   value={newDescription}
                   onChangeText={setNewDescription}
-                  placeholder="Descreva o procedimento e o que está incluso..."
+                  placeholder="Detalhes ou diferenciais do atendimento..."
                   placeholderTextColor={colors.textDisabled}
                   multiline
                   numberOfLines={3}
@@ -320,6 +486,129 @@ export default function ServicosScreen() {
                 label={savingService ? "Cadastrando..." : "Cadastrar Serviço"}
                 onPress={handleCreateService}
                 disabled={savingService}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal: Editar Serviço */}
+      <Modal
+        visible={Boolean(editingService)}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditingService(null)}
+      >
+        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+          <View
+            className="w-full rounded-t-3xl border-t p-5 gap-4"
+            style={{
+              backgroundColor: "#111215",
+              borderColor: "rgba(255, 255, 255, 0.12)",
+            }}
+          >
+            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
+                Editar Serviço
+              </Text>
+              <Pressable onPress={() => setEditingService(null)} className="p-1 rounded-lg">
+                <X size={20} color="#ffffff" />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
+              <View className="gap-1.5">
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>NOME DO SERVIÇO *</Text>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Nome do serviço"
+                  placeholderTextColor={colors.textDisabled}
+                  style={{
+                    backgroundColor: "#18191e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: radius.sm,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    color: "#ffffff",
+                    fontSize: 14,
+                  }}
+                />
+              </View>
+
+              <View className="flex-row gap-3">
+                <View className="flex-1 gap-1.5">
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>PREÇO (R$)</Text>
+                  <TextInput
+                    value={editPrice}
+                    onChangeText={setEditPrice}
+                    placeholder="35,00"
+                    placeholderTextColor={colors.textDisabled}
+                    keyboardType="numeric"
+                    style={{
+                      backgroundColor: "#18191e",
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderWidth: 1,
+                      borderRadius: radius.sm,
+                      paddingHorizontal: 12,
+                      height: 44,
+                      color: "#ffffff",
+                      fontSize: 14,
+                    }}
+                  />
+                </View>
+
+                <View className="flex-1 gap-1.5">
+                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>DURAÇÃO (MIN)</Text>
+                  <TextInput
+                    value={editDuration}
+                    onChangeText={setEditDuration}
+                    placeholder="30"
+                    placeholderTextColor={colors.textDisabled}
+                    keyboardType="numeric"
+                    style={{
+                      backgroundColor: "#18191e",
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderWidth: 1,
+                      borderRadius: radius.sm,
+                      paddingHorizontal: 12,
+                      height: 44,
+                      color: "#ffffff",
+                      fontSize: 14,
+                    }}
+                  />
+                </View>
+              </View>
+
+              <View className="gap-1.5">
+                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>DESCRIÇÃO</Text>
+                <TextInput
+                  value={editDescription}
+                  onChangeText={setEditDescription}
+                  placeholder="Descrição do serviço..."
+                  placeholderTextColor={colors.textDisabled}
+                  multiline
+                  numberOfLines={3}
+                  style={{
+                    backgroundColor: "#18191e",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: radius.sm,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    height: 70,
+                    color: "#ffffff",
+                    fontSize: 13,
+                    textAlignVertical: "top",
+                  }}
+                />
+              </View>
+
+              <Button
+                label={savingEdit ? "Salvando..." : "Salvar Alterações"}
+                onPress={handleSaveEdit}
+                disabled={savingEdit}
               />
             </ScrollView>
           </View>

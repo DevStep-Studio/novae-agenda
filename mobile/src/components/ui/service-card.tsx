@@ -1,10 +1,9 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
-import { Clock3, Tag } from "lucide-react-native";
+import { Clock3, Edit2, Loader2, Pencil, Tag, Trash2 } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
-import { colors, serviceCard, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import {
   formatDuration,
   getServiceDescription,
@@ -14,17 +13,15 @@ import {
 } from "@/lib/services";
 import { formatBRL } from "@/lib/stats";
 
-// .service-card and children, globals.css:4452-4700; JSX structure mirrors
-// app-shell.tsx:1996-2080. Simplification: an inactive service also
-// grayscales its photo on web (`.service-card.inactive .service-card-bg`);
-// RN has no CSS-filter equivalent for a remote image without a shader/
-// canvas library, so this only ports the card-level `opacity: 0.65` dimming.
-// "Editar"/"Excluir" pills are not ported (they open a full edit form / a
-// destructive confirm dialog, neither exists in mobile yet — see
-// MOBILE_DESIGN_SYSTEM.md). The active/inactive toggle IS real:
-// `PATCH /api/services/[id]` already accepts a bare `{ active }`
-// partial update, so this calls it directly rather than faking the switch.
-export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onToggled: (next: ServiceDTO) => void }) {
+export interface ServiceCardProps {
+  service: ServiceDTO;
+  onToggled: (next: ServiceDTO) => void;
+  onEdit?: (service: ServiceDTO) => void;
+  onDelete?: (service: ServiceDTO) => void;
+}
+
+export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCardProps) {
+  const { colors, primaryColor } = useTheme();
   const [toggling, setToggling] = useState(false);
   const numericPrice = Number(service.price) || 0;
   const isQuote = service.paymentType === "QUOTE" || numericPrice === 0;
@@ -36,8 +33,7 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
       const updated = await setServiceActive(service.id, !service.active);
       onToggled(updated);
     } catch {
-      // Silently keep current state — the toggle simply won't move, which
-      // is enough feedback at this list-level (no toast system in mobile yet).
+      // keep current state
     } finally {
       setToggling(false);
     }
@@ -47,57 +43,103 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
     <View
       style={{
         overflow: "hidden",
-        borderRadius: 12,
+        borderRadius: 20,
         borderWidth: 1,
-        minHeight: serviceCard.minHeight,
-        borderColor: colors.border,
-        backgroundColor: colors.surface,
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        backgroundColor: "#121316",
         opacity: service.active ? 1 : 0.65,
-        flexBasis: "100%",
+        minHeight: 220,
       }}
     >
+      {/* Background Image with Dark Minimalist Overlay (no loud gradient) */}
       <Image
         source={{ uri: getServiceImage(service) }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         contentFit="cover"
       />
-      <LinearGradient
-        colors={serviceCard.gradient.colors}
-        locations={serviceCard.gradient.locations}
-        style={{ position: "absolute", inset: 0 }}
+      <View
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.72)",
+        }}
       />
 
-      <View style={{ padding: 18, minHeight: serviceCard.minHeight, justifyContent: "space-between" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+      <View style={{ padding: 18, minHeight: 220, justifyContent: "space-between" }}>
+        {/* Top Header Bar: [ Editar ] [ Excluir ] on left, [ Sem categoria ] on right */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {onEdit && (
+              <Pressable
+                onPress={() => onEdit(service)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: "rgba(20, 20, 25, 0.8)",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.15)",
+                }}
+              >
+                <Pencil size={12} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>Editar</Text>
+              </Pressable>
+            )}
+
+            {onDelete && (
+              <Pressable
+                onPress={() => onDelete(service)}
+                style={{
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: "rgba(239, 68, 68, 0.18)",
+                  borderWidth: 1,
+                  borderColor: "rgba(239, 68, 68, 0.4)",
+                }}
+              >
+                <Trash2 size={13} color="#ef4444" />
+              </Pressable>
+            )}
+          </View>
+
           <View
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 6,
-              alignSelf: "flex-start",
-              borderRadius: 999,
+              gap: 5,
               paddingHorizontal: 12,
-              paddingVertical: 4,
-              backgroundColor: serviceCard.categoryBadge.background,
+              paddingVertical: 6,
+              borderRadius: 999,
+              backgroundColor: "rgba(20, 20, 25, 0.8)",
               borderWidth: 1,
-              borderColor: serviceCard.categoryBadge.border,
+              borderColor: "rgba(255, 255, 255, 0.15)",
             }}
           >
-            <Tag size={12} color={serviceCard.categoryBadge.color} />
-            <Text style={{ color: serviceCard.categoryBadge.color, ...typography.serviceCategoryBadge }}>
+            <Tag size={12} color="#9ca3af" />
+            <Text style={{ color: "#d1d5db", fontSize: 12, fontWeight: "500" }}>
               {service.categoryName ?? "Sem categoria"}
             </Text>
           </View>
         </View>
 
-        <View style={{ marginTop: 22, marginBottom: 14 }}>
+        {/* Middle Body: Service Title and Smart Description */}
+        <Pressable
+          onPress={() => onEdit && onEdit(service)}
+          style={{ marginTop: 20, marginBottom: 12 }}
+        >
           <Text
             style={{
               color: "#ffffff",
-              textShadowColor: "rgba(0,0,0,0.8)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 3,
-              ...typography.serviceCardTitle,
+              fontSize: 18,
+              fontWeight: "800",
+              letterSpacing: -0.2,
+              textTransform: "uppercase",
             }}
           >
             {service.name}
@@ -106,36 +148,38 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
             numberOfLines={2}
             style={{
               marginTop: 6,
-              color: serviceCard.descriptionColor,
-              textShadowColor: "rgba(0,0,0,0.85)",
-              textShadowOffset: { width: 0, height: 1 },
-              textShadowRadius: 3,
-              ...typography.serviceCardDesc,
+              color: "#d1d5db",
+              fontSize: 13,
+              lineHeight: 18.5,
+              fontWeight: "400",
             }}
           >
             {getServiceDescription(service)}
           </Text>
-        </View>
+        </Pressable>
 
+        {/* Bottom Footer: Price, Duration & Active Toggle Switch */}
         <View
           style={{
             flexDirection: "row",
-            alignItems: "flex-end",
+            alignItems: "center",
             justifyContent: "space-between",
             borderTopWidth: 1,
-            borderTopColor: serviceCard.footerBorder,
+            borderTopColor: "rgba(255, 255, 255, 0.1)",
             paddingTop: 14,
           }}
         >
-          <View>
+          <View style={{ gap: 2 }}>
             {isQuote ? (
-              <Text style={{ color: "#38bdf8", fontSize: 13, fontWeight: "700" }}>Sob consulta</Text>
+              <Text style={{ color: "#38bdf8", fontSize: 15, fontWeight: "800" }}>Sob consulta</Text>
             ) : (
-              <Text style={{ color: "#ffffff", ...typography.servicePrice }}>{formatBRL(numericPrice)}</Text>
+              <Text style={{ color: "#ffffff", fontSize: 20, fontWeight: "800", letterSpacing: -0.5 }}>
+                {formatBRL(numericPrice)}
+              </Text>
             )}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
-              <Clock3 size={13} color={colors.primary} />
-              <Text style={{ color: colors.primary, ...typography.serviceDuration }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Clock3 size={12} color="#9ca3af" />
+              <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
                 {formatDuration(Number(service.durationMinutes) || 0)}
               </Text>
             </View>
@@ -147,28 +191,30 @@ export function ServiceCard({ service, onToggled }: { service: ServiceDTO; onTog
             disabled={toggling}
             onPress={handleToggle}
             style={{
-              width: serviceCard.toggle.trackWidth,
-              height: serviceCard.toggle.trackHeight,
-              borderRadius: serviceCard.toggle.trackHeight / 2,
-              backgroundColor: service.active ? colors.primary : serviceCard.toggle.offColor,
+              width: 50,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: service.active ? primaryColor : "#27272a",
               justifyContent: "center",
+              padding: 3,
               opacity: toggling ? 0.6 : 1,
             }}
           >
             {toggling ? (
-              <ActivityIndicator size="small" color="#ffffff" style={{ position: "absolute", alignSelf: "center" }} />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <View
                 style={{
-                  position: "absolute",
-                  top: serviceCard.toggle.thumbInset,
-                  left: service.active
-                    ? serviceCard.toggle.trackWidth - serviceCard.toggle.thumbSize - serviceCard.toggle.thumbInset
-                    : serviceCard.toggle.thumbInset,
-                  width: serviceCard.toggle.thumbSize,
-                  height: serviceCard.toggle.thumbSize,
-                  borderRadius: serviceCard.toggle.thumbSize / 2,
+                  alignSelf: service.active ? "flex-end" : "flex-start",
+                  width: 22,
+                  height: 22,
+                  borderRadius: 11,
                   backgroundColor: "#ffffff",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 3,
+                  elevation: 3,
                 }}
               />
             )}

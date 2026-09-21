@@ -27,6 +27,19 @@ export async function setServiceActive(id: string, active: boolean) {
   });
 }
 
+export async function updateService(id: string, data: Partial<ServiceDTO>) {
+  return api<ServiceDTO>(`/api/services/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteService(id: string) {
+  return api<{ ok: boolean }>(`/api/services/${id}`, {
+    method: "DELETE",
+  });
+}
+
 // Ported verbatim from getServiceImage in src/components/app-shell.tsx:1888-1912.
 export function getServiceImage(service: { name: string; imageUrl?: string | null }): string {
   if (service.imageUrl && service.imageUrl.trim() !== "") {
