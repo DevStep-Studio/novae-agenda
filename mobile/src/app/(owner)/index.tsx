@@ -773,59 +773,13 @@ export default function OwnerHomeScreen() {
             <View
               style={[
                 styles.submetricCard,
-                { backgroundColor: cardBg, borderColor: cardBorder },
-              ]}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  width: "100%",
-                }}
-              >
-                <View
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
-                    backgroundColor: primarySoft,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Clock size={17} color={primaryColor} />
-                </View>
-                <Text
-                  style={{
-                    color: pendingCount > 0 ? primaryColor : textTitle,
-                    fontSize: 22,
-                    fontWeight: "800",
-                    letterSpacing: -0.3,
-                  }}
-                >
-                  {pendingCount}
-                </Text>
-              </View>
-
-              <Text
-                style={{
-                  color: textMuted,
-                  fontSize: 12.5,
-                  fontWeight: "500",
-                  lineHeight: 16,
-                  marginTop: 10,
-                }}
-              >
-                Atendimentos pendentes
-              </Text>
-            </View>
-
-            {/* Right Submetric: Cancelamentos hoje */}
-            <View
-              style={[
-                styles.submetricCard,
-                { backgroundColor: cardBg, borderColor: cardBorder },
+                {
+                  backgroundColor: primaryColor,
+                  borderColor:
+                    primaryForeground === "#0a0a0a"
+                      ? "rgba(0, 0, 0, 0.08)"
+                      : "rgba(255, 255, 255, 0.15)",
+                },
               ]}
             >
               <View
@@ -842,29 +796,80 @@ export default function OwnerHomeScreen() {
                     height: 34,
                     borderRadius: 10,
                     backgroundColor:
-                      cancelledCount > 0
-                        ? "rgba(239, 68, 68, 0.14)"
-                        : isDark
-                        ? "rgba(255, 255, 255, 0.06)"
-                        : "#f1f5f9",
+                      primaryForeground === "#0a0a0a"
+                        ? "rgba(0, 0, 0, 0.1)"
+                        : "rgba(255, 255, 255, 0.2)",
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Ban
-                    size={17}
-                    color={
-                      cancelledCount > 0
-                        ? "#ef4444"
-                        : isDark
-                        ? "#9ca3af"
-                        : "#64748b"
-                    }
-                  />
+                  <Clock size={17} color={primaryForeground} strokeWidth={2.4} />
                 </View>
                 <Text
                   style={{
-                    color: cancelledCount > 0 ? "#ef4444" : textTitle,
+                    color: primaryForeground,
+                    fontSize: 22,
+                    fontWeight: "800",
+                    letterSpacing: -0.3,
+                  }}
+                >
+                  {pendingCount}
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: primaryForeground,
+                  opacity: 0.88,
+                  fontSize: 12.5,
+                  fontWeight: "600",
+                  lineHeight: 16,
+                  marginTop: 10,
+                }}
+              >
+                Atendimentos pendentes
+              </Text>
+            </View>
+
+            {/* Right Submetric: Cancelamentos hoje */}
+            <View
+              style={[
+                styles.submetricCard,
+                {
+                  backgroundColor: primaryColor,
+                  borderColor:
+                    primaryForeground === "#0a0a0a"
+                      ? "rgba(0, 0, 0, 0.08)"
+                      : "rgba(255, 255, 255, 0.15)",
+                },
+              ]}
+            >
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    backgroundColor:
+                      primaryForeground === "#0a0a0a"
+                        ? "rgba(0, 0, 0, 0.1)"
+                        : "rgba(255, 255, 255, 0.2)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ban size={17} color={primaryForeground} strokeWidth={2.4} />
+                </View>
+                <Text
+                  style={{
+                    color: primaryForeground,
                     fontSize: 22,
                     fontWeight: "800",
                     letterSpacing: -0.3,
@@ -876,9 +881,10 @@ export default function OwnerHomeScreen() {
 
               <Text
                 style={{
-                  color: textMuted,
+                  color: primaryForeground,
+                  opacity: 0.88,
                   fontSize: 12.5,
-                  fontWeight: "500",
+                  fontWeight: "600",
                   lineHeight: 16,
                   marginTop: 10,
                 }}
