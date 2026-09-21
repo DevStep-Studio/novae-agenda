@@ -2810,6 +2810,10 @@ button.outline:hover:not(:disabled),
   margin: 0 0 18px;
 }
 
+.mobilePromoWrapper {
+  display: none;
+}
+
 .summaryEmpty {
   padding: 22px 0 24px;
   color: var(--booking-text-muted);
@@ -4162,6 +4166,12 @@ button.outline:hover:not(:disabled),
   }
   .mobileBottomBar {
     display: block;
+  }
+  .mobilePromoWrapper {
+    display: block;
+    margin-top: 24px;
+    margin-bottom: 24px;
+    width: 100%;
   }
   .progress {
     gap: 14px;

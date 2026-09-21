@@ -50,7 +50,6 @@ export function PromoCarouselEditor({
   };
 
   const currentAspect = promoBanners.aspectRatio || "portrait";
-  const currentPos = promoBanners.position || "top";
   const currentStyle = promoBanners.contentStyle || "overlay";
   const currentFit = promoBanners.fit || "cover";
   const currentSpeed = promoBanners.autoplaySpeed ?? 5000;
@@ -283,27 +282,18 @@ export function PromoCarouselEditor({
             </div>
           </div>
 
-          {/* Posição na Página */}
+          {/* Local de Exibição */}
           <div className={styles.settingRow}>
             <div className={styles.settingInfo}>
-              <span className={styles.settingTitle}>Posição no Agendamento</span>
-              <span className={styles.settingSub}>Onde o carrossel será exibido para o cliente</span>
+              <span className={styles.settingTitle}>Local de Exibição</span>
+              <span className={styles.settingSub}>
+                Posicionado fixo diretamente abaixo do card <strong>&quot;Seu agendamento&quot;</strong> (e no resumo mobile).
+              </span>
             </div>
             <div className={styles.pillGroup}>
-              <button
-                type="button"
-                className={`${styles.pillBtn} ${currentPos === "top" ? styles.pillBtnActive : ""}`}
-                onClick={() => handleUpdateConfig({ position: "top" })}
-              >
-                Topo da Página (Em Destaque)
-              </button>
-              <button
-                type="button"
-                className={`${styles.pillBtn} ${currentPos === "sidebar" ? styles.pillBtnActive : ""}`}
-                onClick={() => handleUpdateConfig({ position: "sidebar" })}
-              >
-                Barra Lateral / Resumo
-              </button>
+              <span className={`${styles.pillBtn} ${styles.pillBtnActive}`} style={{ cursor: "default" }}>
+                Abaixo de &quot;Seu agendamento&quot;
+              </span>
             </div>
           </div>
 

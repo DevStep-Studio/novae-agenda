@@ -1420,14 +1420,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                     </>
                   )}
 
-                  {/* Top Promotional Carousel (when position is 'top' or default) */}
-                  {company.promoBanners?.enabled &&
-                    company.promoBanners?.position !== "sidebar" &&
-                    (company.promoBanners?.items?.length ?? 0) > 0 && (
-                      <div style={{ marginBottom: 26, width: "100%" }}>
-                        <BookingPromoCarousel promoBanners={company.promoBanners} />
-                      </div>
-                    )}
 
                   {/* Active Mensalista Banner */}
                   {customerMembership && customerMembership.status === "active" && (
@@ -2443,6 +2435,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           : `Cancelamento gratuito até ${company.cancellationHours} horas antes do atendimento.`)}
                     </p>
                   </div>
+
+                  {/* Mobile Promotional Carousel (visível em telas < 768px no rodapé do fluxo) */}
+                  {company.promoBanners?.enabled &&
+                    (company.promoBanners?.items?.length ?? 0) > 0 && (
+                      <div className={b.mobilePromoWrapper}>
+                        <BookingPromoCarousel promoBanners={company.promoBanners} />
+                      </div>
+                    )}
                     </>
                   )}
                 </>
@@ -2455,7 +2455,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                 {renderSummaryContent(false)}
               </aside>
               {company.promoBanners?.enabled &&
-                company.promoBanners?.position === "sidebar" &&
                 (company.promoBanners?.items?.length ?? 0) > 0 && (
                   <BookingPromoCarousel promoBanners={company.promoBanners} />
                 )}
@@ -2549,7 +2548,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
               <div className={b.bottomSheetBody}>
                 {renderSummaryContent(true)}
                 {company.promoBanners?.enabled &&
-                  company.promoBanners?.position === "sidebar" &&
                   (company.promoBanners?.items?.length ?? 0) > 0 && (
                     <div style={{ marginTop: 16 }}>
                       <BookingPromoCarousel promoBanners={company.promoBanners} />

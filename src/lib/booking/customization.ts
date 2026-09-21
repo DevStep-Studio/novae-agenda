@@ -180,7 +180,7 @@ export type PromoBannersConfig = {
 export const DEFAULT_PROMO_BANNERS: PromoBannersConfig = {
   enabled: false,
   aspectRatio: "portrait",
-  position: "top",
+  position: "sidebar",
   contentStyle: "overlay",
   fit: "cover",
   autoplaySpeed: 5000,
@@ -203,7 +203,7 @@ export function parsePromoBanners(raw: unknown): PromoBannersConfig {
     const validPositions: CarouselPosition[] = ["top", "sidebar"];
     const position: CarouselPosition = validPositions.includes(rec.position as any)
       ? (rec.position as CarouselPosition)
-      : "top";
+      : "sidebar";
 
     const validStyles: CarouselContentStyle[] = ["overlay", "card", "clean"];
     const contentStyle: CarouselContentStyle = validStyles.includes(rec.contentStyle as any)
