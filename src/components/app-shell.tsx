@@ -7868,7 +7868,7 @@ function ProfilePage({
             {/* Establishment Logo / Avatar Card */}
             <div className="profile-card-large" style={{ gridColumn: "1 / -1" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-                <h3 style={{ margin: 0 }}><ImageIcon size={18} /> Logomarca da Empresa / Foto</h3>
+                <h3 style={{ margin: 0 }}><ImageIcon size={18} /> Logo</h3>
                 <input
                   ref={avatarFileInputRef}
                   type="file"
@@ -7883,12 +7883,12 @@ function ProfilePage({
                   disabled={uploadingAvatar}
                 >
                   <Upload size={14} />
-                  <span>{uploadingAvatar ? "Processando..." : "Upload da Logo / Foto"}</span>
+                  <span>{uploadingAvatar ? "Processando..." : "Upload da Logo"}</span>
                 </Button>
               </div>
 
               <p className="section-sub">
-                Logotipo ou foto principal exibida no topo do menu lateral, banner de boas-vindas e página de agendamento online.
+                Logotipo da empresa exibido no topo do menu lateral, banner de boas-vindas e página de agendamento online.
               </p>
 
               <div style={{ display: "flex", gap: "8px", maxWidth: "600px" }}>
@@ -7899,7 +7899,7 @@ function ProfilePage({
                     setAvatarUrl(e.target.value);
                     setAvatarError(false);
                   }}
-                  placeholder="https://exemplo.com/foto.jpg ou faça upload acima"
+                  placeholder="https://exemplo.com/logo.png ou faça upload acima"
                 />
                 {avatarUrl && (
                   <Button variant="secondary" onClick={() => { setAvatarUrl(""); setAvatarError(false); }}>
@@ -7910,7 +7910,7 @@ function ProfilePage({
 
               <div>
                 <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 8 }}>
-                  Avatares e Ícones Sugeridos:
+                  Logos e Ícones Sugeridos:
                 </span>
                 <div className="avatar-presets-row">
                   {AVATAR_PRESETS.map((preset) => (

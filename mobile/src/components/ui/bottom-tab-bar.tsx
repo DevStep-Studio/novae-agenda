@@ -102,7 +102,7 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
           style={{
             width: bottomNav.addButtonSize,
             height: bottomNav.addButtonSize,
-            borderRadius: bottomNav.addButtonSize / 2,
+            borderRadius: 14,
             backgroundColor: primaryColor,
             alignItems: "center",
             justifyContent: "center",

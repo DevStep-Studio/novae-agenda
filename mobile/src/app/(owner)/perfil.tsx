@@ -83,19 +83,24 @@ export const BANNER_PRESETS = [
 
 export const AVATAR_PRESETS = [
   {
-    id: "avatar-1",
-    name: "Profissional",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    id: "logo-1",
+    name: "Barber Badge",
+    url: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=300&q=80",
   },
   {
-    id: "avatar-2",
-    name: "Especialista",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+    id: "logo-2",
+    name: "Vintage Emblem",
+    url: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=300&q=80",
   },
   {
-    id: "avatar-3",
-    name: "Criativo",
-    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80",
+    id: "logo-3",
+    name: "Modern Studio",
+    url: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=300&q=80",
+  },
+  {
+    id: "logo-4",
+    name: "Classic Crown",
+    url: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=300&q=80",
   },
 ];
 
@@ -882,7 +887,7 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
             </View>
 
-            {/* Card 3: Logomarca da Empresa / Foto */}
+            {/* Card 3: Logo da Empresa */}
             <View
               className="p-5 rounded-2xl border gap-4"
               style={{
@@ -894,7 +899,7 @@ export default function PerfilPersonalizacaoScreen() {
                 <View className="flex-row items-center gap-2">
                   <ImageIcon size={18} color="#ffffff" />
                   <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
-                    Logomarca da Empresa / Foto
+                    Logo
                   </Text>
                 </View>
 
@@ -913,7 +918,7 @@ export default function PerfilPersonalizacaoScreen() {
                     <>
                       <Upload size={13} color="#ffffff" />
                       <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
-                        Upload da Logo / Foto
+                        Upload da Logo
                       </Text>
                     </>
                   )}
@@ -921,8 +926,42 @@ export default function PerfilPersonalizacaoScreen() {
               </View>
 
               <Text style={{ color: "#9ca3af", fontSize: 13, lineHeight: 18, marginTop: -4 }}>
-                Logotipo ou foto principal exibida no topo do menu lateral, banner de boas-vindas e página de agendamento online.
+                Logotipo da empresa exibido no topo do menu lateral, banner de boas-vindas e página de agendamento online.
               </Text>
+
+              {/* Preview da Logo Selecionada */}
+              {activeAvatarUri ? (
+                <View
+                  className="flex-row items-center gap-3 p-3 rounded-xl border"
+                  style={{ backgroundColor: "#0d0e12", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                >
+                  <View
+                    className="items-center justify-center overflow-hidden border"
+                    style={{
+                      width: 54,
+                      height: 54,
+                      borderRadius: 12,
+                      backgroundColor: "#181920",
+                      borderColor: "rgba(255, 255, 255, 0.15)",
+                    }}
+                  >
+                    <Image
+                      source={{ uri: activeAvatarUri }}
+                      style={{ width: "100%", height: "100%" }}
+                      contentFit="cover"
+                      onError={handleAvatarError}
+                    />
+                  </View>
+                  <View className="flex-1 gap-0.5">
+                    <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                      Logo Ativa
+                    </Text>
+                    <Text style={{ color: "#9ca3af", fontSize: 11.5 }} numberOfLines={1}>
+                      {avatarUrl || "Logotipo carregado"}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
 
               {/* URL Input & Limpar Button */}
               <View className="flex-row items-center gap-2">
@@ -931,7 +970,7 @@ export default function PerfilPersonalizacaoScreen() {
                   onChangeText={(text) => {
                     setAvatarUrl(text);
                   }}
-                  placeholder="https://exemplo.com/foto.jpg"
+                  placeholder="https://exemplo.com/logo.png"
                   placeholderTextColor="#52525b"
                   style={{
                     flex: 1,
@@ -964,10 +1003,10 @@ export default function PerfilPersonalizacaoScreen() {
                 ) : null}
               </View>
 
-              {/* Suggested Avatars List */}
+              {/* Suggested Logos List */}
               <View className="gap-2.5 pt-1">
                 <Text style={{ fontSize: 12.5, fontWeight: "600", color: "#9ca3af" }}>
-                  Avatares e Ícones Sugeridos:
+                  Logos e Ícones Sugeridos:
                 </Text>
 
                 <View className="flex-row items-center gap-3.5">
@@ -979,12 +1018,14 @@ export default function PerfilPersonalizacaoScreen() {
                         onPress={() => {
                           setAvatarUrl(preset.url);
                         }}
-                        className="rounded-full overflow-hidden border-2"
+                        className="overflow-hidden border-2"
                         style={{
-                          width: 44,
-                          height: 44,
+                          width: 48,
+                          height: 48,
+                          borderRadius: 12,
+                          backgroundColor: "#181920",
                           borderColor: isSelected
-                            ? "#ffffff"
+                            ? (primaryColor || "#ffffff")
                             : "rgba(255, 255, 255, 0.15)",
                         }}
                       >
