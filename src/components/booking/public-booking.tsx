@@ -1697,6 +1697,14 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                       );
                     })}
 
+                  {/* Mobile Promotional Carousel (visível na versão mobile acima do mapa) */}
+                  {company.promoBanners?.enabled &&
+                    (company.promoBanners?.items?.length ?? 0) > 0 && (
+                      <div className={b.mobilePromoWrapper}>
+                        <BookingPromoCarousel promoBanners={company.promoBanners} />
+                      </div>
+                    )}
+
                   {/* Localização e Mapa do Estabelecimento */}
                   {(locations.find((l) => l.id === locationId)?.address || company.address) && (
                     <div style={{ marginTop: 24 }}>
@@ -2435,14 +2443,6 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                           : `Cancelamento gratuito até ${company.cancellationHours} horas antes do atendimento.`)}
                     </p>
                   </div>
-
-                  {/* Mobile Promotional Carousel (visível em telas < 768px no rodapé do fluxo) */}
-                  {company.promoBanners?.enabled &&
-                    (company.promoBanners?.items?.length ?? 0) > 0 && (
-                      <div className={b.mobilePromoWrapper}>
-                        <BookingPromoCarousel promoBanners={company.promoBanners} />
-                      </div>
-                    )}
                     </>
                   )}
                 </>
