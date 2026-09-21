@@ -1,4 +1,4 @@
-import { Check, Clock3, Edit2, Layers, Plus, Sparkles, Tag, Trash2, X } from "lucide-react-native";
+import { Check, Clock3, Layers, Plus, Tag, Trash2, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -194,7 +194,7 @@ export default function ServicosScreen() {
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 16, paddingBottom: 30 }}
+        contentContainerStyle={{ gap: 16, paddingBottom: 36 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {/* 1. Top Sub-tabs: Serviços Avulsos | Planos Mensais */}
@@ -209,7 +209,7 @@ export default function ServicosScreen() {
           >
             <Text
               style={{
-                color: subTab === "services" ? "#ffffff" : colors.textMuted,
+                color: subTab === "services" ? "#ffffff" : "#71717a",
                 fontSize: 14,
                 fontWeight: subTab === "services" ? "700" : "500",
               }}
@@ -228,7 +228,7 @@ export default function ServicosScreen() {
           >
             <Text
               style={{
-                color: subTab === "memberships" ? "#ffffff" : colors.textMuted,
+                color: subTab === "memberships" ? "#ffffff" : "#71717a",
                 fontSize: 14,
                 fontWeight: subTab === "memberships" ? "700" : "500",
               }}
@@ -263,7 +263,7 @@ export default function ServicosScreen() {
             <View className="gap-1">
               <Text
                 style={{
-                  color: primaryColor,
+                  color: "#71717a",
                   fontSize: 11,
                   fontWeight: "700",
                   textTransform: "uppercase",
@@ -275,26 +275,29 @@ export default function ServicosScreen() {
               <Text
                 style={{
                   color: "#ffffff",
-                  fontSize: 24,
+                  fontSize: 26,
                   fontWeight: "800",
-                  letterSpacing: -0.4,
+                  letterSpacing: -0.5,
                 }}
               >
                 Serviços Avulsos
               </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
+              <Text style={{ color: "#9ca3af", fontSize: 13.5, marginTop: 2 }}>
                 Crie experiências claras para seus clientes e sua equipe.
               </Text>
 
-              {/* Action Button: + Novo serviço */}
-              <View className="mt-3">
+              {/* Action Button: + Novo serviço (aligned left, sleek dark button) */}
+              <View className="mt-3 flex-row">
                 <Pressable
                   onPress={() => setCreateModalVisible(true)}
-                  className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl"
-                  style={{ backgroundColor: primaryColor }}
+                  className="flex-row items-center gap-2 py-2.5 px-4 rounded-xl border"
+                  style={{
+                    backgroundColor: "#27272a",
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                  }}
                 >
-                  <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
-                  <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
+                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
                     Novo serviço
                   </Text>
                 </Pressable>
@@ -305,16 +308,12 @@ export default function ServicosScreen() {
             <View className="flex-row border-b pt-1" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
               {FILTERS.map((tab) => {
                 const isActive = filter === tab;
-                const count =
-                  tab === "Todos"
-                    ? services?.length ?? 0
-                    : services?.filter((s) => s.active === (tab === "Ativos")).length ?? 0;
 
                 return (
                   <Pressable
                     key={tab}
                     onPress={() => setFilter(tab)}
-                    className="py-2.5 px-4 mr-2"
+                    className="py-2 px-3 mr-2"
                     style={{
                       borderBottomWidth: 2,
                       borderBottomColor: isActive ? "#ffffff" : "transparent",
@@ -322,7 +321,7 @@ export default function ServicosScreen() {
                   >
                     <Text
                       style={{
-                        color: isActive ? "#ffffff" : colors.textMuted,
+                        color: isActive ? "#ffffff" : "#71717a",
                         fontSize: 13.5,
                         fontWeight: isActive ? "700" : "500",
                       }}
