@@ -14,7 +14,8 @@
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-:root[data-theme="light"] .mapContainer {
+:root[data-theme="light"] .mapContainer,
+:global([data-theme="light"]) .mapContainer {
   background: #f8fafc;
   border-color: rgba(0, 0, 0, 0.08);
   color: #0f172a;
@@ -26,7 +27,8 @@
   box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.45);
 }
 
-:root[data-theme="light"] .mapContainer:hover {
+:root[data-theme="light"] .mapContainer:hover,
+:global([data-theme="light"]) .mapContainer:hover {
   border-color: rgba(236, 72, 153, 0.4);
   box-shadow: 0 8px 25px -2px rgba(0, 0, 0, 0.12);
 }
@@ -94,7 +96,8 @@
   transition: all 0.2s ease;
 }
 
-:root[data-theme="light"] .mapControlsBadge {
+:root[data-theme="light"] .mapControlsBadge,
+:global([data-theme="light"]) .mapControlsBadge {
   background: rgba(255, 255, 255, 0.85);
   border-color: rgba(0, 0, 0, 0.08);
   color: #64748b;
@@ -110,7 +113,8 @@
   background: rgba(18, 19, 22, 0.9);
 }
 
-:root[data-theme="light"] .mapContainer:hover .mapControlsBadge {
+:root[data-theme="light"] .mapContainer:hover .mapControlsBadge,
+:global([data-theme="light"]) .mapContainer:hover .mapControlsBadge {
   color: #0f172a;
   background: #ffffff;
 }
@@ -208,7 +212,8 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-:root[data-theme="light"] .floatingCard {
+:root[data-theme="light"] .floatingCard,
+:global([data-theme="light"]) .floatingCard {
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.06);
@@ -218,7 +223,8 @@
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-:root[data-theme="light"] .floatingCard:hover {
+:root[data-theme="light"] .floatingCard:hover,
+:global([data-theme="light"]) .floatingCard:hover {
   border-color: rgba(0, 0, 0, 0.15);
 }
 
@@ -242,7 +248,8 @@
   background: #27272a;
 }
 
-:root[data-theme="light"] .avatar {
+:root[data-theme="light"] .avatar,
+:global([data-theme="light"]) .avatar {
   border-color: rgba(0, 0, 0, 0.1);
   background: #f1f5f9;
 }
@@ -279,7 +286,8 @@
   letter-spacing: -0.2px;
 }
 
-:root[data-theme="light"] .companyTitle {
+:root[data-theme="light"] .companyTitle,
+:global([data-theme="light"]) .companyTitle {
   color: #0f172a;
 }
 
@@ -295,7 +303,8 @@
   word-break: break-word;
 }
 
-:root[data-theme="light"] .companyAddress {
+:root[data-theme="light"] .companyAddress,
+:global([data-theme="light"]) .companyAddress {
   color: #64748b;
 }
 
@@ -312,7 +321,8 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-:root[data-theme="light"] .divider {
+:root[data-theme="light"] .divider,
+:global([data-theme="light"]) .divider {
   background: rgba(0, 0, 0, 0.1);
 }
 
@@ -335,19 +345,21 @@
   font-family: inherit;
 }
 
-:root[data-theme="light"] .navButton {
+:root[data-theme="light"] .navButton:not(.navButtonPrimary),
+:global([data-theme="light"]) .navButton:not(.navButtonPrimary) {
   background: #f1f5f9;
   border-color: #e2e8f0;
   color: #334155;
 }
 
-.navButton:hover {
+.navButton:not(.navButtonPrimary):hover {
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
   transform: translateY(-1px);
 }
 
-:root[data-theme="light"] .navButton:hover {
+:root[data-theme="light"] .navButton:not(.navButtonPrimary):hover,
+:global([data-theme="light"]) .navButton:not(.navButtonPrimary):hover {
   background: #e2e8f0;
   color: #0f172a;
 }
@@ -356,16 +368,20 @@
   transform: scale(0.96);
 }
 
-.navButtonPrimary {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+.navButtonPrimary,
+:root[data-theme="light"] .navButtonPrimary,
+:global([data-theme="light"]) .navButtonPrimary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
   color: #ffffff !important;
-  border: none;
+  border: none !important;
   box-shadow: 0 2px 10px rgba(37, 99, 235, 0.35);
   padding: 8px 12px;
 }
 
-.navButtonPrimary:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+.navButtonPrimary:hover,
+:root[data-theme="light"] .navButtonPrimary:hover,
+:global([data-theme="light"]) .navButtonPrimary:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.5);
   color: #ffffff !important;
 }
@@ -374,6 +390,12 @@
   width: 15px;
   height: 15px;
   flex-shrink: 0;
+  color: #ffffff !important;
+}
+
+.navButtonPrimary .navButtonLabel,
+.navButtonPrimary .navButtonIcon {
+  color: #ffffff !important;
 }
 
 .navButtonLabel {
