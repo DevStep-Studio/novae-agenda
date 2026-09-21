@@ -452,28 +452,24 @@ export default function OwnerHomeScreen() {
                       url: setupStatus.publicUrl,
                     });
                   }}
-                  style={({ pressed }) => ({
+                  style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 5,
+                    gap: 6,
                     height: 32,
-                    paddingHorizontal: 11,
+                    paddingHorizontal: 12,
                     borderRadius: 8,
-                    backgroundColor: pressed
-                      ? isDark
-                        ? "rgba(255, 255, 255, 0.1)"
-                        : "rgba(0, 0, 0, 0.08)"
-                      : isDark
+                    backgroundColor: isDark
                       ? "rgba(255, 255, 255, 0.06)"
                       : "rgba(0, 0, 0, 0.04)",
                     borderWidth: 1,
                     borderColor: isDark
                       ? "rgba(255, 255, 255, 0.1)"
                       : "rgba(0, 0, 0, 0.08)",
-                  })}
+                  }}
                 >
                   <Share2 size={13} color={textTitle} />
-                  <Text style={{ color: textTitle, fontSize: 11.5, fontWeight: "600" }}>
+                  <Text style={{ color: textTitle, fontSize: 12, fontWeight: "600" }}>
                     Compartilhar
                   </Text>
                 </Pressable>
@@ -512,21 +508,17 @@ export default function OwnerHomeScreen() {
                     onPress={() => {
                       if (route) router.push(route as any);
                     }}
-                    style={({ pressed }) => ({
+                    style={{
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      paddingVertical: 9,
-                      paddingHorizontal: 10,
+                      paddingVertical: 10,
+                      paddingHorizontal: 12,
                       borderRadius: 10,
-                      backgroundColor: pressed
-                        ? isDark
-                          ? "rgba(255, 255, 255, 0.05)"
-                          : "rgba(0, 0, 0, 0.04)"
-                        : isDark
-                        ? "rgba(255, 255, 255, 0.02)"
-                        : "rgba(0, 0, 0, 0.015)",
-                    })}
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.03)"
+                        : "rgba(0, 0, 0, 0.02)",
+                    }}
                   >
                     <View
                       style={{
@@ -540,9 +532,9 @@ export default function OwnerHomeScreen() {
                     >
                       <View
                         style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 10,
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
                           alignItems: "center",
                           justifyContent: "center",
                           backgroundColor: isDone
@@ -550,12 +542,12 @@ export default function OwnerHomeScreen() {
                             : "transparent",
                           borderWidth: isDone ? 0 : 1.5,
                           borderColor: isDark
-                            ? "rgba(255, 255, 255, 0.2)"
+                            ? "rgba(255, 255, 255, 0.25)"
                             : "rgba(0, 0, 0, 0.2)",
                         }}
                       >
                         {isDone ? (
-                          <Check size={11} color="#10b981" strokeWidth={3} />
+                          <Check size={12} color="#10b981" strokeWidth={2.5} />
                         ) : null}
                       </View>
                       <Text
@@ -572,7 +564,7 @@ export default function OwnerHomeScreen() {
                       </Text>
                     </View>
                     <ChevronRight
-                      size={14}
+                      size={15}
                       color={
                         isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.25)"
                       }
