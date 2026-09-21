@@ -391,11 +391,7 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
       company.phone ||
       professionals.find((p) => p.phone)?.phone ||
       "";
-    const cleanPhone = rawNumber.replace(/\D/g, "");
-    const formattedPhone =
-      cleanPhone.length <= 11 && !cleanPhone.startsWith("55")
-        ? `55${cleanPhone}`
-        : cleanPhone;
+    const formattedPhone = formatPhoneForWhatsApp(rawNumber);
     const text = encodeURIComponent(
       `Olá! Gostaria de falar sobre o plano mensal "${plan.name}" (${money(plan.price)}/mês) no ${company.name}. Como posso aderir?`
     );

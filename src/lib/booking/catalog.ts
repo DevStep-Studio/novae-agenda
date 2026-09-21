@@ -14,6 +14,7 @@ import {
   services,
   employeeSchedules,
   bookingPages,
+  users,
 } from "@/db/schema";
 import type { DbExecutor } from "@/lib/availability";
 import type { PageBuilderDocument } from "@/components/booking/page-builder/page-builder-types";
@@ -140,6 +141,7 @@ export async function publicCatalog(slug: string) {
     popularity,
     schedules,
     pageRows,
+    ownerUserRows,
   ] = await Promise.all([
     db
       .select({
@@ -255,6 +257,11 @@ export async function publicCatalog(slug: string) {
         ),
       ),
     pageRowsQuery,
+    db
+      .select({ phone: users.phone })
+      .from(users)
+      .where(and(eq(users.companyId, company.id), eq(users.role, "owner")))
+      .limit(1),
   ]);
   const pop = new Map(
     popularity.map((p) => [p.serviceId, Number(p.count)]),
@@ -264,6 +271,23 @@ export async function publicCatalog(slug: string) {
   // time, buffers, etc) — branding fields live in company_settings under separate
   // keys, so they're read from the raw rows instead (mirrors GET /api/business/branding).
   const settingsMap = Object.fromEntries(rawSettingsRows.map((r) => [r.key, r.value]));
+  const ownerUser = ownerUserRows?.[0];
+  const ownerPhone = ownerUser?.phone?.trim() || null;
+  const resolvedPhone =
+    company.phone?.trim() ||
+    company.whatsapp?.trim() ||
+    settingsMap.phone?.trim() ||
+    settingsMap.whatsapp?.trim() ||
+    ownerPhone ||
+    null;
+  const resolvedWhatsapp =
+    company.whatsapp?.trim() ||
+    company.phone?.trim() ||
+    settingsMap.whatsapp?.trim() ||
+    settingsMap.phone?.trim() ||
+    ownerPhone ||
+    null;
+
   return {
     company: {
       name: company.name,
@@ -279,8 +303,8 @@ export async function publicCatalog(slug: string) {
       copyOverrides: parseCopyOverrides(settingsMap.booking_copy_overrides || settingsMap.bookingCopyOverrides),
       sectionsConfig: parseSectionsConfig(settingsMap.booking_sections_config || settingsMap.bookingSectionsConfig),
       address: company.address,
-      phone: company.phone || company.whatsapp || null,
-      whatsapp: company.whatsapp || company.phone || null,
+      phone: resolvedPhone,
+      whatsapp: resolvedWhatsapp,
       instagram: company.instagram || null,
       color: company.publicColor || company.primaryColor || "#3b82f6",
       photos: company.publicPhotos,

@@ -31,6 +31,7 @@ import type {
 import { COMPONENT_REGISTRY } from "./page-builder-registry";
 import { LocationMapCard } from "../location-map-card";
 import { money } from "../primitives";
+import { formatPhoneForWhatsApp } from "@/lib/api-client";
 import styles from "./page-builder-renderer.module.css";
 
 export interface PageBuilderRendererProps {
@@ -325,7 +326,7 @@ export function PageBuilderRenderer({
 
               {props.showContactLinks && (company?.whatsapp || company?.phone) && (
                 <a
-                  href={`https://wa.me/${(company?.whatsapp || company?.phone || "").replace(/\D/g, "")}`}
+                  href={`https://wa.me/${formatPhoneForWhatsApp(company?.whatsapp || company?.phone || "")}`}
                   target="_blank"
                   rel="noreferrer"
                   className={styles.contactBtn}

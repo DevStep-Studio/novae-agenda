@@ -14,7 +14,16 @@ export function formatPhoneForWhatsApp(phone: string | null | undefined): string
   if (!phone) return "";
   const digits = String(phone).replace(/\D/g, "");
   if (digits.length === 0) return "";
-  return digits.length <= 11 ? `55${digits}` : digits;
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+    return digits;
+  }
+  if (digits.length <= 11) {
+    return `55${digits}`;
+  }
+  if (digits.length === 12 && !digits.startsWith("55")) {
+    return `55${digits}`;
+  }
+  return digits;
 }
 
 export function formatPhoneInput(value: string): string {

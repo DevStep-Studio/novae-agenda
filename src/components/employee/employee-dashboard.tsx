@@ -22,7 +22,7 @@ import { ReserveiLogo } from "@/components/brand/novae-logo";
 import { useStore } from "@/store/store";
 import { Toasts } from "@/components/ui/toast";
 import { ConfirmModalHost } from "@/components/ui/confirm-modal";
-import { api } from "@/lib/api-client";
+import { api, formatPhoneForWhatsApp } from "@/lib/api-client";
 import type { AppointmentDTO, AppointmentStatus } from "@/shared/types";
 import styles from "./employee-dashboard.module.css";
 
@@ -370,7 +370,7 @@ export function EmployeeDashboard() {
                       <div className={styles.aptActionsCol}>
                         {apt.clientPhone && (
                           <a
-                            href={`https://wa.me/55${apt.clientPhone.replace(/\D/g, "")}?text=Olá%20${encodeURIComponent(apt.clientName)},%20confirmamos%20seu%20atendimento%20hoje%20às%20${apt.startTime}.`}
+                            href={`https://wa.me/${formatPhoneForWhatsApp(apt.clientPhone)}?text=Olá%20${encodeURIComponent(apt.clientName)},%20confirmamos%20seu%20atendimento%20hoje%20às%20${apt.startTime}.`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`${styles.actionBtn} whatsapp-button`}

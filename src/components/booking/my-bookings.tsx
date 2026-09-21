@@ -28,7 +28,7 @@ import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { useStore } from "@/store/store";
 import { Toasts } from "@/components/ui/toast";
 import { ConfirmModalHost } from "@/components/ui/confirm-modal";
-import { api } from "@/lib/api-client";
+import { api, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import type { BookingDetails } from "@/lib/booking/service";
 import type { PublicCatalog } from "@/lib/booking/catalog";
@@ -860,7 +860,7 @@ export function MyBookings({
                     className={`${b.button} ${b.whatsappBtn}`}
                     target="_blank"
                     rel="noreferrer"
-                    href={`https://wa.me/${lateNotice.booking.company.phone.replace(/\D/g, "").length <= 11 ? "55" : ""}${lateNotice.booking.company.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá! Gostaria de ${lateNotice.type === "cancel" ? "desmarcar" : "remarcar"} meu agendamento de "${lateNotice.booking.items.map((i) => i.name).join(" + ")}" agendado para ${dateLabel(lateNotice.booking.items[0]?.date ?? lateNotice.booking.startsAt.slice(0, 10))} às ${lateNotice.booking.items[0]?.startTime.slice(0, 5)}.`)}`}
+                    href={`https://wa.me/${formatPhoneForWhatsApp(lateNotice.booking.company.phone)}?text=${encodeURIComponent(`Olá! Gostaria de ${lateNotice.type === "cancel" ? "desmarcar" : "remarcar"} meu agendamento de "${lateNotice.booking.items.map((i) => i.name).join(" + ")}" agendado para ${dateLabel(lateNotice.booking.items[0]?.date ?? lateNotice.booking.startsAt.slice(0, 10))} às ${lateNotice.booking.items[0]?.startTime.slice(0, 5)}.`)}`}
                   >
                     <WhatsAppIcon size={16} /> Falar no WhatsApp
                   </a>
@@ -1250,7 +1250,7 @@ export function MyBookings({
                       className={`${b.button} ${b.outline} whatsapp-button`}
                       target="_blank"
                       rel="noreferrer"
-                      href={`https://wa.me/${current.company.phone.replace(/\D/g, "").length <= 11 ? "55" : ""}${current.company.phone.replace(/\D/g, "")}`}
+                      href={`https://wa.me/${formatPhoneForWhatsApp(current.company.phone)}`}
                     >
                       <WhatsAppIcon size={15} /> WhatsApp
                     </a>

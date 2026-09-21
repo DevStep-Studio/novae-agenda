@@ -15,7 +15,7 @@ import {
   Star,
   AlertTriangle,
 } from "lucide-react";
-import { api, ApiError } from "@/lib/api-client";
+import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { money } from "./primitives";
 import { PinInput } from "./pin-input";
@@ -230,7 +230,7 @@ export function MembershipAccessModal({
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (membership: CustomerMembershipDTO, customer: any) => void;
-  company: { name: string; slug: string; phone?: string | null };
+  company: { name: string; slug: string; phone?: string | null; whatsapp?: string | null };
   planName?: string;
 }) {
   const [phone, setPhone] = useState("");
@@ -331,9 +331,9 @@ export function MembershipAccessModal({
     if (error) setError("");
   }
 
-  const cleanPhone = company.phone?.replace(/\D/g, "");
-  const whatsappUrl = cleanPhone
-    ? `https://wa.me/${cleanPhone.length <= 11 ? "55" : ""}${cleanPhone}?text=${encodeURIComponent(
+  const targetPhone = formatPhoneForWhatsApp(company.whatsapp || company.phone || "");
+  const whatsappUrl = targetPhone
+    ? `https://wa.me/${targetPhone}?text=${encodeURIComponent(
         `Olá! Sou cliente do ${company.name} e gostaria de ativar/consultar minha mensalidade.`,
       )}`
     : null;
