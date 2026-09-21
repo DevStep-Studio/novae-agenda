@@ -24,6 +24,7 @@ import {
   RotateCcw,
   KeyRound,
 } from "lucide-react";
+import { maskPhoneInput } from "@/lib/api-client";
 import styles from "../admin-dashboard.module.css";
 
 export interface UsersTabProps {
@@ -955,7 +956,8 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                       className={styles.input}
                       placeholder="(11) 99999-9999"
                       value={newUserForm.phone}
-                      onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+                      onChange={(e) => setNewUserForm({ ...newUserForm, phone: maskPhoneInput(e.target.value) })}
+                      maxLength={15}
                     />
                   </div>
                 </div>
@@ -1208,7 +1210,9 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                     type="text"
                     className={styles.input}
                     value={editForm.phone}
-                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    onChange={(e) => setEditForm({ ...editForm, phone: maskPhoneInput(e.target.value) })}
+                    placeholder="(11) 99999-9999"
+                    maxLength={15}
                   />
                 </div>
 

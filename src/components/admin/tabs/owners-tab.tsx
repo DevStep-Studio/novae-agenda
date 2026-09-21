@@ -26,6 +26,7 @@ import {
   Check,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/client-utils";
+import { maskPhoneInput } from "@/lib/api-client";
 import styles from "../admin-dashboard.module.css";
 
 export interface OwnersTabProps {
@@ -968,8 +969,9 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
                       type="text"
                       className={styles.input}
                       value={newOwnerForm.phone}
-                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, phone: e.target.value })}
+                      onChange={(e) => setNewOwnerForm({ ...newOwnerForm, phone: maskPhoneInput(e.target.value) })}
                       placeholder="(11) 99999-9999"
+                      maxLength={15}
                     />
                   </div>
 
@@ -1179,7 +1181,9 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
                       type="text"
                       className={styles.input}
                       value={editForm.phone}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      onChange={(e) => setEditForm({ ...editForm, phone: maskPhoneInput(e.target.value) })}
+                      placeholder="(11) 99999-9999"
+                      maxLength={15}
                     />
                   </div>
                   <div className={styles.formGroup}>

@@ -15,7 +15,7 @@ import {
   Star,
   AlertTriangle,
 } from "lucide-react";
-import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
+import { api, ApiError, formatPhoneForWhatsApp, maskPhoneInput } from "@/lib/api-client";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { money } from "./primitives";
 import { PinInput } from "./pin-input";
@@ -319,13 +319,7 @@ export function MembershipAccessModal({
   }
 
   function handlePhoneChange(val: string) {
-    const digits = val.replace(/\D/g, "").slice(0, 11);
-    let formatted = digits;
-    if (digits.length <= 2) formatted = digits.length ? `(${digits}` : "";
-    else if (digits.length <= 7)
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    else
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    const formatted = maskPhoneInput(val);
     setPhone(formatted);
     if (noMembershipFound) setNoMembershipFound(false);
     if (error) setError("");
@@ -432,6 +426,7 @@ export function MembershipAccessModal({
                     value={phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     placeholder="(11) 99999-9999"
+                    maxLength={15}
                     className={styles.fieldInput}
                   />
                 </label>

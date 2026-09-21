@@ -31,29 +31,75 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 
 export function formatPhoneForWhatsApp(phone: string | null | undefined): string {
   if (!phone) return "";
-  const digits = String(phone).replace(/\D/g, "");
+  let digits = String(phone).replace(/\D/g, "");
   if (digits.length === 0) return "";
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
-    return digits;
+
+  // Remove duplicate 55 prefixes (e.g. 5555...)
+  while (digits.startsWith("5555")) {
+    digits = digits.slice(2);
   }
-  if (digits.length <= 11) {
-    return `55${digits}`;
+
+  // Remove leading 0 (e.g. 021 99678-9171 -> length >= 11)
+  if (digits.startsWith("0") && digits.length >= 11) {
+    digits = digits.slice(1);
   }
-  if (digits.length === 12 && !digits.startsWith("55")) {
-    return `55${digits}`;
+
+  // If already starts with 55
+  if (digits.startsWith("55")) {
+    let national = digits.slice(2);
+    if (national.startsWith("0")) {
+      national = national.slice(1);
+    }
+    // In Brazil, national number is at most 11 digits (2 DDD + 9 mobile or 8 landline)
+    if (national.length > 11) {
+      national = national.slice(0, 11);
+    }
+    return `55${national}`;
   }
-  return digits;
+
+  // If does not start with 55: cap to max 11 digits
+  if (digits.length > 11) {
+    digits = digits.slice(0, 11);
+  }
+
+  return `55${digits}`;
 }
 
 export function formatPhoneDisplay(phone: string | null | undefined): string {
   if (!phone) return "";
   let digits = String(phone).replace(/\D/g, "");
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+  while (digits.startsWith("5555")) {
     digits = digits.slice(2);
   }
+  if (digits.startsWith("55") && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith("0") && digits.length >= 11) {
+    digits = digits.slice(1);
+  }
+  // Cap at 11 digits for national number
+  digits = digits.slice(0, 11);
+
   if (digits.length === 0) return "";
   if (digits.length <= 2) return `(${digits}`;
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 }
+
+export function maskPhoneInput(value: string | null | undefined): string {
+  return formatPhoneDisplay(value);
+}
+
+export function isValidPhone(value: string | null | undefined): boolean {
+  if (!value) return false;
+  let digits = String(value).replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith("0") && digits.length >= 11) {
+    digits = digits.slice(1);
+  }
+  return digits.length >= 10 && digits.length <= 11;
+}
+

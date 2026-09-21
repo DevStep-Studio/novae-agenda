@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
-import { api } from "@/lib/api-client";
+import { api, maskPhoneInput } from "@/lib/api-client";
 import { b, ErrorMessage } from "./primitives";
 import {
   Mail,
@@ -36,7 +36,8 @@ export function CustomerAuth({
     [loading, setLoading] = useState(true),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    [registerPhone, setRegisterPhone] = useState("");
 
   async function refresh() {
     const identity = await api<Customer | null>("/api/my/session");
@@ -264,7 +265,9 @@ export function CustomerAuth({
                 autoComplete="tel"
                 required
                 minLength={8}
-                maxLength={25}
+                maxLength={15}
+                value={registerPhone}
+                onChange={(e) => setRegisterPhone(maskPhoneInput(e.target.value))}
                 placeholder="(11) 99999-9999"
               />
             </label>

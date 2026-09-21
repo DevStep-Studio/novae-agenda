@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { ImageCropperModal } from "@/components/ui/image-cropper-modal";
-import { api } from "@/lib/api-client";
+import { api, formatPhoneDisplay, maskPhoneInput } from "@/lib/api-client";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { useStore } from "@/store/store";
 import { ErrorMessage, money, Skeleton } from "./primitives";
@@ -113,6 +113,8 @@ export function BookingSettings() {
   const [logoUrl, setLogoUrl] = useState("");
   const [photosText, setPhotosText] = useState("");
   const [addressValue, setAddressValue] = useState("");
+  const [phoneValue, setPhoneValue] = useState("");
+  const [whatsappValue, setWhatsappValue] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -153,6 +155,8 @@ export function BookingSettings() {
     setLogoUrl(result.company.logoUrl ?? "");
     setPhotosText((result.company.publicPhotos ?? []).join("\n"));
     setAddressValue(result.company.address ?? "");
+    setPhoneValue(formatPhoneDisplay(result.company.phone));
+    setWhatsappValue(formatPhoneDisplay(result.company.whatsapp));
 
     if (result.company.publicSlug) {
       setUrl(`${window.location.origin}/agendar/${result.company.publicSlug}`);
@@ -212,8 +216,8 @@ export function BookingSettings() {
           description: f.get("description"),
           category: f.get("category"),
           address: f.get("address"),
-          phone: f.get("phone"),
-          whatsapp: f.get("whatsapp"),
+          phone: phoneValue,
+          whatsapp: whatsappValue,
           instagram: f.get("instagram"),
           logoUrl: logoUrl.trim() || null,
           photos: photosText
@@ -995,8 +999,10 @@ export function BookingSettings() {
               <input
                 className={styles.input}
                 name="phone"
-                defaultValue={c.phone ?? ""}
+                value={phoneValue}
+                onChange={(e) => setPhoneValue(maskPhoneInput(e.target.value))}
                 placeholder="(11) 99999-9999"
+                maxLength={15}
               />
             </div>
 
@@ -1005,8 +1011,10 @@ export function BookingSettings() {
               <input
                 className={styles.input}
                 name="whatsapp"
-                defaultValue={c.whatsapp ?? ""}
+                value={whatsappValue}
+                onChange={(e) => setWhatsappValue(maskPhoneInput(e.target.value))}
                 placeholder="(11) 99999-9999"
+                maxLength={15}
               />
             </div>
 

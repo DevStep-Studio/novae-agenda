@@ -12,24 +12,53 @@ export function formatBRL(value: number | string | null | undefined): string {
 
 export function formatPhoneForWhatsApp(phone: string | null | undefined): string {
   if (!phone) return "";
-  const digits = String(phone).replace(/\D/g, "");
+  let digits = String(phone).replace(/\D/g, "");
   if (digits.length === 0) return "";
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
-    return digits;
+
+  while (digits.startsWith("5555")) {
+    digits = digits.slice(2);
   }
-  if (digits.length <= 11) {
-    return `55${digits}`;
+
+  if (digits.startsWith("0") && digits.length >= 11) {
+    digits = digits.slice(1);
   }
-  if (digits.length === 12 && !digits.startsWith("55")) {
-    return `55${digits}`;
+
+  if (digits.startsWith("55")) {
+    let national = digits.slice(2);
+    if (national.startsWith("0")) {
+      national = national.slice(1);
+    }
+    if (national.length > 11) {
+      national = national.slice(0, 11);
+    }
+    return `55${national}`;
   }
-  return digits;
+
+  if (digits.length > 11) {
+    digits = digits.slice(0, 11);
+  }
+
+  return `55${digits}`;
 }
 
-export function formatPhoneInput(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length <= 2) return digits.length ? `(${digits}` : "";
-  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+export function formatPhoneInput(value: string | null | undefined): string {
+  if (!value) return "";
+  let digits = String(value).replace(/\D/g, "");
+  while (digits.startsWith("5555")) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith("55") && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.startsWith("0") && digits.length >= 11) {
+    digits = digits.slice(1);
+  }
+  digits = digits.slice(0, 11);
+
+  if (digits.length === 0) return "";
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 }
 

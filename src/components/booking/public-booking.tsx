@@ -31,7 +31,7 @@ import {
   User,
   Camera,
 } from "lucide-react";
-import { api, ApiError, formatPhoneForWhatsApp, formatPhoneDisplay } from "@/lib/api-client";
+import { api, ApiError, formatPhoneForWhatsApp, formatPhoneDisplay, maskPhoneInput } from "@/lib/api-client";
 import { prepareImageUpload } from "@/lib/image-upload-client";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import type { PublicCatalog } from "@/lib/booking/catalog";
@@ -2214,15 +2214,9 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
                                 required
                                 minLength={8}
                                 value={formPhone}
-                                onChange={(e) => {
-                                  const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
-                                  let formatted = digits;
-                                  if (digits.length <= 2) formatted = digits.length ? `(${digits}` : "";
-                                  else if (digits.length <= 7) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-                                  else formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-                                  setFormPhone(formatted);
-                                }}
+                                onChange={(e) => setFormPhone(maskPhoneInput(e.target.value))}
                                 placeholder="(11) 99999-9999"
+                                maxLength={15}
                               />
                             </label>
                             <label className={b.field}>

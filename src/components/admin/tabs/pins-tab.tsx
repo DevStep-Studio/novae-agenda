@@ -22,6 +22,7 @@ import {
   Clock,
   Phone,
 } from "lucide-react";
+import { maskPhoneInput } from "@/lib/api-client";
 import styles from "../admin-dashboard.module.css";
 
 interface UserPinItem {
@@ -858,7 +859,8 @@ export function PinsTab() {
                     className={styles.input}
                     placeholder="(11) 99999-9999"
                     value={userPhoneInput}
-                    onChange={(e) => setUserPhoneInput(e.target.value)}
+                    onChange={(e) => setUserPhoneInput(maskPhoneInput(e.target.value))}
+                    maxLength={15}
                   />
                   <div style={{ fontSize: 11, color: "#737373", marginTop: 4 }}>
                     Utilizado para login por telefone + PIN nos agendamentos e área do cliente.

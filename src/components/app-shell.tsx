@@ -17,7 +17,7 @@ import type { LocationDTO } from "@/shared/types";
 import { Toasts } from "@/components/ui/toast";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ConfirmModal, ConfirmModalHost } from "@/components/ui/confirm-modal";
-import { api, ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
+import { api, ApiError, formatPhoneForWhatsApp, formatPhoneDisplay, maskPhoneInput, isValidPhone } from "@/lib/api-client";
 import { avatarColor, formatCurrency, getServiceDescription, initials, PAYMENT_LABELS, roleLabel, STATUS_LABELS } from "@/lib/client-utils";
 import { applyTheme, getStoredTheme, resolveTheme, type Theme } from "@/lib/theme";
 import { PRIMARY_COLOR_PRESETS, BANNER_PRESETS, AVATAR_PRESETS, applyPrimaryColor, isLightHex } from "@/lib/theme-utils";
@@ -3002,8 +3002,8 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
 
   // Company profile fields
   const [name, setName] = useState(company?.name ?? "");
-  const [phone, setPhone] = useState(company?.phone ?? "");
-  const [whatsapp, setWhatsapp] = useState(company?.whatsapp ?? "");
+  const [phone, setPhone] = useState(formatPhoneDisplay(company?.phone));
+  const [whatsapp, setWhatsapp] = useState(formatPhoneDisplay(company?.whatsapp));
   const [email, setEmail] = useState(company?.email ?? "");
   const [address, setAddress] = useState(company?.address ?? "");
   const [instagram, setInstagram] = useState(company?.instagram ?? "");
@@ -3232,8 +3232,8 @@ function SettingsPage({ theme, setTheme, onNewLocation, onEditLocation }: { them
                 />
                 <div className="settings-form">
                   <Field label="Nome da empresa"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
-                  <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" /></Field>
-                  <Field label="WhatsApp"><input className="input" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(11) 99999-9999" /></Field>
+                  <Field label="Telefone"><input className="input" value={phone} onChange={(e) => setPhone(maskPhoneInput(e.target.value))} placeholder="(11) 99999-9999" maxLength={15} /></Field>
+                  <Field label="WhatsApp"><input className="input" value={whatsapp} onChange={(e) => setWhatsapp(maskPhoneInput(e.target.value))} placeholder="(11) 99999-9999" maxLength={15} /></Field>
                   <Field label="E-mail"><input className="input" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
                   <Field label="Endereço"><div className="input-with-icon"><MapPin size={16} /><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} /></div></Field>
                   <Field label="Instagram"><div className="input-with-icon"><span className="at-symbol">@</span><input className="input" value={instagram} onChange={(e) => setInstagram(e.target.value)} /></div></Field>
@@ -4852,7 +4852,7 @@ function NewEmployeeModal({ onClose }: { onClose: () => void }) {
           <Field label="Telefone / WhatsApp" icon={Phone}>
             <div className="modal-input-wrap">
               <Phone size={17} className="modal-input-icon" />
-              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+              <input className="input" value={phone} onChange={(e) => setPhone(maskPhoneInput(e.target.value))} placeholder="(11) 99999-9999" maxLength={15} />
             </div>
           </Field>
           <Field label="Serviços que realiza" icon={Scissors} className="field-full">
@@ -5155,7 +5155,7 @@ function EditEmployeeModal({
           <Field label="Telefone / WhatsApp" icon={Phone}>
             <div className="modal-input-wrap">
               <Phone size={17} className="modal-input-icon" />
-              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 99999-9999" />
+              <input className="input" value={phone} onChange={(e) => setPhone(maskPhoneInput(e.target.value))} placeholder="(11) 99999-9999" maxLength={15} />
             </div>
           </Field>
           <Field label="Status na equipe" icon={CheckCircle}>
@@ -5896,7 +5896,7 @@ function NewLocationModal({ onClose }: { onClose: () => void }) {
           <Field label="Telefone" icon={Phone} className="field-full">
             <div className="modal-input-wrap">
               <Phone size={17} className="modal-input-icon" />
-              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3333-4444" />
+              <input className="input" value={phone} onChange={(e) => setPhone(maskPhoneInput(e.target.value))} placeholder="(11) 3333-4444" maxLength={15} />
             </div>
           </Field>
           <Field label="Horário de abertura" icon={Clock}>
@@ -5965,7 +5965,7 @@ function EditLocationModal({ location, onClose }: { location: LocationDTO; onClo
           <Field label="Telefone" icon={Phone} className="field-full">
             <div className="modal-input-wrap">
               <Phone size={17} className="modal-input-icon" />
-              <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(11) 3333-4444" />
+              <input className="input" value={phone} onChange={(e) => setPhone(maskPhoneInput(e.target.value))} placeholder="(11) 3333-4444" maxLength={15} />
             </div>
           </Field>
           <Field label="Horário de abertura" icon={Clock}>
@@ -7938,8 +7938,9 @@ function ProfilePage({
                 <input
                   className="input"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(maskPhoneInput(e.target.value))}
                   placeholder="(11) 99999-9999"
+                  maxLength={15}
                 />
               </Field>
 
