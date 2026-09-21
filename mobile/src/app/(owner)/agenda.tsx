@@ -27,10 +27,12 @@ import {
   ScrollView,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { router } from "expo-router";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
@@ -148,6 +150,7 @@ const TIME_SLOTS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
 });
 
 export default function AgendaScreen() {
+  const { width: windowWidth } = useWindowDimensions();
   const { session } = useSession();
   const { isDark, primaryColor, primarySoft, primaryForeground } = useTheme();
   const [selectedDate, setSelectedDate] = useState(todayKey());
@@ -275,6 +278,24 @@ export default function AgendaScreen() {
     const active = employees.filter((e) => e.active);
     return active.length > 0 ? active : employees;
   }, [employees, employeeFilter]);
+
+  // Responsive calendar dimensions
+  const timeColWidth = 68;
+  const calendarAvailableWidth = Math.max(windowWidth - 42, 280);
+  const employeeAreaWidth = Math.max(calendarAvailableWidth - timeColWidth, 200);
+
+  const colWidth = useMemo(() => {
+    if (visibleEmployees.length <= 1) {
+      // 1 professional expands to fill 100% of available calendar width
+      return employeeAreaWidth;
+    }
+    // Multiple professionals: each gets at least 175px or equal split
+    return Math.max(Math.floor(employeeAreaWidth / visibleEmployees.length), 175);
+  }, [visibleEmployees.length, employeeAreaWidth]);
+
+  const weekColWidth = useMemo(() => {
+    return Math.max(Math.floor((calendarAvailableWidth - 65) / 3), 130);
+  }, [calendarAvailableWidth]);
 
   const handleSlotPress = (empId: string, time: string, date: string = selectedDate) => {
     const apt = appointments.find(
@@ -576,20 +597,13 @@ export default function AgendaScreen() {
                 <Pressable
                   key={emp.id}
                   onPress={() => setEmployeeFilter(isSelected ? "all" : emp.id)}
-                  className="flex-row items-center gap-1.5 px-3 py-1 rounded-full border"
+                  className="flex-row items-center gap-2 px-2.5 py-1 rounded-full border"
                   style={{
                     backgroundColor: isSelected ? "#2a2b32" : "#1b1c20",
                     borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  <View
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      backgroundColor: "#ffffff",
-                    }}
-                  />
+                  <Avatar name={emp.name} photoUrl={emp.photoUrl} size="xs" />
                   <Text
                     style={{
                       color: isSelected ? "#ffffff" : colors.textSecondary,
@@ -619,7 +633,7 @@ export default function AgendaScreen() {
                 {/* Time header */}
                 <View
                   className="items-center justify-center border-r p-2.5"
-                  style={{ width: 75, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                  style={{ width: timeColWidth, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
                 >
                   <View className="flex-row items-center gap-1">
                     <Clock size={12} color={colors.textMuted} />
@@ -629,33 +643,15 @@ export default function AgendaScreen() {
 
                 {/* Professional headers */}
                 {visibleEmployees.map((emp) => {
-                  const initialsEmp = emp.name
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((p) => p[0]?.toUpperCase())
-                    .join("");
-
                   const countEmp = filteredAppointments.filter((a) => a.employeeId === emp.id && a.date === selectedDate && a.status !== "cancelled").length;
 
                   return (
                     <View
                       key={emp.id}
                       className="flex-row items-center gap-2.5 p-3 border-r"
-                      style={{ width: 190, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                      style={{ width: colWidth, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
                     >
-                      <View
-                        className="items-center justify-center rounded-lg"
-                        style={{
-                          width: 36,
-                          height: 36,
-                          backgroundColor: "#d1d5db",
-                        }}
-                      >
-                        <Text style={{ color: "#111827", fontSize: 13, fontWeight: "800" }}>
-                          {initialsEmp}
-                        </Text>
-                      </View>
+                      <Avatar name={emp.name} photoUrl={emp.photoUrl} size="sm" />
 
                       <View className="flex-1 min-w-0">
                         <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }} numberOfLines={1}>
@@ -681,13 +677,13 @@ export default function AgendaScreen() {
                     className="flex-row border-b relative"
                     style={{
                       borderBottomColor: "rgba(255, 255, 255, 0.05)",
-                      minHeight: 56,
+                      minHeight: 64,
                     }}
                   >
                     {/* Time label */}
                     <View
                       className="items-center justify-center border-r p-2"
-                      style={{ width: 75, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                      style={{ width: timeColWidth, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
                     >
                       <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "500" }}>
                         {time}
@@ -696,7 +692,7 @@ export default function AgendaScreen() {
 
                     {/* Professional slot cells */}
                     {visibleEmployees.map((emp) => {
-                      const apt = filteredAppointments.find(
+                      const slotApts = filteredAppointments.filter(
                         (a) =>
                           a.employeeId === emp.id &&
                           a.date === selectedDate &&
@@ -708,29 +704,90 @@ export default function AgendaScreen() {
                         <Pressable
                           key={emp.id}
                           onPress={() => handleSlotPress(emp.id, time, selectedDate)}
-                          className="border-r p-1.5 justify-center"
+                          className="border-r p-1.5 justify-center gap-1.5"
                           style={{
-                            width: 190,
+                            width: colWidth,
                             borderRightColor: "rgba(255, 255, 255, 0.08)",
-                            backgroundColor: apt ? "rgba(16, 185, 129, 0.12)" : "transparent",
+                            backgroundColor: slotApts.length > 0 ? "rgba(255, 255, 255, 0.02)" : "transparent",
                           }}
                         >
-                          {apt ? (
-                            <View
-                              className="p-2 rounded-lg border gap-0.5"
+                          {slotApts.map((apt) => (
+                            <Pressable
+                              key={apt.id}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                setDetailAppointment(apt);
+                              }}
+                              className="p-2.5 rounded-xl border"
                               style={{
-                                backgroundColor: "#162820",
-                                borderColor: primaryColor,
+                                backgroundColor: "#161b22",
+                                borderColor: "rgba(255, 255, 255, 0.12)",
+                                borderLeftWidth: 3.5,
+                                borderLeftColor: primaryColor,
                               }}
                             >
-                              <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }} numberOfLines={1}>
-                                {apt.clientName || "Cliente"}
-                              </Text>
-                              <Text style={{ color: primaryColor, fontSize: 10.5, fontWeight: "600" }} numberOfLines={1}>
-                                {apt.serviceName || "Serviço"} · {apt.startTime}
-                              </Text>
-                            </View>
-                          ) : null}
+                              {/* Top Row: Client Name + Time badge */}
+                              <View className="flex-row items-center justify-between gap-2">
+                                <Text
+                                  style={{
+                                    color: "#ffffff",
+                                    fontSize: 13,
+                                    fontWeight: "700",
+                                    flexShrink: 1,
+                                  }}
+                                  numberOfLines={1}
+                                  ellipsizeMode="tail"
+                                >
+                                  {apt.clientName || "Cliente"}
+                                </Text>
+                                <View
+                                  style={{
+                                    backgroundColor: primarySoft,
+                                    paddingHorizontal: 6,
+                                    paddingVertical: 2,
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  <Text
+                                    style={{
+                                      color: primaryColor,
+                                      fontSize: 11,
+                                      fontWeight: "700",
+                                    }}
+                                  >
+                                    {apt.startTime}
+                                  </Text>
+                                </View>
+                              </View>
+
+                              {/* Bottom Row: Service Name + Price */}
+                              <View className="flex-row items-center justify-between gap-2 mt-1">
+                                <Text
+                                  style={{
+                                    color: "#9ca3af",
+                                    fontSize: 11.5,
+                                    fontWeight: "500",
+                                    flexShrink: 1,
+                                  }}
+                                  numberOfLines={1}
+                                  ellipsizeMode="tail"
+                                >
+                                  {apt.serviceName || "Serviço"}
+                                </Text>
+                                {apt.total > 0 ? (
+                                  <Text
+                                    style={{
+                                      color: "#e2e8f0",
+                                      fontSize: 11.5,
+                                      fontWeight: "600",
+                                    }}
+                                  >
+                                    {formatBRL(apt.total)}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </Pressable>
+                          ))}
                         </Pressable>
                       );
                     })}
@@ -862,7 +919,7 @@ export default function AgendaScreen() {
                           setCalMode("day");
                         }}
                         className="items-center justify-center p-2.5 border-r"
-                        style={{ width: 140, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
+                        style={{ width: weekColWidth, borderRightColor: "rgba(255, 255, 255, 0.08)" }}
                       >
                         <Text style={{ color: isDayToday ? primaryColor : "#ffffff", fontSize: 12.5, fontWeight: "700" }}>
                           {dayLabels[idx]} {day.slice(8, 10)}
@@ -883,7 +940,7 @@ export default function AgendaScreen() {
                       className="flex-row border-b relative"
                       style={{
                         borderBottomColor: "rgba(255, 255, 255, 0.05)",
-                        minHeight: 56,
+                        minHeight: 64,
                       }}
                     >
                       {/* Rótulo de Horário */}
@@ -915,29 +972,48 @@ export default function AgendaScreen() {
                                 handleSlotPress("", time, day);
                               }
                             }}
-                            className="border-r p-1.5 justify-center"
+                            className="border-r p-1.5 justify-center gap-1"
                             style={{
-                              width: 140,
+                              width: weekColWidth,
                               borderRightColor: "rgba(255, 255, 255, 0.08)",
-                              backgroundColor: aptsInSlot.length > 0 ? "rgba(16, 185, 129, 0.12)" : "transparent",
+                              backgroundColor: aptsInSlot.length > 0 ? "rgba(255, 255, 255, 0.02)" : "transparent",
                             }}
                           >
                             {aptsInSlot.map((apt) => (
-                              <View
+                              <Pressable
                                 key={apt.id}
-                                className="p-1.5 rounded-lg border gap-0.5"
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  setDetailAppointment(apt);
+                                }}
+                                className="p-2 rounded-lg border gap-0.5"
                                 style={{
-                                  backgroundColor: "#162820",
-                                  borderColor: primaryColor,
+                                  backgroundColor: "#161b22",
+                                  borderColor: "rgba(255, 255, 255, 0.12)",
+                                  borderLeftWidth: 3,
+                                  borderLeftColor: primaryColor,
                                 }}
                               >
-                                <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }} numberOfLines={1}>
-                                  {apt.clientName || "Cliente"}
+                                <View className="flex-row items-center justify-between gap-1">
+                                  <Text
+                                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700", flexShrink: 1 }}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                  >
+                                    {apt.clientName || "Cliente"}
+                                  </Text>
+                                  <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "700" }}>
+                                    {apt.startTime}
+                                  </Text>
+                                </View>
+                                <Text
+                                  style={{ color: "#9ca3af", fontSize: 10, fontWeight: "500" }}
+                                  numberOfLines={1}
+                                  ellipsizeMode="tail"
+                                >
+                                  {apt.serviceName || "Serviço"}
                                 </Text>
-                                <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "600" }} numberOfLines={1}>
-                                  {apt.serviceName || "Serviço"} · {apt.startTime}
-                                </Text>
-                              </View>
+                              </Pressable>
                             ))}
                           </Pressable>
                         );
@@ -1194,7 +1270,7 @@ export default function AgendaScreen() {
                           borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
                         }}
                       >
-                        <User size={14} color={isSelected ? primaryColor : "#9ca3af"} />
+                        <Avatar name={e.name} photoUrl={e.photoUrl} size="xs" />
                         <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>{e.name}</Text>
                       </Pressable>
                     );

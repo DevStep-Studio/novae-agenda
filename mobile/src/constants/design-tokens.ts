@@ -265,7 +265,7 @@ export const clientBadge = {
 export const avatar = {
   background: "#181d28",
   text: "#f1f5f9",
-  sizes: { sm: 30, md: 38, lg: 56, xl: 72 },
+  sizes: { xs: 20, sm: 30, md: 38, lg: 56, xl: 72 },
 } as const;
 
 /**
