@@ -1717,7 +1717,6 @@ button.button,
   min-height: 44px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: var(--accent-contrast) !important;
   border-radius: var(--booking-radius-sm);
   padding: 9px 18px;
   font: inherit;
@@ -1735,11 +1734,19 @@ button.button,
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.button svg,
-a.button svg,
-button.button svg,
-.page a.button svg,
-.page button.button svg {
+.button:not(:disabled),
+a.button:not(:disabled),
+button.button:not(:disabled),
+.page a.button:not(:disabled),
+.page button.button:not(:disabled) {
+  color: var(--accent-contrast) !important;
+}
+
+.button:not(:disabled) svg,
+a.button:not(:disabled) svg,
+button.button:not(:disabled) svg,
+.page a.button:not(:disabled) svg,
+.page button.button:not(:disabled) svg {
   color: currentColor !important;
   stroke: currentColor !important;
 }
@@ -1759,12 +1766,15 @@ a.button:disabled,
 button.button:disabled,
 .page a.button:disabled,
 .page button.button:disabled,
-.page .button:disabled {
-  background: var(--booking-surface-hover) !important;
-  color: var(--booking-text-disabled) !important;
-  border-color: var(--booking-border) !important;
+.page .button:disabled,
+.button[disabled],
+button[disabled] {
+  background: var(--booking-surface-hover, #27272f) !important;
+  color: var(--booking-text-disabled, #71717a) !important;
+  border-color: var(--booking-border, #383844) !important;
   cursor: not-allowed !important;
   box-shadow: none !important;
+  opacity: 0.85;
 }
 
 .button:disabled svg,
@@ -1772,9 +1782,72 @@ a.button:disabled svg,
 button.button:disabled svg,
 .page a.button:disabled svg,
 .page button.button:disabled svg,
-.page .button:disabled svg {
-  color: var(--booking-text-disabled) !important;
-  stroke: var(--booking-text-disabled) !important;
+.page .button:disabled svg,
+.button[disabled] svg,
+button[disabled] svg {
+  color: var(--booking-text-disabled, #71717a) !important;
+  stroke: var(--booking-text-disabled, #71717a) !important;
+}
+
+/* Modo Claro: Botões desabilitados SEMPRE com fundo claro e texto escuro nítido */
+.pageLight .button:disabled,
+.page[data-theme="light"] .button:disabled,
+:root[data-theme="light"] .button:disabled,
+:global([data-theme="light"]) .button:disabled,
+.pageLight a.button:disabled,
+.page[data-theme="light"] a.button:disabled,
+.pageLight button.button:disabled,
+.page[data-theme="light"] button.button:disabled,
+:root[data-theme="light"] button.button:disabled,
+:global([data-theme="light"]) button.button:disabled,
+.pageLight .button[disabled],
+.page[data-theme="light"] .button[disabled],
+:root[data-theme="light"] .button[disabled],
+:global([data-theme="light"]) .button[disabled],
+.pageLight .button:disabled:hover,
+.page[data-theme="light"] .button:disabled:hover,
+:root[data-theme="light"] .button:disabled:hover,
+:global([data-theme="light"]) .button:disabled:hover,
+.pageLight .summaryFooter .button:disabled,
+.page[data-theme="light"] .summaryFooter .button:disabled,
+:root[data-theme="light"] .summaryFooter .button:disabled,
+:global([data-theme="light"]) .summaryFooter .button:disabled,
+.pageLight .mobileBottomBar .button:disabled,
+.page[data-theme="light"] .mobileBottomBar .button:disabled,
+:root[data-theme="light"] .mobileBottomBar .button:disabled,
+:global([data-theme="light"]) .mobileBottomBar .button:disabled {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  opacity: 0.85 !important;
+}
+
+.pageLight .button:disabled svg,
+.page[data-theme="light"] .button:disabled svg,
+:root[data-theme="light"] .button:disabled svg,
+:global([data-theme="light"]) .button:disabled svg,
+.pageLight a.button:disabled svg,
+.page[data-theme="light"] a.button:disabled svg,
+.pageLight button.button:disabled svg,
+.page[data-theme="light"] button.button:disabled svg,
+:root[data-theme="light"] button.button:disabled svg,
+:global([data-theme="light"]) button.button:disabled svg,
+.pageLight .button[disabled] svg,
+.page[data-theme="light"] .button[disabled] svg,
+:root[data-theme="light"] .button[disabled] svg,
+:global([data-theme="light"]) .button[disabled] svg,
+.pageLight .summaryFooter .button:disabled svg,
+.page[data-theme="light"] .summaryFooter .button:disabled svg,
+:root[data-theme="light"] .summaryFooter .button:disabled svg,
+:global([data-theme="light"]) .summaryFooter .button:disabled svg,
+.pageLight .mobileBottomBar .button:disabled svg,
+.page[data-theme="light"] .mobileBottomBar .button:disabled svg,
+:root[data-theme="light"] .mobileBottomBar .button:disabled svg,
+:global([data-theme="light"]) .mobileBottomBar .button:disabled svg {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
 }
 
 .outline,
