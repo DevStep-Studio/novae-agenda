@@ -106,7 +106,7 @@ function formatDashboardCurrency(val: number | null | undefined): string {
 
 export default function OwnerHomeScreen() {
   const { session, refresh, signOut } = useSession();
-  const { isDark, colors: themeColors, primaryColor, primaryForeground } = useTheme();
+  const { isDark, colors: themeColors, primaryColor, primaryForeground, primarySoft } = useTheme();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -784,11 +784,48 @@ export default function OwnerHomeScreen() {
                 { backgroundColor: cardBg, borderColor: cardBorder },
               ]}
             >
-              <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500", flex: 1, paddingRight: 6 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    backgroundColor: primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Clock size={17} color={primaryColor} />
+                </View>
+                <Text
+                  style={{
+                    color: pendingCount > 0 ? primaryColor : textTitle,
+                    fontSize: 22,
+                    fontWeight: "800",
+                    letterSpacing: -0.3,
+                  }}
+                >
+                  {pendingCount}
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: textMuted,
+                  fontSize: 12.5,
+                  fontWeight: "500",
+                  lineHeight: 16,
+                  marginTop: 10,
+                }}
+              >
                 Atendimentos pendentes
-              </Text>
-              <Text style={{ color: textTitle, fontSize: 20, fontWeight: "800" }}>
-                {pendingCount}
               </Text>
             </View>
 
@@ -799,21 +836,63 @@ export default function OwnerHomeScreen() {
                 { backgroundColor: cardBg, borderColor: cardBorder },
               ]}
             >
-              <View style={{ gap: 2 }}>
-                <Text style={{ color: textMuted, fontSize: 12, fontWeight: "500" }}>
-                  Cancelamentos
-                </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                }}
+              >
+                <View
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    backgroundColor:
+                      cancelledCount > 0
+                        ? "rgba(239, 68, 68, 0.14)"
+                        : isDark
+                        ? "rgba(255, 255, 255, 0.06)"
+                        : "#f1f5f9",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ban
+                    size={17}
+                    color={
+                      cancelledCount > 0
+                        ? "#ef4444"
+                        : isDark
+                        ? "#9ca3af"
+                        : "#64748b"
+                    }
+                  />
+                </View>
                 <Text
                   style={{
                     color: cancelledCount > 0 ? "#ef4444" : textTitle,
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: "800",
+                    letterSpacing: -0.3,
                   }}
                 >
                   {cancelledCount}
                 </Text>
               </View>
-              <Ban size={18} color={cancelledCount > 0 ? "#ef4444" : textMuted} />
+
+              <Text
+                style={{
+                  color: textMuted,
+                  fontSize: 12.5,
+                  fontWeight: "500",
+                  lineHeight: 16,
+                  marginTop: 10,
+                }}
+              >
+                Cancelamentos hoje
+              </Text>
             </View>
           </View>
         );
@@ -1230,11 +1309,10 @@ const styles = StyleSheet.create({
   },
   submetricCard: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
+    padding: 14,
     borderRadius: 16,
     borderWidth: 1,
+    justifyContent: "space-between",
+    minHeight: 96,
   },
 });
