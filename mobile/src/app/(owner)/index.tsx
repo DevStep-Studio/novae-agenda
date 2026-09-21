@@ -54,15 +54,43 @@ import {
 
 const DASHBOARD_PREFS_KEY = "reservei_dashboard_prefs_v1";
 
+interface SetupStep {
+  id?: string;
+  key?: string;
+  label: string;
+  completed: boolean;
+  route?: string;
+  targetTab?: string;
+}
+
 interface SetupStatus {
   isComplete: boolean;
+  percentage?: number;
   publicUrl?: string;
-  steps: {
-    key: string;
-    label: string;
-    completed: boolean;
-    route?: string;
-  }[];
+  steps: SetupStep[];
+}
+
+function getStepRoute(step: SetupStep): string {
+  if (step.route) return step.route;
+  const key = step.id || step.key || step.targetTab;
+  switch (key) {
+    case "company":
+      return "/(owner)/perfil";
+    case "services":
+    case "servicos":
+      return "/(owner)/servicos";
+    case "team":
+    case "equipe":
+      return "/(owner)/equipe";
+    case "schedule":
+    case "configuracoes":
+      return "/(owner)/configuracoes";
+    case "public_page":
+    case "link-agendamento":
+      return "/(owner)/link-agendamento";
+    default:
+      return "/(owner)/configuracoes";
+  }
 }
 
 function formatDashboardCurrency(val: number | null | undefined): string {
@@ -360,8 +388,18 @@ export default function OwnerHomeScreen() {
           </View>
         );
 
-      case "showChecklist":
+      case "showChecklist": {
         if (!setupStatus) return null;
+        const steps = setupStatus.steps || [];
+        const completedStepsCount = steps.filter((s) => s.completed).length;
+        const totalStepsCount = steps.length;
+        const progressPercent =
+          typeof setupStatus.percentage === "number"
+            ? setupStatus.percentage
+            : totalStepsCount > 0
+            ? Math.round((completedStepsCount / totalStepsCount) * 100)
+            : 0;
+
         return (
           <View
             key="showChecklist"
@@ -370,27 +408,39 @@ export default function OwnerHomeScreen() {
               {
                 backgroundColor: cardBg,
                 borderColor: cardBorder,
+                borderWidth: 1,
+                borderRadius: 14,
                 padding: 16,
-                gap: 12,
+                gap: 14,
               },
             ]}
           >
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    backgroundColor: "rgba(220, 255, 76, 0.15)",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
+            {/* Header: Title + Progress summary on left, minimalist share pill on right */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Sparkles size={15} color={primaryColor} />
+                  <Text
+                    style={{
+                      color: textTitle,
+                      fontSize: 14,
+                      fontWeight: "700",
+                      letterSpacing: -0.2,
+                    }}
+                    numberOfLines={1}
+                  >
+                    Checklist de Configuração
+                  </Text>
                 </View>
-                <Text style={{ color: textTitle, fontSize: 14, fontWeight: "700" }}>
-                  Checklist de Configuração
+                <Text style={{ color: textMuted, fontSize: 11.5 }}>
+                  {completedStepsCount} de {totalStepsCount} concluídos ({progressPercent}%)
                 </Text>
               </View>
 
@@ -402,61 +452,138 @@ export default function OwnerHomeScreen() {
                       url: setupStatus.publicUrl,
                     });
                   }}
-                  style={{
+                  style={({ pressed }) => ({
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                    borderRadius: 6,
-                    backgroundColor: primaryColor,
-                  }}
+                    gap: 5,
+                    height: 32,
+                    paddingHorizontal: 11,
+                    borderRadius: 8,
+                    backgroundColor: pressed
+                      ? isDark
+                        ? "rgba(255, 255, 255, 0.1)"
+                        : "rgba(0, 0, 0, 0.08)"
+                      : isDark
+                      ? "rgba(255, 255, 255, 0.06)"
+                      : "rgba(0, 0, 0, 0.04)",
+                    borderWidth: 1,
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  })}
                 >
-                  <Share2 size={12} color={primaryForeground} />
-                  <Text style={{ color: primaryForeground, fontSize: 11, fontWeight: "700" }}>
+                  <Share2 size={13} color={textTitle} />
+                  <Text style={{ color: textTitle, fontSize: 11.5, fontWeight: "600" }}>
                     Compartilhar
                   </Text>
                 </Pressable>
               ) : null}
             </View>
 
-            <View style={{ gap: 8 }}>
-              {setupStatus.steps?.map((step) => (
-                <Pressable
-                  key={step.key}
-                  onPress={() => {
-                    if (step.route) router.push(step.route as any);
-                  }}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    paddingVertical: 6,
-                  }}
-                >
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
-                    {step.completed ? (
-                      <CheckCircle2 size={18} color="#10b981" />
-                    ) : (
-                      <Circle size={18} color={textMuted} />
-                    )}
-                    <Text
+            {/* Subtle Progress Bar */}
+            <View
+              style={{
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: isDark
+                  ? "rgba(255, 255, 255, 0.06)"
+                  : "rgba(0, 0, 0, 0.06)",
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  height: "100%",
+                  width: `${Math.min(100, Math.max(0, progressPercent))}%`,
+                  backgroundColor: progressPercent === 100 ? "#10b981" : primaryColor,
+                  borderRadius: 2,
+                }}
+              />
+            </View>
+
+            {/* Checklist Items */}
+            <View style={{ gap: 6 }}>
+              {steps.map((step, idx) => {
+                const isDone = step.completed;
+                const route = getStepRoute(step);
+                return (
+                  <Pressable
+                    key={step.id || step.key || `step-${idx}`}
+                    onPress={() => {
+                      if (route) router.push(route as any);
+                    }}
+                    style={({ pressed }) => ({
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 9,
+                      paddingHorizontal: 10,
+                      borderRadius: 10,
+                      backgroundColor: pressed
+                        ? isDark
+                          ? "rgba(255, 255, 255, 0.05)"
+                          : "rgba(0, 0, 0, 0.04)"
+                        : isDark
+                        ? "rgba(255, 255, 255, 0.02)"
+                        : "rgba(0, 0, 0, 0.015)",
+                    })}
+                  >
+                    <View
                       style={{
-                        color: step.completed ? textMuted : textTitle,
-                        fontSize: 13,
-                        fontWeight: step.completed ? "400" : "600",
-                        textDecorationLine: step.completed ? "line-through" : "none",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        flex: 1,
+                        minWidth: 0,
+                        paddingRight: 8,
                       }}
                     >
-                      {step.label}
-                    </Text>
-                  </View>
-                  <ChevronRight size={15} color={textMuted} />
-                </Pressable>
-              ))}
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isDone
+                            ? "rgba(16, 185, 129, 0.15)"
+                            : "transparent",
+                          borderWidth: isDone ? 0 : 1.5,
+                          borderColor: isDark
+                            ? "rgba(255, 255, 255, 0.2)"
+                            : "rgba(0, 0, 0, 0.2)",
+                        }}
+                      >
+                        {isDone ? (
+                          <Check size={11} color="#10b981" strokeWidth={3} />
+                        ) : null}
+                      </View>
+                      <Text
+                        style={{
+                          color: isDone ? textMuted : textTitle,
+                          fontSize: 13,
+                          fontWeight: isDone ? "400" : "500",
+                          textDecorationLine: isDone ? "line-through" : "none",
+                          flex: 1,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {step.label}
+                      </Text>
+                    </View>
+                    <ChevronRight
+                      size={14}
+                      color={
+                        isDark ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.25)"
+                      }
+                    />
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         );
+      }
 
       case "showKpis":
         return (
