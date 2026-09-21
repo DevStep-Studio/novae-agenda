@@ -322,8 +322,25 @@ function DashboardPage({
   const cancellationsToday = (stats?.today.cancelled ?? 0) + (stats?.today.noShow ?? 0);
   const firstName = session?.name ? session.name.split(" ")[0] : "você";
   const defaultBanner = "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
-  const bannerUrl = session?.company?.bannerUrl || defaultBanner;
-  const logoUrl = session?.company?.logoUrl;
+  const bannerUrl = session?.company?.bannerUrl || session?.bannerUrl || defaultBanner;
+
+  const logoUrl = useMemo(() => {
+    if (session?.company?.logoUrl) return session.company.logoUrl;
+    if (session?.avatarUrl) return session.avatarUrl;
+    const matchedEmployee = employees.find(
+      (e) =>
+        (session?.employeeId && e.id === session.employeeId) ||
+        (session?.name && e.name.trim().toLowerCase() === session.name.trim().toLowerCase())
+    );
+    if (matchedEmployee?.photoUrl) return matchedEmployee.photoUrl;
+    return null;
+  }, [session?.company?.logoUrl, session?.avatarUrl, session?.employeeId, session?.name, employees]);
+
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoUrl]);
 
   return (
     <div className="page-content dashboard-page">
@@ -356,15 +373,14 @@ function DashboardPage({
 
       {prefs.showBanner && (
         <div className="dashboard-banner-card" style={{ order: prefs.order.indexOf("showBanner") }}>
-          <div
-            className="dashboard-banner-bg"
-            style={{ backgroundImage: `url('${bannerUrl}')` }}
-          />
+          {bannerUrl && (
+            <div
+              className="dashboard-banner-bg"
+              style={{ backgroundImage: `url('${bannerUrl}')` }}
+            />
+          )}
           <div className="dashboard-banner-content">
             <div className="dashboard-banner-info">
-              <span className="dashboard-banner-tag">
-                <Sparkles size={11} /> {session?.company?.name || "Seu Estabelecimento"}
-              </span>
               <h2>Bom trabalho, {firstName}!</h2>
               <p>
                 {todayApts.length === 0
@@ -387,22 +403,20 @@ function DashboardPage({
               )}
               <div
                 className="dashboard-banner-avatar-wrap"
-                title={`${session?.company?.name || "Estabelecimento"}${onOpenProfile ? " — clique para alterar logo em Meu Perfil" : ""}`}
+                title={`${session?.company?.name || session?.name || "Estabelecimento"}${onOpenProfile ? " — clique para alterar foto em Meu Perfil" : ""}`}
                 onClick={onOpenProfile}
                 style={{ cursor: onOpenProfile ? "pointer" : "default" }}
               >
-                {logoUrl ? (
-                  <NextImage
+                {logoUrl && !logoError ? (
+                  <img
                     src={logoUrl}
-                    alt={session?.company?.name || "Logo"}
+                    alt={session?.company?.name || session?.name || "Foto de perfil"}
                     className="dashboard-banner-avatar-img"
-                    width={72}
-                    height={72}
-                    unoptimized
+                    onError={() => setLogoError(true)}
                   />
                 ) : (
                   <div className="dashboard-banner-avatar-fallback">
-                    {initials(session?.company?.name || "RE")}
+                    {initials(session?.company?.name || session?.name || "RE")}
                   </div>
                 )}
               </div>
