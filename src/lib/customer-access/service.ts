@@ -1198,7 +1198,7 @@ export class CustomerAccessService {
   static async quickIdentifyCustomer(params: {
     name: string;
     phone: string;
-    email: string;
+    email?: string;
     photoUrl?: string;
   }): Promise<{
     userId: string | null;
@@ -1224,10 +1224,9 @@ export class CustomerAccessService {
     }
 
     if (!user) {
-      const email = params.email.trim().toLowerCase();
-      if (!email.includes("@")) {
-        throw new Error("Informe um e-mail válido.");
-      }
+      const email = params.email?.trim().toLowerCase() && params.email.includes("@")
+        ? params.email.trim().toLowerCase()
+        : `${normalized}@cliente.reservei.com.br`;
       const newUserId = crypto.randomUUID();
       const fallbackPassword = await hashPassword(crypto.randomUUID());
       const avatarUrl = params.photoUrl ? await saveClientImage(params.photoUrl) : null;

@@ -218,7 +218,7 @@ export function ActiveMembershipBanner({
 }
 
 /* ========================================================
-   SOU MENSALISTA ACCESS MODAL
+   SOU MENSALISTA ACCESS MODAL (PIN-FIRST)
    ======================================================== */
 export function MembershipAccessModal({
   isOpen,
@@ -233,15 +233,58 @@ export function MembershipAccessModal({
   company: { name: string; slug: string; phone?: string | null; whatsapp?: string | null };
   planName?: string;
 }) {
+  const [authMode, setAuthMode] = useState<"pin" | "phone">("pin");
+  const [pin, setPin] = useState("");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
-  const [pin, setPin] = useState("");
-  const [requiresPin, setRequiresPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [noMembershipFound, setNoMembershipFound] = useState(false);
+  const [authenticatedCustomer, setAuthenticatedCustomer] = useState<any | null>(null);
 
   if (!isOpen) return null;
+
+  async function handlePinSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    if (pin.length !== 6) {
+      setError("Digite os 6 dígitos do seu PIN de acesso.");
+      return;
+    }
+    setError("");
+    setNoMembershipFound(false);
+    setLoading(true);
+
+    try {
+      const pinRes = await api<{ customer: any }>("/api/customer-access/pin/login", {
+        method: "POST",
+        body: JSON.stringify({ pin, phone: phone || undefined }),
+      });
+
+      setAuthenticatedCustomer(pinRes.customer);
+
+      // Load active membership for current establishment
+      const mem = await api<CustomerMembershipDTO>(
+        `/api/my/membership?companySlug=${company.slug}`,
+      ).catch(() => null);
+
+      if (mem && mem.status === "active") {
+        onSuccess(mem, pinRes.customer);
+        onClose();
+      } else {
+        setNoMembershipFound(true);
+      }
+    } catch (err: any) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "PIN incorreto ou não encontrado. Tente novamente.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handlePhoneSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -250,32 +293,6 @@ export function MembershipAccessModal({
     setLoading(true);
 
     try {
-      if (requiresPin) {
-        if (pin.length !== 6) {
-          setError("Digite os 6 dígitos do seu PIN.");
-          setLoading(false);
-          return;
-        }
-
-        const pinRes = await api<{ customer: any }>("/api/customer-access/pin/login", {
-          method: "POST",
-          body: JSON.stringify({ pin, phone }),
-        });
-
-        // Load membership
-        const mem = await api<CustomerMembershipDTO>(
-          `/api/my/membership?companySlug=${company.slug}`,
-        ).catch(() => null);
-
-        if (mem && mem.status === "active") {
-          onSuccess(mem, pinRes.customer);
-          onClose();
-        } else {
-          setNoMembershipFound(true);
-        }
-        return;
-      }
-
       // Quick Identify / Phone check
       const idRes = await api<{ customer: any | null; hasPin: boolean }>(
         "/api/customer-access/identify",
@@ -289,8 +306,9 @@ export function MembershipAccessModal({
       );
 
       if (idRes.hasPin) {
-        setRequiresPin(true);
+        setAuthMode("pin");
         setLoading(false);
+        setError("Identificamos seu cadastro! Por favor, digite seu PIN de 6 dígitos.");
         return;
       }
 
@@ -303,6 +321,7 @@ export function MembershipAccessModal({
         onSuccess(mem, idRes.customer);
         onClose();
       } else {
+        setAuthenticatedCustomer(idRes.customer);
         setNoMembershipFound(true);
       }
     } catch (err: any) {
@@ -311,7 +330,7 @@ export function MembershipAccessModal({
           ? err.message
           : err instanceof Error
           ? err.message
-          : "Erro ao localizar mensalidade.",
+          : "Erro ao localizar mensalidade com este número.",
       );
     } finally {
       setLoading(false);
@@ -349,9 +368,9 @@ export function MembershipAccessModal({
             <div>
               <h2 className={styles.modalTitle}>Sou Mensalista</h2>
               <p className={styles.modalSubtitle}>
-                {requiresPin
-                  ? "Digite seu PIN de 6 dígitos para carregar suas datas."
-                  : "Informe seu WhatsApp cadastrado para escolher seus horários do mês."}
+                {authMode === "pin"
+                  ? "Digite seu PIN de 6 dígitos para acessar sua assinatura e escolher seus horários do mês."
+                  : "Informe seu WhatsApp cadastrado para localizar sua mensalidade."}
               </p>
             </div>
           </div>
@@ -378,7 +397,15 @@ export function MembershipAccessModal({
         {noMembershipFound ? (
           <div className={styles.notFoundBox}>
             <p className={styles.notFoundText}>
-              Não encontramos uma mensalidade ativa vinculada a <strong>{phone}</strong> em {company.name}.
+              {authenticatedCustomer?.name ? (
+                <>
+                  Olá, <strong>{authenticatedCustomer.name}</strong>! Seu PIN foi autenticado, mas não encontramos um <strong>Plano Mensal ativo</strong> vinculado à sua conta em <strong>{company.name}</strong>.
+                </>
+              ) : (
+                <>
+                  Não encontramos uma mensalidade ativa vinculada aos dados informados em <strong>{company.name}</strong>.
+                </>
+              )}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
               {whatsappUrl && (
@@ -390,7 +417,7 @@ export function MembershipAccessModal({
                   style={{ textDecoration: "none" }}
                 >
                   <Phone size={15} />
-                  <span>Falar no WhatsApp para Ativar</span>
+                  <span>Falar no WhatsApp para Ativar Plano</span>
                 </a>
               )}
               <button
@@ -398,11 +425,11 @@ export function MembershipAccessModal({
                 className={styles.btnSecondary}
                 onClick={() => {
                   setNoMembershipFound(false);
-                  setRequiresPin(false);
-                  setPhone("");
+                  setPin("");
+                  setError("");
                 }}
               >
-                Tentar outro número
+                Tentar outro PIN
               </button>
               <button
                 type="button"
@@ -414,71 +441,138 @@ export function MembershipAccessModal({
               </button>
             </div>
           </div>
-        ) : (
-          <form onSubmit={handlePhoneSubmit} className={styles.modalForm}>
-            {!requiresPin ? (
-              <>
-                <label className={styles.fieldLabel}>
-                  WhatsApp / Celular com DDD *
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    placeholder="(11) 99999-9999"
-                    maxLength={15}
-                    className={styles.fieldInput}
-                  />
-                </label>
+        ) : authMode === "pin" ? (
+          <form onSubmit={handlePinSubmit} className={styles.modalForm}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center", margin: "6px 0 12px" }}>
+              <label
+                htmlFor="mensalista-main-pin"
+                style={{
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: "var(--booking-text-secondary)",
+                }}
+              >
+                PIN de Acesso (6 dígitos)
+              </label>
 
-                <label className={styles.fieldLabel}>
-                  Seu Nome (opcional)
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Seu nome ou apelido"
-                    className={styles.fieldInput}
-                  />
-                </label>
-              </>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <div style={{ textAlign: "center" }}>
-                  <span style={{ fontSize: "0.85rem", color: "var(--booking-text-secondary)" }}>
-                    Celular: <strong>{phone}</strong>
-                  </span>
-                </div>
-                <div style={{ margin: "4px auto 8px" }}>
-                  <PinInput
-                    id="mensalista-auth-pin"
-                    value={pin}
-                    onChange={setPin}
-                    length={6}
-                    theme="light"
-                  />
-                </div>
-              </div>
-            )}
+              <PinInput
+                id="mensalista-main-pin"
+                value={pin}
+                onChange={(val) => {
+                  setPin(val);
+                  if (error) setError("");
+                }}
+                length={6}
+                theme="light"
+              />
+            </div>
 
             <button
               type="submit"
               className={styles.btnPrimary}
-              disabled={loading || (requiresPin ? pin.length !== 6 : phone.replace(/\D/g, "").length < 10)}
+              disabled={loading || pin.length !== 6}
               style={{ padding: "12px", fontSize: "0.9rem" }}
             >
               {loading ? (
                 <>
                   <Clock3 size={16} className="animate-spin" />
-                  <span>Localizando plano...</span>
+                  <span>Acessando plano...</span>
                 </>
               ) : (
                 <>
                   <CalendarCheck size={16} />
-                  <span>{requiresPin ? "Confirmar PIN e Acessar" : "Localizar Minha Mensalidade"}</span>
+                  <span>Entrar e Escolher Horários</span>
                 </>
               )}
             </button>
+
+            <div style={{ textAlign: "center", marginTop: 4 }}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => {
+                  setAuthMode("phone");
+                  setError("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "0.82rem",
+                  color: "var(--booking-text-secondary)",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                Não tem ou esqueceu o PIN? Entrar com WhatsApp
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handlePhoneSubmit} className={styles.modalForm}>
+            <label className={styles.fieldLabel}>
+              WhatsApp / Celular com DDD *
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="(11) 99999-9999"
+                maxLength={15}
+                className={styles.fieldInput}
+                autoFocus
+              />
+            </label>
+
+            <label className={styles.fieldLabel}>
+              Seu Nome (opcional)
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Seu nome ou apelido"
+                className={styles.fieldInput}
+              />
+            </label>
+
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              disabled={loading || phone.replace(/\D/g, "").length < 10}
+              style={{ padding: "12px", fontSize: "0.9rem" }}
+            >
+              {loading ? (
+                <>
+                  <Clock3 size={16} className="animate-spin" />
+                  <span>Localizando cadastro...</span>
+                </>
+              ) : (
+                <>
+                  <CalendarCheck size={16} />
+                  <span>Localizar Minha Mensalidade</span>
+                </>
+              )}
+            </button>
+
+            <div style={{ textAlign: "center", marginTop: 4 }}>
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={() => {
+                  setAuthMode("pin");
+                  setError("");
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: "0.82rem",
+                  color: "var(--booking-text-secondary)",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                Voltar e entrar com PIN de 6 dígitos
+              </button>
+            </div>
           </form>
         )}
       </div>

@@ -461,7 +461,7 @@ export function MonthSchedulerModal({
                       </div>
 
                       {chosenTime && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           <span
                             style={{
                               fontSize: "0.85rem",
@@ -471,7 +471,7 @@ export function MonthSchedulerModal({
                           >
                             {chosenTime}
                           </span>
-                          {idx === 0 && days.length > 1 && (
+                          {days.length > 1 && (
                             <button
                               type="button"
                               onClick={() => handleUseTimeInAll(chosenTime)}
@@ -485,9 +485,9 @@ export function MonthSchedulerModal({
                                 fontWeight: 600,
                                 cursor: "pointer",
                               }}
-                              title="Tenta aplicar este mesmo horário em todas as outras datas do mês"
+                              title="Aplica este mesmo horário em todas as datas disponíveis do mês"
                             >
-                              Usar em todas
+                              Repetir no mês todo
                             </button>
                           )}
                         </div>
@@ -564,9 +564,30 @@ export function MonthSchedulerModal({
                   border: "1px solid var(--border-color, #333)",
                 }}
               >
-                <h4 style={{ fontSize: "1rem", margin: "0 0 12px", fontWeight: 700 }}>
-                  Resumo dos Atendimentos Selecionados
-                </h4>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <CalendarCheck size={18} color="var(--brand, #6366f1)" />
+                  <h4 style={{ fontSize: "1rem", margin: 0, fontWeight: 700 }}>
+                    Resumo dos Horários Exclusivos do Mês
+                  </h4>
+                </div>
+
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    background: "rgba(16, 185, 129, 0.1)",
+                    border: "1px solid rgba(16, 185, 129, 0.25)",
+                    color: "#10b981",
+                    fontSize: "0.85rem",
+                    marginBottom: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <Check size={15} />
+                  <span>Estes horários serão reservados exclusivamente para você e sumirão da agenda para outros clientes.</span>
+                </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {Object.entries(selectedSlots)
@@ -581,13 +602,13 @@ export function MonthSchedulerModal({
                             justifyContent: "space-between",
                             alignItems: "center",
                             fontSize: "0.9rem",
-                            padding: "6px 0",
+                            padding: "8px 0",
                             borderBottom: "1px solid var(--border-color, #333)",
                           }}
                         >
                           <div>
                             <strong>{dayMeta?.shortDateLabel ?? date}</strong>
-                            <span style={{ color: "var(--text-secondary)", marginLeft: 6 }}>
+                            <span style={{ color: "var(--brand, #6366f1)", fontWeight: 700, marginLeft: 8 }}>
                               às {time}
                             </span>
                           </div>
@@ -601,7 +622,7 @@ export function MonthSchedulerModal({
                               borderRadius: 4,
                             }}
                           >
-                            INCLUÍDO NO PLANO
+                            RESERVADO NO PLANO
                           </span>
                         </div>
                       );
@@ -620,7 +641,7 @@ export function MonthSchedulerModal({
                   }}
                 >
                   <span>Total desta confirmação:</span>
-                  <strong style={{ color: "#10b981" }}>R$ 0,00 (Sem cobrança avulsa)</strong>
+                  <strong style={{ color: "#10b981" }}>R$ 0,00 (Incluso na mensalidade)</strong>
                 </div>
               </div>
             </div>

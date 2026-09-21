@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const identifySchema = z.object({
   name: z.string().min(2, "Informe seu nome completo."),
   phone: z.string().min(8, "Informe seu número com DDD."),
-  email: z.string().email("Informe um e-mail válido."),
+  email: z.string().email("Informe um e-mail válido.").optional().or(z.literal("")),
   photoUrl: z.string().optional(),
 });
 
