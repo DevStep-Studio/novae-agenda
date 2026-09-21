@@ -11226,14 +11226,31 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 
 /* Rankings */
 .financial-grid-rankings {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 20px;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) !important;
+  gap: 24px !important;
+  margin-top: 24px !important;
+  margin-bottom: 24px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
-@media (max-width: 900px) {
+
+@media (max-width: 1024px) {
   .financial-grid-rankings {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 20px !important;
   }
+}
+
+.revenue-team-panel,
+.revenue-services-panel {
+  padding: 24px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  border-radius: var(--radius-lg, 16px) !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 .team-ranking-list,

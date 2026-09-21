@@ -2849,7 +2849,7 @@ function FinancialPage() {
       </section>
 
       {/* Rankings: Team & Services */}
-      <div className="dashboard-grid financial-grid-rankings" style={{ marginTop: 20 }}>
+      <div className="financial-grid-rankings">
         {/* Top Professionals */}
         <section className="panel revenue-team-panel">
           <SectionHeading
