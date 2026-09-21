@@ -359,18 +359,18 @@ export default function PerfilPersonalizacaoScreen() {
       >
         {/* 1. Shared Visual Identity Notice Banner (Web Parity) */}
         <View
-          className="p-4 rounded-2xl border"
+          className="p-3.5 rounded-2xl border"
           style={{
             backgroundColor: "#121318",
             borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          <View className="flex-row items-start gap-3.5">
+          <View className="flex-row items-center gap-3.5">
             <View
-              className="items-center justify-center rounded-xl border mt-0.5"
+              className="items-center justify-center rounded-xl border"
               style={{
-                width: 40,
-                height: 40,
+                width: 38,
+                height: 38,
                 backgroundColor: "rgba(255, 255, 255, 0.06)",
                 borderColor: "rgba(255, 255, 255, 0.12)",
               }}
@@ -378,27 +378,16 @@ export default function PerfilPersonalizacaoScreen() {
               <ShieldCheck size={20} color="#ffffff" strokeWidth={2} />
             </View>
 
-            <View className="flex-1 gap-1">
+            <View className="flex-1">
               <Text
                 style={{
                   color: "#ffffff",
-                  fontSize: 14.5,
+                  fontSize: 14,
                   fontWeight: "700",
-                  lineHeight: 20,
+                  lineHeight: 19,
                 }}
               >
                 Identidade Visual Compartilhada para Toda a Equipe
-              </Text>
-              <Text
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 12.5,
-                  lineHeight: 18,
-                }}
-              >
-                Você está editando as preferências visuais de{" "}
-                <Text style={{ color: "#ffffff", fontWeight: "700" }}>{companyName}</Text>.
-                {"\n"}Todas as cores, capas, logomarca e preferências que você salvar aqui são herdadas automaticamente por todos os profissionais e colaboradores vinculados a esta empresa.
               </Text>
             </View>
           </View>
