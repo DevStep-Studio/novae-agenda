@@ -501,10 +501,11 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
               >
                 {/* Avatar with Logo */}
                 <View
-                  className="items-center justify-center rounded-full overflow-hidden border"
+                  className="items-center justify-center overflow-hidden border"
                   style={{
                     width: 36,
                     height: 36,
+                    borderRadius: 9,
                     backgroundColor: "#222328",
                     borderColor: "rgba(255, 255, 255, 0.12)",
                   }}
@@ -512,7 +513,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                   {logoUrl && !avatarLoadError ? (
                     <Image
                       source={{ uri: logoUrl }}
-                      style={{ width: 36, height: 36 }}
+                      style={{ width: 36, height: 36, borderRadius: 8 }}
                       contentFit="cover"
                       onError={() => setAvatarLoadError(true)}
                     />

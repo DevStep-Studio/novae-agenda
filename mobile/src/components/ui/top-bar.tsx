@@ -288,13 +288,13 @@ export function TopBar({
             style={{ marginLeft: 2 }}
           >
             <View
-              className="items-center justify-center rounded-full overflow-hidden"
+              className="items-center justify-center overflow-hidden"
               style={{
                 width: 36,
                 height: 36,
                 minWidth: 36,
                 minHeight: 36,
-                borderRadius: 18,
+                borderRadius: 9,
                 backgroundColor: "#181920",
                 borderWidth: 1.5,
                 borderColor: "rgba(255, 255, 255, 0.15)",
@@ -303,7 +303,7 @@ export function TopBar({
               {activeAvatarUrl ? (
                 <Image
                   source={{ uri: activeAvatarUrl }}
-                  style={{ width: 36, height: 36 }}
+                  style={{ width: 36, height: 36, borderRadius: 8 }}
                   contentFit="cover"
                   priority="high"
                   onError={() => {

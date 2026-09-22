@@ -23,6 +23,7 @@ function initials(name: string): string {
 // .avatar / .avatar-{size} / .avatar-initials in dark mode, globals.css:1619-1669.
 export function Avatar({ name, photoUrl, size = "md" }: AvatarProps) {
   const dimension = avatar.sizes[size];
+  const radius = (avatar.radius as Record<string, number>)?.[size] ?? Math.max(4, Math.round(dimension * 0.22));
   const uris = resolveImageUrlWithFallback(photoUrl);
   const [failedPrimary, setFailedPrimary] = useState(false);
   const [failedFallback, setFailedFallback] = useState(false);
@@ -43,7 +44,7 @@ export function Avatar({ name, photoUrl, size = "md" }: AvatarProps) {
       style={{
         width: dimension,
         height: dimension,
-        borderRadius: dimension / 2,
+        borderRadius: radius,
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
@@ -53,7 +54,7 @@ export function Avatar({ name, photoUrl, size = "md" }: AvatarProps) {
       {activeUrl ? (
         <Image
           source={{ uri: activeUrl }}
-          style={{ width: dimension, height: dimension }}
+          style={{ width: dimension, height: dimension, borderRadius: radius }}
           contentFit="cover"
           onError={() => {
             if (!failedPrimary && uris.fallback && uris.fallback !== uris.primary) {

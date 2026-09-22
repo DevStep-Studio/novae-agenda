@@ -144,7 +144,7 @@ export function EmployeeCard({
         <View
           style={{
             position: "relative",
-            borderRadius: 999,
+            borderRadius: 15,
             padding: 3.5,
             backgroundColor: "#111216",
           }}
@@ -153,11 +153,11 @@ export function EmployeeCard({
           <View
             style={{
               position: "absolute",
-              bottom: 4,
-              right: 4,
+              bottom: 2,
+              right: 2,
               width: 14,
               height: 14,
-              borderRadius: 7,
+              borderRadius: 4,
               borderWidth: 2.5,
               borderColor: "#111216",
               backgroundColor: employee.active ? "#22c55e" : "#71717a",

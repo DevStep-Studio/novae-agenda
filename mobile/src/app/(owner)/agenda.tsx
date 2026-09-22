@@ -597,7 +597,7 @@ export default function AgendaScreen() {
                 <Pressable
                   key={emp.id}
                   onPress={() => setEmployeeFilter(isSelected ? "all" : emp.id)}
-                  className="flex-row items-center gap-2 px-2.5 py-1 rounded-full border"
+                  className="flex-row items-center gap-2 px-2.5 py-1 rounded-lg border"
                   style={{
                     backgroundColor: isSelected ? "#2a2b32" : "#1b1c20",
                     borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
