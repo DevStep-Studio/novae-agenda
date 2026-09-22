@@ -83,7 +83,7 @@ function monthRange(): { from: string; to: string } {
 export default function EquipeScreen() {
   const router = useRouter();
   const { session } = useSession();
-  const { primaryColor } = useTheme();
+  const { isDark, primaryColor, primaryForeground, colors } = useTheme();
 
   const [employees, setEmployees] = useState<EmployeeDTO[] | null>(null);
   const [appointments, setAppointments] = useState<AppointmentDTO[]>([]);
@@ -427,7 +427,7 @@ export default function EquipeScreen() {
         <View className="gap-1">
           <Text
             style={{
-              color: "#71717a",
+              color: primaryColor,
               fontSize: 11,
               fontWeight: "700",
               textTransform: "uppercase",
@@ -438,15 +438,16 @@ export default function EquipeScreen() {
           </Text>
           <Text
             style={{
-              color: "#ffffff",
-              fontSize: 26,
+              color: isDark ? "#ffffff" : "#0f172a",
+              fontSize: 22,
               fontWeight: "800",
-              letterSpacing: -0.5,
+              letterSpacing: -0.4,
+              lineHeight: 28,
             }}
           >
             Equipe
           </Text>
-          <Text style={{ color: "#9ca3af", fontSize: 13.5, marginTop: 2 }}>
+          <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
             {totalEmployees} profissionais cadastrados no seu estabelecimento.
           </Text>
 
@@ -454,14 +455,14 @@ export default function EquipeScreen() {
           <View className="mt-3 flex-row">
             <Pressable
               onPress={() => setCreateModalVisible(true)}
-              className="flex-row items-center gap-2 py-2.5 px-4 rounded-xl border"
+              className="flex-row items-center gap-2 px-4 rounded-xl self-start"
               style={{
-                backgroundColor: "#27272a",
-                borderColor: "rgba(255, 255, 255, 0.12)",
+                backgroundColor: primaryColor,
+                height: 40,
               }}
             >
-              <UserPlus size={16} color="#ffffff" strokeWidth={2.5} />
-              <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+              <UserPlus size={16} color={primaryForeground} strokeWidth={2.4} />
+              <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
                 Adicionar profissional
               </Text>
             </Pressable>

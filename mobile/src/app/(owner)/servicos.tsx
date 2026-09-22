@@ -263,7 +263,7 @@ export default function ServicosScreen() {
             <View className="gap-1">
               <Text
                 style={{
-                  color: "#71717a",
+                  color: primaryColor,
                   fontSize: 11,
                   fontWeight: "700",
                   textTransform: "uppercase",
@@ -274,30 +274,31 @@ export default function ServicosScreen() {
               </Text>
               <Text
                 style={{
-                  color: "#ffffff",
-                  fontSize: 26,
+                  color: isDark ? "#ffffff" : "#0f172a",
+                  fontSize: 22,
                   fontWeight: "800",
-                  letterSpacing: -0.5,
+                  letterSpacing: -0.4,
+                  lineHeight: 28,
                 }}
               >
                 Serviços Avulsos
               </Text>
-              <Text style={{ color: "#9ca3af", fontSize: 13.5, marginTop: 2 }}>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
                 Crie experiências claras para seus clientes e sua equipe.
               </Text>
 
-              {/* Action Button: + Novo serviço (aligned left, sleek dark button) */}
+              {/* Action Button: + Novo serviço */}
               <View className="mt-3 flex-row">
                 <Pressable
                   onPress={() => setCreateModalVisible(true)}
-                  className="flex-row items-center gap-2 py-2.5 px-4 rounded-xl border"
+                  className="flex-row items-center gap-2 px-4 rounded-xl self-start"
                   style={{
-                    backgroundColor: "#27272a",
-                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    backgroundColor: primaryColor,
+                    height: 40,
                   }}
                 >
-                  <Plus size={16} color="#ffffff" strokeWidth={2.5} />
-                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                  <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+                  <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
                     Novo serviço
                   </Text>
                 </Pressable>

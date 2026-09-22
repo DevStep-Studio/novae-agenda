@@ -40,6 +40,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError, api, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { type ClientDTO } from "@/lib/clients";
 import { useSession } from "@/lib/session-context";
@@ -79,6 +80,7 @@ function shortDate(dateStr?: string | null): string {
 
 export default function ClientesScreen() {
   const { session } = useSession();
+  const { isDark, primaryColor, primaryForeground, colors } = useTheme();
   const [clients, setClients] = useState<ClientDTO[] | null>(null);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ClientTab>("all");
@@ -388,21 +390,24 @@ export default function ClientesScreen() {
   };
 
   return (
-    <Screen header={<TopBar title="Clientes" company={session?.company?.name || "Barbearia Pelly"} />}>
+    <Screen
+      header={<TopBar title="Clientes" company={session?.company?.name || "Barbearia Pelly"} />}
+      style={{ paddingTop: 14 }}
+    >
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ gap: 16, paddingBottom: 40, paddingHorizontal: 4 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
         }
       >
         {/* 1. Header: Eyebrow + Title + Subtitle + Action Button */}
-        <View className="gap-3 pt-1">
+        <View className="gap-3">
           <View className="gap-1">
             <Text
               style={{
-                color: "#71717a",
+                color: primaryColor,
                 fontSize: 11,
                 fontWeight: "700",
                 letterSpacing: 0.8,
@@ -413,15 +418,16 @@ export default function ClientesScreen() {
             </Text>
             <Text
               style={{
-                color: "#ffffff",
-                fontSize: 28,
+                color: isDark ? "#ffffff" : "#0f172a",
+                fontSize: 22,
                 fontWeight: "800",
-                letterSpacing: -0.5,
+                letterSpacing: -0.4,
+                lineHeight: 28,
               }}
             >
               Clientes
             </Text>
-            <Text style={{ color: "#9ca3af", fontSize: 13.5 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
               {totalClients} {totalClients === 1 ? "pessoa já faz" : "pessoas já fazem"} parte da sua história.
             </Text>
           </View>
@@ -429,15 +435,14 @@ export default function ClientesScreen() {
           {/* Action Button: Novo cliente */}
           <Pressable
             onPress={() => setCreateModalVisible(true)}
-            className="flex-row items-center gap-2 px-4 rounded-xl border self-start"
+            className="flex-row items-center gap-2 px-4 rounded-xl self-start"
             style={{
-              backgroundColor: "#52545d",
-              borderColor: "rgba(255, 255, 255, 0.08)",
-              height: 42,
+              backgroundColor: primaryColor,
+              height: 40,
             }}
           >
-            <UserPlus size={16} color="#ffffff" strokeWidth={2.4} />
-            <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+            <UserPlus size={16} color={primaryForeground} strokeWidth={2.4} />
+            <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
               Novo cliente
             </Text>
           </Pressable>
@@ -1552,16 +1557,15 @@ export default function ClientesScreen() {
               <Pressable
                 onPress={handleSaveEdit}
                 disabled={savingEdit}
-                className="items-center justify-center py-3.5 rounded-xl border"
+                className="items-center justify-center py-3.5 rounded-xl"
                 style={{
-                  backgroundColor: "#52545d",
-                  borderColor: "rgba(255, 255, 255, 0.08)",
+                  backgroundColor: primaryColor,
                 }}
               >
                 {savingEdit ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
+                  <ActivityIndicator size="small" color={primaryForeground} />
                 ) : (
-                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                  <Text style={{ color: primaryForeground, fontSize: 14, fontWeight: "700" }}>
                     Salvar Alterações
                   </Text>
                 )}
@@ -1686,16 +1690,15 @@ export default function ClientesScreen() {
               <Pressable
                 onPress={handleCreateClient}
                 disabled={savingClient}
-                className="items-center justify-center py-3.5 rounded-xl border"
+                className="items-center justify-center py-3.5 rounded-xl"
                 style={{
-                  backgroundColor: "#52545d",
-                  borderColor: "rgba(255, 255, 255, 0.08)",
+                  backgroundColor: primaryColor,
                 }}
               >
                 {savingClient ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
+                  <ActivityIndicator size="small" color={primaryForeground} />
                 ) : (
-                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                  <Text style={{ color: primaryForeground, fontSize: 14, fontWeight: "700" }}>
                     Cadastrar Cliente
                   </Text>
                 )}
