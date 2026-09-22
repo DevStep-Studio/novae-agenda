@@ -166,7 +166,7 @@ export default function OwnerHomeScreen() {
         refresh().catch(() => null),
       ]);
       setStats(statsData);
-      setAppointments(aptsData?.appointments || []);
+      setAppointments(Array.isArray(aptsData) ? aptsData : (aptsData?.appointments || []));
       if (setupData) setSetupStatus(setupData);
     } catch (err) {
       setError(

@@ -40,23 +40,30 @@ const Store = Platform.OS === "web"
 import Constants from "expo-constants";
 
 export function resolveApiBaseUrl(): string {
-  // 1. Em desenvolvimento nativo no Expo Go / celular físico / simulador,
-  // se o Metro estiver rodando, extrair o IP dinamicamente para que nunca quebre
+  // 1. Em desenvolvimento nativo no Expo Go / celular físico / simulador
   if (__DEV__ && Platform.OS !== "web") {
     try {
-      const hostUri =
+      const uri =
         Constants?.expoConfig?.hostUri ||
+        (Constants as any)?.linkingUri ||
+        (Constants as any)?.experienceUrl ||
         (Constants as any)?.manifest2?.extra?.expoClient?.hostUri ||
         (Constants as any)?.manifest?.debuggerHost;
-      if (hostUri) {
-        const host = hostUri.split(":")[0];
-        if (host && host !== "localhost" && host !== "127.0.0.1") {
-          return `http://${host}:3000`;
+      if (typeof uri === "string") {
+        const match = uri.match(/(?:exp:\/\/|http:\/\/)?([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
+        if (match && match[1] && match[1] !== "127.0.0.1") {
+          return `http://${match[1]}:3000`;
         }
       }
     } catch {
-      // Fallback gracioso caso native module ainda não esteja pronto
+      // Fallback gracioso
     }
+
+    if (process.env.EXPO_PUBLIC_API_URL) {
+      return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "");
+    }
+
+    return "http://172.20.10.2:3000";
   }
 
   // 2. Se houver EXPO_PUBLIC_API_URL configurado
@@ -68,14 +75,6 @@ export function resolveApiBaseUrl(): string {
   if (Platform.OS === "web" && typeof window !== "undefined" && window.location) {
     const hostname = window.location.hostname || "localhost";
     return `http://${hostname}:3000`;
-  }
-
-  // Em desenvolvimento nativo fallback
-  if (__DEV__) {
-    if (Platform.OS === "android") {
-      return "http://10.0.2.2:3000";
-    }
-    return "http://localhost:3000";
   }
 
   return "https://usereservei.com.br";
