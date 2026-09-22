@@ -72,7 +72,7 @@ export default function CustomerNotificacoesScreen() {
     try {
       setMarkingRead(true);
       await markAllNotificationsAsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
       setUnreadCount(0);
     } catch {
       // Non-blocking
@@ -159,9 +159,9 @@ export default function CustomerNotificacoesScreen() {
                   router.push("/(customer)/" as any);
                 }}
                 style={{
-                  backgroundColor: item.read ? colors.surface : colors.surfaceSecondary,
-                  borderColor: item.read ? colors.border : colors.primary,
-                  borderWidth: item.read ? 1 : 1.5,
+                  backgroundColor: item.readAt ? colors.surface : colors.surfaceSecondary,
+                  borderColor: item.readAt ? colors.border : colors.primary,
+                  borderWidth: item.readAt ? 1 : 1.5,
                   borderRadius: radius.md,
                   padding: 14,
                   gap: 8,
@@ -188,7 +188,7 @@ export default function CustomerNotificacoesScreen() {
                       style={{
                         color: colors.textPrimary,
                         fontSize: 14,
-                        fontWeight: item.read ? "600" : "700",
+                        fontWeight: item.readAt ? "600" : "700",
                         flex: 1,
                       }}
                       numberOfLines={1}

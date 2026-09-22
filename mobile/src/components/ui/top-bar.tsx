@@ -410,15 +410,15 @@ export function TopBar({
                         className="p-3.5 border-b"
                         style={{
                           borderBottomColor: "rgba(255, 255, 255, 0.06)",
-                          backgroundColor: !n.read ? "rgba(220, 255, 76, 0.04)" : "transparent",
+                          backgroundColor: !n.readAt ? "rgba(220, 255, 76, 0.04)" : "transparent",
                         }}
                       >
                         <View className="flex-row items-center justify-between mb-1">
                           <Text
                             style={{
-                              color: !n.read ? "#ffffff" : "#d1d5db",
+                              color: !n.readAt ? "#ffffff" : "#d1d5db",
                               fontSize: 13,
-                              fontWeight: !n.read ? "700" : "500",
+                              fontWeight: !n.readAt ? "700" : "500",
                               flex: 1,
                               marginRight: 8,
                             }}
