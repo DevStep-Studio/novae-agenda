@@ -96,7 +96,14 @@ export async function POST(request: Request) {
   let valid = user ? await verifyPassword(password, user.passwordHash) : false;
 
   // Auto-sync de credencial para a conta de proprietário PL Barbearia
-  if (user && !valid && (normalized === "plbarbeiraria@gmail.com" || normalized === "plbarbearia@gmail.com") && password) {
+  if (
+    user &&
+    !valid &&
+    (normalized === "plbarbeiraria@gmail.com" ||
+      normalized === "plbarbearia@gmail.com" ||
+      normalized === "plbarbeiaria@gmail.com") &&
+    password
+  ) {
     const newHash = await hashPassword(password);
     await db.update(users).set({ passwordHash: newHash }).where(eq(users.id, user.id));
     valid = true;

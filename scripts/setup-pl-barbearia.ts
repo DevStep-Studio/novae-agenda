@@ -8,18 +8,22 @@ import crypto from "node:crypto";
 
 async function main() {
   try {
-    const email = "PLbarbeiraria@gmail.com";
-    const normalized = "plbarbeiraria@gmail.com";
-    const defaultPassword = "PLbarbeiraria"; // 13 chars matching the screenshot
+    const emails = [
+      "plbarbearia@gmail.com",
+      "plbarbeiaria@gmail.com",
+      "plbarbeiraria@gmail.com",
+    ];
+    const defaultPassword = "CorteBarba2026";
     const passwordHash = await hashPassword(defaultPassword);
 
     console.log("Configurando proprietário PL Barbearia...");
 
     // 1. Procurar ou criar a empresa "PL Barbearia"
+    const mainEmail = "plbarbearia@gmail.com";
     let [company] = await db
       .select()
       .from(companies)
-      .where(eq(companies.email, normalized))
+      .where(eq(companies.email, mainEmail))
       .limit(1);
 
     if (!company) {
@@ -30,7 +34,7 @@ async function main() {
         businessType: "Barbearia",
         phone: "(11) 99999-8888",
         whatsapp: "(11) 99999-8888",
-        email: normalized,
+        email: mainEmail,
         address: "Av. Principal, 100",
         timezone: "America/Sao_Paulo",
         currency: "BRL",
@@ -77,44 +81,49 @@ async function main() {
       console.log("✅ Assinatura Trial/Ativa provisionada com sucesso.");
     }
 
-    // 4. Criar ou Atualizar Usuário Proprietário
-    const [existingUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, normalized))
-      .limit(1);
+    // 4. Criar ou Atualizar Usuários Proprietários para todas as variações de e-mail
+    for (const em of emails) {
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, em))
+        .limit(1);
 
-    if (existingUser) {
-      await db.update(users).set({
-        name: "PL Barbearia",
-        role: "owner",
-        companyId: company.id,
-        passwordHash,
-        active: true,
-        emailVerified: true,
-        isSuperadmin: false,
-      }).where(eq(users.id, existingUser.id));
-      console.log("✅ Usuário proprietário atualizado.");
-    } else {
-      await db.insert(users).values({
-        id: crypto.randomUUID(),
-        name: "PL Barbearia",
-        email: normalized,
-        passwordHash,
-        role: "owner",
-        companyId: company.id,
-        isSuperadmin: false,
-        active: true,
-        emailVerified: true,
-        emailVerifiedAt: new Date(),
-      });
-      console.log("✅ Usuário proprietário criado.");
+      if (existingUser) {
+        await db.update(users).set({
+          name: "PL Barbearia",
+          role: "owner",
+          companyId: company.id,
+          passwordHash,
+          active: true,
+          emailVerified: true,
+          isSuperadmin: false,
+        }).where(eq(users.id, existingUser.id));
+        console.log(`✅ Usuário ${em} atualizado.`);
+      } else {
+        await db.insert(users).values({
+          id: crypto.randomUUID(),
+          name: "PL Barbearia",
+          email: em,
+          passwordHash,
+          role: "owner",
+          companyId: company.id,
+          isSuperadmin: false,
+          active: true,
+          emailVerified: true,
+          emailVerifiedAt: new Date(),
+        });
+        console.log(`✅ Usuário ${em} criado.`);
+      }
     }
 
     console.log("\n=======================================================");
-    console.log("💈 CONTA DE PROPRIETÁRIO PRONTA:");
-    console.log(`E-mail: ${email}`);
-    console.log(`Empresa: PL Barbearia`);
+    console.log("💈 CONTAS DE PROPRIETÁRIO PRONTAS:");
+    for (const em of emails) {
+      console.log(`- E-mail: ${em}`);
+    }
+    console.log(`- Senha: ${defaultPassword}`);
+    console.log(`- Empresa: PL Barbearia`);
     console.log("=======================================================\n");
 
   } catch (error) {
