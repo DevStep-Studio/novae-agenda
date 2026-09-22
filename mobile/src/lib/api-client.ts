@@ -43,15 +43,19 @@ export function resolveApiBaseUrl(): string {
   // 1. Em desenvolvimento nativo no Expo Go / celular físico / simulador,
   // se o Metro estiver rodando, extrair o IP dinamicamente para que nunca quebre
   if (__DEV__ && Platform.OS !== "web") {
-    const hostUri =
-      Constants.expoConfig?.hostUri ||
-      (Constants as any).manifest2?.extra?.expoClient?.hostUri ||
-      (Constants as any).manifest?.debuggerHost;
-    if (hostUri) {
-      const host = hostUri.split(":")[0];
-      if (host && host !== "localhost" && host !== "127.0.0.1") {
-        return `http://${host}:3000`;
+    try {
+      const hostUri =
+        Constants?.expoConfig?.hostUri ||
+        (Constants as any)?.manifest2?.extra?.expoClient?.hostUri ||
+        (Constants as any)?.manifest?.debuggerHost;
+      if (hostUri) {
+        const host = hostUri.split(":")[0];
+        if (host && host !== "localhost" && host !== "127.0.0.1") {
+          return `http://${host}:3000`;
+        }
       }
+    } catch {
+      // Fallback gracioso caso native module ainda não esteja pronto
     }
   }
 

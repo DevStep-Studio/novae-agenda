@@ -105,7 +105,7 @@ export async function requestPushNotificationPermissions(): Promise<boolean> {
  */
 export async function registerForPushNotifications(): Promise<string | null> {
   try {
-    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+    const isExpoGo = Constants?.executionEnvironment === ExecutionEnvironment?.StoreClient;
     if (isExpoGo) {
       // In Expo Go, push notifications are not supported without a development build
       return null;
