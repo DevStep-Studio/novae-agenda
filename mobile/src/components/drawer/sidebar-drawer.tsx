@@ -7,9 +7,7 @@ import {
   Globe,
   Home,
   LogOut,
-  Plus,
   Settings2,
-  SlidersHorizontal,
   Sparkles,
   Tag,
   User,
@@ -19,7 +17,7 @@ import {
   X,
 } from "lucide-react-native";
 import { Image } from "expo-image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -29,12 +27,41 @@ import {
   Text,
   View,
 } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { usePathname, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, radius } from "@/constants/design-tokens";
+import { colors } from "@/constants/design-tokens";
 import { resolveImageUrl } from "@/lib/api-client";
+import { getAppointments } from "@/lib/appointments";
 import { useSession } from "@/lib/session-context";
+
+const ROLE_LABELS: Record<string, string> = {
+  superadmin: "Superadmin",
+  owner: "Proprietário",
+  admin: "Administrador",
+  manager: "Gerente",
+  employee: "Profissional",
+  client: "Cliente",
+};
+
+function roleLabel(role: string | null | undefined): string {
+  return role && role in ROLE_LABELS ? ROLE_LABELS[role] : "Profissional";
+}
+
+// Exact path from src/components/brand/novae-logo.tsx's ReserveiStarIcon
+// (root project) — the little origami-star accent next to the "reservei"
+// wordmark. ViewBox 0 0 142 144.
+function ReserveiStarIcon({ size = 16, color = colors.primary }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 142 144" fill="none">
+      <Path
+        d="M 96,0 L 74,31 L 74,35 L 89,43 L 0,71 L 34,87 L 42,95 L 45,102 L 45,143 L 68,111 L 54,99 L 141,72 L 107,56 L 100,49 L 96,39 Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
 
 interface SidebarDrawerProps {
   visible: boolean;
@@ -54,6 +81,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
   );
   const [logoLoadError, setLogoLoadError] = useState(false);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const companyName = session?.company?.name || "Moa Tattoo";
   const initials = companyName
@@ -63,9 +91,36 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
     .map((p) => p[0]?.toUpperCase())
     .join("");
 
-  const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl;
-  const logoUrl = resolveImageUrl(rawLogoUrl);
+  const userName = session?.name || "Usuário";
+  const userInitials = userName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+  const userAvatarUrl = resolveImageUrl(session?.avatarUrl);
   const publicSlug = session?.company?.publicSlug || session?.company?.slug;
+
+  // Mirrors app-shell.tsx's pendingAppointmentsCount (appointments not
+  // completed/cancelled/no_show, across the whole company history — same
+  // heuristic the web applies to its own already-loaded, unfiltered store).
+  // Fetched only when the drawer actually opens, not on every render.
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    getAppointments()
+      .then((apts) => {
+        if (cancelled) return;
+        const pending = apts.filter((a) => !["completed", "cancelled", "no_show"].includes(a.status)).length;
+        setPendingCount(pending);
+      })
+      .catch(() => {
+        // Keep last known count
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible]);
 
   const locations = session?.locations || [
     { id: "main", name: "Unidade Principal", address: null, phone: null, openTime: "08:00", closeTime: "19:00", active: true },
@@ -121,7 +176,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
       label: "Agenda",
       icon: CalendarDays,
       path: "/(owner)/agenda",
-      badge: "0",
+      badge: pendingCount > 99 ? "99+" : String(pendingCount),
     },
     {
       id: "clientes",
@@ -189,7 +244,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
     {
       id: "configuracoes",
       label: "Configurações",
-      icon: SlidersHorizontal,
+      icon: Settings2,
       path: "/(owner)/configuracoes",
       badge: null,
     },
@@ -235,8 +290,8 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
               borderBottomColor: "rgba(255, 255, 255, 0.06)",
             }}
           >
-            {/* Logo: reservei✦ */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+            {/* Logo: reservei + the real brand star icon (ReserveiStarIcon) */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
               <Text
                 style={{
                   color: "#ffffff",
@@ -247,16 +302,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
               >
                 reservei
               </Text>
-              <Text
-                style={{
-                  color: "#ccff00",
-                  fontSize: 16,
-                  fontWeight: "900",
-                  marginLeft: 1,
-                }}
-              >
-                ✦
-              </Text>
+              <ReserveiStarIcon size={15} color={colors.primary} />
             </View>
 
             {/* Close Button: X */}
@@ -402,7 +448,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                       >
                         {loc.name}
                       </Text>
-                      {isSelected ? <Check size={14} color="#ccff00" /> : null}
+                      {isSelected ? <Check size={14} color={colors.primary} /> : null}
                     </Pressable>
                   );
                 })}
@@ -510,9 +556,9 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                     borderColor: "rgba(255, 255, 255, 0.12)",
                   }}
                 >
-                  {logoUrl && !avatarLoadError ? (
+                  {userAvatarUrl && !avatarLoadError ? (
                     <Image
-                      source={{ uri: logoUrl }}
+                      source={{ uri: userAvatarUrl }}
                       style={{ width: 36, height: 36, borderRadius: 8 }}
                       contentFit="cover"
                       onError={() => setAvatarLoadError(true)}
@@ -525,12 +571,12 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                         fontWeight: "700",
                       }}
                     >
-                      {initials}
+                      {userInitials}
                     </Text>
                   )}
                 </View>
 
-                {/* Name & Role */}
+                {/* Name & Role — the logged-in user's own profile, not the company (matches web's sidebar-user-card: session?.name + roleLabel(session?.role)) */}
                 <View className="flex-1 min-w-0">
                   <Text
                     style={{
@@ -540,7 +586,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                     }}
                     numberOfLines={1}
                   >
-                    {companyName}
+                    {userName}
                   </Text>
                   <Text
                     style={{
@@ -550,7 +596,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                     }}
                     numberOfLines={1}
                   >
-                    Proprietário
+                    {roleLabel(session?.role)}
                   </Text>
                 </View>
               </Pressable>
