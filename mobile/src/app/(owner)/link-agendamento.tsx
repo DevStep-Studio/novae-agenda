@@ -14,7 +14,9 @@ import {
   Image as ImageIcon,
   Layers,
   ListOrdered,
+  MapPin,
   Moon,
+  Navigation,
   Palette,
   Percent,
   Plus,
@@ -99,6 +101,17 @@ const DAYS_NAMES = [
   "Quinta-feira",
   "Sexta-feira",
   "Sábado",
+];
+
+const CANCELLATION_OPTIONS: Array<{ value: number; label: string }> = [
+  { value: -1, label: "Só o estabelecimento" },
+  { value: 0, label: "Até o início" },
+  { value: 2, label: "2h antes" },
+  { value: 6, label: "6h antes" },
+  { value: 12, label: "12h antes" },
+  { value: 24, label: "24h antes" },
+  { value: 48, label: "48h antes" },
+  { value: 72, label: "72h antes" },
 ];
 
 type PromoItem = {
@@ -193,6 +206,9 @@ export default function LinkAgendamentoScreen() {
   const [publicEnabled, setPublicEnabled] = useState(true);
   const [showPhone, setShowPhone] = useState(true);
   const [showInstagram, setShowInstagram] = useState(true);
+  const [timezone, setTimezone] = useState(session?.company?.timezone || "America/Sao_Paulo");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [funnel, setFunnel] = useState<Array<{ event: string; count: number }>>([]);
 
   // 4. Schedules States
   const [employees, setEmployees] = useState<EmployeeDTO[]>([]);
@@ -264,7 +280,10 @@ export default function LinkAgendamentoScreen() {
           if (c.publicPhone !== undefined) setShowPhone(Boolean(c.publicPhone));
           if (c.publicInstagram !== undefined) setShowInstagram(Boolean(c.publicInstagram));
           if (c.allowProducts !== undefined) setAllowProducts(Boolean(c.allowProducts));
+          if (c.timezone) setTimezone(c.timezone);
+          if (Array.isArray(c.publicPhotos)) setPhotos(c.publicPhotos);
         }
+        if (Array.isArray(settingsRes.funnel)) setFunnel(settingsRes.funnel);
         if (Array.isArray(settingsRes.products)) {
           setProducts(
             settingsRes.products.map((p: any) => ({
@@ -424,6 +443,47 @@ export default function LinkAgendamentoScreen() {
     }
   };
 
+  // Pick photo(s) for the public gallery (max 8)
+  const handlePickGalleryPhoto = async () => {
+    if (photos.length >= 8) {
+      Alert.alert("Limite atingido", "Você pode adicionar no máximo 8 fotos na galeria.");
+      return;
+    }
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: true,
+        selectionLimit: 8 - photos.length,
+        base64: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const newUrls = result.assets
+          .slice(0, 8 - photos.length)
+          .map((asset) =>
+            asset.base64 ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}` : asset.uri
+          );
+        setPhotos((prev) => [...prev, ...newUrls].slice(0, 8));
+      }
+    } catch {
+      Alert.alert("Erro", "Não foi possível selecionar as fotos.");
+    }
+  };
+
+  const handleRemoveGalleryPhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleOpenAddressInMaps = () => {
+    if (!address.trim()) return;
+    Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.trim())}`);
+  };
+
+  const handleShareAddress = () => {
+    if (!address.trim()) return;
+    Share.share({ message: `${companyName} — ${address.trim()}` });
+  };
+
   // Save Branding
   const handleSaveBranding = async () => {
     setBusy(true);
@@ -469,6 +529,7 @@ export default function LinkAgendamentoScreen() {
       await api("/api/business/branding", {
         method: "PUT",
         body: JSON.stringify({
+          primaryColor,
           bookingPromoBanners: {
             enabled: carouselEnabled,
             items: promoItems,
@@ -499,10 +560,14 @@ export default function LinkAgendamentoScreen() {
           phone: phone.trim(),
           whatsapp: whatsapp.trim(),
           instagram: instagram.trim(),
+          logoUrl: logoUrl || "",
+          photos,
+          color: primaryColor,
           showPhone,
           showInstagram,
           cancellationHours: parseInt(cancellationHours, 10) || 24,
           allowProducts,
+          timezone: timezone.trim(),
         }),
       });
       await refreshSession();
@@ -1737,6 +1802,42 @@ export default function LinkAgendamentoScreen() {
                   <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>QR Code</Text>
                 </Pressable>
               </View>
+
+              {/* Funnel Analytics */}
+              {(() => {
+                const views = funnel.find((f) => f.event === "view" || f.event === "page_view")?.count ?? 0;
+                const slots = funnel.find((f) => f.event === "slot_selection" || f.event === "service_selected")?.count ?? 0;
+                const bookings = funnel.find((f) => f.event === "booking_completed" || f.event === "booking_created")?.count ?? 0;
+                const conversion = views > 0 ? ((bookings / views) * 100).toFixed(1) : "0.0";
+                const metrics = [
+                  { label: "Acessos ao link", value: String(views), hint: "visitas na página" },
+                  { label: "Escolheram horário", value: String(slots), hint: "etapa intermediária" },
+                  { label: "Agendamentos", value: String(bookings), hint: "reservas confirmadas", highlight: true },
+                  { label: "Conversão estimada", value: `${conversion}%`, hint: "visitantes convertidos", highlight: true },
+                ];
+                return (
+                  <View className="flex-row flex-wrap gap-2 pt-3 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.07)" }}>
+                    {metrics.map((m) => (
+                      <View
+                        key={m.label}
+                        className="p-3 rounded-xl border"
+                        style={{
+                          flexBasis: "48%",
+                          flexGrow: 1,
+                          backgroundColor: m.highlight ? "rgba(255, 255, 255, 0.05)" : "#181920",
+                          borderColor: "rgba(255, 255, 255, 0.08)",
+                        }}
+                      >
+                        <Text style={{ color: "#71717a", fontSize: 11 }}>{m.label}</Text>
+                        <Text style={{ color: m.highlight ? primaryColor : "#ffffff", fontSize: 18, fontWeight: "800" }}>
+                          {m.value}
+                        </Text>
+                        <Text style={{ color: "#52525b", fontSize: 10 }}>{m.hint}</Text>
+                      </View>
+                    ))}
+                  </View>
+                );
+              })()}
             </View>
 
             {/* Card: Personalizar Endereço do Link */}
@@ -1806,7 +1907,7 @@ export default function LinkAgendamentoScreen() {
                 />
               </View>
 
-              <View className="flex-row items-center justify-between py-2">
+              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}>
                 <View>
                   <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>Exibir perfil do Instagram</Text>
                   <Text style={{ color: "#71717a", fontSize: 11.5 }}>Adiciona link para seu perfil comercial</Text>
@@ -1814,6 +1915,19 @@ export default function LinkAgendamentoScreen() {
                 <Switch
                   value={showInstagram}
                   onValueChange={setShowInstagram}
+                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                  thumbColor="#ffffff"
+                />
+              </View>
+
+              <View className="flex-row items-center justify-between py-2">
+                <View>
+                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>Produtos complementares</Text>
+                  <Text style={{ color: "#71717a", fontSize: 11.5 }}>Permite oferecer itens adicionais durante o agendamento</Text>
+                </View>
+                <Switch
+                  value={allowProducts}
+                  onValueChange={setAllowProducts}
                   trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
                   thumbColor="#ffffff"
                 />
@@ -1911,6 +2025,59 @@ export default function LinkAgendamentoScreen() {
                     fontSize: 13.5,
                   }}
                 />
+
+                {address.trim().length > 0 && (
+                  <View
+                    className="mt-2 p-3.5 rounded-xl border flex-row items-center gap-3"
+                    style={{ backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                  >
+                    <View
+                      className="w-9 h-9 rounded-full items-center justify-center"
+                      style={{ backgroundColor: "rgba(255, 255, 255, 0.06)" }}
+                    >
+                      <MapPin size={17} color={primaryColor} />
+                    </View>
+                    <Text style={{ color: "#a1a1aa", fontSize: 12, flex: 1 }} numberOfLines={2}>
+                      {address}
+                    </Text>
+                    <Pressable
+                      onPress={handleShareAddress}
+                      className="w-8 h-8 rounded-lg border items-center justify-center"
+                      style={{ backgroundColor: "#22232b", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                    >
+                      <Share2 size={13} color="#a1a1aa" />
+                    </Pressable>
+                    <Pressable
+                      onPress={handleOpenAddressInMaps}
+                      className="flex-row items-center gap-1 py-2 px-2.5 rounded-lg border"
+                      style={{ backgroundColor: "#27272a", borderColor: "rgba(255, 255, 255, 0.15)" }}
+                    >
+                      <Navigation size={12} color="#ffffff" />
+                      <Text style={{ color: "#ffffff", fontSize: 11, fontWeight: "700" }}>Como chegar</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+
+              <View className="gap-1">
+                <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "600" }}>Telefone comercial</Text>
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="(11) 99999-9999"
+                  placeholderTextColor="#71717a"
+                  keyboardType="phone-pad"
+                  style={{
+                    backgroundColor: "#181920",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 42,
+                    color: "#ffffff",
+                    fontSize: 13.5,
+                  }}
+                />
               </View>
 
               <View className="flex-row gap-3">
@@ -1957,16 +2124,40 @@ export default function LinkAgendamentoScreen() {
                 </View>
               </View>
 
-              <View className="gap-1">
+              <View className="gap-1.5">
                 <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "600" }}>
-                  Cancelamento gratuito até (horas antes)
+                  Prazo para cancelamento / remarcação
                 </Text>
+                <View className="flex-row flex-wrap gap-1.5">
+                  {CANCELLATION_OPTIONS.map((opt) => {
+                    const isSelected = String(opt.value) === cancellationHours;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => setCancellationHours(String(opt.value))}
+                        className="py-2 px-2.5 rounded-lg border"
+                        style={{
+                          backgroundColor: isSelected ? "#27272a" : "#181920",
+                          borderColor: isSelected ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.1)",
+                        }}
+                      >
+                        <Text style={{ color: isSelected ? "#ffffff" : "#71717a", fontSize: 11.5, fontWeight: isSelected ? "700" : "500" }}>
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View className="gap-1">
+                <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "600" }}>Fuso horário oficial</Text>
                 <TextInput
-                  value={cancellationHours}
-                  onChangeText={setCancellationHours}
-                  placeholder="24"
+                  value={timezone}
+                  onChangeText={setTimezone}
+                  placeholder="America/Sao_Paulo"
                   placeholderTextColor="#71717a"
-                  keyboardType="numeric"
+                  autoCapitalize="none"
                   style={{
                     backgroundColor: "#181920",
                     borderColor: "rgba(255, 255, 255, 0.1)",
@@ -1976,9 +2167,53 @@ export default function LinkAgendamentoScreen() {
                     height: 42,
                     color: "#ffffff",
                     fontSize: 13.5,
-                    width: 100,
                   }}
                 />
+                <Text style={{ color: "#52525b", fontSize: 11 }}>
+                  Não pode ser alterado após o primeiro agendamento criado.
+                </Text>
+              </View>
+
+              <View className="gap-1.5 pt-2 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>
+                <View className="flex-row items-center justify-between">
+                  <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "600" }}>
+                    Fotos da galeria do espaço ({photos.length}/8)
+                  </Text>
+                  <Pressable
+                    onPress={handlePickGalleryPhoto}
+                    className="flex-row items-center gap-1 py-1.5 px-2.5 rounded-lg border"
+                    style={{ backgroundColor: "#1a1b22", borderColor: "rgba(255, 255, 255, 0.12)" }}
+                  >
+                    <Upload size={12} color="#ffffff" />
+                    <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>Adicionar</Text>
+                  </Pressable>
+                </View>
+
+                {photos.length > 0 ? (
+                  <View className="flex-row flex-wrap gap-2">
+                    {photos.map((photo, idx) => (
+                      <View key={`${photo}-${idx}`} style={{ width: 64, height: 64 }}>
+                        <View
+                          className="w-full h-full rounded-xl overflow-hidden border"
+                          style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}
+                        >
+                          <Image source={{ uri: resolveImageUrl(photo) || photo }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                        </View>
+                        <Pressable
+                          onPress={() => handleRemoveGalleryPhoto(idx)}
+                          className="absolute items-center justify-center rounded-full"
+                          style={{ top: -6, right: -6, width: 20, height: 20, backgroundColor: "rgba(0,0,0,0.75)" }}
+                        >
+                          <Trash2 size={11} color="#ef4444" />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Text style={{ color: "#52525b", fontSize: 12, fontStyle: "italic" }}>
+                    Nenhuma foto adicionada à galeria pública ainda.
+                  </Text>
+                )}
               </View>
 
               <Button
