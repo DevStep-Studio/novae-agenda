@@ -157,6 +157,8 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     controller.abort();
   }, 15000);
 
+  console.log(`[API REQUEST] ${init.method || "GET"} ${baseUrl}${path}`);
+
   let res: Response;
   try {
     res = await fetch(`${baseUrl}${path}`, {
@@ -171,6 +173,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       },
     });
   } catch (fetchError: any) {
+    console.error(`[API ERROR] ${baseUrl}${path}:`, fetchError?.message || fetchError);
     if (fetchError?.name === "AbortError") {
       throw new ApiError(
         `Tempo limite esgotado ao conectar com o servidor (${baseUrl}). Verifique se o backend está ligado na mesma rede Wi-Fi.`,
@@ -184,6 +187,8 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   } finally {
     clearTimeout(timeoutId);
   }
+
+  console.log(`[API RESPONSE] ${res.status} from ${baseUrl}${path}`);
 
   let setCookieHeader: string | null = null;
   if (typeof (res.headers as any).getSetCookie === "function") {
