@@ -190,27 +190,76 @@ export default function ServicosScreen() {
   }, [services, filter]);
 
   return (
-    <Screen header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />} style={{ paddingTop: 14 }}>
+    <Screen
+      header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />}
+      style={{ paddingTop: 14 }}
+    >
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 16, paddingBottom: 36 }}
+        contentContainerStyle={{ gap: 16, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
-        {/* 1. Top Sub-tabs: Serviços Avulsos | Planos Mensais */}
+        {/* 1. Header Section: Eyebrow + Title + Subtitle + Action Button */}
+        <View className="gap-3">
+          <View className="gap-1">
+            <Text
+              style={{
+                color: primaryColor,
+                fontSize: 11,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+              }}
+            >
+              CATÁLOGO DE SERVIÇOS
+            </Text>
+            <Text
+              style={{
+                color: isDark ? "#ffffff" : "#0f172a",
+                fontSize: 22,
+                fontWeight: "800",
+                letterSpacing: -0.4,
+                lineHeight: 28,
+              }}
+            >
+              Serviços
+            </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
+              {services?.length ?? 0} {services?.length === 1 ? "serviço cadastrado" : "serviços cadastrados"} no seu catálogo.
+            </Text>
+          </View>
+
+          {/* Action Button: + Novo serviço */}
+          <Pressable
+            onPress={() => setCreateModalVisible(true)}
+            className="flex-row items-center gap-2 px-4 rounded-xl self-start"
+            style={{
+              backgroundColor: primaryColor,
+              height: 40,
+            }}
+          >
+            <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+            <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+              Novo serviço
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* 2. Top Sub-tabs: Serviços Avulsos | Planos Mensais */}
         <View className="flex-row border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
           <Pressable
             onPress={() => setSubTab("services")}
-            className="py-3 px-4 flex-row items-center gap-2"
+            className="py-2.5 px-4 flex-row items-center gap-2"
             style={{
               borderBottomWidth: 2,
-              borderBottomColor: subTab === "services" ? "#ffffff" : "transparent",
+              borderBottomColor: subTab === "services" ? primaryColor : "transparent",
             }}
           >
             <Text
               style={{
                 color: subTab === "services" ? "#ffffff" : "#71717a",
-                fontSize: 14,
+                fontSize: 13.5,
                 fontWeight: subTab === "services" ? "700" : "500",
               }}
             >
@@ -220,16 +269,16 @@ export default function ServicosScreen() {
 
           <Pressable
             onPress={() => setSubTab("memberships")}
-            className="py-3 px-4 flex-row items-center gap-2"
+            className="py-2.5 px-4 flex-row items-center gap-2"
             style={{
               borderBottomWidth: 2,
-              borderBottomColor: subTab === "memberships" ? "#ffffff" : "transparent",
+              borderBottomColor: subTab === "memberships" ? primaryColor : "transparent",
             }}
           >
             <Text
               style={{
                 color: subTab === "memberships" ? "#ffffff" : "#71717a",
-                fontSize: 14,
+                fontSize: 13.5,
                 fontWeight: subTab === "memberships" ? "700" : "500",
               }}
             >
@@ -240,7 +289,7 @@ export default function ServicosScreen() {
 
         {subTab === "memberships" ? (
           /* View: Planos Mensais */
-          <View className="p-6 rounded-2xl border items-center text-center gap-3" style={{ backgroundColor: "#121316", borderColor: "rgba(255, 255, 255, 0.08)" }}>
+          <View className="p-6 rounded-2xl border items-center text-center gap-3" style={{ backgroundColor: "#121318", borderColor: "rgba(255, 255, 255, 0.08)" }}>
             <Layers size={36} color={primaryColor} />
             <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "700", textAlign: "center" }}>
               Clubes e Assinaturas Mensais
@@ -259,52 +308,6 @@ export default function ServicosScreen() {
         ) : (
           /* View: Serviços Avulsos */
           <>
-            {/* 2. Header Section */}
-            <View className="gap-1">
-              <Text
-                style={{
-                  color: primaryColor,
-                  fontSize: 11,
-                  fontWeight: "700",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.8,
-                }}
-              >
-                CATÁLOGO DE SERVIÇOS
-              </Text>
-              <Text
-                style={{
-                  color: isDark ? "#ffffff" : "#0f172a",
-                  fontSize: 22,
-                  fontWeight: "800",
-                  letterSpacing: -0.4,
-                  lineHeight: 28,
-                }}
-              >
-                Serviços Avulsos
-              </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-                Crie experiências claras para seus clientes e sua equipe.
-              </Text>
-
-              {/* Action Button: + Novo serviço */}
-              <View className="mt-3 flex-row">
-                <Pressable
-                  onPress={() => setCreateModalVisible(true)}
-                  className="flex-row items-center gap-2 px-4 rounded-xl self-start"
-                  style={{
-                    backgroundColor: primaryColor,
-                    height: 40,
-                  }}
-                >
-                  <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
-                  <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
-                    Novo serviço
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-
             {/* 3. Filter Tabs: Todos | Ativos | Inativos */}
             <View className="flex-row border-b pt-1" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
               {FILTERS.map((tab) => {
@@ -317,7 +320,7 @@ export default function ServicosScreen() {
                     className="py-2 px-3 mr-2"
                     style={{
                       borderBottomWidth: 2,
-                      borderBottomColor: isActive ? "#ffffff" : "transparent",
+                      borderBottomColor: isActive ? primaryColor : "transparent",
                     }}
                   >
                     <Text
@@ -353,7 +356,7 @@ export default function ServicosScreen() {
                 </Text>
               </View>
             ) : (
-              <View className="gap-4">
+              <View className="gap-3">
                 {visible.map((service) => (
                   <ServiceCard
                     key={service.id}
