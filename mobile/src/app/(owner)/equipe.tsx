@@ -517,122 +517,61 @@ export default function EquipeScreen() {
             borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          {/* Filter Tabs */}
+          {/* Filter Tabs — mirrors the real .client-tab-btn: transparent bg,
+              muted grey when inactive, brand primary text/icon + bottom
+              underline when active (no gradient, no per-tab icon tinting —
+              globals.css:3179-3206 has one accent color for every active
+              tab, not a different color per tab). */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+            contentContainerStyle={{ gap: 4, paddingBottom: 4 }}
           >
-            <Pressable
-              onPress={() => setActiveTab("all")}
-              className="flex-row items-center gap-1.5 py-2 px-3 rounded-xl border"
-              style={{
-                backgroundColor: activeTab === "all" ? "#27272a" : "transparent",
-                borderColor: activeTab === "all" ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.06)",
-              }}
-            >
-              <Text
-                style={{
-                  color: activeTab === "all" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "all" ? "700" : "500",
-                }}
-              >
-                Todos os profissionais
-              </Text>
-              <View
-                className="px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: activeTab === "all" ? "#3f3f46" : "#1f2024" }}
-              >
-                <Text style={{ color: activeTab === "all" ? "#ffffff" : "#71717a", fontSize: 11, fontWeight: "700" }}>
-                  {totalEmployees}
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("active")}
-              className="flex-row items-center gap-1.5 py-2 px-3 rounded-xl border"
-              style={{
-                backgroundColor: activeTab === "active" ? "#27272a" : "transparent",
-                borderColor: activeTab === "active" ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.06)",
-              }}
-            >
-              <CheckCircle size={13} color={activeTab === "active" ? "#4ade80" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "active" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "active" ? "700" : "500",
-                }}
-              >
-                Ativos
-              </Text>
-              <View
-                className="px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: activeTab === "active" ? "#3f3f46" : "#1f2024" }}
-              >
-                <Text style={{ color: activeTab === "active" ? "#ffffff" : "#71717a", fontSize: 11, fontWeight: "700" }}>
-                  {activeEmployees.length}
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("with_today")}
-              className="flex-row items-center gap-1.5 py-2 px-3 rounded-xl border"
-              style={{
-                backgroundColor: activeTab === "with_today" ? "#27272a" : "transparent",
-                borderColor: activeTab === "with_today" ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.06)",
-              }}
-            >
-              <CalendarDays size={13} color={activeTab === "with_today" ? "#38bdf8" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "with_today" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "with_today" ? "700" : "500",
-                }}
-              >
-                Com agenda
-              </Text>
-              <View
-                className="px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: activeTab === "with_today" ? "#3f3f46" : "#1f2024" }}
-              >
-                <Text style={{ color: activeTab === "with_today" ? "#ffffff" : "#71717a", fontSize: 11, fontWeight: "700" }}>
-                  {withTodayCount}
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("top")}
-              className="flex-row items-center gap-1.5 py-2 px-3 rounded-xl border"
-              style={{
-                backgroundColor: activeTab === "top" ? "#27272a" : "transparent",
-                borderColor: activeTab === "top" ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.06)",
-              }}
-            >
-              <Sparkles size={13} color={activeTab === "top" ? "#fbbf24" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "top" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "top" ? "700" : "500",
-                }}
-              >
-                Mais produtivos
-              </Text>
-              <View
-                className="px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: activeTab === "top" ? "#3f3f46" : "#1f2024" }}
-              >
-                <Text style={{ color: activeTab === "top" ? "#ffffff" : "#71717a", fontSize: 11, fontWeight: "700" }}>
-                  {topCount}
-                </Text>
-              </View>
-            </Pressable>
+            {(
+              [
+                { id: "all" as const, label: "Todos os profissionais", icon: null, count: totalEmployees },
+                { id: "active" as const, label: "Ativos", icon: CheckCircle, count: activeEmployees.length },
+                { id: "with_today" as const, label: "Com agenda hoje", icon: CalendarDays, count: withTodayCount },
+                { id: "top" as const, label: "Mais produtivos", icon: Sparkles, count: topCount },
+              ]
+            ).map((tab) => {
+              const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
+              return (
+                <Pressable
+                  key={tab.id}
+                  onPress={() => setActiveTab(tab.id)}
+                  className="flex-row items-center gap-1.5 px-3"
+                  style={{
+                    height: 38,
+                    borderBottomWidth: 2,
+                    borderBottomColor: isActive ? primaryColor : "transparent",
+                  }}
+                >
+                  {TabIcon && <TabIcon size={13} color={isActive ? primaryColor : "#71717a"} />}
+                  <Text
+                    style={{
+                      color: isActive ? primaryColor : "#71717a",
+                      fontSize: 12.5,
+                      fontWeight: isActive ? "700" : "500",
+                    }}
+                  >
+                    {tab.label}
+                  </Text>
+                  <View
+                    className="px-1.5 py-0.5 rounded-full border"
+                    style={{
+                      backgroundColor: isActive ? "rgba(220, 255, 76, 0.14)" : "#17181d",
+                      borderColor: isActive ? "rgba(220, 255, 76, 0.3)" : "rgba(255, 255, 255, 0.08)",
+                    }}
+                  >
+                    <Text style={{ color: isActive ? primaryColor : "#71717a", fontSize: 10.5, fontWeight: "700" }}>
+                      {tab.count}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
           </ScrollView>
 
           {/* Search Box */}
@@ -699,12 +638,28 @@ export default function EquipeScreen() {
             <Button label="Tentar novamente" onPress={load} />
           </View>
         ) : sorted.length === 0 ? (
-          <View className="items-center gap-2 py-16">
+          <View className="items-center gap-3 py-16">
             <Users size={32} color={colors.textMuted} />
-            <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "600" }}>Nenhum profissional encontrado</Text>
-            <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: "center" }}>
-              Cadastre sua equipe para gerenciar a agenda e serviços.
+            <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "600" }}>
+              {searchQuery || activeTab !== "all" ? "Nenhum profissional encontrado" : "Nenhum profissional cadastrado"}
             </Text>
+            <Text style={{ color: colors.textMuted, fontSize: 13, textAlign: "center" }}>
+              {searchQuery || activeTab !== "all"
+                ? "Tente ajustar os filtros ou termo de busca."
+                : "Adicione profissionais para atribuir atendimentos e horários."}
+            </Text>
+            {searchQuery || activeTab !== "all" ? (
+              <Button
+                label="Limpar filtros"
+                variant="secondary"
+                onPress={() => {
+                  setSearchQuery("");
+                  setActiveTab("all");
+                }}
+              />
+            ) : (
+              <Button label="Adicionar profissional" onPress={() => setCreateModalVisible(true)} />
+            )}
           </View>
         ) : (
           <View className="gap-4">

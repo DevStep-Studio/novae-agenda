@@ -236,27 +236,29 @@ export default function FinanceiroScreen() {
         </Text>
       </View>
 
-      {/* Period Tabs */}
+      {/* Period Tabs — mirrors the real .client-tab-btn: transparent bg,
+          muted grey inactive, brand primary text/icon + bottom underline
+          when active (globals.css:3179-3206). */}
       <View
-        className="mt-4 rounded-xl border p-1"
-        style={{ backgroundColor: "#0f1014", borderColor: "rgba(255, 255, 255, 0.08)" }}
+        className="mt-4 rounded-t-xl border-b px-2"
+        style={{ backgroundColor: colors.surfaceSecondary, borderBottomColor: "rgba(255, 255, 255, 0.08)" }}
       >
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
           {PERIOD_TABS.map((tab) => {
             const isActive = period === tab.id;
             return (
               <Pressable
                 key={tab.id}
                 onPress={() => setPeriod(tab.id)}
-                className="flex-row items-center gap-1.5 py-2.5 px-3.5 rounded-lg"
+                className="flex-row items-center gap-1.5 px-3.5"
                 style={{
-                  backgroundColor: isActive ? "#27272a" : "transparent",
-                  borderWidth: isActive ? 1 : 0,
-                  borderColor: "rgba(255, 255, 255, 0.15)",
+                  height: 38,
+                  borderBottomWidth: 2,
+                  borderBottomColor: isActive ? colors.primary : "transparent",
                 }}
               >
-                <CalendarDays size={13} color={isActive ? "#ffffff" : "#71717a"} />
-                <Text style={{ color: isActive ? "#ffffff" : "#71717a", fontSize: 12.5, fontWeight: isActive ? "700" : "500" }}>
+                <CalendarDays size={13} color={isActive ? colors.primary : "#71717a"} />
+                <Text style={{ color: isActive ? colors.primary : "#71717a", fontSize: 12.5, fontWeight: isActive ? "700" : "500" }}>
                   {tab.label}
                 </Text>
               </Pressable>

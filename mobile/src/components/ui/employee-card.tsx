@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { colors } from "@/constants/design-tokens";
 import { resolveImageUrl } from "@/lib/api-client";
 import { DEFAULT_COVER_URL, type EmployeeDTO } from "@/lib/employees";
+import { useSession } from "@/lib/session-context";
 import { formatBRL } from "@/lib/stats";
 
 export interface EmployeeMetrics {
@@ -31,6 +32,7 @@ export function EmployeeCard({
   onGoToAgenda,
   onEdit,
 }: EmployeeCardProps) {
+  const { session } = useSession();
   const isCommissionPercent = employee.commissionType === "percentage";
   const isCommissionFixed = employee.commissionType === "fixed";
 
@@ -42,7 +44,12 @@ export function EmployeeCard({
 
   const visibleServices = employee.services.slice(0, 3);
   const extraServices = employee.services.length - visibleServices.length;
-  const coverImage = resolveImageUrl(employee.bannerUrl) || DEFAULT_COVER_URL;
+  // Mirrors app-shell.tsx:2382 — employee's own banner, else the company's,
+  // else the same generic preset the web falls back to.
+  const coverImage =
+    resolveImageUrl(employee.bannerUrl) ||
+    resolveImageUrl(session?.company?.bannerUrl) ||
+    DEFAULT_COVER_URL;
 
   return (
     <View
