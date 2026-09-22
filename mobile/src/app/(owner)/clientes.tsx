@@ -396,7 +396,7 @@ export default function ClientesScreen() {
     >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ gap: 16, paddingBottom: 40, paddingHorizontal: 4 }}
+        contentContainerStyle={{ gap: 16, paddingBottom: 110, paddingHorizontal: 4 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />
@@ -575,9 +575,9 @@ export default function ClientesScreen() {
           </View>
         </View>
 
-        {/* 3. Main Clients Panel Container */}
+        {/* 3. Filter & Search Toolbar Card */}
         <View
-          className="rounded-2xl border p-4 gap-3.5"
+          className="rounded-2xl border p-3.5 gap-3"
           style={{
             backgroundColor: "#121318",
             borderColor: "rgba(255, 255, 255, 0.08)",
@@ -596,9 +596,9 @@ export default function ClientesScreen() {
                 <Pressable
                   key={tab.id}
                   onPress={() => setActiveTab(tab.id)}
-                  className="flex-row items-center gap-2 px-3 py-2 rounded-lg border"
+                  className="flex-row items-center gap-2 px-3 py-2 rounded-xl border"
                   style={{
-                    backgroundColor: active ? "#1e2026" : "transparent",
+                    backgroundColor: active ? "#20222a" : "transparent",
                     borderColor: active ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.06)",
                     height: 38,
                   }}
@@ -618,7 +618,7 @@ export default function ClientesScreen() {
                   <View
                     className="items-center justify-center px-2 py-0.5 rounded-full"
                     style={{
-                      backgroundColor: active ? "#282a36" : "rgba(255, 255, 255, 0.06)",
+                      backgroundColor: active ? "#2c2e3a" : "rgba(255, 255, 255, 0.06)",
                     }}
                   >
                     <Text
@@ -639,14 +639,14 @@ export default function ClientesScreen() {
           {/* Inactive retention days options */}
           {activeTab === "inactive" && (
             <View
-              className="flex-row items-center gap-2 p-3 rounded-xl border flex-wrap"
+              className="flex-row items-center gap-2 p-2.5 rounded-xl border flex-wrap"
               style={{
                 backgroundColor: "#0d0e12",
                 borderColor: "rgba(255, 255, 255, 0.06)",
               }}
             >
               <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
-                Sem retorno há pelo menos:
+                Sem retorno há:
               </Text>
               {([30, 45, 60, 90] as const).map((days) => (
                 <Pressable
@@ -676,7 +676,7 @@ export default function ClientesScreen() {
           <View
             className="flex-row items-center gap-2.5 px-3 rounded-xl border"
             style={{
-              height: 44,
+              height: 42,
               backgroundColor: "#0d0e12",
               borderColor: "rgba(255, 255, 255, 0.08)",
             }}
@@ -700,35 +700,25 @@ export default function ClientesScreen() {
             ) : null}
           </View>
 
-          {/* Sort Row & Count */}
-          <View className="flex-row items-center justify-between pt-0.5">
+          {/* Sort Row & Count (Properly spaced) */}
+          <View className="flex-row items-center justify-between pt-1">
             <Pressable
               onPress={() => setSortModalVisible(true)}
-              className="flex-row items-center gap-2"
+              className="flex-row items-center gap-1.5 py-1.5 px-2.5 rounded-lg border"
+              style={{
+                backgroundColor: "#181920",
+                borderColor: "rgba(255, 255, 255, 0.1)",
+              }}
             >
-              <View className="flex-row items-center gap-1">
-                <ArrowUpDown size={13} color="#71717a" />
-                <Text style={{ color: "#71717a", fontSize: 13, fontWeight: "500" }}>
-                  Ordenar:
-                </Text>
-              </View>
-
-              <View
-                className="flex-row items-center gap-2 px-3 rounded-lg border"
-                style={{
-                  height: 38,
-                  backgroundColor: "#16171e",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
-                }}
-              >
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
-                  {activeSortLabel}
-                </Text>
-                <ChevronDown size={14} color="#9ca3af" />
-              </View>
+              <ArrowUpDown size={12} color="#a1a1aa" />
+              <Text style={{ color: "#71717a", fontSize: 12 }}>Ordenar:</Text>
+              <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
+                {activeSortLabel}
+              </Text>
+              <ChevronDown size={13} color="#9ca3af" />
             </Pressable>
 
-            <Text style={{ color: "#71717a", fontSize: 12.5 }}>
+            <Text style={{ color: "#71717a", fontSize: 12 }}>
               Exibindo{" "}
               <Text style={{ color: "#ffffff", fontWeight: "700" }}>
                 {sorted.length}
@@ -736,379 +726,292 @@ export default function ClientesScreen() {
               de {totalClients}
             </Text>
           </View>
+        </View>
 
-          {/* Table Content with Horizontal Scroll */}
-          {loading ? (
-            <View className="items-center justify-center py-16">
-              <ActivityIndicator color="#ffffff" size="small" />
-            </View>
-          ) : sorted.length === 0 ? (
-            <View className="items-center justify-center py-12 gap-2">
-              <Users size={36} color="#52525b" />
-              <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
-                Nenhum cliente encontrado
-              </Text>
-              <Text style={{ color: "#71717a", fontSize: 12.5, textAlign: "center" }}>
-                {query || activeTab !== "all"
-                  ? "Nenhum cliente corresponde aos filtros ou busca selecionados."
-                  : "Cadastre seu primeiro cliente para começar a gerenciar."}
-              </Text>
-              {query || activeTab !== "all" ? (
+        {/* 4. Client Cards List (Native Mobile Cards) */}
+        {loading ? (
+          <View className="items-center justify-center py-16">
+            <ActivityIndicator color={primaryColor} size="small" />
+          </View>
+        ) : sorted.length === 0 ? (
+          <View className="items-center justify-center py-12 gap-2">
+            <Users size={36} color="#52525b" />
+            <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
+              Nenhum cliente encontrado
+            </Text>
+            <Text style={{ color: "#71717a", fontSize: 12.5, textAlign: "center", maxWidth: 280 }}>
+              {query || activeTab !== "all"
+                ? "Nenhum cliente corresponde aos filtros ou busca selecionados."
+                : "Cadastre seu primeiro cliente para começar a gerenciar."}
+            </Text>
+            {query || activeTab !== "all" ? (
+              <Pressable
+                onPress={() => {
+                  setQuery("");
+                  setActiveTab("all");
+                }}
+                className="px-4 py-2 rounded-lg border mt-2"
+                style={{
+                  backgroundColor: "#181920",
+                  borderColor: "rgba(255, 255, 255, 0.12)",
+                }}
+              >
+                <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>
+                  Limpar filtros
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : (
+          <View className="gap-3">
+            {sorted.map((client) => {
+              const isVip = Boolean(client.visits >= 3 || (client.spent ?? 0) >= 250);
+              const isFrequent = Boolean(!isVip && client.visits >= 2);
+              const isNew = Boolean(!isVip && !isFrequent && !client.isMembershipActive);
+              const avgClientTicket =
+                client.visits > 0 ? Math.round((client.spent || 0) / client.visits) : 0;
+              const hasUpcoming = Boolean(client.nextVisit);
+
+              return (
                 <Pressable
-                  onPress={() => {
-                    setQuery("");
-                    setActiveTab("all");
-                  }}
-                  className="px-4 py-2 rounded-lg border mt-2"
+                  key={client.id}
+                  onPress={() => setSelectedClient(client)}
+                  className="p-4 rounded-2xl border gap-3"
                   style={{
-                    backgroundColor: "#181920",
-                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    backgroundColor: "#121318",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>
-                    Limpar filtros
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ minWidth: 700 }}
-            >
-              <View className="flex-1">
-                {/* Table Header */}
-                <View
-                  className="flex-row items-center border-b"
-                  style={{
-                    height: 38,
-                    backgroundColor: "#0d0e12",
-                    borderBottomColor: "rgba(255, 255, 255, 0.08)",
-                    paddingHorizontal: 12,
-                  }}
-                >
-                  <Text
-                    style={{
-                      width: 210,
-                      color: "#71717a",
-                      fontSize: 11,
-                      fontWeight: "700",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    CLIENTE
-                  </Text>
-                  <Text
-                    style={{
-                      width: 165,
-                      color: "#71717a",
-                      fontSize: 11,
-                      fontWeight: "700",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    CONTATO
-                  </Text>
-                  <Text
-                    style={{
-                      width: 110,
-                      color: "#71717a",
-                      fontSize: 11,
-                      fontWeight: "700",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    ÚLTIMA VISITA
-                  </Text>
-                  <Text
-                    style={{
-                      width: 105,
-                      color: "#71717a",
-                      fontSize: 11,
-                      fontWeight: "700",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    ATENDIMENTOS
-                  </Text>
-                  <Text
-                    style={{
-                      width: 115,
-                      color: "#71717a",
-                      fontSize: 11,
-                      fontWeight: "700",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    TOTAL GASTO
-                  </Text>
-                  <Text
-                    style={{
-                      width: 125,
-                      color: "#71717a",
-                      fontSize: 11,
-                      fontWeight: "700",
-                      letterSpacing: 0.5,
-                      textTransform: "uppercase",
-                      textAlign: "right",
-                    }}
-                  >
-                    AÇÕES
-                  </Text>
-                </View>
+                  {/* 1. Header Row: Avatar + Name/Badges + Chevron */}
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-3 flex-1 pr-2">
+                      <Avatar name={client.name} photoUrl={client.photoUrl} size="md" />
 
-                {/* Table Rows */}
-                {sorted.map((client) => {
-                  const isVip = Boolean(client.visits >= 3 || (client.spent ?? 0) >= 250);
-                  const isFrequent = Boolean(!isVip && client.visits >= 2);
-                  const isNew = Boolean(!isVip && !isFrequent);
-                  const avgClientTicket =
-                    client.visits > 0 ? Math.round((client.spent || 0) / client.visits) : 0;
-                  const hasUpcoming = Boolean(client.nextVisit);
-
-                  return (
-                    <Pressable
-                      key={client.id}
-                      onPress={() => setSelectedClient(client)}
-                      className="flex-row items-center border-b"
-                      style={{
-                        minHeight: 64,
-                        borderBottomColor: "rgba(255, 255, 255, 0.05)",
-                        paddingHorizontal: 12,
-                      }}
-                    >
-                      {/* Column 1: CLIENTE */}
-                      <View className="flex-row items-center gap-3" style={{ width: 210 }}>
-                        <Avatar name={client.name} photoUrl={client.photoUrl} size="md" />
-
-                        <View className="flex-1 pr-2 gap-0.5">
-                          <View className="flex-row items-center gap-1.5 flex-wrap">
-                            <Text
-                              style={{
-                                color: "#ffffff",
-                                fontSize: 13.5,
-                                fontWeight: "700",
-                              }}
-                              numberOfLines={1}
-                            >
-                              {client.name}
-                            </Text>
-                            {isVip && (
-                              <View
-                                className="px-1.5 py-0.5 rounded-full border"
-                                style={{
-                                  backgroundColor: "rgba(245, 158, 11, 0.12)",
-                                  borderColor: "rgba(245, 158, 11, 0.35)",
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    color: "#f59e0b",
-                                    fontSize: 9.5,
-                                    fontWeight: "800",
-                                  }}
-                                >
-                                  VIP
-                                </Text>
-                              </View>
-                            )}
-                            {isFrequent && (
-                              <View
-                                className="px-1.5 py-0.5 rounded-full border"
-                                style={{
-                                  backgroundColor: "rgba(16, 185, 129, 0.12)",
-                                  borderColor: "rgba(16, 185, 129, 0.35)",
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    color: "#34d399",
-                                    fontSize: 9.5,
-                                    fontWeight: "800",
-                                  }}
-                                >
-                                  FREQUENTE
-                                </Text>
-                              </View>
-                            )}
-                            {isNew && (
-                              <View
-                                className="px-1.5 py-0.5 rounded-full border"
-                                style={{
-                                  backgroundColor: "rgba(16, 185, 129, 0.12)",
-                                  borderColor: "rgba(16, 185, 129, 0.4)",
-                                }}
-                              >
-                                <Text
-                                  style={{
-                                    color: "#10b981",
-                                    fontSize: 9.5,
-                                    fontWeight: "800",
-                                  }}
-                                >
-                                  NOVO
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-
+                      <View className="flex-1 gap-0.5">
+                        <View className="flex-row items-center gap-1.5 flex-wrap">
                           <Text
-                            style={{ color: "#71717a", fontSize: 11.5 }}
+                            style={{
+                              color: "#ffffff",
+                              fontSize: 15,
+                              fontWeight: "700",
+                            }}
                             numberOfLines={1}
                           >
-                            {client.email || (client.phone ? "Cliente verificado" : "Sem e-mail")}
+                            {client.name}
                           </Text>
+
+                          {client.isMembershipActive ? (
+                            <View
+                              className="px-1.5 py-0.5 rounded-full border"
+                              style={{
+                                backgroundColor: "rgba(139, 92, 246, 0.15)",
+                                borderColor: "rgba(139, 92, 246, 0.4)",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: "#a78bfa",
+                                  fontSize: 9.5,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                MENSALISTA
+                              </Text>
+                            </View>
+                          ) : isVip ? (
+                            <View
+                              className="px-1.5 py-0.5 rounded-full border"
+                              style={{
+                                backgroundColor: "rgba(245, 158, 11, 0.15)",
+                                borderColor: "rgba(245, 158, 11, 0.4)",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: "#f59e0b",
+                                  fontSize: 9.5,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                VIP
+                              </Text>
+                            </View>
+                          ) : isFrequent ? (
+                            <View
+                              className="px-1.5 py-0.5 rounded-full border"
+                              style={{
+                                backgroundColor: "rgba(16, 185, 129, 0.15)",
+                                borderColor: "rgba(16, 185, 129, 0.4)",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: "#34d399",
+                                  fontSize: 9.5,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                FREQUENTE
+                              </Text>
+                            </View>
+                          ) : isNew ? (
+                            <View
+                              className="px-1.5 py-0.5 rounded-full border"
+                              style={{
+                                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                                borderColor: "rgba(16, 185, 129, 0.35)",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: "#10b981",
+                                  fontSize: 9.5,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                NOVO
+                              </Text>
+                            </View>
+                          ) : null}
+                        </View>
+
+                        <View className="flex-row items-center gap-2">
+                          <Text
+                            style={{ color: "#71717a", fontSize: 12 }}
+                            numberOfLines={1}
+                          >
+                            {client.email || (client.phone ? "Cliente cadastrado" : "Sem telefone")}
+                          </Text>
+
+                          {hasUpcoming && (
+                            <View className="flex-row items-center gap-1">
+                              <View
+                                style={{
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: 2.5,
+                                  backgroundColor: "#22c55e",
+                                }}
+                              />
+                              <Text
+                                style={{
+                                  color: "#4ade80",
+                                  fontSize: 11,
+                                  fontWeight: "600",
+                                }}
+                              >
+                                Agendado
+                              </Text>
+                            </View>
+                          )}
                         </View>
                       </View>
+                    </View>
 
-                      {/* Column 2: CONTATO */}
-                      <View className="gap-1 items-start" style={{ width: 165 }}>
-                        {client.phone ? (
-                          <Pressable
-                            onPress={() => handleOpenWhatsApp(client)}
-                            className="flex-row items-center gap-1.5 px-2.5 rounded-lg border"
-                            style={{
-                              height: 28,
-                              backgroundColor: "rgba(34, 197, 94, 0.08)",
-                              borderColor: "rgba(34, 197, 94, 0.25)",
-                            }}
-                          >
-                            <WhatsAppIcon size={13} />
-                            <Text
-                              style={{
-                                color: "#22c55e",
-                                fontSize: 12,
-                                fontWeight: "600",
-                              }}
-                            >
-                              {client.phone}
-                            </Text>
-                          </Pressable>
-                        ) : (
-                          <Text style={{ color: "#71717a", fontSize: 12 }}>—</Text>
-                        )}
+                    <ChevronRight size={18} color="#71717a" />
+                  </View>
 
-                        {hasUpcoming && (
-                          <View className="flex-row items-center gap-1.5">
-                            <View
-                              style={{
-                                width: 5,
-                                height: 5,
-                                borderRadius: 2.5,
-                                backgroundColor: "#22c55e",
-                              }}
-                            />
-                            <Text
-                              style={{
-                                color: "#4ade80",
-                                fontSize: 10.5,
-                                fontWeight: "600",
-                              }}
-                            >
-                              Agendado
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                  {/* 2. Stats Grid (Última Visita | Visitas | Total Gasto) */}
+                  <View
+                    className="flex-row items-center justify-between p-2.5 rounded-xl border"
+                    style={{
+                      backgroundColor: "#0d0e12",
+                      borderColor: "rgba(255, 255, 255, 0.05)",
+                    }}
+                  >
+                    <View className="flex-1 items-center border-r border-[rgba(255,255,255,0.06)]">
+                      <Text style={{ color: "#71717a", fontSize: 10.5, fontWeight: "600", textTransform: "uppercase" }}>
+                        Última Visita
+                      </Text>
+                      <Text style={{ color: "#d1d5db", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+                        {shortDate(client.lastVisit)}
+                      </Text>
+                    </View>
 
-                      {/* Column 3: ÚLTIMA VISITA */}
-                      <View style={{ width: 110 }}>
-                        <Text style={{ color: "#9ca3af", fontSize: 12.5 }}>
-                          {shortDate(client.lastVisit)}
-                        </Text>
-                      </View>
+                    <View className="flex-1 items-center border-r border-[rgba(255,255,255,0.06)]">
+                      <Text style={{ color: "#71717a", fontSize: 10.5, fontWeight: "600", textTransform: "uppercase" }}>
+                        Atendimentos
+                      </Text>
+                      <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+                        {client.visits || 0} {client.visits === 1 ? "visita" : "visitas"}
+                      </Text>
+                    </View>
 
-                      {/* Column 4: ATENDIMENTOS */}
-                      <View style={{ width: 105 }}>
-                        {client.visits > 0 ? (
-                          <Text>
-                            <Text
-                              style={{
-                                color: "#ffffff",
-                                fontSize: 13,
-                                fontWeight: "700",
-                              }}
-                            >
-                              {client.visits}
-                            </Text>{" "}
-                            <Text style={{ color: "#71717a", fontSize: 11.5 }}>
-                              {client.visits === 1 ? "visita" : "visitas"}
-                            </Text>
-                          </Text>
-                        ) : (
-                          <Text style={{ color: "#71717a", fontSize: 12.5 }}>—</Text>
-                        )}
-                      </View>
+                    <View className="flex-1 items-center">
+                      <Text style={{ color: "#71717a", fontSize: 10.5, fontWeight: "600", textTransform: "uppercase" }}>
+                        Total Gasto
+                      </Text>
+                      <Text style={{ color: "#22c55e", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+                        {formatCurrency(client.spent)}
+                      </Text>
+                    </View>
+                  </View>
 
-                      {/* Column 5: TOTAL GASTO */}
-                      <View className="gap-0.5" style={{ width: 115 }}>
+                  {/* 3. Action Buttons Row */}
+                  <View className="flex-row items-center gap-2 pt-0.5">
+                    {client.phone ? (
+                      <Pressable
+                        onPress={() => handleOpenWhatsApp(client)}
+                        className="flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-xl border"
+                        style={{
+                          backgroundColor: "rgba(34, 197, 94, 0.08)",
+                          borderColor: "rgba(34, 197, 94, 0.25)",
+                          height: 36,
+                        }}
+                      >
+                        <WhatsAppIcon size={14} />
                         <Text
                           style={{
-                            color: "#ffffff",
-                            fontSize: 13,
+                            color: "#22c55e",
+                            fontSize: 12,
                             fontWeight: "700",
                           }}
+                          numberOfLines={1}
                         >
-                          {formatCurrency(client.spent)}
+                          {client.phone}
                         </Text>
-                        {client.visits > 0 && (
-                          <Text style={{ color: "#71717a", fontSize: 10 }}>
-                            méd. {formatCurrency(avgClientTicket)}/atend.
-                          </Text>
-                        )}
-                      </View>
+                      </Pressable>
+                    ) : null}
 
-                      {/* Column 6: AÇÕES */}
-                      <View
-                        className="flex-row items-center justify-end gap-1.5"
-                        style={{ width: 125 }}
-                      >
-                        <Pressable
-                          onPress={() => {
-                            router.push({
-                              pathname: "/(owner)/agenda",
-                              params: { newForClient: client.id },
-                            } as any);
-                          }}
-                          className="flex-row items-center gap-1 px-2 rounded-md border"
-                          style={{
-                            height: 28,
-                            backgroundColor: "#181920",
-                            borderColor: "rgba(255, 255, 255, 0.1)",
-                          }}
-                        >
-                          <CalendarPlus size={12} color="#9ca3af" />
-                          <Text style={{ color: "#9ca3af", fontSize: 11, fontWeight: "600" }}>
-                            Agendar
-                          </Text>
-                        </Pressable>
-
-                        <Pressable
-                          onPress={() => setSelectedClient(client)}
-                          className="items-center justify-center rounded-md border"
-                          style={{
-                            width: 28,
-                            height: 28,
-                            backgroundColor: "#181920",
-                            borderColor: "rgba(255, 255, 255, 0.1)",
-                          }}
-                        >
-                          <ChevronRight size={14} color="#9ca3af" />
-                        </Pressable>
-                      </View>
+                    <Pressable
+                      onPress={() => {
+                        router.push({
+                          pathname: "/(owner)/agenda",
+                          params: { newForClient: client.id },
+                        } as any);
+                      }}
+                      className="flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-xl border"
+                      style={{
+                        backgroundColor: "#181920",
+                        borderColor: "rgba(255, 255, 255, 0.1)",
+                        height: 36,
+                      }}
+                    >
+                      <CalendarPlus size={14} color="#9ca3af" />
+                      <Text style={{ color: "#d1d5db", fontSize: 12, fontWeight: "600" }}>
+                        Agendar
+                      </Text>
                     </Pressable>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          )}
-        </View>
+
+                    <Pressable
+                      onPress={() => setSelectedClient(client)}
+                      className="px-3 py-2 rounded-xl border items-center justify-center"
+                      style={{
+                        backgroundColor: "#181920",
+                        borderColor: "rgba(255, 255, 255, 0.1)",
+                        height: 36,
+                      }}
+                    >
+                      <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
+                        Ficha
+                      </Text>
+                    </Pressable>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       {/* Modal 1: Sort Selection Dropdown Sheet */}
