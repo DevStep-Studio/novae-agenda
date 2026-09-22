@@ -41,12 +41,18 @@ export type AppointmentDTO = {
  * GET /api/appointments — for role "employee" the backend already force-scopes
  * results to the caller's own employeeId (src/app/api/appointments/route.ts),
  * so this works for both the owner/manager agenda and the employee's personal one.
+ * `from` is optional to mirror the real route: with neither `from` nor `to` given,
+ * it applies no date filter at all and returns every appointment for the company
+ * (this is what the web's own store does — a bare `api("/api/appointments")` —
+ * so "Todo o histórico" on Financeiro needs the same unfiltered call).
  */
-export async function getAppointments(params: { from: string; to?: string; employeeId?: string }) {
-  const search = new URLSearchParams({ from: params.from });
+export async function getAppointments(params: { from?: string; to?: string; employeeId?: string } = {}) {
+  const search = new URLSearchParams();
+  if (params.from) search.set("from", params.from);
   if (params.to) search.set("to", params.to);
   if (params.employeeId) search.set("employeeId", params.employeeId);
-  return api<AppointmentDTO[]>(`/api/appointments?${search.toString()}`);
+  const qs = search.toString();
+  return api<AppointmentDTO[]>(`/api/appointments${qs ? `?${qs}` : ""}`);
 }
 
 export function todayKey(): string {
