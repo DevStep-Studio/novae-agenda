@@ -100,7 +100,7 @@ export function isSecureCookie(): boolean {
   return Boolean(appUrl && appUrl.startsWith("https://"));
 }
 
-export async function createSession(userId: string): Promise<void> {
+export async function createSession(userId: string): Promise<string> {
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -121,6 +121,8 @@ export async function createSession(userId: string): Promise<void> {
   } catch {
     // Outside request store (e.g. tests or scripts)
   }
+
+  return token;
 }
 
 export async function destroySession(): Promise<void> {
@@ -138,9 +140,25 @@ function formatTime(value: string): string {
   return value.length === 8 ? value.slice(0, 5) : value;
 }
 
-/** Shared identity for staff and customers; the same signed session cookie is used. */
+/** Shared identity for staff and customers; the same signed session cookie or Bearer token is used. */
 export async function getIdentity() {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  let token: string | undefined;
+  try {
+    const cookieStore = await cookies();
+    token = cookieStore.get(SESSION_COOKIE)?.value;
+  } catch {}
+
+  if (!token) {
+    try {
+      const { headers } = await import("next/headers");
+      const headerStore = await headers();
+      const auth = headerStore.get("authorization");
+      if (auth && auth.startsWith("Bearer ")) {
+        token = auth.slice(7).trim();
+      }
+    } catch {}
+  }
+
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey, { algorithms: ["HS256"] });

@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     }
   }
 
-  await createSession(user.id);
+  const token = await createSession(user.id);
 
   let targetPortal = "/minhas-reservas";
   if (user.isSuperadmin) {
@@ -173,6 +173,8 @@ export async function POST(request: Request) {
       name: user.name,
       role: user.role,
       targetPortal,
+      token,
     },
+    token,
   });
 }

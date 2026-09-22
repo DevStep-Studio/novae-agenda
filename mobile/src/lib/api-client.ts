@@ -147,6 +147,12 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   const { skipAuth, ...init } = options;
   const baseUrl = resolveApiBaseUrl();
 
+  let rawToken: string | null = null;
+  if (cookie) {
+    const match = cookie.match(/agenda_session=([^;]+)/);
+    if (match && match[1]) rawToken = match[1].trim();
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort();
@@ -161,6 +167,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
       headers: {
         "content-type": "application/json",
         ...(cookie && !skipAuth ? { cookie } : {}),
+        ...(rawToken && !skipAuth ? { authorization: `Bearer ${rawToken}` } : {}),
         ...(init.headers ?? {}),
       },
     });
@@ -197,6 +204,15 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   if (res.status === 204) return undefined as T;
 
   const body = await res.json().catch(() => null);
+
+  // Se o backend retornou o token na resposta JSON, persistir no SecureStore
+  if (body && typeof body === "object") {
+    const respToken = (body as any).token || (body as any).data?.token;
+    if (respToken && typeof respToken === "string") {
+      const currentCookie = await loadStoredCookie();
+      await persistCookie(mergeCookies(currentCookie, `agenda_session=${respToken}`));
+    }
+  }
 
   if (!res.ok) {
     if (res.status === 401 && !path.includes("/login")) {
