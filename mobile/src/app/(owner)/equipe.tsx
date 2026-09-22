@@ -804,7 +804,7 @@ export default function EquipeScreen() {
                   value={newName}
                   onChangeText={setNewName}
                   placeholder="Ex: Carlos Oliveira"
-                  placeholderTextColor={colors.textDisabled}
+                  placeholderTextColor={colors.textMuted}
                   style={{
                     backgroundColor: "#18191e",
                     borderColor: "rgba(255, 255, 255, 0.1)",
@@ -824,7 +824,7 @@ export default function EquipeScreen() {
                   value={newJobTitle}
                   onChangeText={setNewJobTitle}
                   placeholder="Ex: Barbeiro Especialista, Tatuador"
-                  placeholderTextColor={colors.textDisabled}
+                  placeholderTextColor={colors.textMuted}
                   style={{
                     backgroundColor: "#18191e",
                     borderColor: "rgba(255, 255, 255, 0.1)",
@@ -845,7 +845,7 @@ export default function EquipeScreen() {
                     value={newPhone}
                     onChangeText={setNewPhone}
                     placeholder="(11) 98888-7777"
-                    placeholderTextColor={colors.textDisabled}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
                     style={{
                       backgroundColor: "#18191e",
@@ -866,7 +866,7 @@ export default function EquipeScreen() {
                     value={newCommission}
                     onChangeText={setNewCommission}
                     placeholder="30"
-                    placeholderTextColor={colors.textDisabled}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     style={{
                       backgroundColor: "#18191e",
@@ -888,7 +888,7 @@ export default function EquipeScreen() {
                   value={newEmail}
                   onChangeText={setNewEmail}
                   placeholder="carlos@exemplo.com"
-                  placeholderTextColor={colors.textDisabled}
+                  placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   style={{
@@ -945,7 +945,7 @@ export default function EquipeScreen() {
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Nome do profissional"
-                  placeholderTextColor={colors.textDisabled}
+                  placeholderTextColor={colors.textMuted}
                   style={{
                     backgroundColor: "#18191e",
                     borderColor: "rgba(255, 255, 255, 0.1)",
@@ -965,7 +965,7 @@ export default function EquipeScreen() {
                   value={editJobTitle}
                   onChangeText={setEditJobTitle}
                   placeholder="Ex: Barbeiro Especialista"
-                  placeholderTextColor={colors.textDisabled}
+                  placeholderTextColor={colors.textMuted}
                   style={{
                     backgroundColor: "#18191e",
                     borderColor: "rgba(255, 255, 255, 0.1)",
@@ -986,7 +986,7 @@ export default function EquipeScreen() {
                     value={editPhone}
                     onChangeText={setEditPhone}
                     placeholder="(11) 98888-7777"
-                    placeholderTextColor={colors.textDisabled}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
                     style={{
                       backgroundColor: "#18191e",
@@ -1007,7 +1007,7 @@ export default function EquipeScreen() {
                     value={editCommission}
                     onChangeText={setEditCommission}
                     placeholder="30"
-                    placeholderTextColor={colors.textDisabled}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     style={{
                       backgroundColor: "#18191e",
