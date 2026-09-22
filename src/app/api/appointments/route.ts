@@ -25,6 +25,7 @@ import {
   isUuid,
   isValidDateKey,
   isValidTime,
+  normalizePhoneDigits,
   normalizeTime,
   timeToMinutes,
 } from "@/lib/domain";
@@ -191,14 +192,18 @@ export async function GET(request: Request) {
 }
 
 const createSchema = z.object({
-  locationId: z.string().optional(),
-  clientId: z.string(),
+  locationId: z.string().optional().nullable(),
+  clientId: z.string().optional().nullable(),
+  clientName: z.string().optional().nullable(),
+  clientPhone: z.string().optional().nullable(),
   employeeId: z.string(),
-  serviceIds: z.array(z.string()).min(1, "Selecione ao menos um serviço."),
+  serviceId: z.string().optional().nullable(),
+  serviceIds: z.array(z.string()).optional(),
   date: z.string(),
-  startTime: z.string(),
+  startTime: z.string().optional().nullable(),
+  time: z.string().optional().nullable(),
   status: z.enum(["scheduled", "confirmed"]).optional(),
-  notes: z.string().max(2000).optional(),
+  notes: z.string().max(2000).optional().nullable(),
   allowConflict: z.boolean().optional(),
 });
 
@@ -224,24 +229,89 @@ export async function POST(request: Request) {
       const {
         locationId,
         clientId,
+        clientName,
+        clientPhone,
         employeeId,
+        serviceId,
         serviceIds,
         date,
         startTime,
+        time,
         status,
         notes,
         allowConflict,
       } = parsed.data;
 
-      if (!isUuid(clientId) || !isUuid(employeeId)) {
+      if (!isUuid(employeeId)) {
         return Response.json(
-          { error: "Cliente ou profissional inválido." },
+          { error: "Profissional inválido." },
           { status: 400 },
         );
       }
-      if (!isValidDateKey(date) || !isValidTime(startTime)) {
+
+      const finalServiceIds = (serviceIds && serviceIds.length > 0)
+        ? serviceIds
+        : (serviceId && isUuid(serviceId))
+        ? [serviceId]
+        : [];
+      if (finalServiceIds.length === 0) {
+        return Response.json(
+          { error: "Selecione ao menos um serviço." },
+          { status: 400 },
+        );
+      }
+
+      const rawTime = (startTime || time || "").trim();
+      const finalStartTime = rawTime.length >= 5 ? rawTime.slice(0, 5) : rawTime;
+      if (!isValidDateKey(date) || !isValidTime(finalStartTime)) {
         return Response.json(
           { error: "Data ou horário inválido." },
+          { status: 400 },
+        );
+      }
+
+      // Resolve or auto-register client
+      let resolvedClientId = clientId && isUuid(clientId) ? clientId : null;
+      if (!resolvedClientId && clientName?.trim()) {
+        const normalizedIncoming = clientPhone ? normalizePhoneDigits(clientPhone) : "";
+        if (normalizedIncoming) {
+          const existing = await tx
+            .select({ id: clients.id, phone: clients.phone })
+            .from(clients)
+            .where(eq(clients.companyId, auth.user.companyId));
+          const match = existing.find(
+            (c) => c.phone && normalizePhoneDigits(c.phone) === normalizedIncoming
+          );
+          if (match) resolvedClientId = match.id;
+        }
+        if (!resolvedClientId) {
+          const [matchByName] = await tx
+            .select({ id: clients.id })
+            .from(clients)
+            .where(
+              and(
+                eq(clients.companyId, auth.user.companyId),
+                eq(clients.name, clientName.trim())
+              )
+            )
+            .limit(1);
+          if (matchByName) resolvedClientId = matchByName.id;
+        }
+        if (!resolvedClientId) {
+          resolvedClientId = crypto.randomUUID();
+          await tx.insert(clients).values({
+            id: resolvedClientId,
+            companyId: auth.user.companyId,
+            name: clientName.trim(),
+            phone: clientPhone?.trim() || "",
+            active: true,
+          });
+        }
+      }
+
+      if (!resolvedClientId) {
+        return Response.json(
+          { error: "Informe o cliente para o agendamento." },
           { status: 400 },
         );
       }
@@ -262,7 +332,7 @@ export async function POST(request: Request) {
         .from(clients)
         .where(
           and(
-            eq(clients.id, clientId),
+            eq(clients.id, resolvedClientId),
             eq(clients.companyId, auth.user.companyId),
           ),
         )
@@ -304,13 +374,13 @@ export async function POST(request: Request) {
         .from(services)
         .where(
           and(
-            inArray(services.id, serviceIds),
+            inArray(services.id, finalServiceIds),
             eq(services.companyId, auth.user.companyId),
             eq(services.active, true),
           ),
         );
 
-      if (serviceRows.length !== serviceIds.length) {
+      if (serviceRows.length !== finalServiceIds.length) {
         return Response.json(
           { error: "Um ou mais serviços são inválidos ou estão inativos." },
           { status: 400 },
@@ -324,18 +394,33 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(employeeServices.employeeId, employeeId),
-            inArray(employeeServices.serviceId, serviceIds),
+            inArray(employeeServices.serviceId, finalServiceIds),
           ),
         );
       const linkedIds = new Set(links.map((link) => link.serviceId));
-      if (serviceIds.some((id) => !linkedIds.has(id))) {
-        return Response.json(
-          {
-            error:
-              "Este profissional não realiza um dos serviços selecionados.",
-          },
-          { status: 400 },
-        );
+      const unlinked = finalServiceIds.filter((id) => !linkedIds.has(id));
+      if (unlinked.length > 0) {
+        if (auth.user.role === "owner" || auth.user.role === "admin" || auth.user.role === "manager") {
+          // Auto-link services to employee for smooth administration
+          await tx
+            .insert(employeeServices)
+            .values(
+              unlinked.map((svcId) => ({
+                id: crypto.randomUUID(),
+                employeeId,
+                serviceId: svcId,
+              })),
+            )
+            .catch(() => {});
+        } else {
+          return Response.json(
+            {
+              error:
+                "Este profissional não realiza um dos serviços selecionados.",
+            },
+            { status: 400 },
+          );
+        }
       }
 
       if (locationId) {
@@ -358,7 +443,7 @@ export async function POST(request: Request) {
           );
       }
       const settings = await getCompanySettings(auth.user.companyId, tx);
-      const orderedServices = serviceIds.map((id) =>
+      const orderedServices = finalServiceIds.map((id) =>
         serviceRows.find((s) => s.id === id)!,
       );
       const durationMinutes = orderedServices.reduce(
@@ -374,7 +459,7 @@ export async function POST(request: Request) {
         (sum, service) => sum + centsToNumber(service.price),
         0,
       );
-      const endTime = addMinutesToTime(startTime, durationMinutes);
+      const endTime = addMinutesToTime(finalStartTime, durationMinutes);
       const bufferMinutes = Math.max(
         settings.bufferMinutes,
         orderedServices.at(-1)!.bufferMinutes,
@@ -388,7 +473,7 @@ export async function POST(request: Request) {
         locationId: locationId || employee.locationId || undefined,
         durationMinutes,
         bufferMinutes,
-        startMinutes: timeToMinutes(startTime),
+        startMinutes: timeToMinutes(finalStartTime),
         endMinutes: timeToMinutes(endTime),
       });
       if (!check.ok) {
@@ -438,10 +523,10 @@ export async function POST(request: Request) {
           id: appointmentId,
           companyId: auth.user.companyId,
           locationId: targetLocationId,
-          clientId,
+          clientId: resolvedClientId,
           employeeId,
           appointmentDate: date,
-          startTime: `${startTime}:00`,
+          startTime: `${finalStartTime}:00`,
           endTime: `${endTime}:00`,
           status: status ?? "scheduled",
           bufferMinutes,
@@ -513,15 +598,27 @@ export async function POST(request: Request) {
           appointmentId: appointmentId,
           actorId: auth.user.userId,
           action: "appointment.created",
-          metadata: { date, startTime, endTime },
+          metadata: { date, startTime: finalStartTime, endTime },
         });
+
+      if (!check.ok && allowConflict) {
+        await recordAudit({
+          companyId: auth.user.companyId,
+          userId: auth.user.userId,
+          action: "appointment.manual_override",
+          entity: "appointment",
+          entityId: appointmentId,
+          metadata: { date, startTime: finalStartTime, endTime },
+        });
+      }
+
       await recordAudit({
         companyId: auth.user.companyId,
         userId: auth.user.userId,
         action: "appointment.created",
         entity: "appointment",
         entityId: appointmentId,
-        metadata: { date, startTime, endTime, employeeId, clientId, total },
+        metadata: { date, startTime: finalStartTime, endTime, employeeId, clientId: resolvedClientId, total },
       });
 
       await tx.insert(notifications).values({
@@ -529,7 +626,7 @@ export async function POST(request: Request) {
         companyId: auth.user.companyId,
         type: "appointment_created",
         title: "Novo atendimento criado",
-        body: `${normalizeTime(startTime)} · ${employee.name}`,
+        body: `${normalizeTime(finalStartTime)} · ${employee.name}`,
         entityType: "appointment",
         entityId: appointmentId,
       });

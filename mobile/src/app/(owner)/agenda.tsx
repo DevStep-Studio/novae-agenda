@@ -328,14 +328,25 @@ export default function AgendaScreen() {
       const selectedService = services.find((s) => s.id === formServiceId) || services[0];
       const selectedEmp = employees.find((e) => e.id === formEmployeeId) || employees[0];
 
+      if (!selectedService) {
+        Alert.alert("Erro", "Cadastre ou selecione ao menos um serviço.");
+        return;
+      }
+      if (!selectedEmp) {
+        Alert.alert("Erro", "Cadastre ou selecione ao menos um profissional.");
+        return;
+      }
+
       await api("/api/appointments", {
         method: "POST",
         body: JSON.stringify({
           clientName: formClientName.trim(),
           clientPhone: formClientPhone.trim() || undefined,
-          serviceId: selectedService?.id,
-          employeeId: selectedEmp?.id,
+          serviceId: selectedService.id,
+          serviceIds: [selectedService.id],
+          employeeId: selectedEmp.id,
           date: selectedDate,
+          startTime: formTime,
           time: formTime,
           notes: formNotes.trim() || undefined,
         }),
@@ -348,7 +359,54 @@ export default function AgendaScreen() {
       await load(selectedDate);
       Alert.alert("Sucesso", "Agendamento criado com sucesso!");
     } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Não foi possível criar o agendamento.");
+      const isConflict = err instanceof ApiError && (err.status === 409 || err.message?.toLowerCase().includes("atendimento") || err.message?.toLowerCase().includes("bloqueio") || err.message?.toLowerCase().includes("jornada") || err.message?.toLowerCase().includes("conflito"));
+      if (isConflict) {
+        Alert.alert(
+          "Aviso de Conflito",
+          `${err.message}\n\nDeseja realizar o encaixe forçado para este horário?`,
+          [
+            { text: "Cancelar", style: "cancel" },
+            {
+              text: "Forçar Encaixe",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  setSavingAction(true);
+                  const selectedService = services.find((s) => s.id === formServiceId) || services[0];
+                  const selectedEmp = employees.find((e) => e.id === formEmployeeId) || employees[0];
+                  await api("/api/appointments", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      clientName: formClientName.trim(),
+                      clientPhone: formClientPhone.trim() || undefined,
+                      serviceId: selectedService?.id,
+                      serviceIds: selectedService ? [selectedService.id] : [],
+                      employeeId: selectedEmp?.id,
+                      date: selectedDate,
+                      startTime: formTime,
+                      time: formTime,
+                      notes: formNotes.trim() || undefined,
+                      allowConflict: true,
+                    }),
+                  });
+                  setNewModalVisible(false);
+                  setFormClientName("");
+                  setFormClientPhone("");
+                  setFormNotes("");
+                  await load(selectedDate);
+                  Alert.alert("Sucesso", "Encaixe realizado com sucesso!");
+                } catch (forceErr: any) {
+                  Alert.alert("Erro", forceErr?.message || "Erro ao forçar encaixe.");
+                } finally {
+                  setSavingAction(false);
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Erro", err?.message || "Não foi possível criar o agendamento.");
+      }
     } finally {
       setSavingAction(false);
     }
