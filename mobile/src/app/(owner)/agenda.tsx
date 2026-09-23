@@ -156,6 +156,13 @@ function changeDateByMode(date: string, mode: CalendarMode, direction: number): 
   return d.toISOString().slice(0, 10);
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 type CalendarMode = "day" | "week" | "month";
 
 const START_HOUR = 8;
@@ -1623,8 +1630,8 @@ export default function AgendaScreen() {
                           <Text style={{ color: "#8a94a6", fontSize: 11, fontWeight: "600" }}>TELEFONE *</Text>
                           <TextInput
                             value={newClientPhone}
-                            onChangeText={setNewClientPhone}
-                            placeholder="(00) 00000-0000"
+                            onChangeText={(text) => setNewClientPhone(formatPhone(text))}
+                            placeholder="(11) 99999-9999"
                             placeholderTextColor={colors.textDisabled}
                             keyboardType="phone-pad"
                             style={{

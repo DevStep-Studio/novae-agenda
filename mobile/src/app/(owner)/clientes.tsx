@@ -1,3 +1,5 @@
+import * as ImagePicker from "expo-image-picker";
+import { Image as ExpoImage } from "expo-image";
 import {
   ArrowUpDown,
   CalendarDays,
@@ -9,7 +11,11 @@ import {
   Clock3,
   Copy,
   Edit3,
+  FileText,
+  ImagePlus,
   Lightbulb,
+  Mail,
+  Pencil,
   Phone,
   Plus,
   Search,
@@ -79,6 +85,25 @@ function shortDate(dateStr?: string | null): string {
   }
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function isValidPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 11;
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "C";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function ClientesScreen() {
   const { session } = useSession();
   const { isDark, primaryColor, primaryForeground, colors } = useTheme();
@@ -91,6 +116,14 @@ export default function ClientesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Soft primary accent background
+  const primarySoft = useMemo(() => {
+    if (primaryColor.startsWith("#") && primaryColor.length === 7) {
+      return `${primaryColor}22`;
+    }
+    return "rgba(220, 255, 76, 0.14)";
+  }, [primaryColor]);
+
   // Modals
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
@@ -102,6 +135,8 @@ export default function ClientesScreen() {
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newPhotoUrl, setNewPhotoUrl] = useState<string | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
 
   // Edit Client Form State
   const [editingClient, setEditingClient] = useState(false);
@@ -109,6 +144,8 @@ export default function ClientesScreen() {
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
+  const [editPreparingPhoto, setEditPreparingPhoto] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Internal Notes State
@@ -153,19 +190,79 @@ export default function ClientesScreen() {
     return () => clearTimeout(handle);
   }, [query, load]);
 
+  const handlePickNewPhoto = async () => {
+    setPreparingPhoto(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        base64: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const dataUrl = asset.base64
+          ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
+          : asset.uri;
+        setNewPhotoUrl(dataUrl);
+      }
+    } catch {
+      Alert.alert("Erro", "Não foi possível carregar a foto do cliente.");
+    } finally {
+      setPreparingPhoto(false);
+    }
+  };
+
+  const handlePickEditPhoto = async () => {
+    setEditPreparingPhoto(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        base64: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const dataUrl = asset.base64
+          ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
+          : asset.uri;
+        setEditPhotoUrl(dataUrl);
+      }
+    } catch {
+      Alert.alert("Erro", "Não foi possível carregar a foto do cliente.");
+    } finally {
+      setEditPreparingPhoto(false);
+    }
+  };
+
   const handleCreateClient = async () => {
-    if (!newName.trim()) {
-      Alert.alert("Erro", "O nome do cliente é obrigatório.");
+    if (!newName.trim() || newName.trim().length < 2) {
+      Alert.alert("Aviso", "Digite o nome completo do cliente.");
       return;
     }
+    const nextPhone = formatPhone(newPhone);
+    if (!newPhone.trim() || !isValidPhone(nextPhone)) {
+      Alert.alert("Aviso", "Digite um telefone celular válido no formato (XX) XXXXX-XXXX.");
+      return;
+    }
+    const trimmedEmail = newEmail.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      Alert.alert("Aviso", "Digite um e-mail válido ou deixe o campo vazio.");
+      return;
+    }
+
     setSavingClient(true);
     try {
       await api("/api/clients", {
         method: "POST",
         body: JSON.stringify({
           name: newName.trim(),
-          phone: newPhone.trim() || undefined,
-          email: newEmail.trim() || undefined,
+          phone: nextPhone,
+          email: trimmedEmail || undefined,
+          photoUrl: newPhotoUrl || undefined,
           notes: newNotes.trim() || undefined,
         }),
       });
@@ -175,6 +272,7 @@ export default function ClientesScreen() {
       setNewPhone("");
       setNewEmail("");
       setNewNotes("");
+      setNewPhotoUrl(null);
       await load(query);
       Alert.alert("Sucesso", "Cliente cadastrado com sucesso!");
     } catch (err: any) {
@@ -186,35 +284,49 @@ export default function ClientesScreen() {
 
   const handleOpenEdit = (client: ClientDTO) => {
     setEditName(client.name);
-    setEditPhone(client.phone || "");
+    setEditPhone(client.phone ? formatPhone(client.phone) : "");
     setEditEmail(client.email || "");
     setEditNotes(client.notes || "");
+    setEditPhotoUrl(client.photoUrl || null);
     setEditingClient(true);
   };
 
   const handleSaveEdit = async () => {
     if (!selectedClient) return;
-    if (!editName.trim()) {
-      Alert.alert("Erro", "O nome do cliente é obrigatório.");
+    if (!editName.trim() || editName.trim().length < 2) {
+      Alert.alert("Aviso", "Digite o nome completo do cliente.");
       return;
     }
+    const nextPhone = formatPhone(editPhone);
+    if (!editPhone.trim() || !isValidPhone(nextPhone)) {
+      Alert.alert("Aviso", "Digite um telefone celular válido no formato (XX) XXXXX-XXXX.");
+      return;
+    }
+    const trimmedEmail = editEmail.trim();
+    if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      Alert.alert("Aviso", "Digite um e-mail válido ou deixe o campo vazio.");
+      return;
+    }
+
     setSavingEdit(true);
     try {
       await api(`/api/clients/${selectedClient.id}`, {
         method: "PATCH",
         body: JSON.stringify({
           name: editName.trim(),
-          phone: editPhone.trim() || undefined,
-          email: editEmail.trim() || undefined,
-          notes: editNotes.trim() || undefined,
+          phone: nextPhone,
+          email: trimmedEmail || null,
+          photoUrl: editPhotoUrl,
+          notes: editNotes.trim() || null,
         }),
       });
 
-      const updatedClient = {
+      const updatedClient: ClientDTO = {
         ...selectedClient,
         name: editName.trim(),
-        phone: editPhone.trim(),
-        email: editEmail.trim() || null,
+        phone: nextPhone,
+        email: trimmedEmail || null,
+        photoUrl: editPhotoUrl,
         notes: editNotes.trim() || null,
       };
       setSelectedClient(updatedClient);
@@ -1077,30 +1189,70 @@ export default function ClientesScreen() {
         animationType="slide"
         onRequestClose={() => setSelectedClient(null)}
       >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "flex-end" }}>
+          <Pressable
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => setSelectedClient(null)}
+          />
           <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
             style={{
               maxHeight: "90%",
               backgroundColor: "#111215",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.12)",
+              paddingHorizontal: 20,
+              paddingTop: 18,
+              paddingBottom: 28,
+              gap: 16,
             }}
           >
             {/* Modal Header */}
-            <View className="flex-row items-center justify-between pb-2 border-b border-[rgba(255,255,255,0.08)]">
-              <View className="flex-row items-center gap-2">
-                <User size={18} color="#ffffff" />
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: "rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <User size={20} color={primaryColor} />
+                </View>
                 <View>
-                  <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>
+                  <Text style={{ color: primaryColor, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 }}>
                     Ficha do Cliente
                   </Text>
-                  <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800" }}>
+                  <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
                     {selectedClient?.name}
                   </Text>
                 </View>
               </View>
-              <Pressable onPress={() => setSelectedClient(null)} className="p-1 rounded-lg">
-                <X size={20} color="#ffffff" />
+              <Pressable
+                onPress={() => setSelectedClient(null)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={18} color="#ffffff" />
               </Pressable>
             </View>
 
@@ -1344,119 +1496,374 @@ export default function ClientesScreen() {
         animationType="slide"
         onRequestClose={() => setEditingClient(false)}
       >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "flex-end" }}>
+          <Pressable
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => setEditingClient(false)}
+          />
           <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
             style={{
               backgroundColor: "#111215",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.12)",
+              maxHeight: "92%",
+              paddingHorizontal: 20,
+              paddingTop: 18,
+              paddingBottom: 28,
+              gap: 16,
             }}
           >
-            <View className="flex-row items-center justify-between pb-2 border-b border-[rgba(255,255,255,0.08)]">
-              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
-                Editar Dados do Cliente
-              </Text>
-              <Pressable onPress={() => setEditingClient(false)} className="p-1 rounded-lg">
-                <X size={20} color="#ffffff" />
+            {/* Modal Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: "rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Pencil size={18} color={primaryColor} />
+                </View>
+                <View>
+                  <Text style={{ color: primaryColor, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                    Ficha cadastral
+                  </Text>
+                  <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
+                    Editar cliente
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => setEditingClient(false)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={18} color="#ffffff" />
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>NOME COMPLETO *</Text>
-                <TextInput
-                  value={editName}
-                  onChangeText={setEditName}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>TELEFONE / WHATSAPP</Text>
-                <TextInput
-                  value={editPhone}
-                  onChangeText={setEditPhone}
-                  keyboardType="phone-pad"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>E-MAIL</Text>
-                <TextInput
-                  value={editEmail}
-                  onChangeText={setEditEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>OBSERVAÇÕES DO CLIENTE</Text>
-                <TextInput
-                  value={editNotes}
-                  onChangeText={setEditNotes}
-                  multiline
-                  numberOfLines={2}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    height: 60,
-                    color: "#ffffff",
-                    fontSize: 13,
-                    textAlignVertical: "top",
-                  }}
-                />
-              </View>
-
-              <Pressable
-                onPress={handleSaveEdit}
-                disabled={savingEdit}
-                className="items-center justify-center py-3.5 rounded-xl"
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 12 }}>
+              {/* Photo Card */}
+              <View
                 style={{
-                  backgroundColor: primaryColor,
+                  backgroundColor: "#16181f",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.08)",
+                  borderRadius: 14,
+                  padding: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 14,
                 }}
               >
-                {savingEdit ? (
-                  <ActivityIndicator size="small" color={primaryForeground} />
-                ) : (
-                  <Text style={{ color: primaryForeground, fontSize: 14, fontWeight: "700" }}>
-                    Salvar Alterações
+                <View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 30,
+                    backgroundColor: "#20232b",
+                    borderWidth: 1.5,
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {editPhotoUrl ? (
+                    <ExpoImage
+                      source={{ uri: editPhotoUrl }}
+                      style={{ width: 60, height: 60, borderRadius: 30 }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={{ color: primaryColor, fontSize: 18, fontWeight: "800" }}>
+                      {getInitials(editName || "Cliente")}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                    Foto do cliente
                   </Text>
-                )}
-              </Pressable>
+                  <Text style={{ color: "#8a94a6", fontSize: 11.5 }}>
+                    JPG, PNG ou WEBP · opcional
+                  </Text>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <Pressable
+                      onPress={handlePickEditPhoto}
+                      disabled={editPreparingPhoto}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        backgroundColor: "rgba(255, 255, 255, 0.08)",
+                        borderWidth: 1,
+                        borderColor: "rgba(255, 255, 255, 0.12)",
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
+                        borderRadius: 8,
+                      }}
+                    >
+                      {editPreparingPhoto ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <>
+                          <ImagePlus size={14} color="#ffffff" />
+                          <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
+                            {editPhotoUrl ? "Alterar foto" : "Adicionar foto"}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+
+                    {editPhotoUrl && (
+                      <Pressable
+                        onPress={() => setEditPhotoUrl(null)}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          paddingHorizontal: 8,
+                          paddingVertical: 7,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <Trash2 size={13} color="#ef4444" />
+                        <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "600" }}>
+                          Remover
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Field: Nome completo */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <User size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    Nome completo *
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 46,
+                    gap: 10,
+                  }}
+                >
+                  <User size={17} color="#6b7280" />
+                  <TextInput
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Ex.: Fernanda Almeida"
+                    placeholderTextColor="#52525b"
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field: Telefone / WhatsApp */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Phone size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    Telefone / WhatsApp *
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 46,
+                    gap: 10,
+                  }}
+                >
+                  <Phone size={17} color="#6b7280" />
+                  <TextInput
+                    value={editPhone}
+                    onChangeText={(text) => setEditPhone(formatPhone(text))}
+                    placeholder="(11) 99999-9999"
+                    placeholderTextColor="#52525b"
+                    keyboardType="phone-pad"
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field: E-mail */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Mail size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    E-mail (opcional)
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 46,
+                    gap: 10,
+                  }}
+                >
+                  <Mail size={17} color="#6b7280" />
+                  <TextInput
+                    value={editEmail}
+                    onChangeText={setEditEmail}
+                    placeholder="seuemail@dominio.com"
+                    placeholderTextColor="#52525b"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field: Observações */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <FileText size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    Observações (opcional)
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingTop: 10,
+                    minHeight: 80,
+                    gap: 10,
+                  }}
+                >
+                  <FileText size={17} color="#6b7280" style={{ marginTop: 2 }} />
+                  <TextInput
+                    value={editNotes}
+                    onChangeText={setEditNotes}
+                    placeholder="Preferências ou dados relevantes do cliente..."
+                    placeholderTextColor="#52525b"
+                    multiline
+                    numberOfLines={3}
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                      textAlignVertical: "top",
+                      minHeight: 60,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Footer Actions */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 10,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: "rgba(255, 255, 255, 0.08)",
+                }}
+              >
+                <Pressable
+                  onPress={() => setEditingClient(false)}
+                  style={{
+                    paddingVertical: 11,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Text style={{ color: "#9ca3af", fontSize: 13.5, fontWeight: "600" }}>
+                    Cancelar
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSaveEdit}
+                  disabled={savingEdit}
+                  style={{
+                    backgroundColor: primaryColor,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    paddingVertical: 11,
+                    paddingHorizontal: 18,
+                    borderRadius: 10,
+                  }}
+                >
+                  {savingEdit ? (
+                    <ActivityIndicator size="small" color={primaryForeground} />
+                  ) : (
+                    <>
+                      <Check size={16} color={primaryForeground} />
+                      <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                        Salvar alterações
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -1469,127 +1876,374 @@ export default function ClientesScreen() {
         animationType="slide"
         onRequestClose={() => setCreateModalVisible(false)}
       >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "flex-end" }}>
+          <Pressable
+            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => setCreateModalVisible(false)}
+          />
           <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
             style={{
               backgroundColor: "#111215",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderTopWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.12)",
+              maxHeight: "92%",
+              paddingHorizontal: 20,
+              paddingTop: 18,
+              paddingBottom: 28,
+              gap: 16,
             }}
           >
-            <View className="flex-row items-center justify-between pb-2 border-b border-[rgba(255,255,255,0.08)]">
-              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
-                Cadastrar Novo Cliente
-              </Text>
-              <Pressable onPress={() => setCreateModalVisible(false)} className="p-1 rounded-lg">
-                <X size={20} color="#ffffff" />
+            {/* Modal Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: "rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    backgroundColor: primarySoft,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <UserPlus size={20} color={primaryColor} />
+                </View>
+                <View>
+                  <Text style={{ color: primaryColor, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                    Adicionar à sua base
+                  </Text>
+                  <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
+                    Novo cliente
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => setCreateModalVisible(false)}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={18} color="#ffffff" />
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>NOME COMPLETO *</Text>
-                <TextInput
-                  value={newName}
-                  onChangeText={setNewName}
-                  placeholder="Ex: Amanda Silva"
-                  placeholderTextColor="#52525b"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>WHATSAPP / TELEFONE</Text>
-                <TextInput
-                  value={newPhone}
-                  onChangeText={setNewPhone}
-                  placeholder="(11) 98888-7777"
-                  placeholderTextColor="#52525b"
-                  keyboardType="phone-pad"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>E-MAIL (OPCIONAL)</Text>
-                <TextInput
-                  value={newEmail}
-                  onChangeText={setNewEmail}
-                  placeholder="amanda@exemplo.com"
-                  placeholderTextColor="#52525b"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>OBSERVAÇÕES (OPCIONAL)</Text>
-                <TextInput
-                  value={newNotes}
-                  onChangeText={setNewNotes}
-                  placeholder="Preferências, histórico ou alergias..."
-                  placeholderTextColor="#52525b"
-                  multiline
-                  numberOfLines={2}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    height: 60,
-                    color: "#ffffff",
-                    fontSize: 13,
-                    textAlignVertical: "top",
-                  }}
-                />
-              </View>
-
-              <Pressable
-                onPress={handleCreateClient}
-                disabled={savingClient}
-                className="items-center justify-center py-3.5 rounded-xl"
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 12 }}>
+              {/* Photo Card */}
+              <View
                 style={{
-                  backgroundColor: primaryColor,
+                  backgroundColor: "#16181f",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.08)",
+                  borderRadius: 14,
+                  padding: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 14,
                 }}
               >
-                {savingClient ? (
-                  <ActivityIndicator size="small" color={primaryForeground} />
-                ) : (
-                  <Text style={{ color: primaryForeground, fontSize: 14, fontWeight: "700" }}>
-                    Cadastrar Cliente
+                <View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 30,
+                    backgroundColor: "#20232b",
+                    borderWidth: 1.5,
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {newPhotoUrl ? (
+                    <ExpoImage
+                      source={{ uri: newPhotoUrl }}
+                      style={{ width: 60, height: 60, borderRadius: 30 }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Text style={{ color: primaryColor, fontSize: 18, fontWeight: "800" }}>
+                      {getInitials(newName || "Cliente")}
+                    </Text>
+                  )}
+                </View>
+
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                    Foto do cliente
                   </Text>
-                )}
-              </Pressable>
+                  <Text style={{ color: "#8a94a6", fontSize: 11.5 }}>
+                    JPG, PNG ou WEBP · opcional
+                  </Text>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                    <Pressable
+                      onPress={handlePickNewPhoto}
+                      disabled={preparingPhoto}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        backgroundColor: "rgba(255, 255, 255, 0.08)",
+                        borderWidth: 1,
+                        borderColor: "rgba(255, 255, 255, 0.12)",
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
+                        borderRadius: 8,
+                      }}
+                    >
+                      {preparingPhoto ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <>
+                          <ImagePlus size={14} color="#ffffff" />
+                          <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>
+                            {newPhotoUrl ? "Alterar foto" : "Adicionar foto"}
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+
+                    {newPhotoUrl && (
+                      <Pressable
+                        onPress={() => setNewPhotoUrl(null)}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          paddingHorizontal: 8,
+                          paddingVertical: 7,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <Trash2 size={13} color="#ef4444" />
+                        <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "600" }}>
+                          Remover
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              {/* Field: Nome completo */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <User size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    Nome completo *
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 46,
+                    gap: 10,
+                  }}
+                >
+                  <User size={17} color="#6b7280" />
+                  <TextInput
+                    value={newName}
+                    onChangeText={setNewName}
+                    placeholder="Ex.: Fernanda Almeida"
+                    placeholderTextColor="#52525b"
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field: Telefone / WhatsApp */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Phone size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    Telefone / WhatsApp *
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 46,
+                    gap: 10,
+                  }}
+                >
+                  <Phone size={17} color="#6b7280" />
+                  <TextInput
+                    value={newPhone}
+                    onChangeText={(text) => setNewPhone(formatPhone(text))}
+                    placeholder="(11) 99999-9999"
+                    placeholderTextColor="#52525b"
+                    keyboardType="phone-pad"
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field: E-mail */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Mail size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    E-mail (opcional)
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 46,
+                    gap: 10,
+                  }}
+                >
+                  <Mail size={17} color="#6b7280" />
+                  <TextInput
+                    value={newEmail}
+                    onChangeText={setNewEmail}
+                    placeholder="seuemail@dominio.com"
+                    placeholderTextColor="#52525b"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field: Observações */}
+              <View style={{ gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <FileText size={14} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 12.5, fontWeight: "600" }}>
+                    Observações (opcional)
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingTop: 10,
+                    minHeight: 80,
+                    gap: 10,
+                  }}
+                >
+                  <FileText size={17} color="#6b7280" style={{ marginTop: 2 }} />
+                  <TextInput
+                    value={newNotes}
+                    onChangeText={setNewNotes}
+                    placeholder="Preferências ou dados relevantes do cliente..."
+                    placeholderTextColor="#52525b"
+                    multiline
+                    numberOfLines={3}
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                      textAlignVertical: "top",
+                      minHeight: 60,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Footer Actions */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  gap: 10,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: "rgba(255, 255, 255, 0.08)",
+                }}
+              >
+                <Pressable
+                  onPress={() => setCreateModalVisible(false)}
+                  style={{
+                    paddingVertical: 11,
+                    paddingHorizontal: 16,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Text style={{ color: "#9ca3af", fontSize: 13.5, fontWeight: "600" }}>
+                    Cancelar
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleCreateClient}
+                  disabled={savingClient}
+                  style={{
+                    backgroundColor: primaryColor,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    paddingVertical: 11,
+                    paddingHorizontal: 18,
+                    borderRadius: 10,
+                  }}
+                >
+                  {savingClient ? (
+                    <ActivityIndicator size="small" color={primaryForeground} />
+                  ) : (
+                    <>
+                      <UserPlus size={16} color={primaryForeground} />
+                      <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                        Cadastrar cliente
+                      </Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
             </ScrollView>
           </View>
         </View>
