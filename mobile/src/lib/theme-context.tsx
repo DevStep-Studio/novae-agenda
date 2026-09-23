@@ -152,7 +152,12 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const isDark = resolvedTheme === "dark";
 
-  // Determine active primary color (Local Storage Override > Session DB config > Default)
+  // Reset local override when company context changes so backend MySQL primary color is authoritative
+  useEffect(() => {
+    setLocalPrimaryColor(null);
+  }, [session?.company?.id]);
+
+  // Determine active primary color (Session DB config from MySQL > Local preview override > Default)
   const activePrimaryColor = useMemo(() => {
     if (localPrimaryColor) {
       return localPrimaryColor;
