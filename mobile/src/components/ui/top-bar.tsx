@@ -1,4 +1,19 @@
-import { ArrowLeft, ArrowRight, Bell, Check, CheckCheck, Menu, Moon, Sun, X } from "lucide-react-native";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  CalendarPlus,
+  Check,
+  CheckCheck,
+  CheckCircle2,
+  DollarSign,
+  Menu,
+  Moon,
+  Sparkles,
+  Sun,
+  X,
+  XCircle,
+} from "lucide-react-native";
 import { Image } from "expo-image";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -6,6 +21,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
@@ -348,102 +364,274 @@ export function TopBar({
       >
         <TouchableWithoutFeedback onPress={() => setNotificationsOpen(false)}>
           <View
-            className="flex-1"
             style={{
-              backgroundColor: "rgba(0, 0, 0, 0.55)",
-              paddingTop: insets.top + 64,
+              flex: 1,
+              backgroundColor: "rgba(0, 0, 0, 0.65)",
+              paddingTop: insets.top + 58,
               paddingHorizontal: 16,
             }}
           >
             <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
               <View
-                className="rounded-2xl border overflow-hidden"
                 style={{
-                  backgroundColor: "#121318",
-                  borderColor: "rgba(255, 255, 255, 0.12)",
+                  backgroundColor: "#111217",
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.1)",
                   shadowColor: "#000000",
-                  shadowOffset: { width: 0, height: 8 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 16,
-                  elevation: 10,
-                  maxHeight: 420,
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowOpacity: 0.55,
+                  shadowRadius: 20,
+                  elevation: 12,
+                  overflow: "hidden",
+                  maxHeight: 460,
                 }}
               >
                 {/* Popover Header */}
                 <View
-                  className="flex-row items-center justify-between px-4 py-3 border-b"
                   style={{
-                    backgroundColor: "#16181f",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingHorizontal: 16,
+                    paddingVertical: 13,
+                    backgroundColor: "#16171f",
+                    borderBottomWidth: 1,
                     borderBottomColor: "rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
-                    Notificações {unreadCount > 0 ? `(${unreadCount} novas)` : ""}
-                  </Text>
-                  {unreadCount > 0 && (
-                    <Pressable
-                      onPress={handleMarkAllAsRead}
-                      className="px-2 py-1 rounded-md"
-                      style={{ backgroundColor: "rgba(255, 255, 255, 0.08)" }}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        backgroundColor: hexToRgba(primaryColor, 0.16),
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
                     >
-                      <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
-                        Marcar lidas
-                      </Text>
-                    </Pressable>
-                  )}
+                      <Bell size={14} color={primaryColor} />
+                    </View>
+                    <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "700" }}>
+                      Notificações
+                    </Text>
+                    {unreadCount > 0 && (
+                      <View
+                        style={{
+                          backgroundColor: hexToRgba(primaryColor, 0.18),
+                          paddingHorizontal: 7,
+                          paddingVertical: 1.5,
+                          borderRadius: 999,
+                          borderWidth: 1,
+                          borderColor: hexToRgba(primaryColor, 0.3),
+                        }}
+                      >
+                        <Text style={{ color: primaryColor, fontSize: 11, fontWeight: "700" }}>
+                          {unreadCount} novas
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    {unreadCount > 0 && (
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={handleMarkAllAsRead}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          paddingHorizontal: 9,
+                          paddingVertical: 4.5,
+                          borderRadius: 8,
+                          backgroundColor: hexToRgba(primaryColor, 0.14),
+                          borderWidth: 1,
+                          borderColor: hexToRgba(primaryColor, 0.3),
+                        }}
+                      >
+                        <CheckCheck size={13} color={primaryColor} strokeWidth={2.2} />
+                        <Text style={{ color: primaryColor, fontSize: 11.5, fontWeight: "700" }}>
+                          Marcar lidas
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setNotificationsOpen(false)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        backgroundColor: "rgba(255, 255, 255, 0.06)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: 2,
+                      }}
+                    >
+                      <X size={15} color="#a1a1aa" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Popover Body */}
-                <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+                <ScrollView style={{ maxHeight: 310 }} showsVerticalScrollIndicator={false}>
                   {notifications.length > 0 ? (
-                    notifications.slice(0, 6).map((n) => (
-                      <Pressable
-                        key={n.id}
-                        onPress={() => {
-                          setNotificationsOpen(false);
-                          if (n.entityType === "appointment") {
-                            router.push("/(owner)/agenda" as any);
-                          } else {
-                            router.push("/(owner)/notificacoes" as any);
-                          }
-                        }}
-                        className="p-3.5 border-b"
+                    notifications.slice(0, 6).map((n) => {
+                      const isUnread = !n.readAt;
+                      const textCombined = `${n.title} ${n.body} ${n.type}`.toLowerCase();
+                      const isSuccess =
+                        textCombined.includes("finalizado") ||
+                        textCombined.includes("recebido") ||
+                        textCombined.includes("pix") ||
+                        textCombined.includes("pagamento");
+                      const isCancel =
+                        textCombined.includes("cancelad") ||
+                        textCombined.includes("recusad");
+                      const isBooking =
+                        textCombined.includes("agendamento") ||
+                        textCombined.includes("reserva") ||
+                        n.entityType === "appointment";
+
+                      const IconComp = isSuccess
+                        ? CheckCircle2
+                        : isCancel
+                        ? XCircle
+                        : isBooking
+                        ? CalendarPlus
+                        : Bell;
+
+                      const iconColor = isSuccess
+                        ? "#10b981"
+                        : isCancel
+                        ? "#ef4444"
+                        : isBooking
+                        ? primaryColor
+                        : "#94a3b8";
+
+                      const iconBg = isSuccess
+                        ? "rgba(16, 185, 129, 0.14)"
+                        : isCancel
+                        ? "rgba(239, 68, 68, 0.14)"
+                        : isBooking
+                        ? hexToRgba(primaryColor, 0.15)
+                        : "rgba(148, 163, 184, 0.12)";
+
+                      const iconBorder = isSuccess
+                        ? "rgba(16, 185, 129, 0.28)"
+                        : isCancel
+                        ? "rgba(239, 68, 68, 0.28)"
+                        : isBooking
+                        ? hexToRgba(primaryColor, 0.3)
+                        : "rgba(148, 163, 184, 0.2)";
+
+                      return (
+                        <TouchableOpacity
+                          key={n.id}
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            setNotificationsOpen(false);
+                            if (n.entityType === "appointment") {
+                              router.push("/(owner)/agenda" as any);
+                            } else {
+                              router.push("/(owner)/notificacoes" as any);
+                            }
+                          }}
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            paddingHorizontal: 14,
+                            paddingVertical: 12,
+                            borderBottomWidth: 1,
+                            borderBottomColor: "rgba(255, 255, 255, 0.06)",
+                            backgroundColor: isUnread ? hexToRgba(primaryColor, 0.05) : "transparent",
+                          }}
+                        >
+                          {/* Notification Type Icon Badge */}
+                          <View
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 10,
+                              backgroundColor: iconBg,
+                              borderWidth: 1,
+                              borderColor: iconBorder,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          >
+                            <IconComp size={17} color={iconColor} strokeWidth={2} />
+                          </View>
+
+                          {/* Text Info */}
+                          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                              <Text
+                                style={{
+                                  color: isUnread ? "#ffffff" : "#cbd5e1",
+                                  fontSize: 13.5,
+                                  fontWeight: isUnread ? "700" : "600",
+                                  flex: 1,
+                                  marginRight: 6,
+                                }}
+                                numberOfLines={1}
+                              >
+                                {n.title}
+                              </Text>
+                              <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "500" }}>
+                                {formatShortDate(n.createdAt)}
+                              </Text>
+                            </View>
+
+                            {n.body ? (
+                              <Text
+                                style={{
+                                  color: "#9ca3af",
+                                  fontSize: 12,
+                                  lineHeight: 16,
+                                }}
+                                numberOfLines={2}
+                              >
+                                {n.body}
+                              </Text>
+                            ) : null}
+                          </View>
+
+                          {/* Unread dot */}
+                          {isUnread && (
+                            <View
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: 3.5,
+                                backgroundColor: primaryColor,
+                                marginTop: 6,
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <View style={{ paddingVertical: 36, alignItems: "center", justifyContent: "center", gap: 10 }}>
+                      <View
                         style={{
-                          borderBottomColor: "rgba(255, 255, 255, 0.06)",
-                          backgroundColor: !n.readAt ? hexToRgba(primaryColor, 0.04) : "transparent",
+                          width: 44,
+                          height: 44,
+                          borderRadius: 12,
+                          backgroundColor: "rgba(255, 255, 255, 0.05)",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        <View className="flex-row items-center justify-between mb-1">
-                          <Text
-                            style={{
-                              color: !n.readAt ? "#ffffff" : "#d1d5db",
-                              fontSize: 13,
-                              fontWeight: !n.readAt ? "700" : "500",
-                              flex: 1,
-                              marginRight: 8,
-                            }}
-                            numberOfLines={1}
-                          >
-                            {n.title}
-                          </Text>
-                          <Text style={{ color: "#6b7280", fontSize: 11 }}>
-                            {formatShortDate(n.createdAt)}
-                          </Text>
-                        </View>
-                        {n.body ? (
-                          <Text
-                            style={{ color: "#9ca3af", fontSize: 12, lineHeight: 16 }}
-                            numberOfLines={2}
-                          >
-                            {n.body}
-                          </Text>
-                        ) : null}
-                      </Pressable>
-                    ))
-                  ) : (
-                    <View className="py-8 items-center justify-center">
-                      <Bell size={24} color="#6b7280" />
-                      <Text style={{ color: "#9ca3af", fontSize: 13, marginTop: 8 }}>
+                        <Bell size={20} color="#71717a" />
+                      </View>
+                      <Text style={{ color: "#9ca3af", fontSize: 13, fontWeight: "500" }}>
                         Nenhuma notificação no momento.
                       </Text>
                     </View>
@@ -451,22 +639,29 @@ export function TopBar({
                 </ScrollView>
 
                 {/* Popover Footer */}
-                <Pressable
+                <TouchableOpacity
+                  activeOpacity={0.7}
                   onPress={() => {
                     setNotificationsOpen(false);
                     router.push("/(owner)/notificacoes" as any);
                   }}
-                  className="flex-row items-center justify-center gap-2 py-3 px-4 border-t"
                   style={{
-                    backgroundColor: "#16181f",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    backgroundColor: "#15171f",
+                    borderTopWidth: 1,
                     borderTopColor: "rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  <Text style={{ color: colors.primary, fontSize: 12.5, fontWeight: "700" }}>
+                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
                     Ver todas na Central
                   </Text>
-                  <ArrowRight size={14} color={colors.primary} />
-                </Pressable>
+                  <ArrowRight size={14} color={primaryColor} strokeWidth={2.4} />
+                </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
           </View>
