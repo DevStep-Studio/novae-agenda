@@ -15,11 +15,13 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, radius, typography } from "@/constants/design-tokens";
+import { radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getCompanyReviews, type ReviewDTO, type ReviewsResponse } from "@/lib/reviews";
 
 export default function AvaliacoesScreen() {
+  const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [data, setData] = useState<ReviewsResponse | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | "all">("all");
   const [loading, setLoading] = useState(true);

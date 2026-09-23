@@ -25,7 +25,8 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { formatBRL } from "@/lib/stats";
 import {
@@ -84,6 +85,7 @@ const PLAN_PRESETS = [
 ];
 
 export default function AssinaturaScreen() {
+  const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [data, setData] = useState<SubscriptionDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

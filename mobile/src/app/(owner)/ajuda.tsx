@@ -27,7 +27,8 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { useSession } from "@/lib/session-context";
 
 interface FAQItem {
@@ -53,6 +54,10 @@ const FAQ_LIST: FAQItem[] = [
     a: "A sincronização é 100% em tempo real. Qualquer serviço, agendamento ou cancelamento feito no app reflete instantaneamente no painel web e vice-versa.",
   },
   {
+    q: "Como configurar comissões dos profissionais?",
+    a: "No menu Mais > Equipe, você pode editar a comissão percentual de cada profissional individualmente. O cálculo de repasses na tela Financeiro é automático.",
+  },
+  {
     q: "Como bloquear horários para folgas ou almoço?",
     a: "Na aba Agenda, use o botão 'Bloquear horário' para registrar pausas ou períodos de indisponibilidade para qualquer profissional da equipe.",
   },
@@ -60,6 +65,7 @@ const FAQ_LIST: FAQItem[] = [
 
 export default function AjudaScreen() {
   const { session } = useSession();
+  const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [problemDescription, setProblemDescription] = useState("");
   const [sendingReport, setSendingReport] = useState(false);

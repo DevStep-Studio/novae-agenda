@@ -10,7 +10,8 @@ import { ServiceRankRow, type ServiceRankRowData } from "@/components/ui/service
 import { PageHeader } from "@/components/ui/page-header";
 import { TeamRankRow, type TeamRankRowData } from "@/components/ui/team-rank-row";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, typography } from "@/constants/design-tokens";
+import { typography } from "@/constants/design-tokens";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getAppointments, type AppointmentDTO } from "@/lib/appointments";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
@@ -76,6 +77,7 @@ function periodRange(period: FinancialPeriod): { from?: string; to?: string } {
 // onto the phone just to draw a 7-bar chart.
 export default function FinanceiroScreen() {
   const { session } = useSession();
+  const { colors, primaryColor, primarySoft, isDark, primaryForeground } = useTheme();
   const [period, setPeriod] = useState<FinancialPeriod>("month");
   const [appointments, setAppointments] = useState<AppointmentDTO[] | null>(null);
   const [last7DaysApts, setLast7DaysApts] = useState<AppointmentDTO[] | null>(null);
@@ -375,7 +377,7 @@ export default function FinanceiroScreen() {
                           minHeight: 6,
                           backgroundColor: colors.primary,
                           borderWidth: day.isToday ? 1 : 0,
-                          borderColor: "rgba(220, 255, 76, 0.5)",
+                          borderColor: hexToRgba(primaryColor, 0.5),
                         }}
                       />
                     </View>
@@ -472,6 +474,7 @@ export default function FinanceiroScreen() {
 }
 
 function EmptyRankState({ icon: Icon, title, description }: { icon: typeof Users; title: string; description: string }) {
+  const { colors } = useTheme();
   return (
     <View className="items-center gap-2 py-9 mt-2">
       <View className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: colors.surfaceSecondary }}>

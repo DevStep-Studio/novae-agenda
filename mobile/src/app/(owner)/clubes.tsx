@@ -23,7 +23,8 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import {
   getCustomerMemberships,
@@ -34,6 +35,7 @@ import {
 import { formatBRL } from "@/lib/stats";
 
 export default function ClubesScreen() {
+  const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [tab, setTab] = useState<"members" | "plans">("members");
   const [plans, setPlans] = useState<MembershipPlanDTO[]>([]);
   const [memberships, setMemberships] = useState<CustomerMembershipDTO[]>([]);

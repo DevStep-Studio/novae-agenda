@@ -20,7 +20,7 @@ import {
   type NotificationDTO,
 } from "@/lib/notifications";
 import { useSession } from "@/lib/session-context";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { SidebarDrawer } from "@/components/drawer/sidebar-drawer";
 
 export interface TopBarProps {
@@ -410,7 +410,7 @@ export function TopBar({
                         className="p-3.5 border-b"
                         style={{
                           borderBottomColor: "rgba(255, 255, 255, 0.06)",
-                          backgroundColor: !n.readAt ? "rgba(220, 255, 76, 0.04)" : "transparent",
+                          backgroundColor: !n.readAt ? hexToRgba(primaryColor, 0.04) : "transparent",
                         }}
                       >
                         <View className="flex-row items-center justify-between mb-1">

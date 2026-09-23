@@ -24,7 +24,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
-import { colors, radius, typography } from "@/constants/design-tokens";
+import { radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { getCompanyWaitlist, type WaitlistEntryDTO } from "@/lib/waitlist";
 
@@ -42,6 +43,7 @@ function formatPeriodLabel(period: string): string {
 }
 
 export default function ListaEsperaScreen() {
+  const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [entries, setEntries] = useState<WaitlistEntryDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

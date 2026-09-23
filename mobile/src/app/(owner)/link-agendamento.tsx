@@ -62,7 +62,7 @@ import { Screen } from "@/components/ui/screen";
 import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { api, resolveImageUrl } from "@/lib/api-client";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
 import { useSession } from "@/lib/session-context";
@@ -2335,7 +2335,7 @@ export default function LinkAgendamentoScreen() {
               >
                 <View className="gap-0.5">
                   <View className="flex-row items-center gap-2">
-                    <RotateCcw size={15} color={primaryColor || "#ccff00"} />
+                    <RotateCcw size={15} color={primaryColor || themePrimaryColor} />
                     <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "700" }}>
                       Prazo para cancelamento / remarcação
                     </Text>
@@ -2349,6 +2349,7 @@ export default function LinkAgendamentoScreen() {
                 <View className="flex-row flex-wrap gap-2 pt-1">
                   {CANCELLATION_OPTIONS.map((opt) => {
                     const isSelected = String(opt.value) === cancellationHours;
+                    const activeColor = primaryColor || themePrimaryColor;
                     return (
                       <Pressable
                         key={opt.value}
@@ -2356,12 +2357,10 @@ export default function LinkAgendamentoScreen() {
                         className="flex-row items-center gap-1.5 py-2.5 px-3 rounded-xl border"
                         style={{
                           backgroundColor: isSelected
-                            ? isDark
-                              ? "rgba(204, 255, 0, 0.14)"
-                              : "rgba(204, 255, 0, 0.22)"
+                            ? hexToRgba(activeColor, isDark ? 0.14 : 0.22)
                             : "#1f2028",
                           borderColor: isSelected
-                            ? primaryColor || "#ccff00"
+                            ? activeColor
                             : "rgba(255, 255, 255, 0.08)",
                           flexGrow: 1,
                           justifyContent: "center",
@@ -2369,11 +2368,11 @@ export default function LinkAgendamentoScreen() {
                         }}
                       >
                         {isSelected && (
-                          <CheckCircle2 size={13} color={primaryColor || "#ccff00"} />
+                          <CheckCircle2 size={13} color={activeColor} />
                         )}
                         <Text
                           style={{
-                            color: isSelected ? (primaryColor || "#ccff00") : "#a1a1aa",
+                            color: isSelected ? activeColor : "#a1a1aa",
                             fontSize: 12.5,
                             fontWeight: isSelected ? "700" : "500",
                           }}
@@ -2393,7 +2392,7 @@ export default function LinkAgendamentoScreen() {
                     borderColor: "rgba(255, 255, 255, 0.06)",
                   }}
                 >
-                  <ShieldCheck size={16} color={primaryColor || "#ccff00"} style={{ marginTop: 1 }} />
+                  <ShieldCheck size={16} color={primaryColor || themePrimaryColor} style={{ marginTop: 1 }} />
                   <View className="flex-1 gap-0.5">
                     <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
                       Regra Selecionada
@@ -2415,7 +2414,7 @@ export default function LinkAgendamentoScreen() {
               >
                 <View className="gap-0.5">
                   <View className="flex-row items-center gap-2">
-                    <Globe size={15} color={primaryColor || "#ccff00"} />
+                    <Globe size={15} color={primaryColor || themePrimaryColor} />
                     <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "700" }}>
                       Fuso horário oficial
                     </Text>

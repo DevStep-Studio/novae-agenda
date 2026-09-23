@@ -33,7 +33,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import {
   isBiometricsSupported,
@@ -51,6 +52,7 @@ import {
 } from "@/lib/company-settings";
 
 export default function ConfiguracoesScreen() {
+  const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [profile, setProfile] = useState<CompanyDTO | null>(null);
   const [settings, setSettings] = useState<CompanySettingsDTO | null>(null);
   const [loading, setLoading] = useState(true);

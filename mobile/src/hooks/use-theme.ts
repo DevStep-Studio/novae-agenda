@@ -1,4 +1,6 @@
-import { useAppTheme } from "@/lib/theme-context";
+import { useAppTheme, hexToRgba } from "@/lib/theme-context";
+
+export { hexToRgba };
 
 export function useTheme() {
   const {

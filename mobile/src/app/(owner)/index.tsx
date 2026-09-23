@@ -43,7 +43,7 @@ import { colors, radius } from "@/constants/design-tokens";
 import { ApiError, api, resolveImageUrl } from "@/lib/api-client";
 import { getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import {
   CustomizeDashboardModal,
   DEFAULT_DASHBOARD_PREFS,
@@ -615,12 +615,12 @@ export default function OwnerHomeScreen() {
                           style={[
                             styles.kpiIconBox,
                             {
-                              backgroundColor: primarySoft || (isDark ? "rgba(220, 255, 76, 0.16)" : "rgba(220, 255, 76, 0.12)"),
+                              backgroundColor: primarySoft || hexToRgba(primaryColor, isDark ? 0.16 : 0.12),
                               borderColor: cardBorder,
                             },
                           ]}
                         >
-                          <IconComponent size={18} color={primaryColor || "#dcff4c"} />
+                          <IconComponent size={18} color={primaryColor} />
                         </View>
                         <View style={{ gap: 2, flex: 1 }}>
                           <Text
@@ -677,12 +677,12 @@ export default function OwnerHomeScreen() {
                       style={[
                         styles.kpiIconBox,
                         {
-                          backgroundColor: primarySoft || (isDark ? "rgba(220, 255, 76, 0.16)" : "rgba(220, 255, 76, 0.12)"),
+                          backgroundColor: primarySoft || hexToRgba(primaryColor, isDark ? 0.16 : 0.12),
                           borderColor: cardBorder,
                         },
                       ]}
                     >
-                      <IconComponent size={18} color={primaryColor || "#dcff4c"} />
+                      <IconComponent size={18} color={primaryColor} />
                     </View>
                   </View>
 

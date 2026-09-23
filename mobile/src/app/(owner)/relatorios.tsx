@@ -24,7 +24,8 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getCompanyReports, type ReportsDataDTO } from "@/lib/reports";
 import { formatBRL } from "@/lib/stats";
@@ -37,6 +38,7 @@ const RANGES = [
 ] as const;
 
 export default function RelatoriosScreen() {
+  const { colors, primaryColor, primaryForeground, isDark } = useTheme();
   const [range, setRange] = useState<"today" | "7d" | "month" | "prev_month">("month");
   const [data, setData] = useState<ReportsDataDTO | null>(null);
   const [loading, setLoading] = useState(true);

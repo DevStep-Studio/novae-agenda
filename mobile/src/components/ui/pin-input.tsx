@@ -9,7 +9,8 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { authSplit, colors, fontFamily } from "@/constants/design-tokens";
+import { authSplit, fontFamily } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 
 export interface PinInputProps {
   value: string;
@@ -23,14 +24,6 @@ export interface PinInputProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * 6-box Native PIN input matching the web's .pin-input-container & .pin-digit-box
- * (src/components/booking/pin-input.tsx).
- *
- * Uses a single native numeric TextInput overlay for fluid auto-advance,
- * backspace, paste support, and SMS autofill, while rendering 6 discrete
- * styled boxes with active lime outlines (#dcff4c).
- */
 export function PinInput({
   value = "",
   onChange,
@@ -42,6 +35,7 @@ export function PinInput({
   onComplete,
   style,
 }: PinInputProps) {
+  const { colors, primaryColor } = useTheme();
   const inputRef = useRef<TextInput>(null);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -108,9 +102,8 @@ export function PinInput({
           if (error) {
             borderColor = colors.danger;
           } else if (isCurrent || isFilled) {
-            borderColor = colors.primary;
+            borderColor = primaryColor;
           }
-
 
           return (
             <View
@@ -128,13 +121,13 @@ export function PinInput({
                 <Text
                   style={[
                     styles.digitText,
-                    mask ? styles.maskedBullet : styles.plainDigit,
+                    mask ? [styles.maskedBullet, { color: primaryColor }] : styles.plainDigit,
                   ]}
                 >
                   {mask ? "●" : char}
                 </Text>
               ) : isCurrent ? (
-                <View style={styles.activeCursor} />
+                <View style={[styles.activeCursor, { backgroundColor: primaryColor }]} />
               ) : null}
             </View>
           );
@@ -171,7 +164,6 @@ const styles = StyleSheet.create({
   maskedBullet: {
     fontSize: 16,
     lineHeight: 20,
-    color: colors.primary,
   },
   plainDigit: {
     fontSize: 22,
@@ -181,7 +173,6 @@ const styles = StyleSheet.create({
   activeCursor: {
     width: 2,
     height: 22,
-    backgroundColor: colors.primary,
     borderRadius: 1,
   },
   hiddenInput: {

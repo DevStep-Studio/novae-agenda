@@ -57,6 +57,12 @@ export function isLightHex(hex: string): boolean {
   return brightness > 140;
 }
 
+export function hexToRgba(hex: string, alpha: number): string {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return `rgba(220, 255, 76, ${alpha})`;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
 const THEME_MODE_KEY = "reservei_theme_mode_v1";
 const PRIMARY_COLOR_KEY = "reservei_primary_color_v1";
 
@@ -83,12 +89,18 @@ interface ThemeContextValue {
     textPrimary: string;
     textSecondary: string;
     textMuted: string;
+    textDisabled: string;
     primary: string;
     primaryForeground: string;
     primarySoft: string;
     success: string;
+    successSoft: string;
     warning: string;
+    warningSoft: string;
     danger: string;
+    dangerSoft: string;
+    info: string;
+    infoSoft: string;
   };
 }
 
@@ -193,12 +205,18 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
         textPrimary: "#ffffff",
         textSecondary: "#9ca3af",
         textMuted: "#737373",
+        textDisabled: "#52525b",
         primary: activePrimaryColor,
         primaryForeground,
         primarySoft,
         success: "#10b981",
+        successSoft: "rgba(16, 185, 129, 0.15)",
         warning: "#f2c26d",
+        warningSoft: "rgba(242, 194, 109, 0.15)",
         danger: "#ef4444",
+        dangerSoft: "rgba(239, 68, 68, 0.15)",
+        info: "#3b82f6",
+        infoSoft: "rgba(59, 130, 246, 0.15)",
       };
     } else {
       return {
@@ -214,12 +232,18 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
         textPrimary: "#0f172a",
         textSecondary: "#475569",
         textMuted: "#64748b",
+        textDisabled: "#94a3b8",
         primary: activePrimaryColor,
         primaryForeground,
         primarySoft,
         success: "#10b981",
+        successSoft: "rgba(16, 185, 129, 0.1)",
         warning: "#d97706",
+        warningSoft: "rgba(217, 119, 6, 0.1)",
         danger: "#ef4444",
+        dangerSoft: "rgba(239, 68, 68, 0.1)",
+        info: "#3b82f6",
+        infoSoft: "rgba(59, 130, 246, 0.1)",
       };
     }
   }, [isDark, activePrimaryColor, primaryForeground, primarySoft]);

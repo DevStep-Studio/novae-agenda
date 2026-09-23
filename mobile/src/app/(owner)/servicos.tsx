@@ -18,7 +18,7 @@ import { Screen } from "@/components/ui/screen";
 import { ServiceCard } from "@/components/ui/service-card";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError, api } from "@/lib/api-client";
 import {
   deleteService,
@@ -351,15 +351,15 @@ export default function ServicosScreen() {
                     style={{
                       backgroundColor: isActive
                         ? isDark
-                          ? "rgba(220, 255, 76, 0.12)"
-                          : "rgba(0, 0, 0, 0.06)"
+                          ? hexToRgba(primaryColor, 0.12)
+                          : hexToRgba(primaryColor, 0.08)
                         : isDark
                         ? "#16171d"
                         : "#f4f4f5",
                       borderColor: isActive
                         ? isDark
-                          ? "rgba(220, 255, 76, 0.35)"
-                          : "rgba(0, 0, 0, 0.2)"
+                          ? hexToRgba(primaryColor, 0.35)
+                          : hexToRgba(primaryColor, 0.25)
                         : isDark
                         ? "rgba(255, 255, 255, 0.07)"
                         : "rgba(0, 0, 0, 0.06)",
@@ -371,7 +371,7 @@ export default function ServicosScreen() {
                         color: isActive
                           ? isDark
                             ? primaryColor
-                            : "#000000"
+                            : primaryColor
                           : isDark
                           ? "#9ca3af"
                           : "#71717a",
@@ -386,8 +386,8 @@ export default function ServicosScreen() {
                       style={{
                         backgroundColor: isActive
                           ? isDark
-                            ? "rgba(220, 255, 76, 0.2)"
-                            : "rgba(0, 0, 0, 0.1)"
+                            ? hexToRgba(primaryColor, 0.2)
+                            : hexToRgba(primaryColor, 0.12)
                           : isDark
                           ? "rgba(255, 255, 255, 0.06)"
                           : "rgba(0, 0, 0, 0.05)",
@@ -398,7 +398,7 @@ export default function ServicosScreen() {
                           color: isActive
                             ? isDark
                               ? primaryColor
-                              : "#000000"
+                              : primaryColor
                             : "#71717a",
                           fontSize: 11,
                           fontWeight: "700",

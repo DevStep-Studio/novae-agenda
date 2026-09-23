@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
-import { colors } from "@/constants/design-tokens";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import {
   getNotifications,
@@ -198,13 +198,13 @@ function getNotificationMeta(item: NotificationDTO): NotificationMeta {
   }
 
   return {
-    icon: <Info size={16} color={colors.textSecondary} />,
+    icon: <Info size={16} color="#9ca3af" />,
     badgeLabel: "Sistema",
-    badgeColor: colors.textMuted,
-    badgeBg: colors.surfaceTertiary,
-    badgeBorder: colors.border,
-    iconColor: colors.textSecondary,
-    iconBg: colors.surfaceTertiary,
+    badgeColor: "#737373",
+    badgeBg: "#202228",
+    badgeBorder: "rgba(255, 255, 255, 0.08)",
+    iconColor: "#9ca3af",
+    iconBg: "#202228",
   };
 }
 
@@ -231,6 +231,7 @@ function formatTimestamp(dateStr: string) {
 
 export default function NotificacoesScreen() {
   const { session } = useSession();
+  const { colors, primaryColor, primarySoft, isDark, primaryForeground } = useTheme();
   const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -444,7 +445,7 @@ export default function NotificacoesScreen() {
                   onPress={handleMarkAllRead}
                   disabled={markingRead}
                   className="flex-row items-center gap-1.5 py-2 px-3 rounded-lg border"
-                  style={{ backgroundColor: colors.primarySoft, borderColor: "rgba(220, 255, 76, 0.3)", opacity: markingRead ? 0.6 : 1 }}
+                  style={{ backgroundColor: colors.primarySoft, borderColor: hexToRgba(primaryColor, 0.3), opacity: markingRead ? 0.6 : 1 }}
                 >
                   {markingRead ? (
                     <ActivityIndicator size="small" color={colors.primary} />

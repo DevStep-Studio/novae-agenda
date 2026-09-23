@@ -38,7 +38,7 @@ import { Screen } from "@/components/ui/screen";
 import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getAppointments, todayKey, type AppointmentDTO } from "@/lib/appointments";
 import {
@@ -574,8 +574,8 @@ export default function EquipeScreen() {
                   <View
                     className="px-1.5 py-0.5 rounded-full border"
                     style={{
-                      backgroundColor: isActive ? "rgba(220, 255, 76, 0.14)" : "#17181d",
-                      borderColor: isActive ? "rgba(220, 255, 76, 0.3)" : "rgba(255, 255, 255, 0.08)",
+                      backgroundColor: isActive ? hexToRgba(primaryColor, 0.14) : "#17181d",
+                      borderColor: isActive ? hexToRgba(primaryColor, 0.3) : "rgba(255, 255, 255, 0.08)",
                     }}
                   >
                     <Text style={{ color: isActive ? primaryColor : "#71717a", fontSize: 10.5, fontWeight: "700" }}>
@@ -1123,7 +1123,7 @@ export default function EquipeScreen() {
                                   {sch.startTime || "09:00"}
                                 </Text>
                               </View>
-                              <Clock size={14} color={primaryColor || "#ccff00"} />
+                              <Clock size={14} color={primaryColor} />
                             </Pressable>
 
                             <Text style={{ color: "#71717a", fontSize: 12 }}>até</Text>

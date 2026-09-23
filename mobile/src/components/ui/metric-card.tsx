@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react-native";
 import { StyleProp, Text, View, ViewStyle } from "react-native";
 
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 
 export interface MetricCardProps {
   icon: LucideIcon;
@@ -29,8 +29,8 @@ export function MetricCard({
   const textTitle = isDark ? "#ffffff" : "#0f172a";
   const textMuted = isDark ? "#9ca3af" : "#64748b";
   const textDetail = isDark ? "#737373" : "#94a3b8";
-  const iconBg = primarySoft || (isDark ? "rgba(220, 255, 76, 0.16)" : "rgba(220, 255, 76, 0.12)");
-  const iconColor = primaryColor || "#dcff4c";
+  const iconBg = primarySoft || hexToRgba(primaryColor, isDark ? 0.16 : 0.12);
+  const iconColor = primaryColor;
 
   return (
     <View
