@@ -3079,7 +3079,7 @@ export default function LinkAgendamentoScreen() {
               {/* Add Product Inline Form */}
               <View className="gap-2 pt-2 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>
                 <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "700" }}>ADICIONAR NOVO PRODUTO</Text>
-                <View className="flex-row gap-2">
+                <View className="flex-row items-center gap-2">
                   <TextInput
                     value={newProductName}
                     onChangeText={setNewProductName}
@@ -3088,13 +3088,14 @@ export default function LinkAgendamentoScreen() {
                     style={{
                       flex: 2,
                       backgroundColor: "#181920",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
                       borderWidth: 1,
-                      borderRadius: 10,
-                      paddingHorizontal: 10,
-                      height: 40,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                      height: 44,
                       color: "#ffffff",
-                      fontSize: 13,
+                      fontSize: 13.5,
                     }}
                   />
                   <TextInput
@@ -3106,13 +3107,14 @@ export default function LinkAgendamentoScreen() {
                     style={{
                       flex: 1,
                       backgroundColor: "#181920",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
                       borderWidth: 1,
-                      borderRadius: 10,
-                      paddingHorizontal: 10,
-                      height: 40,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                      height: 44,
                       color: "#ffffff",
-                      fontSize: 13,
+                      fontSize: 13.5,
                     }}
                   />
                 </View>
@@ -3120,11 +3122,21 @@ export default function LinkAgendamentoScreen() {
                 <Pressable
                   onPress={handleAddProduct}
                   disabled={busy}
-                  className="py-2.5 rounded-xl border flex-row items-center justify-center gap-1.5 mt-1"
-                  style={{ backgroundColor: "#27272a", borderColor: "rgba(255, 255, 255, 0.15)" }}
+                  style={{
+                    height: 44,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    backgroundColor: "#27272a",
+                    borderColor: "rgba(255, 255, 255, 0.15)",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: 4,
+                  }}
                 >
-                  <Plus size={14} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>Adicionar produto</Text>
+                  <Plus size={15} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>Adicionar produto</Text>
                 </Pressable>
               </View>
             </View>
@@ -3193,7 +3205,7 @@ export default function LinkAgendamentoScreen() {
               {/* Add Coupon Inline Form */}
               <View className="gap-2 pt-2 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>
                 <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "700" }}>CRIAR NOVO CUPOM</Text>
-                <View className="flex-row gap-2">
+                <View className="flex-row items-center gap-2">
                   <TextInput
                     value={newCouponCode}
                     onChangeText={(t) => setNewCouponCode(t.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
@@ -3203,23 +3215,32 @@ export default function LinkAgendamentoScreen() {
                     style={{
                       flex: 2,
                       backgroundColor: "#181920",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
                       borderWidth: 1,
-                      borderRadius: 10,
-                      paddingHorizontal: 10,
-                      height: 40,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                      height: 44,
                       color: "#ffffff",
-                      fontSize: 13,
+                      fontSize: 13.5,
                       fontWeight: "700",
                     }}
                   />
 
                   <Pressable
                     onPress={() => setNewCouponType(newCouponType === "percentage" ? "fixed" : "percentage")}
-                    className="w-12 h-10 rounded-xl border items-center justify-center"
-                    style={{ backgroundColor: "#1e1f26", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                    style={{
+                      width: 48,
+                      height: 44,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      backgroundColor: "#1e1f26",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
-                    <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "800" }}>
+                    <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "800" }}>
                       {newCouponType === "percentage" ? "%" : "R$"}
                     </Text>
                   </Pressable>
@@ -3233,13 +3254,15 @@ export default function LinkAgendamentoScreen() {
                     style={{
                       flex: 1,
                       backgroundColor: "#181920",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
                       borderWidth: 1,
-                      borderRadius: 10,
-                      paddingHorizontal: 10,
-                      height: 40,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                      height: 44,
                       color: "#ffffff",
-                      fontSize: 13,
+                      fontSize: 13.5,
+                      fontWeight: "600",
                     }}
                   />
                 </View>
@@ -3247,11 +3270,21 @@ export default function LinkAgendamentoScreen() {
                 <Pressable
                   onPress={handleAddCoupon}
                   disabled={busy}
-                  className="py-2.5 rounded-xl border flex-row items-center justify-center gap-1.5 mt-1"
-                  style={{ backgroundColor: "#27272a", borderColor: "rgba(255, 255, 255, 0.15)" }}
+                  style={{
+                    height: 44,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    backgroundColor: "#27272a",
+                    borderColor: "rgba(255, 255, 255, 0.15)",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    marginTop: 4,
+                  }}
                 >
-                  <Plus size={14} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>Criar cupom</Text>
+                  <Plus size={15} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>Criar cupom</Text>
                 </Pressable>
               </View>
             </View>
