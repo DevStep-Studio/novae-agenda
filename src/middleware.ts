@@ -97,6 +97,45 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Rewrite de link direto com slug na raiz: /slug -> /agendar/slug
+  const reservedPaths = new Set([
+    "",
+    "login",
+    "admin",
+    "agendar",
+    "r",
+    "cliente",
+    "minhas-reservas",
+    "meus-agendamentos",
+    "notificacoes",
+    "gestao",
+    "planos",
+    "privacidade",
+    "termos",
+    "cancelamento-reembolso",
+    "sessao-expirada",
+    "manutencao",
+    "acesso-negado",
+    "dashboard",
+    "agenda",
+    "clientes",
+    "servicos",
+    "equipe",
+    "financeiro",
+    "relatorios",
+    "assinatura",
+    "minha-assinatura",
+    "configuracoes",
+    "link-agendamento",
+  ]);
+
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 1 && !reservedPaths.has(segments[0])) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/agendar/${segments[0]}`;
+    return NextResponse.rewrite(url);
+  }
+
   return NextResponse.next();
 }
 

@@ -38,6 +38,7 @@ import {
   X,
   Zap,
 } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -167,6 +168,7 @@ type CouponItem = {
 };
 
 export default function LinkAgendamentoScreen() {
+  const router = useRouter();
   const { session, refresh: refreshSession } = useSession();
   const { isDark, primaryColor: themePrimaryColor, setPrimaryColorOverride } = useTheme();
 
@@ -331,7 +333,16 @@ export default function LinkAgendamentoScreen() {
   const [newCouponType, setNewCouponType] = useState<"percentage" | "fixed">("percentage");
   const [newCouponValue, setNewCouponValue] = useState("");
 
-  const publicUrl = `https://usereservei.com.br/${slug}`;
+  const publicUrl = `https://usereservei.com.br/agendar/${slug}`;
+
+  // Preview Booking Page in-app
+  const handlePreview = () => {
+    if (slug) {
+      router.push(`/agendar/${encodeURIComponent(slug)}`);
+    } else {
+      Linking.openURL(publicUrl);
+    }
+  };
 
   // Load all initial data
   const loadAll = useCallback(async () => {
@@ -2012,7 +2023,7 @@ export default function LinkAgendamentoScreen() {
                 </Pressable>
 
                 <Pressable
-                  onPress={() => Linking.openURL(publicUrl)}
+                  onPress={handlePreview}
                   className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-xl border"
                   style={{
                     backgroundColor: "#1c1d24",
@@ -2103,8 +2114,8 @@ export default function LinkAgendamentoScreen() {
                 className="flex-row items-center px-3 rounded-xl border"
                 style={{ backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.1)", height: 44 }}
               >
-                <Text style={{ color: "#71717a", fontSize: 13, fontWeight: "500" }}>
-                  usereservei.com.br/
+                <Text style={{ color: "#71717a", fontSize: 12.5, fontWeight: "600" }}>
+                  usereservei.com.br/agendar/
                 </Text>
                 <TextInput
                   value={slug}
