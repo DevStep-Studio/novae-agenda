@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
-import { CalendarDays, CalendarPlus, Clock, Pencil } from "lucide-react-native";
-import { Pressable, Text, View } from "react-native";
+import { CalendarDays, CalendarPlus, Clock, Pencil, Sparkles } from "lucide-react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/components/ui/avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -44,8 +44,8 @@ export function EmployeeCard({
       ? `${formatBRL(employee.commissionValue)} fixa`
       : "Sem comissão";
 
-  const visibleServices = employee.services.slice(0, 3);
-  const extraServices = employee.services.length - visibleServices.length;
+  const visibleServices = employee.services?.slice(0, 3) || [];
+  const extraServices = (employee.services?.length || 0) - visibleServices.length;
 
   const isOwnerMatch =
     employee.name.trim().toLowerCase() === (session?.name || "").trim().toLowerCase();
@@ -60,19 +60,27 @@ export function EmployeeCard({
     resolveImageUrl(session?.company?.bannerUrl) ||
     null;
 
+  const brandAccent = primaryColor || "#ec4899";
+  const textAccent = primaryForeground || "#ffffff";
+
   return (
     <View
       style={{
         overflow: "hidden",
-        borderRadius: 20,
+        borderRadius: 22,
         borderWidth: 1,
-        backgroundColor: "#111216",
+        backgroundColor: "#101116",
         borderColor: "rgba(255, 255, 255, 0.08)",
-        marginBottom: 12,
+        marginBottom: 14,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 3,
       }}
     >
-      {/* 1. Header / Cover Area */}
-      <View style={{ height: 84, position: "relative", backgroundColor: "#16171e" }}>
+      {/* 1. Header Banner */}
+      <View style={{ height: 82, position: "relative", backgroundColor: "#15161e" }}>
         {resolvedBanner ? (
           <Image
             source={{ uri: resolvedBanner }}
@@ -84,16 +92,17 @@ export function EmployeeCard({
             style={{
               position: "absolute",
               inset: 0,
-              backgroundColor: primaryColor || "#3b82f6",
+              backgroundColor: brandAccent,
               opacity: 0.08,
             }}
           />
         )}
+        {/* Dark overlay for perfect contrast */}
         <View
           style={{
             position: "absolute",
             inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.52)",
+            backgroundColor: "rgba(8, 9, 12, 0.58)",
           }}
         />
 
@@ -103,7 +112,7 @@ export function EmployeeCard({
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingHorizontal: 12,
+            paddingHorizontal: 14,
             paddingTop: 10,
           }}
         >
@@ -116,9 +125,9 @@ export function EmployeeCard({
               borderRadius: 999,
               paddingHorizontal: 9,
               paddingVertical: 4,
-              backgroundColor: employee.active ? "rgba(34, 197, 94, 0.14)" : "rgba(113, 113, 122, 0.18)",
+              backgroundColor: employee.active ? "rgba(34, 197, 94, 0.16)" : "rgba(113, 113, 122, 0.2)",
               borderWidth: 1,
-              borderColor: employee.active ? "rgba(34, 197, 94, 0.28)" : "rgba(113, 113, 122, 0.28)",
+              borderColor: employee.active ? "rgba(34, 197, 94, 0.3)" : "rgba(113, 113, 122, 0.25)",
             }}
           >
             <View
@@ -132,7 +141,7 @@ export function EmployeeCard({
             <Text
               style={{
                 color: employee.active ? "#4ade80" : "#a1a1aa",
-                fontSize: 10,
+                fontSize: 10.5,
                 fontWeight: "800",
                 letterSpacing: 0.5,
                 textTransform: "uppercase",
@@ -166,14 +175,14 @@ export function EmployeeCard({
         </View>
       </View>
 
-      {/* 2. Centered Avatar Overlapping Banner */}
+      {/* 2. Avatar Overlapping Banner */}
       <View style={{ alignItems: "center", marginTop: -32, marginBottom: 6 }}>
         <View
           style={{
             position: "relative",
-            borderRadius: 22,
-            padding: 3,
-            backgroundColor: "#111216",
+            borderRadius: 24,
+            padding: 3.5,
+            backgroundColor: "#101116",
           }}
         >
           <Avatar name={employee.name} photoUrl={resolvedAvatar} size="lg" />
@@ -182,11 +191,11 @@ export function EmployeeCard({
               position: "absolute",
               bottom: 3,
               right: 3,
-              width: 12,
-              height: 12,
-              borderRadius: 6,
-              borderWidth: 2,
-              borderColor: "#111216",
+              width: 13,
+              height: 13,
+              borderRadius: 6.5,
+              borderWidth: 2.5,
+              borderColor: "#101116",
               backgroundColor: employee.active ? "#22c55e" : "#71717a",
             }}
           />
@@ -195,14 +204,14 @@ export function EmployeeCard({
 
       {/* 3. Card Body */}
       <View style={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}>
-        {/* Name & Role */}
+        {/* Name & Job Title */}
         <View style={{ alignItems: "center", gap: 2 }}>
           <Text
             style={{
               color: "#ffffff",
-              fontSize: 17,
+              fontSize: 17.5,
               fontWeight: "800",
-              letterSpacing: -0.25,
+              letterSpacing: -0.3,
               textAlign: "center",
             }}
             numberOfLines={1}
@@ -229,9 +238,9 @@ export function EmployeeCard({
             justifyContent: "space-between",
             borderRadius: 14,
             borderWidth: 1,
-            paddingHorizontal: 8,
+            paddingHorizontal: 10,
             paddingVertical: 10,
-            backgroundColor: "#17181f",
+            backgroundColor: "#161720",
             borderColor: "rgba(255, 255, 255, 0.06)",
           }}
         >
@@ -239,7 +248,7 @@ export function EmployeeCard({
             <Text style={{ color: "#71717a", fontSize: 9.5, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
               Hoje
             </Text>
-            <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "800" }}>
+            <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "800" }}>
               {metrics.todayCount} atend.
             </Text>
           </View>
@@ -250,7 +259,7 @@ export function EmployeeCard({
             <Text style={{ color: "#71717a", fontSize: 9.5, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
               Este mês
             </Text>
-            <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "800" }}>
+            <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "800" }}>
               {metrics.monthCount} atend.
             </Text>
           </View>
@@ -261,7 +270,7 @@ export function EmployeeCard({
             <Text style={{ color: "#71717a", fontSize: 9.5, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
               Faturamento
             </Text>
-            <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "800" }} numberOfLines={1}>
+            <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "800" }} numberOfLines={1}>
               {formatBRL(metrics.monthRevenue)}
             </Text>
           </View>
@@ -282,7 +291,7 @@ export function EmployeeCard({
                     borderRadius: 7,
                     paddingHorizontal: 8,
                     paddingVertical: 3.5,
-                    backgroundColor: "#1c1d24",
+                    backgroundColor: "#1b1c24",
                     borderWidth: 1,
                     borderColor: "rgba(255, 255, 255, 0.08)",
                   }}
@@ -305,7 +314,7 @@ export function EmployeeCard({
                     borderRadius: 7,
                     paddingHorizontal: 7,
                     paddingVertical: 3.5,
-                    backgroundColor: "#27272a",
+                    backgroundColor: "#262730",
                     borderWidth: 1,
                     borderColor: "rgba(255, 255, 255, 0.1)",
                   }}
@@ -335,17 +344,22 @@ export function EmployeeCard({
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 7,
-                height: 42,
-                borderRadius: 12,
-                backgroundColor: primaryColor || "#3b82f6",
+                gap: 8,
+                height: 44,
+                borderRadius: 13,
+                backgroundColor: brandAccent,
                 opacity: pressed ? 0.85 : 1,
+                shadowColor: brandAccent,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+                elevation: 2,
               })}
             >
-              <CalendarPlus size={16} color={primaryForeground || "#ffffff"} strokeWidth={2.4} />
+              <CalendarPlus size={16} color={textAccent} strokeWidth={2.4} />
               <Text
                 style={{
-                  color: primaryForeground || "#ffffff",
+                  color: textAccent,
                   fontSize: 13.5,
                   fontWeight: "700",
                   letterSpacing: -0.1,
@@ -367,15 +381,15 @@ export function EmployeeCard({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 5,
-                  height: 38,
-                  borderRadius: 11,
-                  backgroundColor: pressed ? "#23242c" : "#17181f",
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: pressed ? "#232530" : "#171821",
                   borderWidth: 1,
                   borderColor: "rgba(255, 255, 255, 0.09)",
                 })}
               >
-                <Clock size={13.5} color="#a1a1aa" />
-                <Text style={{ color: "#e4e4e7", fontSize: 12, fontWeight: "600" }}>Horários</Text>
+                <Clock size={14} color="#a1a1aa" />
+                <Text style={{ color: "#e4e4e7", fontSize: 12.5, fontWeight: "600" }}>Horários</Text>
               </Pressable>
             )}
 
@@ -388,15 +402,15 @@ export function EmployeeCard({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 5,
-                  height: 38,
-                  borderRadius: 11,
-                  backgroundColor: pressed ? "#23242c" : "#17181f",
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: pressed ? "#232530" : "#171821",
                   borderWidth: 1,
                   borderColor: "rgba(255, 255, 255, 0.09)",
                 })}
               >
-                <CalendarDays size={13.5} color="#a1a1aa" />
-                <Text style={{ color: "#e4e4e7", fontSize: 12, fontWeight: "600" }}>Agenda</Text>
+                <CalendarDays size={14} color="#a1a1aa" />
+                <Text style={{ color: "#e4e4e7", fontSize: 12.5, fontWeight: "600" }}>Agenda</Text>
               </Pressable>
             )}
 
@@ -409,15 +423,15 @@ export function EmployeeCard({
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 5,
-                  height: 38,
-                  borderRadius: 11,
-                  backgroundColor: pressed ? "#23242c" : "#17181f",
+                  height: 40,
+                  borderRadius: 12,
+                  backgroundColor: pressed ? "#232530" : "#171821",
                   borderWidth: 1,
                   borderColor: "rgba(255, 255, 255, 0.09)",
                 })}
               >
-                <Pencil size={13.5} color="#a1a1aa" />
-                <Text style={{ color: "#e4e4e7", fontSize: 12, fontWeight: "600" }}>Editar</Text>
+                <Pencil size={14} color="#a1a1aa" />
+                <Text style={{ color: "#e4e4e7", fontSize: 12.5, fontWeight: "600" }}>Editar</Text>
               </Pressable>
             )}
           </View>
@@ -426,4 +440,3 @@ export function EmployeeCard({
     </View>
   );
 }
-
