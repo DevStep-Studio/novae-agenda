@@ -45,7 +45,7 @@ import { getServices, type ServiceDTO } from "@/lib/services";
 import { getClients, type ClientDTO } from "@/lib/clients";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   weekday: "long",
@@ -755,12 +755,18 @@ export default function AgendaScreen() {
                                 e.stopPropagation();
                                 setDetailAppointment(apt);
                               }}
-                              className="p-2.5 rounded-xl border"
+                              className="p-2.5 rounded-xl"
                               style={{
-                                backgroundColor: "#161b22",
-                                borderColor: "rgba(255, 255, 255, 0.12)",
-                                borderLeftWidth: 3.5,
+                                backgroundColor: "#20232d",
+                                borderColor: hexToRgba(primaryColor, 0.3),
+                                borderWidth: 1,
+                                borderLeftWidth: 4,
                                 borderLeftColor: primaryColor,
+                                shadowColor: "#000000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.4,
+                                shadowRadius: 4,
+                                elevation: 3,
                               }}
                             >
                               {/* Top Row: Client Name + Time badge */}
@@ -768,8 +774,8 @@ export default function AgendaScreen() {
                                 <Text
                                   style={{
                                     color: "#ffffff",
-                                    fontSize: 13,
-                                    fontWeight: "700",
+                                    fontSize: 13.5,
+                                    fontWeight: "800",
                                     flexShrink: 1,
                                   }}
                                   numberOfLines={1}
@@ -779,17 +785,19 @@ export default function AgendaScreen() {
                                 </Text>
                                 <View
                                   style={{
-                                    backgroundColor: primarySoft,
-                                    paddingHorizontal: 6,
+                                    backgroundColor: hexToRgba(primaryColor, 0.2),
+                                    borderColor: hexToRgba(primaryColor, 0.35),
+                                    borderWidth: 1,
+                                    paddingHorizontal: 6.5,
                                     paddingVertical: 2,
-                                    borderRadius: 6,
+                                    borderRadius: 7,
                                   }}
                                 >
                                   <Text
                                     style={{
                                       color: primaryColor,
                                       fontSize: 11,
-                                      fontWeight: "700",
+                                      fontWeight: "800",
                                     }}
                                   >
                                     {apt.startTime}
@@ -801,7 +809,7 @@ export default function AgendaScreen() {
                               <View className="flex-row items-center justify-between gap-2 mt-1">
                                 <Text
                                   style={{
-                                    color: "#9ca3af",
+                                    color: "#d4d4d8",
                                     fontSize: 11.5,
                                     fontWeight: "500",
                                     flexShrink: 1,
@@ -814,9 +822,9 @@ export default function AgendaScreen() {
                                 {apt.total > 0 ? (
                                   <Text
                                     style={{
-                                      color: "#e2e8f0",
-                                      fontSize: 11.5,
-                                      fontWeight: "600",
+                                      color: "#ffffff",
+                                      fontSize: 12,
+                                      fontWeight: "700",
                                     }}
                                   >
                                     {formatBRL(apt.total)}
@@ -1023,28 +1031,34 @@ export default function AgendaScreen() {
                                   e.stopPropagation();
                                   setDetailAppointment(apt);
                                 }}
-                                className="p-2 rounded-lg border gap-0.5"
+                                className="p-2 rounded-lg gap-0.5"
                                 style={{
-                                  backgroundColor: "#161b22",
-                                  borderColor: "rgba(255, 255, 255, 0.12)",
-                                  borderLeftWidth: 3,
+                                  backgroundColor: "#20232d",
+                                  borderColor: hexToRgba(primaryColor, 0.3),
+                                  borderWidth: 1,
+                                  borderLeftWidth: 3.5,
                                   borderLeftColor: primaryColor,
+                                  shadowColor: "#000000",
+                                  shadowOffset: { width: 0, height: 1 },
+                                  shadowOpacity: 0.3,
+                                  shadowRadius: 3,
+                                  elevation: 2,
                                 }}
                               >
                                 <View className="flex-row items-center justify-between gap-1">
                                   <Text
-                                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700", flexShrink: 1 }}
+                                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "800", flexShrink: 1 }}
                                     numberOfLines={1}
                                     ellipsizeMode="tail"
                                   >
                                     {apt.clientName || "Cliente"}
                                   </Text>
-                                  <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "700" }}>
+                                  <Text style={{ color: primaryColor, fontSize: 10.5, fontWeight: "800" }}>
                                     {apt.startTime}
                                   </Text>
                                 </View>
                                 <Text
-                                  style={{ color: "#9ca3af", fontSize: 10, fontWeight: "500" }}
+                                  style={{ color: "#d4d4d8", fontSize: 10.5, fontWeight: "500" }}
                                   numberOfLines={1}
                                   ellipsizeMode="tail"
                                 >
@@ -1147,17 +1161,19 @@ export default function AgendaScreen() {
                           key={apt.id}
                           onPress={() => setDetailAppointment(apt)}
                           style={{
-                            backgroundColor: "rgba(16, 185, 129, 0.2)",
+                            backgroundColor: hexToRgba(primaryColor, 0.22),
+                            borderColor: hexToRgba(primaryColor, 0.35),
+                            borderWidth: 0.5,
                             borderRadius: 4,
-                            paddingHorizontal: 3,
-                            paddingVertical: 1,
+                            paddingHorizontal: 4,
+                            paddingVertical: 1.5,
                           }}
                         >
                           <Text
                             style={{
                               fontSize: 8.5,
                               fontWeight: "700",
-                              color: "#10b981",
+                              color: primaryColor,
                             }}
                             numberOfLines={1}
                           >
