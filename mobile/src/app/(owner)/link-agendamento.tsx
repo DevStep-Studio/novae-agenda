@@ -1430,22 +1430,24 @@ export default function LinkAgendamentoScreen() {
               {/* Toggle Switch */}
               <View
                 className="flex-row items-center justify-between p-3.5 rounded-xl border"
-                style={{ backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                style={{ backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.08)", gap: 12 }}
               >
-                <View>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
                     Ativar banner promocional na página
                   </Text>
-                  <Text style={{ color: "#71717a", fontSize: 12 }}>
+                  <Text style={{ color: "#71717a", fontSize: 12, marginTop: 2 }}>
                     {promoItems.length} {promoItems.length === 1 ? "arte configurada" : "artes configuradas"}
                   </Text>
                 </View>
-                <Switch
-                  value={carouselEnabled}
-                  onValueChange={setCarouselEnabled}
-                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                  thumbColor="#ffffff"
-                />
+                <View style={{ flexShrink: 0 }}>
+                  <Switch
+                    value={carouselEnabled}
+                    onValueChange={setCarouselEnabled}
+                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
               </View>
 
               {/* Items List */}
@@ -1855,62 +1857,70 @@ export default function LinkAgendamentoScreen() {
             {/* Card: Visibilidade & Switches */}
             <View
               className="p-4 rounded-2xl border gap-3"
-              style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
+              style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.09)" }}
             >
               <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "700" }}>
                 Status e Visibilidade Pública
               </Text>
 
-              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}>
-                <View>
+              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)", gap: 12 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>Página pública de agendamento ativa</Text>
-                  <Text style={{ color: "#71717a", fontSize: 11.5 }}>Permite que novos clientes façam reservas</Text>
+                  <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 1 }}>Permite que novos clientes façam reservas</Text>
                 </View>
-                <Switch
-                  value={publicEnabled}
-                  onValueChange={setPublicEnabled}
-                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                  thumbColor="#ffffff"
-                />
+                <View style={{ flexShrink: 0 }}>
+                  <Switch
+                    value={publicEnabled}
+                    onValueChange={setPublicEnabled}
+                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
               </View>
 
-              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}>
-                <View>
+              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)", gap: 12 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>Exibir telefone na página pública</Text>
-                  <Text style={{ color: "#71717a", fontSize: 11.5 }}>Mostra o número para contato direto</Text>
+                  <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 1 }}>Mostra o número para contato direto</Text>
                 </View>
-                <Switch
-                  value={showPhone}
-                  onValueChange={setShowPhone}
-                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                  thumbColor="#ffffff"
-                />
+                <View style={{ flexShrink: 0 }}>
+                  <Switch
+                    value={showPhone}
+                    onValueChange={setShowPhone}
+                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
               </View>
 
-              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}>
-                <View>
+              <View className="flex-row items-center justify-between py-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)", gap: 12 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>Exibir perfil do Instagram</Text>
-                  <Text style={{ color: "#71717a", fontSize: 11.5 }}>Adiciona link para seu perfil comercial</Text>
+                  <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 1 }}>Adiciona link para seu perfil comercial</Text>
                 </View>
-                <Switch
-                  value={showInstagram}
-                  onValueChange={setShowInstagram}
-                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                  thumbColor="#ffffff"
-                />
+                <View style={{ flexShrink: 0 }}>
+                  <Switch
+                    value={showInstagram}
+                    onValueChange={setShowInstagram}
+                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
               </View>
 
-              <View className="flex-row items-center justify-between py-2">
-                <View>
+              <View className="flex-row items-center justify-between py-2" style={{ gap: 12 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>Produtos complementares</Text>
-                  <Text style={{ color: "#71717a", fontSize: 11.5 }}>Permite oferecer itens adicionais durante o agendamento</Text>
+                  <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 1 }}>Permite oferecer itens adicionais durante o agendamento</Text>
                 </View>
-                <Switch
-                  value={allowProducts}
-                  onValueChange={setAllowProducts}
-                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                  thumbColor="#ffffff"
-                />
+                <View style={{ flexShrink: 0 }}>
+                  <Switch
+                    value={allowProducts}
+                    onValueChange={setAllowProducts}
+                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
               </View>
             </View>
 

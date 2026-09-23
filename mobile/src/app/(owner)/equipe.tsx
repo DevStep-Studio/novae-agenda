@@ -958,18 +958,20 @@ export default function EquipeScreen() {
               {/* Active Toggle Switch */}
               <View
                 className="flex-row items-center justify-between p-3.5 rounded-xl border"
-                style={{ backgroundColor: "#18191e", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                style={{ backgroundColor: "#18191e", borderColor: "rgba(255, 255, 255, 0.1)", gap: 12 }}
               >
-                <View>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>Profissional Ativo</Text>
-                  <Text style={{ color: "#71717a", fontSize: 12 }}>Disponível para novos agendamentos</Text>
+                  <Text style={{ color: "#71717a", fontSize: 12, marginTop: 2 }}>Disponível para novos agendamentos</Text>
                 </View>
-                <Switch
-                  value={editActive}
-                  onValueChange={setEditActive}
-                  trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                  thumbColor="#ffffff"
-                />
+                <View style={{ flexShrink: 0 }}>
+                  <Switch
+                    value={editActive}
+                    onValueChange={setEditActive}
+                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
+                    thumbColor="#ffffff"
+                  />
+                </View>
               </View>
 
               <Button
