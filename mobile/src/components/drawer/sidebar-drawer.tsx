@@ -35,6 +35,7 @@ import { colors } from "@/constants/design-tokens";
 import { resolveImageUrl } from "@/lib/api-client";
 import { getAppointments } from "@/lib/appointments";
 import { useSession } from "@/lib/session-context";
+import { ReserveiLogo } from "@/components/brand/reservei-logo";
 
 const ROLE_LABELS: Record<string, string> = {
   superadmin: "Superadmin",
@@ -299,20 +300,8 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
               borderBottomColor: "rgba(255, 255, 255, 0.06)",
             }}
           >
-            {/* Logo: reservei + the real brand star icon (ReserveiStarIcon) */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Text
-                style={{
-                  color: "#ffffff",
-                  fontSize: 20,
-                  fontWeight: "800",
-                  letterSpacing: -0.6,
-                }}
-              >
-                reservei
-              </Text>
-              <ReserveiStarIcon size={15} color={colors.primary} />
-            </View>
+            {/* Official Full Reservei Logo */}
+            <ReserveiLogo variant="full" height={28} />
 
             {/* Close Button: X */}
             <Pressable
