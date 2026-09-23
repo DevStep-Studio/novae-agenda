@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { CalendarDays, CalendarPlus, Clock, Pencil } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { resolveImageUrl, resolveImageUrlWithFallback } from "@/lib/api-client";
@@ -421,111 +421,115 @@ export function EmployeeCard({
         </View>
 
         {/* 6. Footer Actions: 2x2 Grid exactly as on Web mobile screenshot */}
-        <View style={{ gap: 8, marginTop: 4 }}>
+        <View style={{ gap: 8, marginTop: 6, width: "100%" }}>
           {/* Row 1: Agendar (Primary soft brand) + Horários */}
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {onNewAppointment && (
-              <Pressable
-                onPress={() => onNewAppointment(employee)}
-                accessibilityRole="button"
-                accessibilityLabel="Agendar com profissional"
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 38,
-                  borderRadius: 8,
-                  backgroundColor: pressed ? hexToRgba(brandAccent, 0.28) : brandSoft,
-                  borderWidth: 1,
-                  borderColor: hexToRgba(brandAccent, 0.4),
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                })}
+          <View style={{ flexDirection: "row", gap: 8, width: "100%" }}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onNewAppointment?.(employee)}
+              accessibilityRole="button"
+              accessibilityLabel="Agendar com profissional"
+              style={{
+                flex: 1,
+                height: 40,
+                minHeight: 40,
+                borderRadius: 8,
+                backgroundColor: hexToRgba(brandAccent, 0.16),
+                borderWidth: 1,
+                borderColor: hexToRgba(brandAccent, 0.45),
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingHorizontal: 6,
+              }}
+            >
+              <CalendarPlus size={15} color={brandAccent} strokeWidth={2.2} />
+              <Text
+                style={{
+                  color: brandAccent,
+                  fontSize: 12,
+                  fontWeight: "700",
+                }}
               >
-                <CalendarPlus size={14} color={brandAccent} strokeWidth={2.2} />
-                <Text
-                  style={{
-                    color: brandAccent,
-                    fontSize: 12,
-                    fontWeight: "600",
-                  }}
-                >
-                  Agendar
-                </Text>
-              </Pressable>
-            )}
+                Agendar
+              </Text>
+            </TouchableOpacity>
 
-            {onOpenSchedule && (
-              <Pressable
-                onPress={() => onOpenSchedule(employee)}
-                accessibilityRole="button"
-                accessibilityLabel="Horários de trabalho"
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 38,
-                  borderRadius: 8,
-                  backgroundColor: pressed ? "#22242c" : "#181920",
-                  borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.08)",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                })}
-              >
-                <Clock size={14} color="#9ca3af" strokeWidth={2} />
-                <Text style={{ color: "#d4d4d8", fontSize: 12, fontWeight: "600" }}>Horários</Text>
-              </Pressable>
-            )}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onOpenSchedule?.(employee)}
+              accessibilityRole="button"
+              accessibilityLabel="Horários de trabalho"
+              style={{
+                flex: 1,
+                height: 40,
+                minHeight: 40,
+                borderRadius: 8,
+                backgroundColor: "#181920",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.08)",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingHorizontal: 6,
+              }}
+            >
+              <Clock size={14} color="#9ca3af" strokeWidth={2} />
+              <Text style={{ color: "#d4d4d8", fontSize: 12, fontWeight: "600" }}>Horários</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Row 2: Agenda + Editar */}
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {onGoToAgenda && (
-              <Pressable
-                onPress={() => onGoToAgenda(employee)}
-                accessibilityRole="button"
-                accessibilityLabel="Ver agenda"
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 38,
-                  borderRadius: 8,
-                  backgroundColor: pressed ? "#22242c" : "#181920",
-                  borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.08)",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                })}
-              >
-                <CalendarDays size={14} color="#9ca3af" strokeWidth={2} />
-                <Text style={{ color: "#d4d4d8", fontSize: 12, fontWeight: "600" }}>Agenda</Text>
-              </Pressable>
-            )}
+          <View style={{ flexDirection: "row", gap: 8, width: "100%" }}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onGoToAgenda?.(employee)}
+              accessibilityRole="button"
+              accessibilityLabel="Ver agenda"
+              style={{
+                flex: 1,
+                height: 40,
+                minHeight: 40,
+                borderRadius: 8,
+                backgroundColor: "#181920",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.08)",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingHorizontal: 6,
+              }}
+            >
+              <CalendarDays size={14} color="#9ca3af" strokeWidth={2} />
+              <Text style={{ color: "#d4d4d8", fontSize: 12, fontWeight: "600" }}>Agenda</Text>
+            </TouchableOpacity>
 
-            {onEdit && (
-              <Pressable
-                onPress={() => onEdit(employee)}
-                accessibilityRole="button"
-                accessibilityLabel="Editar profissional"
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 38,
-                  borderRadius: 8,
-                  backgroundColor: pressed ? "#22242c" : "#181920",
-                  borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.08)",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                })}
-              >
-                <Pencil size={14} color="#9ca3af" strokeWidth={2} />
-                <Text style={{ color: "#d4d4d8", fontSize: 12, fontWeight: "600" }}>Editar</Text>
-              </Pressable>
-            )}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => onEdit?.(employee)}
+              accessibilityRole="button"
+              accessibilityLabel="Editar profissional"
+              style={{
+                flex: 1,
+                height: 40,
+                minHeight: 40,
+                borderRadius: 8,
+                backgroundColor: "#181920",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.08)",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                paddingHorizontal: 6,
+              }}
+            >
+              <Pencil size={14} color="#9ca3af" strokeWidth={2} />
+              <Text style={{ color: "#d4d4d8", fontSize: 12, fontWeight: "600" }}>Editar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
