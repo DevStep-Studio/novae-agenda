@@ -33,7 +33,7 @@ export function EmployeeCard({
   onEdit,
 }: EmployeeCardProps) {
   const { session } = useSession();
-  const { primaryColor, colors } = useTheme();
+  const { primaryColor, coverUrl, ownerAvatarUrl, colors } = useTheme();
 
   const isCommissionPercent = employee.commissionType === "percentage";
   const isCommissionFixed = employee.commissionType === "fixed";
@@ -47,10 +47,18 @@ export function EmployeeCard({
   const visibleServices = employee.services.slice(0, 3);
   const extraServices = employee.services.length - visibleServices.length;
 
-  const coverImage =
+  const isOwnerMatch =
+    employee.name.trim().toLowerCase() === (session?.name || "").trim().toLowerCase();
+
+  const resolvedAvatar =
+    employee.photoUrl ||
+    (isOwnerMatch ? (session?.avatarUrl || ownerAvatarUrl || session?.company?.logoUrl) : null);
+
+  const resolvedBanner =
     resolveImageUrl(employee.bannerUrl) ||
+    coverUrl ||
     resolveImageUrl(session?.company?.bannerUrl) ||
-    DEFAULT_COVER_URL;
+    null;
 
   return (
     <View
@@ -64,12 +72,23 @@ export function EmployeeCard({
       }}
     >
       {/* 1. Cover Banner */}
-      <View style={{ height: 80, position: "relative" }}>
-        <Image
-          source={{ uri: coverImage }}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-          contentFit="cover"
-        />
+      <View style={{ height: 80, position: "relative", backgroundColor: "#17181f" }}>
+        {resolvedBanner ? (
+          <Image
+            source={{ uri: resolvedBanner }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundColor: primaryColor,
+              opacity: 0.15,
+            }}
+          />
+        )}
         <View
           style={{
             position: "absolute",
@@ -157,7 +176,7 @@ export function EmployeeCard({
             backgroundColor: "#111216",
           }}
         >
-          <Avatar name={employee.name} photoUrl={employee.photoUrl} size="lg" />
+          <Avatar name={employee.name} photoUrl={resolvedAvatar} size="lg" />
           <View
             style={{
               position: "absolute",

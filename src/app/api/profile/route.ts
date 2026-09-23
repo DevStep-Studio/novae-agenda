@@ -237,6 +237,9 @@ export async function PATCH(request: Request) {
     if (avatarUrl !== undefined) {
       companyPatch.logoUrl = savedAvatarUrl;
     }
+    if (savedBannerUrl !== undefined) {
+      companyPatch.bannerUrl = savedBannerUrl;
+    }
     if (primaryColor !== undefined) companyPatch.primaryColor = primaryColor;
     if (secondaryColor !== undefined) companyPatch.secondaryColor = secondaryColor;
 

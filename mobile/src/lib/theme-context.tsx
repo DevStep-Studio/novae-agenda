@@ -66,13 +66,26 @@ export function hexToRgba(hex: string, alpha: number): string {
 const THEME_MODE_KEY = "reservei_theme_mode_v1";
 const PRIMARY_COLOR_KEY = "reservei_primary_color_v1";
 
-interface ThemeContextValue {
-  themeMode: ThemeMode;
-  resolvedTheme: ResolvedTheme;
-  isDark: boolean;
+import { resolveImageUrl } from "./api-client";
+import type { DashboardPreferences } from "./auth";
+
+export interface CompanyBranding {
+  companyId: string;
+  companyName: string;
+  slug: string;
   primaryColor: string;
   primaryForeground: string;
   primarySoft: string;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  ownerAvatarUrl: string | null;
+  dashboardPreferences?: DashboardPreferences;
+}
+
+interface ThemeContextValue extends CompanyBranding {
+  themeMode: ThemeMode;
+  resolvedTheme: ResolvedTheme;
+  isDark: boolean;
   setThemeMode: (mode: ThemeMode) => Promise<void>;
   toggleTheme: () => Promise<void>;
   setPrimaryColorOverride: (hex: string) => Promise<void>;
@@ -239,8 +252,26 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isDark, activePrimaryColor, primaryForeground, primarySoft]);
 
+  const companyId = session?.company?.id || "";
+  const companyName = session?.company?.name || session?.name || "Reservei";
+  const slug = session?.company?.publicSlug || session?.company?.slug || "";
+  const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl || null;
+  const rawCoverUrl = session?.company?.bannerUrl || session?.bannerUrl || null;
+  const rawOwnerAvatarUrl = session?.avatarUrl || session?.company?.logoUrl || null;
+
+  const logoUrl = useMemo(() => resolveImageUrl(rawLogoUrl), [rawLogoUrl]);
+  const coverUrl = useMemo(() => resolveImageUrl(rawCoverUrl), [rawCoverUrl]);
+  const ownerAvatarUrl = useMemo(() => resolveImageUrl(rawOwnerAvatarUrl), [rawOwnerAvatarUrl]);
+
   const value = useMemo(
     () => ({
+      companyId,
+      companyName,
+      slug,
+      logoUrl,
+      coverUrl,
+      ownerAvatarUrl,
+      dashboardPreferences: session?.company?.dashboardPreferences,
       themeMode,
       resolvedTheme,
       isDark,
@@ -253,6 +284,13 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
       colors: themeTokens,
     }),
     [
+      companyId,
+      companyName,
+      slug,
+      logoUrl,
+      coverUrl,
+      ownerAvatarUrl,
+      session?.company?.dashboardPreferences,
       themeMode,
       resolvedTheme,
       isDark,
@@ -275,4 +313,20 @@ export function useAppTheme() {
     throw new Error("useAppTheme must be used within an AppThemeProvider");
   }
   return ctx;
+}
+
+export function useCompanyBranding(): CompanyBranding {
+  const theme = useAppTheme();
+  return {
+    companyId: theme.companyId,
+    companyName: theme.companyName,
+    slug: theme.slug,
+    primaryColor: theme.primaryColor,
+    primaryForeground: theme.primaryForeground,
+    primarySoft: theme.primarySoft,
+    logoUrl: theme.logoUrl,
+    coverUrl: theme.coverUrl,
+    ownerAvatarUrl: theme.ownerAvatarUrl,
+    dashboardPreferences: theme.dashboardPreferences,
+  };
 }

@@ -1,6 +1,6 @@
-import { useAppTheme, hexToRgba } from "@/lib/theme-context";
+import { useAppTheme, useCompanyBranding, hexToRgba, type CompanyBranding } from "@/lib/theme-context";
 
-export { hexToRgba };
+export { hexToRgba, useCompanyBranding, type CompanyBranding };
 
 export function useTheme() {
   const {
@@ -10,6 +10,13 @@ export function useTheme() {
     primaryColor,
     primaryForeground,
     primarySoft,
+    companyId,
+    companyName,
+    slug,
+    logoUrl,
+    coverUrl,
+    ownerAvatarUrl,
+    dashboardPreferences,
     themeMode,
     toggleTheme,
     setThemeMode,
@@ -23,6 +30,13 @@ export function useTheme() {
     primaryColor,
     primaryForeground,
     primarySoft,
+    companyId,
+    companyName,
+    slug,
+    logoUrl,
+    coverUrl,
+    ownerAvatarUrl,
+    dashboardPreferences,
     themeMode,
     toggleTheme,
     setThemeMode,

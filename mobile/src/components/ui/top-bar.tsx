@@ -40,7 +40,7 @@ export function TopBar({
 }: TopBarProps) {
   const insets = useSafeAreaInsets();
   const { session } = useSession();
-  const { isDark, toggleTheme, colors: themeColors, primaryColor } = useTheme();
+  const { isDark, toggleTheme, colors: themeColors, primaryColor, companyName: brandingCompanyName, ownerAvatarUrl, logoUrl } = useTheme();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -95,8 +95,8 @@ export function TopBar({
     }
   };
 
-  const companyName = company || session?.company?.name || session?.name || "Reservei";
-  const rawAvatarUrl = session?.company?.logoUrl || session?.avatarUrl;
+  const companyName = company || brandingCompanyName || session?.company?.name || session?.name || "Reservei";
+  const rawAvatarUrl = ownerAvatarUrl || logoUrl || session?.company?.logoUrl || session?.avatarUrl;
   const avatarUris = resolveImageUrlWithFallback(rawAvatarUrl);
 
   const activeAvatarUrl = !avatarFailedPrimary

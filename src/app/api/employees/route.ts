@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { employeeLocations, employeeSchedules, employeeServices, employees, locations, services, users } from "@/db/schema";
+import { companies, employeeLocations, employeeSchedules, employeeServices, employees, locations, services, users } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { hashPassword, normalizeEmail, requireAuth, requireRole, unauthorized } from "@/lib/auth";
 import { centsToNumber } from "@/lib/domain";
@@ -31,21 +31,53 @@ export async function GET() {
     linksByEmployee.set(link.employeeId, list);
   }
 
+  const [ownerUser] = await db
+    .select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl })
+    .from(users)
+    .where(eq(users.id, auth.user.userId))
+    .limit(1);
+
+  const [companyRow] = await db
+    .select({ id: companies.id, logoUrl: companies.logoUrl })
+    .from(companies)
+    .where(eq(companies.id, auth.user.companyId))
+    .limit(1);
+
   const loginUserIds = rows.map((row) => row.userId).filter((id): id is string => id !== null);
   const loginRows = loginUserIds.length
-    ? await db.select({ id: users.id, email: users.email }).from(users).where(inArray(users.id, loginUserIds))
+    ? await db
+        .select({ id: users.id, email: users.email, avatarUrl: users.avatarUrl, bannerUrl: users.bannerUrl })
+        .from(users)
+        .where(inArray(users.id, loginUserIds))
     : [];
-  const emailByUserId = new Map(loginRows.map((u) => [u.id, u.email]));
+  const userMap = new Map(loginRows.map((u) => [u.id, u]));
 
   const dto: EmployeeDTO[] = rows.map((row) => {
     const serviceIds = linksByEmployee.get(row.id) ?? [];
+    const linkedUser = row.userId ? userMap.get(row.userId) : null;
+    const isOwnerMatch =
+      (row.userId && row.userId === auth.user.userId) ||
+      (ownerUser && row.name.trim().toLowerCase() === ownerUser.name.trim().toLowerCase());
+
+    const resolvedPhotoUrl =
+      row.photoUrl ??
+      linkedUser?.avatarUrl ??
+      (isOwnerMatch ? ownerUser?.avatarUrl : null) ??
+      null;
+
+    const resolvedBannerUrl =
+      row.bannerUrl ??
+      linkedUser?.bannerUrl ??
+      (isOwnerMatch ? ownerUser?.bannerUrl : null) ??
+      null;
+
     return {
       id: row.id,
       name: row.name,
       jobTitle: row.jobTitle,
       phone: row.phone,
-      photoUrl: row.photoUrl ?? null,
-      bannerUrl: row.bannerUrl ?? null,
+      photoUrl: resolvedPhotoUrl,
+      bannerUrl: resolvedBannerUrl,
       active: row.active,
       color: avatarColor(row.name),
       initials: initials(row.name),
@@ -54,7 +86,7 @@ export async function GET() {
       services: serviceIds.map((id) => servicesMap.get(id) ?? "Serviço").sort(),
       serviceIds,
       hasLogin: row.userId !== null,
-      loginEmail: row.userId ? emailByUserId.get(row.userId) ?? null : null,
+      loginEmail: row.userId ? linkedUser?.email ?? null : null,
     };
   });
 
