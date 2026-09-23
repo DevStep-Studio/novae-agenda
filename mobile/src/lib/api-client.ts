@@ -249,47 +249,19 @@ export async function hasStoredSession(): Promise<boolean> {
   return Boolean(cookie && cookie.includes("agenda_session="));
 }
 
+import {
+  resolveMediaUrl as baseResolveMediaUrl,
+  resolveImageUrlWithFallback as baseResolveImageUrlWithFallback,
+} from "./media-utils";
+
 export function resolveImageUrl(url?: string | null): string | null {
-  if (!url || typeof url !== "string") return null;
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  if (
-    trimmed.startsWith("data:") ||
-    trimmed.startsWith("file://") ||
-    trimmed.startsWith("http://") ||
-    trimmed.startsWith("https://")
-  ) {
-    return trimmed;
-  }
-
-  const baseUrl = resolveApiBaseUrl();
-  const normalizedPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `${baseUrl}${normalizedPath}`;
+  return baseResolveMediaUrl(url, resolveApiBaseUrl());
 }
 
+export const resolveMediaUrl = resolveImageUrl;
+
 export function resolveImageUrlWithFallback(url?: string | null): { primary: string | null; fallback: string | null } {
-  if (!url || typeof url !== "string") return { primary: null, fallback: null };
-  const trimmed = url.trim();
-  if (!trimmed) return { primary: null, fallback: null };
-
-  if (trimmed.startsWith("data:") || trimmed.startsWith("file://")) {
-    return { primary: trimmed, fallback: null };
-  }
-
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return { primary: trimmed, fallback: null };
-  }
-
-  const baseUrl = resolveApiBaseUrl();
-  const normalizedPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  const primary = `${baseUrl}${normalizedPath}`;
-  const fallback = `https://usereservei.com.br${normalizedPath}`;
-
-  return {
-    primary,
-    fallback: primary === fallback ? null : fallback,
-  };
+  return baseResolveImageUrlWithFallback(url, resolveApiBaseUrl());
 }
 
 export { formatPhoneForWhatsApp } from "./formatters";

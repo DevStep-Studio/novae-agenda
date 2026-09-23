@@ -83,7 +83,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
 
-  const companyName = session?.company?.name || "Moa Tattoo";
+  const companyName = session?.company?.name || "Minha Empresa";
   const initials = companyName
     .split(" ")
     .filter(Boolean)
@@ -98,8 +98,17 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("");
-  const userAvatarUrl = resolveImageUrl(session?.avatarUrl);
+  const companyLogoUrl = resolveImageUrl(session?.company?.logoUrl || session?.avatarUrl);
+  const userAvatarUrl = resolveImageUrl(session?.avatarUrl || session?.company?.logoUrl);
   const publicSlug = session?.company?.publicSlug || session?.company?.slug;
+
+  useEffect(() => {
+    setLogoLoadError(false);
+  }, [companyLogoUrl]);
+
+  useEffect(() => {
+    setAvatarLoadError(false);
+  }, [userAvatarUrl]);
 
   // Mirrors app-shell.tsx's pendingAppointmentsCount (appointments not
   // completed/cancelled/no_show, across the whole company history — same
@@ -340,7 +349,7 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0, paddingRight: 8 }}>
-                {/* Logo Box / Initials MT */}
+                {/* Logo Box / Initials */}
                 <View
                   style={{
                     width: 34,
@@ -354,16 +363,25 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
                     justifyContent: "center",
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "#ffffff",
-                      fontSize: 12.5,
-                      fontWeight: "800",
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    {initials}
-                  </Text>
+                  {companyLogoUrl && !logoLoadError ? (
+                    <Image
+                      source={{ uri: companyLogoUrl }}
+                      style={{ width: 34, height: 34, borderRadius: 7 }}
+                      contentFit="cover"
+                      onError={() => setLogoLoadError(true)}
+                    />
+                  ) : (
+                    <Text
+                      style={{
+                        color: "#ffffff",
+                        fontSize: 12.5,
+                        fontWeight: "800",
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {initials}
+                    </Text>
+                  )}
                 </View>
 
                 {/* Info Text */}

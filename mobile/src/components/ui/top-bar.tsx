@@ -105,7 +105,7 @@ export function TopBar({
     ? avatarUris.fallback
     : null;
 
-  const initials = (session?.name || companyName || "MO")
+  const initials = (session?.name || companyName || "RE")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)

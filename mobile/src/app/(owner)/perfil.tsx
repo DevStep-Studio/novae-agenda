@@ -220,9 +220,6 @@ export default function PerfilPersonalizacaoScreen() {
     });
   }, []);
 
-  const defaultBanner =
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
-
   const bannerUris = useMemo(() => resolveImageUrlWithFallback(bannerUrl), [bannerUrl]);
   const avatarUris = useMemo(() => resolveImageUrlWithFallback(avatarUrl), [avatarUrl]);
 
@@ -242,10 +239,10 @@ export default function PerfilPersonalizacaoScreen() {
   }, [avatarUrl]);
 
   const activeBannerUri = !bannerFailedPrimary
-    ? (bannerUris.primary || defaultBanner)
+    ? (bannerUris.primary || null)
     : !bannerFailedFallback
-    ? (bannerUris.fallback || defaultBanner)
-    : defaultBanner;
+    ? (bannerUris.fallback || null)
+    : null;
 
   const activeAvatarUri = !avatarFailedPrimary
     ? avatarUris.primary
@@ -452,12 +449,14 @@ export default function PerfilPersonalizacaoScreen() {
         >
           {/* Cover background */}
           <View style={{ height: 160, position: "relative", backgroundColor: "#181920" }}>
-            <Image
-              source={{ uri: activeBannerUri }}
-              style={{ width: "100%", height: "100%" }}
-              contentFit="cover"
-              onError={handleBannerError}
-            />
+            {activeBannerUri ? (
+              <Image
+                source={{ uri: activeBannerUri }}
+                style={{ width: "100%", height: "100%" }}
+                contentFit="cover"
+                onError={handleBannerError}
+              />
+            ) : null}
             {/* Linear Gradient Fade Overlay */}
             <View
               style={{
@@ -466,7 +465,7 @@ export default function PerfilPersonalizacaoScreen() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: "rgba(10, 11, 14, 0.55)",
+                backgroundColor: activeBannerUri ? "rgba(10, 11, 14, 0.55)" : "transparent",
               }}
             />
           </View>

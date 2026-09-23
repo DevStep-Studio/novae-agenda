@@ -212,11 +212,9 @@ export default function OwnerHomeScreen() {
       error.toLowerCase().includes("autenticação"));
 
   const firstName = session?.name ? session.name.split(" ")[0] : "você";
-  const defaultBanner =
-    "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
-  const rawBannerUrl = session?.company?.bannerUrl || session?.bannerUrl || defaultBanner;
-  const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl;
-  const bannerUrl = resolveImageUrl(rawBannerUrl) || defaultBanner;
+  const rawBannerUrl = session?.company?.bannerUrl || session?.bannerUrl || null;
+  const rawLogoUrl = session?.company?.logoUrl || session?.avatarUrl || null;
+  const bannerUrl = resolveImageUrl(rawBannerUrl);
   const logoUrl = resolveImageUrl(rawLogoUrl);
   const [bannerLoadError, setBannerLoadError] = useState(false);
   const [logoLoadError, setLogoLoadError] = useState(false);
@@ -282,16 +280,16 @@ export default function OwnerHomeScreen() {
             ]}
           >
             {/* Background Cover Image with Clean Subtle Opacity (No harsh gradient) */}
-            {bannerUrl ? (
+            {bannerUrl && !bannerLoadError ? (
               <Image
-                source={{ uri: bannerLoadError ? defaultBanner : bannerUrl }}
+                source={{ uri: bannerUrl }}
                 style={{
                   position: "absolute",
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  opacity: 0.08,
+                  opacity: 0.12,
                 }}
                 contentFit="cover"
                 onError={() => setBannerLoadError(true)}

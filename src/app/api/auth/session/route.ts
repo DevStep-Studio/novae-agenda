@@ -158,8 +158,8 @@ export async function GET() {
           currency: company.currency,
           primaryColor: company.primaryColor,
           secondaryColor: company.secondaryColor,
-          logoUrl: company.logoUrl ?? null,
-          bannerUrl: bannerUrl ?? null,
+          logoUrl: company.logoUrl ?? row?.avatarUrl ?? null,
+          bannerUrl: bannerUrl ?? row?.bannerUrl ?? null,
           publicSlug: company.publicSlug ?? null,
           slug: company.publicSlug ?? null,
           dashboardPreferences: dashboardPreferences ?? {
