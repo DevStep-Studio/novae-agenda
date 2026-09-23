@@ -160,6 +160,8 @@ export async function GET() {
           secondaryColor: company.secondaryColor,
           logoUrl: company.logoUrl ?? null,
           bannerUrl: bannerUrl ?? null,
+          publicSlug: company.publicSlug ?? null,
+          slug: company.publicSlug ?? null,
           dashboardPreferences: dashboardPreferences ?? {
             showBanner: true,
             showChecklist: true,

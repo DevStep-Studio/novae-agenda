@@ -44,6 +44,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         void registerForPushNotifications();
         return data;
       }
+      setSessionData(null);
       return null;
     } catch {
       return null;

@@ -132,9 +132,9 @@ export default function PerfilPersonalizacaoScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Profile Form States
-  const [name, setName] = useState(session?.name || "PL");
+  const [name, setName] = useState(session?.name || "Proprietário");
   const [phone, setPhone] = useState(session?.phone || session?.company?.phone || "");
-  const [companyName, setCompanyName] = useState(session?.company?.name || "Barbearia Pelly");
+  const [companyName, setCompanyName] = useState(session?.company?.name || "Minha Empresa");
   const [businessType, setBusinessType] = useState(session?.company?.businessType || "");
   const [primaryColor, setPrimaryColor] = useState(
     session?.company?.primaryColor || themePrimaryColor || "#3b82f6"
@@ -161,9 +161,9 @@ export default function PerfilPersonalizacaoScreen() {
   // Sync state if session updates
   useEffect(() => {
     if (session) {
-      setName(session.name || "PL");
+      setName(session.name || "Proprietário");
       setPhone(session.phone || session.company?.phone || "");
-      setCompanyName(session.company?.name || "Barbearia Pelly");
+      setCompanyName(session.company?.name || "Minha Empresa");
       setBusinessType(session.company?.businessType || "");
       if (session.company?.primaryColor) {
         setPrimaryColor(session.company.primaryColor);

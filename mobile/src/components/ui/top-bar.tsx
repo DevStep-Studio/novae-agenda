@@ -95,7 +95,7 @@ export function TopBar({
     }
   };
 
-  const companyName = company || session?.company?.name || "Moa Tattoo";
+  const companyName = company || session?.company?.name || session?.name || "Reservei";
   const rawAvatarUrl = session?.company?.logoUrl || session?.avatarUrl;
   const avatarUris = resolveImageUrlWithFallback(rawAvatarUrl);
 

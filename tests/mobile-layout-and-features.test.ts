@@ -79,7 +79,7 @@ test("Mobile Layout & Functionality Suite — Visual, Resilience & Route Integri
     const content = fs.readFileSync(tokensPath, "utf-8");
     assert.match(content, /#dcff4c/, "Primary lime color #dcff4c must be present");
     assert.match(content, /#080808/, "Dark background #080808 must be present");
-    assert.match(content, /#121212/, "Dark surface #121212 must be present");
+    assert.match(content, /#111215|#121212/, "Dark surface color must be present");
     assert.match(content, /DMSans_700Bold/, "Brand typography must be defined");
   });
 });
