@@ -5,6 +5,7 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Coffee,
   Copy,
@@ -34,6 +35,7 @@ import {
   Upload,
   User,
   X,
+  Zap,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
@@ -102,6 +104,16 @@ const DAYS_NAMES = [
   "Quarta-feira",
   "Quinta-feira",
   "Sexta-feira",
+  "Sábado",
+];
+
+const WEEKDAYS = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
   "Sábado",
 ];
 
@@ -278,6 +290,16 @@ export default function LinkAgendamentoScreen() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [schedules, setSchedules] = useState<ScheduleDay[]>([]);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
+  const [employeeModalVisible, setEmployeeModalVisible] = useState(false);
+  const [dayModalState, setDayModalState] = useState<{ visible: boolean; scheduleIndex: number }>({
+    visible: false,
+    scheduleIndex: 0,
+  });
+
+  const selectedEmployee = useMemo(
+    () => employees.find((e) => e.id === selectedEmployeeId),
+    [employees, selectedEmployeeId]
+  );
 
   // 5. Extras (Products & Coupons) States
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -666,53 +688,124 @@ export default function LinkAgendamentoScreen() {
     }
   };
 
-  // Quick Schedules helpers
-  const handleApplyShiftPreset = (startTime: string, endTime: string) => {
+  // Quick Schedules helpers & handlers
+  const isLunchActive = (start?: string | null, end?: string | null) => {
+    return Boolean(start && end && start.trim() !== "" && end.trim() !== "");
+  };
+
+  const handleStartTimeChange = (index: number, time: string) => {
     setSchedules((prev) =>
-      prev.map((s) => (s.active ? { ...s, startTime, endTime } : s))
+      prev.map((s, i) => (i === index ? { ...s, startTime: time } : s))
     );
   };
 
-  const handleCopyDayScheduleToAll = (sourceIndex: number) => {
-    const source = schedules[sourceIndex];
-    if (!source) return;
+  const handleEndTimeChange = (index: number, time: string) => {
     setSchedules((prev) =>
-      prev.map((s) => ({
-        ...s,
-        active: source.active,
-        startTime: source.startTime,
-        endTime: source.endTime,
-        breakStart: source.breakStart,
-        breakEnd: source.breakEnd,
-      }))
-    );
-    Alert.alert(
-      "Horários Replicados",
-      `Os horários de ${DAYS_NAMES[source.dayOfWeek]} foram copiados para toda a semana!`
+      prev.map((s, i) => (i === index ? { ...s, endTime: time } : s))
     );
   };
 
-  const handleReplicateToAllEmployees = async () => {
-    if (!selectedEmployeeId || employees.length <= 1) {
-      Alert.alert("Informação", "Não há outros colaboradores cadastrados na equipe.");
+  const handleLunchStartChange = (index: number, time: string) => {
+    setSchedules((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, breakStart: time } : s))
+    );
+  };
+
+  const handleLunchEndChange = (index: number, time: string) => {
+    setSchedules((prev) =>
+      prev.map((s, i) => (i === index ? { ...s, breakEnd: time } : s))
+    );
+  };
+
+  const handleToggleLunch = (index: number, enable: boolean) => {
+    setSchedules((prev) =>
+      prev.map((s, i) =>
+        i === index
+          ? {
+              ...s,
+              breakStart: enable ? (s.breakStart || "12:00") : null,
+              breakEnd: enable ? (s.breakEnd || "13:00") : null,
+            }
+          : s
+      )
+    );
+  };
+
+  const handleAddPeriod = () => {
+    if (!selectedEmployeeId) {
+      Alert.alert("Atenção", "Selecione um profissional primeiro.");
       return;
     }
-    setBusy(true);
-    try {
-      const otherEmployees = employees.filter((e) => e.id !== selectedEmployeeId);
-      await Promise.all(
-        otherEmployees.map((e) =>
-          api(`/api/employees/${e.id}/schedules`, {
-            method: "PUT",
-            body: JSON.stringify({ schedules }),
-          })
+    setSchedules((prev) => [
+      ...prev,
+      {
+        employeeId: selectedEmployeeId,
+        dayOfWeek: 1,
+        startTime: "09:00",
+        endTime: "18:00",
+        breakStart: "12:00",
+        breakEnd: "13:00",
+        active: true,
+      },
+    ]);
+  };
+
+  const handleRemovePeriod = (index: number) => {
+    setSchedules((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePresetMonFri = () => {
+    if (!selectedEmployeeId) return;
+    const days: ScheduleDay[] = [1, 2, 3, 4, 5].map((d) => ({
+      employeeId: selectedEmployeeId,
+      dayOfWeek: d,
+      startTime: "08:00",
+      endTime: "18:00",
+      breakStart: "12:00",
+      breakEnd: "13:00",
+      active: true,
+    }));
+    setSchedules(days);
+  };
+
+  const handlePresetMonSat = () => {
+    if (!selectedEmployeeId) return;
+    const days: ScheduleDay[] = [1, 2, 3, 4, 5, 6].map((d) => ({
+      employeeId: selectedEmployeeId,
+      dayOfWeek: d,
+      startTime: "08:00",
+      endTime: d === 6 ? "14:00" : "18:00",
+      breakStart: d <= 5 ? "12:00" : null,
+      breakEnd: d <= 5 ? "13:00" : null,
+      active: true,
+    }));
+    setSchedules(days);
+  };
+
+  const handlePresetThursday = () => {
+    if (!selectedEmployeeId) return;
+    const existing = schedules.find((s) => s.dayOfWeek === 4);
+    if (existing) {
+      setSchedules(
+        schedules.map((s) =>
+          s.dayOfWeek === 4
+            ? { ...s, active: true, startTime: "08:00", endTime: "12:00", breakStart: null, breakEnd: null }
+            : s
         )
       );
-      Alert.alert("Sucesso", `Grade de horários replicada para todos os ${employees.length} profissionais!`);
-    } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Não foi possível replicar para todos os colaboradores.");
-    } finally {
-      setBusy(false);
+    } else {
+      setSchedules([
+        ...schedules,
+        {
+          employeeId: selectedEmployeeId,
+          dayOfWeek: 4,
+          startTime: "08:00",
+          endTime: "12:00",
+          breakStart: null,
+          breakEnd: null,
+          active: true,
+        },
+      ]);
     }
   };
 
@@ -2427,371 +2520,444 @@ export default function LinkAgendamentoScreen() {
               className="p-4 rounded-2xl border gap-4"
               style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
             >
-              <View className="gap-1 border-b pb-3" style={{ borderBottomColor: "rgba(255, 255, 255, 0.07)" }}>
+              {/* Header */}
+              <View className="gap-1 border-b pb-3.5" style={{ borderBottomColor: "rgba(255, 255, 255, 0.07)" }}>
                 <View className="flex-row items-center gap-2">
-                  <Clock size={16} color={primaryColor || "#ccff00"} />
-                  <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800" }}>
-                    Horários de Atendimento da Equipe
+                  <Clock size={18} color="#ffffff" />
+                  <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>
+                    Jornada e Horários da Equipe
                   </Text>
                 </View>
-                <Text style={{ color: "#71717a", fontSize: 12.5 }}>
-                  Toque nos horários para ajustar facilmente o turno e o intervalo de almoço de cada dia.
+                <Text style={{ color: "#8a8f98", fontSize: 13, lineHeight: 18 }}>
+                  Configure os períodos de atendimento de cada profissional para o motor de disponibilidade.
                 </Text>
               </View>
 
-              {/* Professional selector */}
+              {/* Selecione o profissional */}
               <View className="gap-2">
-                <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "700" }}>
-                  SELECIONE O PROFISSIONAL:
+                <Text style={{ color: "#8a8f98", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 }}>
+                  SELECIONE O PROFISSIONAL
                 </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                  {employees.map((emp) => {
-                    const isSelected = emp.id === selectedEmployeeId;
-                    return (
-                      <Pressable
-                        key={emp.id}
-                        onPress={() => setSelectedEmployeeId(emp.id)}
-                        className="flex-row items-center gap-2 py-2 px-3 rounded-xl border"
-                        style={{
-                          backgroundColor: isSelected
-                            ? isDark
-                              ? "rgba(204, 255, 0, 0.12)"
-                              : "rgba(204, 255, 0, 0.2)"
-                            : "#181920",
-                          borderColor: isSelected
-                            ? primaryColor || "#ccff00"
-                            : "rgba(255, 255, 255, 0.08)",
-                          borderWidth: isSelected ? 1.5 : 1,
-                        }}
-                      >
-                        <Avatar name={emp.name} photoUrl={emp.photoUrl} size="sm" />
-                        <Text
-                          style={{
-                            color: isSelected ? (primaryColor || "#ccff00") : "#a1a1aa",
-                            fontSize: 13,
-                            fontWeight: isSelected ? "700" : "500",
-                          }}
+
+                <Pressable
+                  onPress={() => setEmployeeModalVisible(true)}
+                  className="flex-row items-center justify-between px-3.5 rounded-xl border"
+                  style={{
+                    backgroundColor: "#16171d",
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    height: 44,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: selectedEmployee ? "#ffffff" : "#71717a",
+                      fontSize: 14,
+                      fontWeight: selectedEmployee ? "600" : "400",
+                    }}
+                  >
+                    {selectedEmployee ? selectedEmployee.name : "Selecione um profissional da equipe"}
+                  </Text>
+                  <ChevronDown size={18} color="#71717a" />
+                </Pressable>
+              </View>
+
+              {selectedEmployeeId ? (
+                <View className="gap-4">
+                  {/* Modelos Rápidos Container */}
+                  <View
+                    className="p-3 rounded-2xl border gap-2.5"
+                    style={{
+                      backgroundColor: "#16171d",
+                      borderColor: "rgba(255, 255, 255, 0.08)",
+                    }}
+                  >
+                    <View className="flex-row items-center gap-1.5">
+                      <Sparkles size={13} color="#ffffff" />
+                      <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "800", letterSpacing: 0.5 }}>
+                        MODELOS RÁPIDOS:
+                      </Text>
+                    </View>
+
+                    <View className="gap-2">
+                      <View className="flex-row gap-2">
+                        <Pressable
+                          onPress={handlePresetMonFri}
+                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
+                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
                         >
-                          {emp.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-
-              {/* Turno Presets Bar */}
-              <View className="gap-1.5 pt-1">
-                <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "700" }}>
-                  ATALHOS DE TURNO (APLICAR AOS DIAS ATIVOS):
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                  <Pressable
-                    onPress={() => handleApplyShiftPreset("08:00", "18:00")}
-                    className="py-1.5 px-3 rounded-lg border flex-row items-center gap-1.5"
-                    style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                  >
-                    <Clock size={12} color="#a1a1aa" />
-                    <Text style={{ color: "#d4d4d8", fontSize: 11.5, fontWeight: "600" }}>
-                      08:00 - 18:00
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => handleApplyShiftPreset("09:00", "19:00")}
-                    className="py-1.5 px-3 rounded-lg border flex-row items-center gap-1.5"
-                    style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                  >
-                    <Clock size={12} color="#a1a1aa" />
-                    <Text style={{ color: "#d4d4d8", fontSize: 11.5, fontWeight: "600" }}>
-                      09:00 - 19:00
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={() => handleApplyShiftPreset("10:00", "20:00")}
-                    className="py-1.5 px-3 rounded-lg border flex-row items-center gap-1.5"
-                    style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                  >
-                    <Clock size={12} color="#a1a1aa" />
-                    <Text style={{ color: "#d4d4d8", fontSize: 11.5, fontWeight: "600" }}>
-                      10:00 - 20:00
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={handleApplyNoLunchAll}
-                    className="py-1.5 px-3 rounded-lg border flex-row items-center gap-1.5"
-                    style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                  >
-                    <Coffee size={12} color="#a1a1aa" />
-                    <Text style={{ color: "#d4d4d8", fontSize: 11.5, fontWeight: "600" }}>
-                      Sem almoço
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={handleApplyStandardLunchAll}
-                    className="py-1.5 px-3 rounded-lg border flex-row items-center gap-1.5"
-                    style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
-                  >
-                    <Coffee size={12} color="#fbbf24" />
-                    <Text style={{ color: "#fbbf24", fontSize: 11.5, fontWeight: "600" }}>
-                      Almoço 12h-13h
-                    </Text>
-                  </Pressable>
-                </ScrollView>
-              </View>
-
-              {/* Schedules Days List */}
-              {loadingSchedule ? (
-                <View className="py-12 items-center justify-center">
-                  <ActivityIndicator color={primaryColor} />
-                </View>
-              ) : (
-                <View className="gap-3">
-                  {schedules.map((sch, idx) => (
-                    <View
-                      key={sch.dayOfWeek}
-                      className="p-3.5 rounded-2xl border gap-3"
-                      style={{
-                        backgroundColor: sch.active ? "#181920" : "#131418",
-                        borderColor: sch.active ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.05)",
-                        opacity: sch.active ? 1 : 0.65,
-                      }}
-                    >
-                      {/* Card Day Header */}
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center gap-2">
-                          <View
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 4,
-                              backgroundColor: sch.active ? (primaryColor || "#ccff00") : "#52525b",
-                            }}
-                          />
-                          <Text style={{ color: sch.active ? "#ffffff" : "#71717a", fontSize: 14.5, fontWeight: "700" }}>
-                            {DAYS_NAMES[sch.dayOfWeek]}
+                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
+                            Seg a Sex (08:00 às 18:00)
                           </Text>
-                        </View>
-                        <Switch
-                          value={sch.active}
-                          onValueChange={(val) =>
-                            setSchedules((prev) =>
-                              prev.map((s, i) => (i === idx ? { ...s, active: val } : s))
-                            )
-                          }
-                          trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                          thumbColor="#ffffff"
-                        />
+                        </Pressable>
+
+                        <Pressable
+                          onPress={handlePresetMonSat}
+                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
+                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
+                        >
+                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
+                            Seg a Sáb (08:00 às 18:00)
+                          </Text>
+                        </Pressable>
                       </View>
 
-                      {sch.active && (
-                        <View className="gap-3 pt-2.5 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>
-                          {/* Turno de Trabalho Interativo */}
-                          <View className="gap-1.5">
-                            <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "700" }}>
-                              TURNO DE ATENDIMENTO
+                      <View className="flex-row gap-2">
+                        <Pressable
+                          onPress={handlePresetThursday}
+                          className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border"
+                          style={{ backgroundColor: "#272832", borderColor: "rgba(255, 255, 255, 0.15)", minHeight: 38 }}
+                        >
+                          <Zap size={13} color="#ffffff" />
+                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
+                            Quinta só até 12:00
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          onPress={handleApplyNoLunchAll}
+                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
+                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
+                        >
+                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
+                            Sem almoço (todos)
+                          </Text>
+                        </Pressable>
+                      </View>
+
+                      <View className="flex-row gap-2">
+                        <Pressable
+                          onPress={handleApplyStandardLunchAll}
+                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
+                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
+                        >
+                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
+                            Almoço 12h-13h (todos)
+                          </Text>
+                        </Pressable>
+                        <View className="flex-1" />
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Schedules Cards List */}
+                  {loadingSchedule ? (
+                    <View className="py-12 items-center justify-center">
+                      <ActivityIndicator color={primaryColor || "#ffffff"} />
+                    </View>
+                  ) : (
+                    <View className="gap-3">
+                      {schedules.map((sch, idx) => (
+                        <View
+                          key={`${sch.dayOfWeek}-${idx}`}
+                          className="p-3.5 rounded-2xl border gap-3"
+                          style={{
+                            backgroundColor: "#16171d",
+                            borderColor: "rgba(255, 255, 255, 0.09)",
+                          }}
+                        >
+                          {/* Card Header: Checkbox + Trash */}
+                          <View className="flex-row items-center justify-between">
+                            <Pressable
+                              onPress={() =>
+                                setSchedules((prev) =>
+                                  prev.map((s, i) => (i === idx ? { ...s, active: !s.active } : s))
+                                )
+                              }
+                              className="flex-row items-center gap-2.5"
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                              <View
+                                style={{
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: 4,
+                                  borderWidth: 1.5,
+                                  borderColor: sch.active ? "#ffffff" : "rgba(255, 255, 255, 0.4)",
+                                  backgroundColor: sch.active ? "#ffffff" : "transparent",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                {sch.active && <Check size={12} color="#000000" strokeWidth={3} />}
+                              </View>
+                              <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>
+                                {sch.active ? "Atendimento ativo" : "Dia inativo / Folga"}
+                              </Text>
+                            </Pressable>
+
+                            <Pressable
+                              onPress={() => handleRemovePeriod(idx)}
+                              className="w-8 h-8 rounded-lg items-center justify-center border"
+                              style={{
+                                backgroundColor: "rgba(239, 68, 68, 0.06)",
+                                borderColor: "rgba(239, 68, 68, 0.2)",
+                              }}
+                            >
+                              <Trash2 size={15} color="#ef4444" />
+                            </Pressable>
+                          </View>
+
+                          {/* Dia da semana */}
+                          <View className="gap-1">
+                            <Text style={{ color: "#8a8f98", fontSize: 11, fontWeight: "700", letterSpacing: 0.5 }}>
+                              DIA DA SEMANA
                             </Text>
-                            <View className="flex-row items-center gap-2">
-                              {/* Entrada */}
+                            <Pressable
+                              onPress={() => setDayModalState({ visible: true, scheduleIndex: idx })}
+                              className="flex-row items-center justify-between px-3 rounded-xl border"
+                              style={{
+                                backgroundColor: "#111216",
+                                borderColor: "rgba(255, 255, 255, 0.08)",
+                                height: 42,
+                              }}
+                            >
+                              <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                                {WEEKDAYS[sch.dayOfWeek] || "Segunda"}
+                              </Text>
+                              <ChevronDown size={16} color="#71717a" />
+                            </Pressable>
+                          </View>
+
+                          {/* Entrada & Saída Grid */}
+                          <View className="flex-row gap-2.5">
+                            <View className="flex-1 gap-1">
+                              <Text style={{ color: "#8a8f98", fontSize: 10.5, fontWeight: "700", letterSpacing: 0.5 }}>
+                                ENTRADA
+                              </Text>
                               <Pressable
                                 onPress={() =>
                                   openTimePicker({
-                                    title: `Início • ${DAYS_NAMES[sch.dayOfWeek]}`,
-                                    subtitle: "Selecione o horário de entrada do profissional.",
+                                    title: `Entrada • ${WEEKDAYS[sch.dayOfWeek] || ""}`,
+                                    subtitle: "Selecione o horário de início do atendimento.",
                                     value: sch.startTime,
-                                    onSelect: (time) =>
-                                      setSchedules((prev) =>
-                                        prev.map((s, i) => (i === idx ? { ...s, startTime: time } : s))
-                                      ),
+                                    onSelect: (time) => handleStartTimeChange(idx, time),
                                   })
                                 }
-                                className="flex-1 flex-row items-center justify-between py-2 px-3 rounded-xl border"
-                                style={{ backgroundColor: "#202129", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                                className="flex-row items-center justify-between px-3 rounded-xl border"
+                                style={{
+                                  backgroundColor: "#111216",
+                                  borderColor: "rgba(255, 255, 255, 0.08)",
+                                  height: 44,
+                                }}
                               >
-                                <View className="gap-0.5">
-                                  <Text style={{ color: "#71717a", fontSize: 9.5, fontWeight: "700" }}>ENTRADA</Text>
-                                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
-                                    {sch.startTime || "09:00"}
-                                  </Text>
-                                </View>
-                                <Clock size={15} color={primaryColor || "#ccff00"} />
+                                <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "600" }}>
+                                  {sch.startTime || "08:00"}
+                                </Text>
+                                <Clock size={15} color="#71717a" />
                               </Pressable>
+                            </View>
 
-                              <Text style={{ color: "#71717a", fontSize: 12, fontWeight: "600" }}>até</Text>
-
-                              {/* Saída */}
+                            <View className="flex-1 gap-1">
+                              <Text style={{ color: "#8a8f98", fontSize: 10.5, fontWeight: "700", letterSpacing: 0.5 }}>
+                                SAÍDA
+                              </Text>
                               <Pressable
                                 onPress={() =>
                                   openTimePicker({
-                                    title: `Término • ${DAYS_NAMES[sch.dayOfWeek]}`,
-                                    subtitle: "Selecione o horário de saída do profissional.",
+                                    title: `Saída • ${WEEKDAYS[sch.dayOfWeek] || ""}`,
+                                    subtitle: "Selecione o horário de término do atendimento.",
                                     value: sch.endTime,
-                                    onSelect: (time) =>
-                                      setSchedules((prev) =>
-                                        prev.map((s, i) => (i === idx ? { ...s, endTime: time } : s))
-                                      ),
+                                    onSelect: (time) => handleEndTimeChange(idx, time),
                                   })
                                 }
-                                className="flex-1 flex-row items-center justify-between py-2 px-3 rounded-xl border"
-                                style={{ backgroundColor: "#202129", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                                className="flex-row items-center justify-between px-3 rounded-xl border"
+                                style={{
+                                  backgroundColor: "#111216",
+                                  borderColor: "rgba(255, 255, 255, 0.08)",
+                                  height: 44,
+                                }}
                               >
-                                <View className="gap-0.5">
-                                  <Text style={{ color: "#71717a", fontSize: 9.5, fontWeight: "700" }}>SAÍDA</Text>
-                                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
-                                    {sch.endTime || "19:00"}
-                                  </Text>
-                                </View>
-                                <Clock size={15} color="#f97316" />
+                                <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "600" }}>
+                                  {sch.endTime || "18:00"}
+                                </Text>
+                                <Clock size={15} color="#71717a" />
                               </Pressable>
                             </View>
                           </View>
 
-                          {/* Intervalo de Almoço */}
-                          <View className="gap-2 pt-1">
+                          {/* Nested Lunch Section */}
+                          <View
+                            className="p-3 rounded-xl border gap-2.5"
+                            style={{
+                              backgroundColor: "#111216",
+                              borderColor: "rgba(255, 255, 255, 0.07)",
+                            }}
+                          >
                             <View className="flex-row items-center justify-between">
-                              <View className="flex-row items-center gap-1.5">
-                                <Coffee size={13} color="#a1a1aa" />
-                                <Text style={{ color: "#a1a1aa", fontSize: 11.5, fontWeight: "600" }}>
-                                  Intervalo de Almoço
+                              <View className="flex-row items-center gap-2">
+                                <Coffee size={14} color="#ffffff" />
+                                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                                  Intervalo de almoço
                                 </Text>
                               </View>
 
                               <Pressable
-                                onPress={() =>
-                                  setSchedules((prev) =>
-                                    prev.map((s, i) =>
-                                      i === idx
-                                        ? {
-                                            ...s,
-                                            breakStart: s.breakStart ? null : "12:00",
-                                            breakEnd: s.breakEnd ? null : "13:00",
-                                          }
-                                        : s
-                                    )
-                                  )
-                                }
-                                className="px-2.5 py-1 rounded-lg border flex-row items-center gap-1"
-                                style={{
-                                  backgroundColor: sch.breakStart ? "rgba(245, 158, 11, 0.15)" : "#22232b",
-                                  borderColor: sch.breakStart ? "rgba(245, 158, 11, 0.4)" : "rgba(255, 255, 255, 0.1)",
-                                }}
+                                onPress={() => handleToggleLunch(idx, !isLunchActive(sch.breakStart, sch.breakEnd))}
+                                className="flex-row items-center gap-2"
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                               >
-                                <Text style={{ color: sch.breakStart ? "#fbbf24" : "#71717a", fontSize: 11, fontWeight: "600" }}>
-                                  {sch.breakStart ? "Com almoço" : "Sem almoço"}
+                                <View
+                                  style={{
+                                    width: 17,
+                                    height: 17,
+                                    borderRadius: 4,
+                                    borderWidth: 1.5,
+                                    borderColor: isLunchActive(sch.breakStart, sch.breakEnd)
+                                      ? "#ffffff"
+                                      : "rgba(255, 255, 255, 0.4)",
+                                    backgroundColor: isLunchActive(sch.breakStart, sch.breakEnd)
+                                      ? "#ffffff"
+                                      : "transparent",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  {isLunchActive(sch.breakStart, sch.breakEnd) && (
+                                    <Check size={11} color="#000000" strokeWidth={3} />
+                                  )}
+                                </View>
+                                <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>
+                                  {isLunchActive(sch.breakStart, sch.breakEnd) ? "Com almoço" : "Sem almoço"}
                                 </Text>
                               </Pressable>
                             </View>
 
-                            {sch.breakStart && (
-                              <View className="flex-row items-center gap-2">
-                                {/* Início do Almoço */}
-                                <Pressable
-                                  onPress={() =>
-                                    openTimePicker({
-                                      title: `Início do Almoço • ${DAYS_NAMES[sch.dayOfWeek]}`,
-                                      subtitle: "Selecione o início da pausa.",
-                                      value: sch.breakStart,
-                                      allowClear: true,
-                                      onSelect: (time) =>
-                                        setSchedules((prev) =>
-                                          prev.map((s, i) => (i === idx ? { ...s, breakStart: time } : s))
-                                        ),
-                                      onClear: () =>
-                                        setSchedules((prev) =>
-                                          prev.map((s, i) => (i === idx ? { ...s, breakStart: null, breakEnd: null } : s))
-                                        ),
-                                    })
-                                  }
-                                  className="flex-1 flex-row items-center justify-between py-1.5 px-3 rounded-xl border"
-                                  style={{ backgroundColor: "#202129", borderColor: "rgba(255, 255, 255, 0.08)" }}
-                                >
-                                  <View className="gap-0.5">
-                                    <Text style={{ color: "#71717a", fontSize: 9, fontWeight: "700" }}>INÍCIO</Text>
-                                    <Text style={{ color: "#fbbf24", fontSize: 13, fontWeight: "700" }}>
-                                      {sch.breakStart || "12:00"}
+                            {isLunchActive(sch.breakStart, sch.breakEnd) ? (
+                              <View className="gap-2.5">
+                                <View className="flex-row gap-2.5">
+                                  <View className="flex-1 gap-1">
+                                    <Text style={{ color: "#8a8f98", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>
+                                      ALMOÇO INÍCIO
                                     </Text>
+                                    <Pressable
+                                      onPress={() =>
+                                        openTimePicker({
+                                          title: `Início do Almoço • ${WEEKDAYS[sch.dayOfWeek] || ""}`,
+                                          subtitle: "Selecione o início da pausa.",
+                                          value: sch.breakStart,
+                                          allowClear: true,
+                                          onSelect: (time) => handleLunchStartChange(idx, time),
+                                          onClear: () => handleToggleLunch(idx, false),
+                                        })
+                                      }
+                                      className="flex-row items-center justify-between px-3 rounded-xl border"
+                                      style={{
+                                        backgroundColor: "#16171d",
+                                        borderColor: "rgba(255, 255, 255, 0.08)",
+                                        height: 42,
+                                      }}
+                                    >
+                                      <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                                        {sch.breakStart || "12:00"}
+                                      </Text>
+                                      <Clock size={14} color="#71717a" />
+                                    </Pressable>
                                   </View>
-                                  <Coffee size={13} color="#fbbf24" />
+
+                                  <View className="flex-1 gap-1">
+                                    <Text style={{ color: "#8a8f98", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>
+                                      ALMOÇO FIM
+                                    </Text>
+                                    <Pressable
+                                      onPress={() =>
+                                        openTimePicker({
+                                          title: `Fim do Almoço • ${WEEKDAYS[sch.dayOfWeek] || ""}`,
+                                          subtitle: "Selecione o término da pausa.",
+                                          value: sch.breakEnd,
+                                          allowClear: true,
+                                          onSelect: (time) => handleLunchEndChange(idx, time),
+                                          onClear: () => handleToggleLunch(idx, false),
+                                        })
+                                      }
+                                      className="flex-row items-center justify-between px-3 rounded-xl border"
+                                      style={{
+                                        backgroundColor: "#16171d",
+                                        borderColor: "rgba(255, 255, 255, 0.08)",
+                                        height: 42,
+                                      }}
+                                    >
+                                      <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                                        {sch.breakEnd || "13:00"}
+                                      </Text>
+                                      <Clock size={14} color="#71717a" />
+                                    </Pressable>
+                                  </View>
+                                </View>
+
+                                <Pressable
+                                  onPress={() => handleToggleLunch(idx, false)}
+                                  className="flex-row items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border"
+                                  style={{
+                                    backgroundColor: "rgba(239, 68, 68, 0.05)",
+                                    borderColor: "rgba(239, 68, 68, 0.25)",
+                                  }}
+                                >
+                                  <Trash2 size={13} color="#ef4444" />
+                                  <Text style={{ color: "#ef4444", fontSize: 12, fontWeight: "600" }}>
+                                    Remover almoço (atender direto)
+                                  </Text>
                                 </Pressable>
-
-                                <Text style={{ color: "#71717a", fontSize: 11.5 }}>até</Text>
-
-                                {/* Fim do Almoço */}
+                              </View>
+                            ) : (
+                              <View className="gap-2.5">
+                                <Text style={{ color: "#71717a", fontSize: 11.5, lineHeight: 16 }}>
+                                  Jornada contínua neste dia (sem bloqueio de almoço).
+                                </Text>
                                 <Pressable
-                                  onPress={() =>
-                                    openTimePicker({
-                                      title: `Fim do Almoço • ${DAYS_NAMES[sch.dayOfWeek]}`,
-                                      subtitle: "Selecione o término da pausa.",
-                                      value: sch.breakEnd,
-                                      allowClear: true,
-                                      onSelect: (time) =>
-                                        setSchedules((prev) =>
-                                          prev.map((s, i) => (i === idx ? { ...s, breakEnd: time } : s))
-                                        ),
-                                      onClear: () =>
-                                        setSchedules((prev) =>
-                                          prev.map((s, i) => (i === idx ? { ...s, breakStart: null, breakEnd: null } : s))
-                                        ),
-                                    })
-                                  }
-                                  className="flex-1 flex-row items-center justify-between py-1.5 px-3 rounded-xl border"
-                                  style={{ backgroundColor: "#202129", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                                  onPress={() => handleToggleLunch(idx, true)}
+                                  className="py-2.5 px-3 rounded-xl border items-center justify-center"
+                                  style={{
+                                    backgroundColor: "#202129",
+                                    borderColor: "rgba(255, 255, 255, 0.08)",
+                                  }}
                                 >
-                                  <View className="gap-0.5">
-                                    <Text style={{ color: "#71717a", fontSize: 9, fontWeight: "700" }}>FIM</Text>
-                                    <Text style={{ color: "#fbbf24", fontSize: 13, fontWeight: "700" }}>
-                                      {sch.breakEnd || "13:00"}
-                                    </Text>
-                                  </View>
-                                  <Coffee size={13} color="#fbbf24" />
+                                  <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>
+                                    + Ativar pausa para almoço
+                                  </Text>
                                 </Pressable>
                               </View>
                             )}
                           </View>
-
-                          {/* Quick copy day to all days */}
-                          <Pressable
-                            onPress={() => handleCopyDayScheduleToAll(idx)}
-                            className="flex-row items-center justify-center gap-1.5 py-1.5 rounded-lg border mt-1"
-                            style={{ backgroundColor: "rgba(255, 255, 255, 0.03)", borderColor: "rgba(255, 255, 255, 0.08)" }}
-                          >
-                            <Copy size={11} color="#a1a1aa" />
-                            <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "600" }}>
-                              Copiar horário deste dia para toda a semana
-                            </Text>
-                          </Pressable>
                         </View>
-                      )}
+                      ))}
                     </View>
-                  ))}
+                  )}
 
-                  {/* Action Buttons */}
-                  <View className="gap-2 pt-2">
-                    <Button
-                      label={busy ? "Salvando horários..." : "Salvar disponibilidade do profissional"}
+                  {/* Bottom Action Buttons */}
+                  <View className="gap-2.5 pt-2">
+                    <Pressable
                       onPress={handleSaveSchedules}
                       disabled={busy}
-                    />
+                      className="flex-row items-center justify-center gap-2 rounded-xl"
+                      style={{
+                        backgroundColor: "#ffffff",
+                        height: 48,
+                        opacity: busy ? 0.7 : 1,
+                      }}
+                    >
+                      <Check size={16} color="#000000" strokeWidth={2.5} />
+                      <Text style={{ color: "#000000", fontSize: 14.5, fontWeight: "800" }}>
+                        {busy ? "Salvando..." : "Salvar disponibilidade do profissional"}
+                      </Text>
+                    </Pressable>
 
-                    {employees.length > 1 && (
-                      <Pressable
-                        onPress={handleReplicateToAllEmployees}
-                        disabled={busy}
-                        className="py-3 px-4 rounded-xl border flex-row items-center justify-center gap-2"
-                        style={{ backgroundColor: "#1e1f26", borderColor: "rgba(255, 255, 255, 0.12)" }}
-                      >
-                        <Copy size={14} color="#ffffff" />
-                        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
-                          Replicar esta grade para toda a equipe ({employees.length} profissionais)
-                        </Text>
-                      </Pressable>
-                    )}
+                    <Pressable
+                      onPress={handleAddPeriod}
+                      className="flex-row items-center justify-center gap-2 rounded-xl border"
+                      style={{
+                        backgroundColor: "#1c1d24",
+                        borderColor: "rgba(255, 255, 255, 0.12)",
+                        height: 44,
+                      }}
+                    >
+                      <Plus size={16} color="#ffffff" />
+                      <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                        Adicionar período
+                      </Text>
+                    </Pressable>
                   </View>
                 </View>
-              )}
+              ) : null}
             </View>
           </View>
         )}
@@ -3081,6 +3247,128 @@ export default function LinkAgendamentoScreen() {
           </View>
         </Pressable>
       </Modal>
+      {/* Employee Selection Modal */}
+      <Modal
+        visible={employeeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEmployeeModalVisible(false)}
+      >
+        <Pressable
+          onPress={() => setEmployeeModalVisible(false)}
+          className="flex-1 items-center justify-center p-5"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
+        >
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl border p-5 gap-4"
+            style={{ backgroundColor: "#131418", borderColor: "rgba(255, 255, 255, 0.12)" }}
+          >
+            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+              <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "800" }}>
+                Selecione o Profissional
+              </Text>
+              <Pressable onPress={() => setEmployeeModalVisible(false)} className="p-1">
+                <X size={18} color="#a1a1aa" />
+              </Pressable>
+            </View>
+
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              <View className="gap-2">
+                {employees
+                  .filter((e) => e.active !== false)
+                  .map((emp) => {
+                    const isSelected = emp.id === selectedEmployeeId;
+                    return (
+                      <Pressable
+                        key={emp.id}
+                        onPress={() => {
+                          setSelectedEmployeeId(emp.id);
+                          setEmployeeModalVisible(false);
+                        }}
+                        className="flex-row items-center justify-between p-3.5 rounded-2xl border"
+                        style={{
+                          backgroundColor: isSelected ? "rgba(255, 255, 255, 0.08)" : "#181920",
+                          borderColor: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                        }}
+                      >
+                        <View className="flex-row items-center gap-3">
+                          <Avatar name={emp.name} photoUrl={emp.photoUrl} size="sm" />
+                          <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: isSelected ? "700" : "500" }}>
+                            {emp.name}
+                          </Text>
+                        </View>
+                        {isSelected && <Check size={16} color="#ffffff" />}
+                      </Pressable>
+                    );
+                  })}
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Day of Week Selection Modal */}
+      <Modal
+        visible={dayModalState.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDayModalState({ visible: false, scheduleIndex: 0 })}
+      >
+        <Pressable
+          onPress={() => setDayModalState({ visible: false, scheduleIndex: 0 })}
+          className="flex-1 items-center justify-center p-5"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
+        >
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl border p-5 gap-4"
+            style={{ backgroundColor: "#131418", borderColor: "rgba(255, 255, 255, 0.12)" }}
+          >
+            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+              <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "800" }}>
+                Dia da Semana
+              </Text>
+              <Pressable onPress={() => setDayModalState({ visible: false, scheduleIndex: 0 })} className="p-1">
+                <X size={18} color="#a1a1aa" />
+              </Pressable>
+            </View>
+
+            <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
+              <View className="gap-2">
+                {WEEKDAYS.map((dayName, dayIndex) => {
+                  const currentDay = schedules[dayModalState.scheduleIndex]?.dayOfWeek;
+                  const isSelected = currentDay === dayIndex;
+                  return (
+                    <Pressable
+                      key={dayName}
+                      onPress={() => {
+                        setSchedules((prev) =>
+                          prev.map((s, i) =>
+                            i === dayModalState.scheduleIndex ? { ...s, dayOfWeek: dayIndex } : s
+                          )
+                        );
+                        setDayModalState({ visible: false, scheduleIndex: 0 });
+                      }}
+                      className="flex-row items-center justify-between p-3.5 rounded-2xl border"
+                      style={{
+                        backgroundColor: isSelected ? "rgba(255, 255, 255, 0.08)" : "#181920",
+                        borderColor: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                      }}
+                    >
+                      <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: isSelected ? "700" : "500" }}>
+                        {dayName}
+                      </Text>
+                      {isSelected && <Check size={16} color="#ffffff" />}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Time Picker Modal */}
       <TimePickerModal
         visible={timePickerState.visible}
