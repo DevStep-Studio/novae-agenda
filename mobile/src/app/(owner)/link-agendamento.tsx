@@ -2622,77 +2622,137 @@ export default function LinkAgendamentoScreen() {
                 <View className="gap-4">
                   {/* Modelos Rápidos Container */}
                   <View
-                    className="p-3 rounded-2xl border gap-2.5"
+                    className="p-3.5 rounded-2xl border gap-3"
                     style={{
-                      backgroundColor: "#16171d",
-                      borderColor: "rgba(255, 255, 255, 0.08)",
+                      backgroundColor: "#131418",
+                      borderColor: "rgba(255, 255, 255, 0.09)",
                     }}
                   >
-                    <View className="flex-row items-center gap-1.5">
-                      <Sparkles size={13} color="#ffffff" />
-                      <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "800", letterSpacing: 0.5 }}>
-                        MODELOS RÁPIDOS:
-                      </Text>
+                    {/* Header */}
+                    <View
+                      className="flex-row items-center justify-between pb-2 border-b"
+                      style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}
+                    >
+                      <View className="flex-row items-center gap-1.5">
+                        <Sparkles size={14} color="#ffffff" />
+                        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>
+                          Modelos Rápidos
+                        </Text>
+                      </View>
+                      <Text style={{ color: "#71717a", fontSize: 11 }}>Toque para aplicar</Text>
                     </View>
 
-                    <View className="gap-2">
+                    {/* Escalas Principais */}
+                    <View className="gap-1.5">
+                      <Text
+                        style={{
+                          color: "#a1a1aa",
+                          fontSize: 10.5,
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        Jornadas da Semana
+                      </Text>
                       <View className="flex-row gap-2">
                         <Pressable
                           onPress={handlePresetMonFri}
-                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
-                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
+                          className="flex-1 p-2.5 rounded-xl border justify-between"
+                          style={{
+                            backgroundColor: "#181920",
+                            borderColor: "rgba(255, 255, 255, 0.1)",
+                            minHeight: 56,
+                          }}
                         >
-                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
-                            Seg a Sex (08:00 às 18:00)
+                          <View className="flex-row items-center gap-1.5">
+                            <Calendar size={13} color="#a1a1aa" />
+                            <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>Seg a Sex</Text>
+                          </View>
+                          <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "500", marginTop: 2 }}>
+                            08:00 às 18:00
                           </Text>
                         </Pressable>
 
                         <Pressable
                           onPress={handlePresetMonSat}
-                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
-                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
+                          className="flex-1 p-2.5 rounded-xl border justify-between"
+                          style={{
+                            backgroundColor: "#181920",
+                            borderColor: "rgba(255, 255, 255, 0.1)",
+                            minHeight: 56,
+                          }}
                         >
-                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
-                            Seg a Sáb (08:00 às 18:00)
+                          <View className="flex-row items-center gap-1.5">
+                            <Calendar size={13} color="#a1a1aa" />
+                            <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>Seg a Sáb</Text>
+                          </View>
+                          <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "500", marginTop: 2 }}>
+                            08:00 às 18:00 (Sáb 14h)
                           </Text>
                         </Pressable>
                       </View>
+                    </View>
 
+                    {/* Ajustes de Intervalo e Exceções */}
+                    <View className="gap-1.5">
+                      <Text
+                        style={{
+                          color: "#a1a1aa",
+                          fontSize: 10.5,
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        Intervalos e Exceções
+                      </Text>
                       <View className="flex-row gap-2">
                         <Pressable
-                          onPress={handlePresetThursday}
+                          onPress={handleApplyStandardLunchAll}
                           className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border"
-                          style={{ backgroundColor: "#272832", borderColor: "rgba(255, 255, 255, 0.15)", minHeight: 38 }}
+                          style={{
+                            backgroundColor: "#181920",
+                            borderColor: "rgba(255, 255, 255, 0.1)",
+                            minHeight: 38,
+                          }}
                         >
-                          <Zap size={13} color="#ffffff" />
+                          <Coffee size={13} color="#a1a1aa" />
                           <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
-                            Quinta só até 12:00
+                            Almoço 12h-13h
                           </Text>
                         </Pressable>
 
                         <Pressable
                           onPress={handleApplyNoLunchAll}
-                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
-                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
+                          className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border"
+                          style={{
+                            backgroundColor: "#181920",
+                            borderColor: "rgba(255, 255, 255, 0.1)",
+                            minHeight: 38,
+                          }}
                         >
+                          <Clock size={13} color="#a1a1aa" />
                           <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
-                            Sem almoço (todos)
+                            Sem almoço
                           </Text>
                         </Pressable>
                       </View>
 
-                      <View className="flex-row gap-2">
-                        <Pressable
-                          onPress={handleApplyStandardLunchAll}
-                          className="flex-1 items-center justify-center py-2.5 px-2 rounded-xl border"
-                          style={{ backgroundColor: "#1f2028", borderColor: "rgba(255, 255, 255, 0.08)", minHeight: 38 }}
-                        >
-                          <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
-                            Almoço 12h-13h (todos)
-                          </Text>
-                        </Pressable>
-                        <View className="flex-1" />
-                      </View>
+                      <Pressable
+                        onPress={handlePresetThursday}
+                        className="w-full flex-row items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl border"
+                        style={{
+                          backgroundColor: "#20222a",
+                          borderColor: "rgba(255, 255, 255, 0.12)",
+                          minHeight: 38,
+                        }}
+                      >
+                        <Zap size={13} color="#f59e0b" />
+                        <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600", textAlign: "center" }}>
+                          Quinta só até 12:00
+                        </Text>
+                      </Pressable>
                     </View>
                   </View>
 
