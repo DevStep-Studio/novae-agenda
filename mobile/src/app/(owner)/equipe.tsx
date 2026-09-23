@@ -35,6 +35,7 @@ import { EmployeeCard, type EmployeeMetrics } from "@/components/ui/employee-car
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
+import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
 import { useTheme } from "@/hooks/use-theme";
@@ -121,6 +122,41 @@ export default function EquipeScreen() {
   const [schedules, setSchedules] = useState<EmployeeScheduleDTO[]>([]);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
+
+  // TimePicker Modal State
+  const [timePickerState, setTimePickerState] = useState<{
+    visible: boolean;
+    title: string;
+    subtitle?: string;
+    value: string;
+    allowClear?: boolean;
+    onSelect: (time: string) => void;
+    onClear?: () => void;
+  }>({
+    visible: false,
+    title: "Selecionar Horário",
+    value: "",
+    onSelect: () => {},
+  });
+
+  const openTimePicker = (opts: {
+    title: string;
+    subtitle?: string;
+    value?: string | null;
+    allowClear?: boolean;
+    onSelect: (time: string) => void;
+    onClear?: () => void;
+  }) => {
+    setTimePickerState({
+      visible: true,
+      title: opts.title,
+      subtitle: opts.subtitle,
+      value: opts.value || "09:00",
+      allowClear: opts.allowClear,
+      onSelect: opts.onSelect,
+      onClear: opts.onClear,
+    });
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -1064,87 +1100,129 @@ export default function EquipeScreen() {
                     </View>
 
                     {sch.active && (
-                      <View className="gap-2 pt-1 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>
-                        <View className="flex-row items-center gap-2">
-                          <Text style={{ color: "#a1a1aa", fontSize: 11, width: 60 }}>Turno:</Text>
-                          <TextInput
-                            value={sch.startTime}
-                            onChangeText={(val) => updateScheduleDay(idx, { startTime: val })}
-                            placeholder="09:00"
-                            placeholderTextColor="#71717a"
-                            style={{
-                              backgroundColor: "#202127",
-                              borderColor: "rgba(255, 255, 255, 0.1)",
-                              borderWidth: 1,
-                              borderRadius: 6,
-                              paddingHorizontal: 8,
-                              height: 32,
-                              color: "#ffffff",
-                              fontSize: 12,
-                              width: 70,
-                              textAlign: "center",
-                            }}
-                          />
-                          <Text style={{ color: "#71717a", fontSize: 12 }}>até</Text>
-                          <TextInput
-                            value={sch.endTime}
-                            onChangeText={(val) => updateScheduleDay(idx, { endTime: val })}
-                            placeholder="19:00"
-                            placeholderTextColor="#71717a"
-                            style={{
-                              backgroundColor: "#202127",
-                              borderColor: "rgba(255, 255, 255, 0.1)",
-                              borderWidth: 1,
-                              borderRadius: 6,
-                              paddingHorizontal: 8,
-                              height: 32,
-                              color: "#ffffff",
-                              fontSize: 12,
-                              width: 70,
-                              textAlign: "center",
-                            }}
-                          />
+                      <View className="gap-2.5 pt-2 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>
+                        {/* Turno */}
+                        <View className="gap-1.5">
+                          <Text style={{ color: "#a1a1aa", fontSize: 10.5, fontWeight: "700" }}>TURNO</Text>
+                          <View className="flex-row items-center gap-2">
+                            <Pressable
+                              onPress={() =>
+                                openTimePicker({
+                                  title: `Início • ${DAYS_NAMES[sch.dayOfWeek]}`,
+                                  subtitle: `Entrada para ${scheduleEmployee?.name}`,
+                                  value: sch.startTime,
+                                  onSelect: (time) => updateScheduleDay(idx, { startTime: time }),
+                                })
+                              }
+                              className="flex-1 flex-row items-center justify-between py-2 px-3 rounded-xl border"
+                              style={{ backgroundColor: "#202127", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                            >
+                              <View className="gap-0.5">
+                                <Text style={{ color: "#71717a", fontSize: 9, fontWeight: "700" }}>ENTRADA</Text>
+                                <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                                  {sch.startTime || "09:00"}
+                                </Text>
+                              </View>
+                              <Clock size={14} color={primaryColor || "#ccff00"} />
+                            </Pressable>
+
+                            <Text style={{ color: "#71717a", fontSize: 12 }}>até</Text>
+
+                            <Pressable
+                              onPress={() =>
+                                openTimePicker({
+                                  title: `Término • ${DAYS_NAMES[sch.dayOfWeek]}`,
+                                  subtitle: `Saída para ${scheduleEmployee?.name}`,
+                                  value: sch.endTime,
+                                  onSelect: (time) => updateScheduleDay(idx, { endTime: time }),
+                                })
+                              }
+                              className="flex-1 flex-row items-center justify-between py-2 px-3 rounded-xl border"
+                              style={{ backgroundColor: "#202127", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                            >
+                              <View className="gap-0.5">
+                                <Text style={{ color: "#71717a", fontSize: 9, fontWeight: "700" }}>SAÍDA</Text>
+                                <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                                  {sch.endTime || "19:00"}
+                                </Text>
+                              </View>
+                              <Clock size={14} color="#f97316" />
+                            </Pressable>
+                          </View>
                         </View>
 
-                        <View className="flex-row items-center gap-2">
-                          <Text style={{ color: "#a1a1aa", fontSize: 11, width: 60 }}>Intervalo:</Text>
-                          <TextInput
-                            value={sch.breakStart || ""}
-                            onChangeText={(val) => updateScheduleDay(idx, { breakStart: val || null })}
-                            placeholder="12:00"
-                            placeholderTextColor="#71717a"
-                            style={{
-                              backgroundColor: "#202127",
-                              borderColor: "rgba(255, 255, 255, 0.1)",
-                              borderWidth: 1,
-                              borderRadius: 6,
-                              paddingHorizontal: 8,
-                              height: 32,
-                              color: "#ffffff",
-                              fontSize: 12,
-                              width: 70,
-                              textAlign: "center",
-                            }}
-                          />
-                          <Text style={{ color: "#71717a", fontSize: 12 }}>até</Text>
-                          <TextInput
-                            value={sch.breakEnd || ""}
-                            onChangeText={(val) => updateScheduleDay(idx, { breakEnd: val || null })}
-                            placeholder="13:00"
-                            placeholderTextColor="#71717a"
-                            style={{
-                              backgroundColor: "#202127",
-                              borderColor: "rgba(255, 255, 255, 0.1)",
-                              borderWidth: 1,
-                              borderRadius: 6,
-                              paddingHorizontal: 8,
-                              height: 32,
-                              color: "#ffffff",
-                              fontSize: 12,
-                              width: 70,
-                              textAlign: "center",
-                            }}
-                          />
+                        {/* Intervalo */}
+                        <View className="gap-1.5 pt-1">
+                          <View className="flex-row items-center justify-between">
+                            <Text style={{ color: "#a1a1aa", fontSize: 10.5, fontWeight: "700" }}>INTERVALO DE ALMOÇO</Text>
+                            <Pressable
+                              onPress={() =>
+                                updateScheduleDay(idx, {
+                                  breakStart: sch.breakStart ? null : "12:00",
+                                  breakEnd: sch.breakEnd ? null : "13:00",
+                                })
+                              }
+                              className="px-2 py-0.5 rounded-md border"
+                              style={{
+                                backgroundColor: sch.breakStart ? "rgba(245, 158, 11, 0.15)" : "#202127",
+                                borderColor: sch.breakStart ? "rgba(245, 158, 11, 0.4)" : "rgba(255, 255, 255, 0.1)",
+                              }}
+                            >
+                              <Text style={{ color: sch.breakStart ? "#fbbf24" : "#71717a", fontSize: 10.5, fontWeight: "600" }}>
+                                {sch.breakStart ? "Com almoço" : "Sem almoço"}
+                              </Text>
+                            </Pressable>
+                          </View>
+
+                          {sch.breakStart && (
+                            <View className="flex-row items-center gap-2">
+                              <Pressable
+                                onPress={() =>
+                                  openTimePicker({
+                                    title: `Início Almoço • ${DAYS_NAMES[sch.dayOfWeek]}`,
+                                    value: sch.breakStart,
+                                    allowClear: true,
+                                    onSelect: (time) => updateScheduleDay(idx, { breakStart: time }),
+                                    onClear: () => updateScheduleDay(idx, { breakStart: null, breakEnd: null }),
+                                  })
+                                }
+                                className="flex-1 flex-row items-center justify-between py-1.5 px-3 rounded-xl border"
+                                style={{ backgroundColor: "#202127", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                              >
+                                <View className="gap-0.5">
+                                  <Text style={{ color: "#71717a", fontSize: 8.5, fontWeight: "700" }}>INÍCIO</Text>
+                                  <Text style={{ color: "#fbbf24", fontSize: 12.5, fontWeight: "700" }}>
+                                    {sch.breakStart || "12:00"}
+                                  </Text>
+                                </View>
+                                <Clock size={13} color="#fbbf24" />
+                              </Pressable>
+
+                              <Text style={{ color: "#71717a", fontSize: 11.5 }}>até</Text>
+
+                              <Pressable
+                                onPress={() =>
+                                  openTimePicker({
+                                    title: `Fim Almoço • ${DAYS_NAMES[sch.dayOfWeek]}`,
+                                    value: sch.breakEnd,
+                                    allowClear: true,
+                                    onSelect: (time) => updateScheduleDay(idx, { breakEnd: time }),
+                                    onClear: () => updateScheduleDay(idx, { breakStart: null, breakEnd: null }),
+                                  })
+                                }
+                                className="flex-1 flex-row items-center justify-between py-1.5 px-3 rounded-xl border"
+                                style={{ backgroundColor: "#202127", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                              >
+                                <View className="gap-0.5">
+                                  <Text style={{ color: "#71717a", fontSize: 8.5, fontWeight: "700" }}>FIM</Text>
+                                  <Text style={{ color: "#fbbf24", fontSize: 12.5, fontWeight: "700" }}>
+                                    {sch.breakEnd || "13:00"}
+                                  </Text>
+                                </View>
+                                <Clock size={13} color="#fbbf24" />
+                              </Pressable>
+                            </View>
+                          )}
                         </View>
                       </View>
                     )}
@@ -1161,6 +1239,18 @@ export default function EquipeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Time Picker Modal */}
+      <TimePickerModal
+        visible={timePickerState.visible}
+        title={timePickerState.title}
+        subtitle={timePickerState.subtitle}
+        value={timePickerState.value}
+        allowClear={timePickerState.allowClear}
+        onSelect={timePickerState.onSelect}
+        onClear={timePickerState.onClear}
+        onClose={() => setTimePickerState((prev) => ({ ...prev, visible: false }))}
+      />
     </Screen>
   );
 }

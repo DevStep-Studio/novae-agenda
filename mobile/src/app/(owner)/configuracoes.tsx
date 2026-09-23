@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
+import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { ApiError } from "@/lib/api-client";
@@ -72,6 +73,35 @@ export default function ConfiguracoesScreen() {
   const [biometricsAvailable, setBiometricsAvailable] = useState(false);
   const [biometricsEnabledState, setBiometricsEnabledState] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(true);
+
+  // TimePicker Modal State
+  const [timePickerState, setTimePickerState] = useState<{
+    visible: boolean;
+    title: string;
+    subtitle?: string;
+    value: string;
+    onSelect: (time: string) => void;
+  }>({
+    visible: false,
+    title: "Selecionar Horário",
+    value: "",
+    onSelect: () => {},
+  });
+
+  const openTimePicker = (opts: {
+    title: string;
+    subtitle?: string;
+    value: string;
+    onSelect: (time: string) => void;
+  }) => {
+    setTimePickerState({
+      visible: true,
+      title: opts.title,
+      subtitle: opts.subtitle,
+      value: opts.value || "08:00",
+      onSelect: opts.onSelect,
+    });
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -457,11 +487,15 @@ export default function ConfiguracoesScreen() {
                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                   Horário de Abertura
                 </Text>
-                <TextInput
-                  value={openTime}
-                  onChangeText={setOpenTime}
-                  placeholder="08:00"
-                  placeholderTextColor={colors.textDisabled}
+                <Pressable
+                  onPress={() =>
+                    openTimePicker({
+                      title: "Horário de Abertura",
+                      subtitle: "Selecione o início do expediente do estabelecimento.",
+                      value: openTime,
+                      onSelect: setOpenTime,
+                    })
+                  }
                   style={{
                     backgroundColor: colors.surfaceSecondary,
                     borderColor: colors.border,
@@ -469,21 +503,31 @@ export default function ConfiguracoesScreen() {
                     borderRadius: radius.sm,
                     paddingHorizontal: 12,
                     height: 44,
-                    color: colors.textPrimary,
-                    fontSize: 14,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
-                />
+                >
+                  <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600" }}>
+                    {openTime || "08:00"}
+                  </Text>
+                  <Clock size={16} color={colors.primary} />
+                </Pressable>
               </View>
 
               <View className="flex-1 gap-1">
                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                   Horário de Fechamento
                 </Text>
-                <TextInput
-                  value={closeTime}
-                  onChangeText={setCloseTime}
-                  placeholder="19:00"
-                  placeholderTextColor={colors.textDisabled}
+                <Pressable
+                  onPress={() =>
+                    openTimePicker({
+                      title: "Horário de Fechamento",
+                      subtitle: "Selecione o encerramento das atividades.",
+                      value: closeTime,
+                      onSelect: setCloseTime,
+                    })
+                  }
                   style={{
                     backgroundColor: colors.surfaceSecondary,
                     borderColor: colors.border,
@@ -491,10 +535,16 @@ export default function ConfiguracoesScreen() {
                     borderRadius: radius.sm,
                     paddingHorizontal: 12,
                     height: 44,
-                    color: colors.textPrimary,
-                    fontSize: 14,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
-                />
+                >
+                  <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600" }}>
+                    {closeTime || "19:00"}
+                  </Text>
+                  <Clock size={16} color="#f97316" />
+                </Pressable>
               </View>
             </View>
 
@@ -702,6 +752,15 @@ export default function ConfiguracoesScreen() {
           </View>
         </ScrollView>
       )}
+      {/* Time Picker Modal */}
+      <TimePickerModal
+        visible={timePickerState.visible}
+        title={timePickerState.title}
+        subtitle={timePickerState.subtitle}
+        value={timePickerState.value}
+        onSelect={timePickerState.onSelect}
+        onClose={() => setTimePickerState((prev) => ({ ...prev, visible: false }))}
+      />
     </Screen>
   );
 }
