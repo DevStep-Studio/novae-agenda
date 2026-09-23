@@ -328,21 +328,29 @@ export default function FinanceiroScreen() {
             className="p-5 rounded-2xl border gap-4"
             style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
           >
-            <View className="flex-row items-start justify-between gap-3 flex-wrap">
-              <View className="flex-1 gap-0.5">
-                <Text style={{ color: colors.textPrimary, fontSize: 15.5, fontWeight: "800" }}>
-                  Evolução de faturamento (últimos 7 dias)
-                </Text>
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1 gap-1">
+                <View className="flex-row items-center gap-1.5">
+                  <TrendingUp size={16} color={primaryColor} />
+                  <Text style={{ color: colors.textPrimary, fontSize: 15.5, fontWeight: "700" }}>
+                    Evolução de Faturamento
+                  </Text>
+                </View>
                 <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                  Receita diária obtida de atendimentos concluídos
+                  Receita diária dos últimos 7 dias
                 </Text>
               </View>
               <View
-                className="items-end gap-0.5 py-1.5 px-3 rounded-lg border"
-                style={{ backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                className="items-end py-2 px-3 rounded-xl border"
+                style={{
+                  backgroundColor: isDark ? "#181920" : "#f4f4f5",
+                  borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
+                }}
               >
-                <Text style={{ color: colors.textMuted, fontSize: 10 }}>Média diária dos 7 dias:</Text>
-                <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}>
+                <Text style={{ color: colors.textMuted, fontSize: 9.5, fontWeight: "700", letterSpacing: 0.5 }}>
+                  MÉDIA DIÁRIA
+                </Text>
+                <Text style={{ color: primaryColor, fontSize: 14.5, fontWeight: "800", marginTop: 1 }}>
                   {formatBRL(last7DaysData.dailyAverage)}
                 </Text>
               </View>
