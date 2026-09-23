@@ -32,6 +32,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { EmployeeCard, type EmployeeMetrics } from "@/components/ui/employee-card";
+import { EmployeeEditorModal } from "@/components/employee/employee-editor-modal";
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
@@ -51,6 +52,7 @@ import {
   type EmployeeDTO,
   type EmployeeScheduleDTO,
 } from "@/lib/employees";
+import { getServices, type ServiceDTO } from "@/lib/services";
 import { useSession } from "@/lib/session-context";
 import { formatBRL } from "@/lib/stats";
 
@@ -99,23 +101,12 @@ export default function EquipeScreen() {
   const [sortBy, setSortBy] = useState<TeamSort>("appointments-desc");
   const [showSortModal, setShowSortModal] = useState(false);
 
-  // New Employee Modal
-  const [createModalVisible, setCreateModalVisible] = useState(false);
-  const [savingEmployee, setSavingEmployee] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newJobTitle, setNewJobTitle] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newCommission, setNewCommission] = useState("30");
+  // Services
+  const [services, setServices] = useState<ServiceDTO[]>([]);
 
-  // Edit Employee Modal
-  const [editingEmployee, setEditingEmployee] = useState<EmployeeDTO | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editJobTitle, setEditJobTitle] = useState("");
-  const [editPhone, setEditPhone] = useState("");
-  const [editCommission, setEditCommission] = useState("30");
-  const [editActive, setEditActive] = useState(true);
-  const [savingEdit, setSavingEdit] = useState(false);
+  // Employee Editor Modal
+  const [editorModalVisible, setEditorModalVisible] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeDTO | null>(null);
 
   // Schedule Modal
   const [scheduleEmployee, setScheduleEmployee] = useState<EmployeeDTO | null>(null);
@@ -162,9 +153,14 @@ export default function EquipeScreen() {
     setError(null);
     try {
       const { from, to } = monthRange();
-      const [emp, apts] = await Promise.all([getEmployees(), getAppointments({ from, to })]);
+      const [emp, apts, svcs] = await Promise.all([
+        getEmployees(),
+        getAppointments({ from, to }),
+        getServices(),
+      ]);
       setEmployees(emp);
       setAppointments(apts);
+      setServices(svcs);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível carregar a equipe.");
     }
@@ -293,103 +289,34 @@ export default function EquipeScreen() {
     }
   }, [filtered, sortBy, metricsByEmployee]);
 
-  // Create Employee
-  const handleCreateEmployee = async () => {
-    if (!newName.trim()) {
-      Alert.alert("Erro", "O nome do profissional é obrigatório.");
-      return;
-    }
-    const commVal = parseInt(newCommission, 10) || 30;
-
-    setSavingEmployee(true);
-    try {
-      await createEmployee({
-        name: newName.trim(),
-        jobTitle: newJobTitle.trim() || "Profissional",
-        phone: newPhone.trim() || undefined,
-        email: newEmail.trim() || undefined,
-        commissionType: "percentage",
-        commissionValue: commVal,
-        active: true,
-      });
-
-      setCreateModalVisible(false);
-      setNewName("");
-      setNewJobTitle("");
-      setNewPhone("");
-      setNewEmail("");
-      setNewCommission("30");
-      await load();
-      Alert.alert("Sucesso", "Profissional cadastrado com sucesso!");
-    } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Não foi possível cadastrar o profissional.");
-    } finally {
-      setSavingEmployee(false);
-    }
-  };
-
-  // Open Edit Modal
-  const handleOpenEdit = (emp: EmployeeDTO) => {
-    setEditingEmployee(emp);
-    setEditName(emp.name);
-    setEditJobTitle(emp.jobTitle || "");
-    setEditPhone(emp.phone || "");
-    setEditCommission(String(emp.commissionValue || "30"));
-    setEditActive(emp.active);
-  };
-
-  // Save Edit Employee
-  const handleSaveEdit = async () => {
-    if (!editingEmployee) return;
-    if (!editName.trim()) {
-      Alert.alert("Erro", "O nome do profissional é obrigatório.");
-      return;
-    }
-    const commVal = parseInt(editCommission, 10) || 0;
-
-    setSavingEdit(true);
-    try {
-      await updateEmployee(editingEmployee.id, {
-        name: editName.trim(),
-        jobTitle: editJobTitle.trim() || null,
-        phone: editPhone.trim() || null,
-        commissionValue: commVal,
-        active: editActive,
-      });
-
-      setEditingEmployee(null);
-      await load();
-      Alert.alert("Sucesso", "Profissional atualizado com sucesso!");
-    } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Não foi possível atualizar o profissional.");
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
   // Delete / Inactivate Employee
   const handleDeleteEmployee = (emp: EmployeeDTO) => {
-    Alert.alert(
-      "Desativar Profissional",
-      `Deseja desativar o acesso de ${emp.name}? Ele não aparecerá mais nos novos agendamentos.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Desativar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteEmployee(emp.id);
-              setEditingEmployee(null);
-              await load();
-              Alert.alert("Sucesso", `${emp.name} foi desativado.`);
-            } catch (err: any) {
-              Alert.alert("Erro", err?.message || "Não foi possível desativar o profissional.");
-            }
+    return new Promise<void>((resolve, reject) => {
+      Alert.alert(
+        "Desativar Profissional",
+        `Deseja desativar o acesso de ${emp.name}? Ele não aparecerá mais nos novos agendamentos.`,
+        [
+          { text: "Cancelar", style: "cancel", onPress: () => resolve() },
+          {
+            text: "Desativar",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteEmployee(emp.id);
+                setEditorModalVisible(false);
+                setSelectedEmployee(null);
+                await load();
+                Alert.alert("Sucesso", `${emp.name} foi desativado.`);
+                resolve();
+              } catch (err: any) {
+                Alert.alert("Erro", err?.message || "Não foi possível desativar o profissional.");
+                reject(err);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    });
   };
 
   // Open Schedule Modal
@@ -467,7 +394,10 @@ export default function EquipeScreen() {
           subtitle={`${totalEmployees} profissionais cadastrados no seu estabelecimento.`}
           action={
             <Pressable
-              onPress={() => setCreateModalVisible(true)}
+              onPress={() => {
+                setSelectedEmployee(null);
+                setEditorModalVisible(true);
+              }}
               className="flex-row items-center gap-2 px-4 rounded-xl self-start"
               style={{
                 backgroundColor: primaryColor,
@@ -689,7 +619,13 @@ export default function EquipeScreen() {
                 }}
               />
             ) : (
-              <Button label="Adicionar profissional" onPress={() => setCreateModalVisible(true)} />
+              <Button
+                label="Adicionar profissional"
+                onPress={() => {
+                  setSelectedEmployee(null);
+                  setEditorModalVisible(true);
+                }}
+              />
             )}
           </View>
         ) : (
@@ -702,7 +638,10 @@ export default function EquipeScreen() {
                 onNewAppointment={() => router.push("/(owner)/agenda")}
                 onOpenSchedule={handleOpenSchedule}
                 onGoToAgenda={() => router.push("/(owner)/agenda")}
-                onEdit={handleOpenEdit}
+                onEdit={(targetEmp) => {
+                  setSelectedEmployee(targetEmp);
+                  setEditorModalVisible(true);
+                }}
               />
             ))}
           </View>
@@ -759,300 +698,20 @@ export default function EquipeScreen() {
         </Pressable>
       </Modal>
 
-      {/* Modal: Cadastro de Novo Profissional */}
-      <Modal
-        visible={createModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCreateModalVisible(false)}
-      >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
-          <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
-            style={{
-              backgroundColor: "#111215",
-              borderColor: "rgba(255, 255, 255, 0.12)",
-            }}
-          >
-            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
-              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
-                Cadastrar Novo Profissional
-              </Text>
-              <Pressable onPress={() => setCreateModalVisible(false)} className="p-1 rounded-lg">
-                <X size={20} color="#ffffff" />
-              </Pressable>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>NOME COMPLETO *</Text>
-                <TextInput
-                  value={newName}
-                  onChangeText={setNewName}
-                  placeholder="Ex: Carlos Oliveira"
-                  placeholderTextColor={colors.textMuted}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>CARGO / ESPECIALIDADE</Text>
-                <TextInput
-                  value={newJobTitle}
-                  onChangeText={setNewJobTitle}
-                  placeholder="Ex: Barbeiro Especialista, Tatuador"
-                  placeholderTextColor={colors.textMuted}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>WHATSAPP</Text>
-                  <TextInput
-                    value={newPhone}
-                    onChangeText={setNewPhone}
-                    placeholder="(11) 98888-7777"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                    style={{
-                      backgroundColor: "#18191e",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
-                      borderWidth: 1,
-                      borderRadius: radius.sm,
-                      paddingHorizontal: 12,
-                      height: 44,
-                      color: "#ffffff",
-                      fontSize: 14,
-                    }}
-                  />
-                </View>
-
-                <View className="flex-1 gap-1.5">
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>COMISSÃO (%)</Text>
-                  <TextInput
-                    value={newCommission}
-                    onChangeText={setNewCommission}
-                    placeholder="30"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="numeric"
-                    style={{
-                      backgroundColor: "#18191e",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
-                      borderWidth: 1,
-                      borderRadius: radius.sm,
-                      paddingHorizontal: 12,
-                      height: 44,
-                      color: "#ffffff",
-                      fontSize: 14,
-                    }}
-                  />
-                </View>
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>E-MAIL (LOGIN DO PROFISSIONAL)</Text>
-                <TextInput
-                  value={newEmail}
-                  onChangeText={setNewEmail}
-                  placeholder="carlos@exemplo.com"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <Button
-                label={savingEmployee ? "Cadastrando..." : "Cadastrar Profissional"}
-                onPress={handleCreateEmployee}
-                disabled={savingEmployee}
-              />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal: Editar Profissional */}
-      <Modal
-        visible={Boolean(editingEmployee)}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditingEmployee(null)}
-      >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
-          <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
-            style={{
-              backgroundColor: "#111215",
-              borderColor: "rgba(255, 255, 255, 0.12)",
-            }}
-          >
-            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
-              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
-                Editar Profissional
-              </Text>
-              <Pressable onPress={() => setEditingEmployee(null)} className="p-1 rounded-lg">
-                <X size={20} color="#ffffff" />
-              </Pressable>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingBottom: 20 }}>
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>NOME COMPLETO *</Text>
-                <TextInput
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Nome do profissional"
-                  placeholderTextColor={colors.textMuted}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>CARGO / ESPECIALIDADE</Text>
-                <TextInput
-                  value={editJobTitle}
-                  onChangeText={setEditJobTitle}
-                  placeholder="Ex: Barbeiro Especialista"
-                  placeholderTextColor={colors.textMuted}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              <View className="flex-row gap-3">
-                <View className="flex-1 gap-1.5">
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>WHATSAPP</Text>
-                  <TextInput
-                    value={editPhone}
-                    onChangeText={setEditPhone}
-                    placeholder="(11) 98888-7777"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                    style={{
-                      backgroundColor: "#18191e",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
-                      borderWidth: 1,
-                      borderRadius: radius.sm,
-                      paddingHorizontal: 12,
-                      height: 44,
-                      color: "#ffffff",
-                      fontSize: 14,
-                    }}
-                  />
-                </View>
-
-                <View className="flex-1 gap-1.5">
-                  <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>COMISSÃO (%)</Text>
-                  <TextInput
-                    value={editCommission}
-                    onChangeText={setEditCommission}
-                    placeholder="30"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="numeric"
-                    style={{
-                      backgroundColor: "#18191e",
-                      borderColor: "rgba(255, 255, 255, 0.1)",
-                      borderWidth: 1,
-                      borderRadius: radius.sm,
-                      paddingHorizontal: 12,
-                      height: 44,
-                      color: "#ffffff",
-                      fontSize: 14,
-                    }}
-                  />
-                </View>
-              </View>
-
-              {/* Active Toggle Switch */}
-              <View
-                className="flex-row items-center justify-between p-3.5 rounded-xl border"
-                style={{ backgroundColor: "#18191e", borderColor: "rgba(255, 255, 255, 0.1)", gap: 12 }}
-              >
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>Profissional Ativo</Text>
-                  <Text style={{ color: "#71717a", fontSize: 12, marginTop: 2 }}>Disponível para novos agendamentos</Text>
-                </View>
-                <View style={{ flexShrink: 0 }}>
-                  <Switch
-                    value={editActive}
-                    onValueChange={setEditActive}
-                    trackColor={{ false: "#27272a", true: primaryColor || "#22c55e" }}
-                    thumbColor="#ffffff"
-                  />
-                </View>
-              </View>
-
-              <Button
-                label={savingEdit ? "Salvando..." : "Salvar Alterações"}
-                onPress={handleSaveEdit}
-                disabled={savingEdit}
-              />
-
-              {editingEmployee && (
-                <Pressable
-                  onPress={() => handleDeleteEmployee(editingEmployee)}
-                  className="py-3 flex-row items-center justify-center gap-2 rounded-xl border"
-                  style={{
-                    backgroundColor: "rgba(239, 68, 68, 0.1)",
-                    borderColor: "rgba(239, 68, 68, 0.3)",
-                  }}
-                >
-                  <Trash2 size={16} color="#ef4444" />
-                  <Text style={{ color: "#ef4444", fontSize: 13.5, fontWeight: "700" }}>
-                    Desativar Profissional
-                  </Text>
-                </Pressable>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* Modal: Adicionar / Editar Profissional */}
+      <EmployeeEditorModal
+        visible={editorModalVisible}
+        employee={selectedEmployee}
+        services={services}
+        onClose={() => {
+          setEditorModalVisible(false);
+          setSelectedEmployee(null);
+        }}
+        onSaved={async () => {
+          await load();
+        }}
+        onDeleteEmployee={handleDeleteEmployee}
+      />
 
       {/* Modal: Horários de Trabalho */}
       <Modal
