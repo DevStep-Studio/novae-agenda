@@ -1,14 +1,12 @@
-import { eq, isNotNull, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import crypto from "node:crypto";
 import { db } from "@/db";
-import { clients, companies, companyMemberships, locations, users } from "@/db/schema";
-import { createSession, hashPassword, normalizeEmail, verifyPassword } from "@/lib/auth";
+import { users } from "@/db/schema";
+import { createSession, normalizeEmail, verifyPassword } from "@/lib/auth";
 import { CustomerAccessService } from "@/lib/customer-access/service";
 import { clearRateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
-import { provisionCompanyTrial } from "@/lib/subscriptions";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +75,7 @@ export async function POST(request: Request) {
 
   await Promise.all([clearRateLimit(ipBucket), clearRateLimit(emailBucket)]).catch(() => null);
 
-  let [user] = await db
+  const [user] = await db
     .select({
       id: users.id,
       name: users.name,
@@ -92,68 +90,32 @@ export async function POST(request: Request) {
     .limit(1);
 
   if (!user) {
-    // Auto-criação para garantir acesso imediato sem limitação
-    const companyId = crypto.randomUUID();
-    const userId = crypto.randomUUID();
-    const newHash = await hashPassword(password);
-    const displayName = email.split("@")[0] || "Proprietário";
-    const publicSlug = `estabelecimento-${Date.now().toString(36)}`;
+    return NextResponse.json(
+      { error: "E-mail ou senha incorretos." },
+      { status: 401 },
+    );
+  }
 
-    await db.insert(companies).values({
-      id: companyId,
-      name: displayName,
-      publicSlug,
-      publicEnabled: true,
-      onboarded: true,
-    });
+  if (!user.active) {
+    return NextResponse.json(
+      { error: "Esta conta está desativada. Entre em contato com o suporte." },
+      { status: 403 },
+    );
+  }
 
-    await db.insert(locations).values({
-      id: crypto.randomUUID(),
-      companyId,
-      name: "Matriz",
-      openTime: "08:00",
-      closeTime: "19:00",
-      active: true,
-    });
+  if (!user.passwordHash) {
+    return NextResponse.json(
+      { error: "Esta conta não possui senha configurada. Redefina sua senha." },
+      { status: 401 },
+    );
+  }
 
-    await provisionCompanyTrial(companyId).catch(() => null);
-
-    await db.insert(users).values({
-      id: userId,
-      companyId,
-      name: displayName,
-      email: normalized,
-      passwordHash: newHash,
-      role: "owner",
-      active: true,
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-    });
-
-    await db.insert(companyMemberships).values({
-      id: crypto.randomUUID(),
-      companyId,
-      userId,
-      role: "owner",
-      active: true,
-    });
-
-    user = {
-      id: userId,
-      name: displayName,
-      role: "owner",
-      isSuperadmin: false,
-      companyId,
-      passwordHash: newHash,
-      active: true,
-    };
-  } else {
-    // Se o usuário já existe, sincroniza a senha digitada para acesso imediato
-    const valid = await verifyPassword(password, user.passwordHash);
-    if (!valid || !user.active) {
-      const newHash = await hashPassword(password);
-      await db.update(users).set({ passwordHash: newHash, active: true }).where(eq(users.id, user.id));
-    }
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    return NextResponse.json(
+      { error: "E-mail ou senha incorretos." },
+      { status: 401 },
+    );
   }
 
   const token = await createSession(user.id);

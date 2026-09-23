@@ -185,7 +185,7 @@ export default function AgendaScreen() {
   const [blockEndTime, setBlockEndTime] = useState("13:00");
   const [blockReason, setBlockReason] = useState("Almoço / Intervalo");
 
-  const companyName = session?.company?.name || "Moa Tattoo";
+  const companyName = session?.company?.name || "";
 
   // Live Current Time
   const now = new Date();

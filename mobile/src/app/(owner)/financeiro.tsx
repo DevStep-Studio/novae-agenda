@@ -230,7 +230,7 @@ export default function FinanceiroScreen() {
   const totalPaymentAll = paymentBreakdown.reduce((acc, p) => acc + p.total, 0) || 1;
 
   return (
-    <Screen header={<TopBar title="Financeiro" company={session?.company?.name || "Barbearia Pelly"} showBack={false} />} style={{ paddingTop: 16 }}>
+    <Screen header={<TopBar title="Financeiro" company={session?.company?.name} showBack={false} />} style={{ paddingTop: 16 }}>
       <PageHeader
         eyebrow="VISÃO FINANCEIRA"
         title="Financeiro"

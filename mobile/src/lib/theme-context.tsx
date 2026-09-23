@@ -121,10 +121,6 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
         if (savedMode === "light" || savedMode === "dark" || savedMode === "system") {
           setThemeModeState(savedMode);
         }
-        const savedColor = await SecureStore.getItemAsync(PRIMARY_COLOR_KEY);
-        if (savedColor) {
-          setLocalPrimaryColor(savedColor);
-        }
       } catch {
         // use defaults
       }
@@ -148,11 +144,6 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const setPrimaryColorOverride = useCallback(async (hex: string) => {
     setLocalPrimaryColor(hex);
-    try {
-      await SecureStore.setItemAsync(PRIMARY_COLOR_KEY, hex);
-    } catch {
-      // ignore
-    }
   }, []);
 
   const resolvedTheme: ResolvedTheme = useMemo(() => {
@@ -167,7 +158,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   // Reset local override when company context changes so backend MySQL primary color is authoritative
   useEffect(() => {
     setLocalPrimaryColor(null);
-  }, [session?.company?.id]);
+  }, [session?.company?.id, session?.userId]);
 
   // Determine active primary color (Session DB config from MySQL > Local preview override > Default)
   const activePrimaryColor = useMemo(() => {

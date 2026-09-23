@@ -392,7 +392,7 @@ export default function ClientesScreen() {
 
   return (
     <Screen
-      header={<TopBar title="Clientes" company={session?.company?.name || "Barbearia Pelly"} />}
+      header={<TopBar title="Clientes" company={session?.company?.name} />}
       style={{ paddingTop: 14 }}
     >
       <ScrollView

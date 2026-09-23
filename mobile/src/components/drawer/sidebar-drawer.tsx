@@ -145,8 +145,8 @@ export function SidebarDrawer({ visible, onClose, unreadCount = 0 }: SidebarDraw
 
   const handleShareLink = async () => {
     onClose();
-    const slug = publicSlug || "moatattoo";
-    const url = `https://usereservei.com.br/${slug}`;
+    const slug = publicSlug || "";
+    const url = slug ? `https://usereservei.com.br/${slug}` : "https://usereservei.com.br";
     try {
       await Share.share({
         message: `Agende seu horário no ${companyName}: ${url}`,

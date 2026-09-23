@@ -192,8 +192,9 @@ export default function PerfilPersonalizacaoScreen() {
   // Load and manage recent logos history
   useEffect(() => {
     async function loadLogoHistory() {
+      const companyKey = session?.company?.id ? `reservei_recent_logos_${session.company.id}` : RECENT_LOGOS_STORAGE_KEY;
       try {
-        const stored = await SecureStore.getItemAsync(RECENT_LOGOS_STORAGE_KEY);
+        const stored = await SecureStore.getItemAsync(companyKey);
         let list: string[] = stored ? JSON.parse(stored) : [];
         if (!Array.isArray(list)) list = [];
 
@@ -207,18 +208,19 @@ export default function PerfilPersonalizacaoScreen() {
       }
     }
     loadLogoHistory();
-  }, [session?.company?.logoUrl, session?.avatarUrl]);
+  }, [session?.company?.id, session?.company?.logoUrl, session?.avatarUrl]);
 
   const saveLogoToHistory = useCallback(async (url: string) => {
     const clean = url.trim();
     if (!clean) return;
+    const companyKey = session?.company?.id ? `reservei_recent_logos_${session.company.id}` : RECENT_LOGOS_STORAGE_KEY;
     setLogoHistory((prev) => {
       const filtered = prev.filter((item) => item !== clean);
       const updated = [clean, ...filtered].slice(0, 10);
-      void SecureStore.setItemAsync(RECENT_LOGOS_STORAGE_KEY, JSON.stringify(updated)).catch(() => null);
+      void SecureStore.setItemAsync(companyKey, JSON.stringify(updated)).catch(() => null);
       return updated;
     });
-  }, []);
+  }, [session?.company?.id]);
 
   const bannerUris = useMemo(() => resolveImageUrlWithFallback(bannerUrl), [bannerUrl]);
   const avatarUris = useMemo(() => resolveImageUrlWithFallback(avatarUrl), [avatarUrl]);
@@ -268,7 +270,7 @@ export default function PerfilPersonalizacaoScreen() {
 
   const publicSlug = session?.company?.publicSlug || session?.company?.slug;
 
-  const initials = (name || session?.name || companyName || "PL")
+  const initials = (name || session?.name || companyName || "R")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -276,8 +278,8 @@ export default function PerfilPersonalizacaoScreen() {
     .join("");
 
   const handleOpenPublicPage = async () => {
-    const slug = publicSlug || "barbeariapelly";
-    const url = `https://usereservei.com.br/${slug}`;
+    const slug = publicSlug || "";
+    const url = slug ? `https://usereservei.com.br/${slug}` : "https://usereservei.com.br";
     try {
       await Share.share({
         message: `Confira a página de agendamentos de ${companyName}: ${url}`,
@@ -511,7 +513,7 @@ export default function PerfilPersonalizacaoScreen() {
                   }}
                   numberOfLines={1}
                 >
-                  {name || session?.name || "PL"}
+                  {name || session?.name || "Proprietário"}
                 </Text>
                 <Text style={{ color: "#9ca3af", fontSize: 13, fontWeight: "500" }} numberOfLines={1}>
                   {companyName} · Proprietário

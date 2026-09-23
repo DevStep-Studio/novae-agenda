@@ -383,7 +383,7 @@ export default function NotificacoesScreen() {
 
   return (
     <Screen
-      header={<TopBar title="Notificações" company={session?.company?.name || "Barbearia Pelly"} showBack={true} />}
+      header={<TopBar title="Notificações" company={session?.company?.name} showBack={true} />}
       style={{ paddingTop: 16 }}
     >
       {loading ? (

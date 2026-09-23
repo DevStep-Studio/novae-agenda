@@ -98,6 +98,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // Ignore network errors on logout
     }
     await clearSession();
+    if (Platform.OS !== "web") {
+      try {
+        await SecureStore.deleteItemAsync("reservei_session_cache_v1");
+        await SecureStore.deleteItemAsync("reservei_session_cache");
+        await SecureStore.deleteItemAsync("reservei_primary_color");
+        await SecureStore.deleteItemAsync("reservei_primary_color_v1");
+      } catch {}
+    }
     setSessionData(null);
   }, [setSessionData]);
 

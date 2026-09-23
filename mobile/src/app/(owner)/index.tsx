@@ -122,27 +122,31 @@ export default function OwnerHomeScreen() {
     async function loadPrefs() {
       if (session?.company?.dashboardPreferences) {
         setPrefs((prev) => ({
-          ...prev,
+          ...DEFAULT_DASHBOARD_PREFS,
           ...(session.company.dashboardPreferences as unknown as Partial<DashboardPrefs>),
         }));
         return;
       }
+      const companyKey = session?.company?.id ? `${DASHBOARD_PREFS_KEY}_${session.company.id}` : DASHBOARD_PREFS_KEY;
       try {
-        const saved = await SecureStore.getItemAsync(DASHBOARD_PREFS_KEY);
+        const saved = await SecureStore.getItemAsync(companyKey);
         if (saved) {
           setPrefs(JSON.parse(saved));
+        } else {
+          setPrefs(DEFAULT_DASHBOARD_PREFS);
         }
       } catch {
-        // use default
+        setPrefs(DEFAULT_DASHBOARD_PREFS);
       }
     }
     loadPrefs();
-  }, [session?.company?.dashboardPreferences]);
+  }, [session?.company?.id, session?.company?.dashboardPreferences]);
 
   const savePrefs = async (newPrefs: DashboardPrefs) => {
     setPrefs(newPrefs);
+    const companyKey = session?.company?.id ? `${DASHBOARD_PREFS_KEY}_${session.company.id}` : DASHBOARD_PREFS_KEY;
     try {
-      await SecureStore.setItemAsync(DASHBOARD_PREFS_KEY, JSON.stringify(newPrefs));
+      await SecureStore.setItemAsync(companyKey, JSON.stringify(newPrefs));
     } catch {
       // ignore
     }

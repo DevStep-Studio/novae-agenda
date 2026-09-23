@@ -209,10 +209,10 @@ export default function LinkAgendamentoScreen() {
   ]);
 
   // 3. Link & Info States
-  const [slug, setSlug] = useState(session?.company?.publicSlug || session?.company?.slug || "barbeariapelly");
-  const [companyName, setCompanyName] = useState(session?.company?.name || "Barbearia Pelly");
+  const [slug, setSlug] = useState(session?.company?.publicSlug || session?.company?.slug || "");
+  const [companyName, setCompanyName] = useState(session?.company?.name || "");
   const [publicDescription, setPublicDescription] = useState((session?.company as any)?.publicDescription || "");
-  const [businessType, setBusinessType] = useState(session?.company?.businessType || "Barbearia");
+  const [businessType, setBusinessType] = useState(session?.company?.businessType || "");
   const [address, setAddress] = useState(session?.company?.address || "");
   const [phone, setPhone] = useState(session?.company?.phone || "");
   const [whatsapp, setWhatsapp] = useState(session?.company?.whatsapp || "");
@@ -1013,7 +1013,7 @@ export default function LinkAgendamentoScreen() {
 
   return (
     <Screen
-      header={<TopBar title="Link de agendamento" company={session?.company?.name || "Barbearia Pelly"} showBack={true} />}
+      header={<TopBar title="Link de agendamento" company={session?.company?.name} showBack={true} />}
       style={{ paddingTop: 14 }}
     >
       <ScrollView
@@ -2201,7 +2201,7 @@ export default function LinkAgendamentoScreen() {
                 <TextInput
                   value={companyName}
                   onChangeText={setCompanyName}
-                  placeholder="Ex: Barbearia Pelly"
+                  placeholder="Ex: Nome do seu negócio"
                   placeholderTextColor="#71717a"
                   style={{
                     backgroundColor: "#181920",
