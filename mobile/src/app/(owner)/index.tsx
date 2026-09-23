@@ -615,13 +615,12 @@ export default function OwnerHomeScreen() {
                           style={[
                             styles.kpiIconBox,
                             {
-                              backgroundColor: isDark
-                                ? "rgba(255, 255, 255, 0.06)"
-                                : "#f1f5f9",
+                              backgroundColor: primarySoft || (isDark ? "rgba(220, 255, 76, 0.16)" : "rgba(220, 255, 76, 0.12)"),
+                              borderColor: cardBorder,
                             },
                           ]}
                         >
-                          <IconComponent size={18} color={textTitle} />
+                          <IconComponent size={18} color={primaryColor || "#dcff4c"} />
                         </View>
                         <View style={{ gap: 2, flex: 1 }}>
                           <Text
@@ -678,13 +677,12 @@ export default function OwnerHomeScreen() {
                       style={[
                         styles.kpiIconBox,
                         {
-                          backgroundColor: isDark
-                            ? "rgba(255, 255, 255, 0.06)"
-                            : "#f1f5f9",
+                          backgroundColor: primarySoft || (isDark ? "rgba(220, 255, 76, 0.16)" : "rgba(220, 255, 76, 0.12)"),
+                          borderColor: cardBorder,
                         },
                       ]}
                     >
-                      <IconComponent size={16} color={textTitle} />
+                      <IconComponent size={18} color={primaryColor || "#dcff4c"} />
                     </View>
                   </View>
 

@@ -113,7 +113,7 @@ export default function AjudaScreen() {
         {/* Support Banner */}
         <View
           className="p-4 rounded-xl border gap-3"
-          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+          style={{ backgroundColor: colors.surface, borderColor: colors.border }}
         >
           <View className="flex-row items-center gap-2.5">
             <HelpCircle size={20} color={colors.primary} />

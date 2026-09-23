@@ -488,7 +488,7 @@ export default function AgendaScreen() {
         {/* 2. Date Navigation Row */}
         <View
           className="flex-row items-center justify-between p-2 rounded-xl border"
-          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+          style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.08)" }}
         >
           <View className="flex-row items-center gap-1.5">
             <Pressable
@@ -536,7 +536,7 @@ export default function AgendaScreen() {
         {/* 3. View Switcher Tabs (Dia / Semana / Mês) */}
         <View
           className="flex-row p-1 rounded-xl border"
-          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+          style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.08)" }}
         >
           {(["day", "week", "month"] as CalendarMode[]).map((mode) => {
             const isActive = calMode === mode;
@@ -571,7 +571,7 @@ export default function AgendaScreen() {
           <Pressable
             onPress={() => setBlockModalVisible(true)}
             className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3 rounded-xl border"
-            style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.12)" }}
+            style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.12)" }}
           >
             <Clock3 size={15} color="#ffffff" />
             <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
@@ -598,7 +598,7 @@ export default function AgendaScreen() {
         {/* 5. Professional Filter & Chips */}
         <View
           className="p-3.5 rounded-xl border gap-2.5"
-          style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+          style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.08)" }}
         >
           <View className="flex-row items-center gap-2">
             <Users size={15} color={colors.textSecondary} />
@@ -873,7 +873,7 @@ export default function AgendaScreen() {
             {/* Header Track com os 7 Dias */}
             <View
               className="flex-row items-center justify-between p-1.5 rounded-xl border"
-              style={{ backgroundColor: "#15161a", borderColor: "rgba(255, 255, 255, 0.08)" }}
+              style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.08)" }}
             >
               {weekDays.map((day, idx) => {
                 const isDayToday = day === todayKey();
