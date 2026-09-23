@@ -745,32 +745,31 @@ export default function ClientesScreen() {
               const isVip = Boolean(client.visits >= 3 || (client.spent ?? 0) >= 250);
               const isFrequent = Boolean(!isVip && client.visits >= 2);
               const isNew = Boolean(!isVip && !isFrequent && !client.isMembershipActive);
-              const avgClientTicket =
-                client.visits > 0 ? Math.round((client.spent || 0) / client.visits) : 0;
               const hasUpcoming = Boolean(client.nextVisit);
 
               return (
                 <Pressable
                   key={client.id}
                   onPress={() => setSelectedClient(client)}
-                  className="p-4 rounded-2xl border gap-3"
+                  className="p-4 rounded-2xl border gap-3.5"
                   style={{
-                    backgroundColor: "#121318",
+                    backgroundColor: "#111216",
                     borderColor: "rgba(255, 255, 255, 0.08)",
                   }}
                 >
-                  {/* 1. Header Row: Avatar + Name/Badges + Chevron */}
+                  {/* 1. Header Row: Avatar + Name/Badges + Subtitle + Chevron */}
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-3 flex-1 pr-2">
                       <Avatar name={client.name} photoUrl={client.photoUrl} size="md" />
 
-                      <View className="flex-1 gap-0.5">
+                      <View className="flex-1 gap-1">
                         <View className="flex-row items-center gap-1.5 flex-wrap">
                           <Text
                             style={{
                               color: "#ffffff",
-                              fontSize: 15,
+                              fontSize: 15.5,
                               fontWeight: "700",
+                              letterSpacing: -0.2,
                             }}
                             numberOfLines={1}
                           >
@@ -779,17 +778,18 @@ export default function ClientesScreen() {
 
                           {client.isMembershipActive ? (
                             <View
-                              className="px-1.5 py-0.5 rounded-full border"
+                              className="px-2 py-0.5 rounded-full border"
                               style={{
-                                backgroundColor: "rgba(139, 92, 246, 0.15)",
-                                borderColor: "rgba(139, 92, 246, 0.4)",
+                                backgroundColor: "rgba(168, 85, 247, 0.12)",
+                                borderColor: "rgba(168, 85, 247, 0.3)",
                               }}
                             >
                               <Text
                                 style={{
-                                  color: "#a78bfa",
+                                  color: "#c084fc",
                                   fontSize: 9.5,
                                   fontWeight: "800",
+                                  letterSpacing: 0.3,
                                 }}
                               >
                                 MENSALISTA
@@ -797,17 +797,18 @@ export default function ClientesScreen() {
                             </View>
                           ) : isVip ? (
                             <View
-                              className="px-1.5 py-0.5 rounded-full border"
+                              className="px-2 py-0.5 rounded-full border"
                               style={{
-                                backgroundColor: "rgba(245, 158, 11, 0.15)",
-                                borderColor: "rgba(245, 158, 11, 0.4)",
+                                backgroundColor: "rgba(245, 158, 11, 0.12)",
+                                borderColor: "rgba(245, 158, 11, 0.3)",
                               }}
                             >
                               <Text
                                 style={{
-                                  color: "#f59e0b",
+                                  color: "#fbbf24",
                                   fontSize: 9.5,
                                   fontWeight: "800",
+                                  letterSpacing: 0.3,
                                 }}
                               >
                                 VIP
@@ -815,17 +816,18 @@ export default function ClientesScreen() {
                             </View>
                           ) : isFrequent ? (
                             <View
-                              className="px-1.5 py-0.5 rounded-full border"
+                              className="px-2 py-0.5 rounded-full border"
                               style={{
-                                backgroundColor: "rgba(16, 185, 129, 0.15)",
-                                borderColor: "rgba(16, 185, 129, 0.4)",
+                                backgroundColor: "rgba(6, 182, 212, 0.12)",
+                                borderColor: "rgba(6, 182, 212, 0.3)",
                               }}
                             >
                               <Text
                                 style={{
-                                  color: "#34d399",
+                                  color: "#22d3ee",
                                   fontSize: 9.5,
                                   fontWeight: "800",
+                                  letterSpacing: 0.3,
                                 }}
                               >
                                 FREQUENTE
@@ -833,17 +835,18 @@ export default function ClientesScreen() {
                             </View>
                           ) : isNew ? (
                             <View
-                              className="px-1.5 py-0.5 rounded-full border"
+                              className="px-2 py-0.5 rounded-full border"
                               style={{
                                 backgroundColor: "rgba(16, 185, 129, 0.12)",
-                                borderColor: "rgba(16, 185, 129, 0.35)",
+                                borderColor: "rgba(16, 185, 129, 0.3)",
                               }}
                             >
                               <Text
                                 style={{
-                                  color: "#10b981",
+                                  color: "#34d399",
                                   fontSize: 9.5,
                                   fontWeight: "800",
+                                  letterSpacing: 0.3,
                                 }}
                               >
                                 NOVO
@@ -854,10 +857,10 @@ export default function ClientesScreen() {
 
                         <View className="flex-row items-center gap-2">
                           <Text
-                            style={{ color: "#71717a", fontSize: 12 }}
+                            style={{ color: "#71717a", fontSize: 12, fontWeight: "500" }}
                             numberOfLines={1}
                           >
-                            {client.email || (client.phone ? "Cliente cadastrado" : "Sem telefone")}
+                            {client.email || (client.phone ? client.phone : "Sem telefone")}
                           </Text>
 
                           {hasUpcoming && (
@@ -885,28 +888,30 @@ export default function ClientesScreen() {
                       </View>
                     </View>
 
-                    <ChevronRight size={18} color="#71717a" />
+                    <ChevronRight size={17} color="#52525b" />
                   </View>
 
-                  {/* 2. Stats Grid (Última Visita | Visitas | Total Gasto) */}
+                  {/* 2. Stats Row (Minimalist Flat Metrics) */}
                   <View
-                    className="flex-row items-center justify-between p-2.5 rounded-xl border"
+                    className="flex-row items-center justify-between py-2.5 px-3 rounded-xl border"
                     style={{
-                      backgroundColor: "#0d0e12",
-                      borderColor: "rgba(255, 255, 255, 0.05)",
+                      backgroundColor: "#16171d",
+                      borderColor: "rgba(255, 255, 255, 0.04)",
                     }}
                   >
-                    <View className="flex-1 items-center border-r border-[rgba(255,255,255,0.06)]">
-                      <Text style={{ color: "#71717a", fontSize: 10.5, fontWeight: "600", textTransform: "uppercase" }}>
+                    <View className="flex-1 items-center">
+                      <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
                         Última Visita
                       </Text>
-                      <Text style={{ color: "#d1d5db", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+                      <Text style={{ color: "#e4e4e7", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
                         {shortDate(client.lastVisit)}
                       </Text>
                     </View>
 
-                    <View className="flex-1 items-center border-r border-[rgba(255,255,255,0.06)]">
-                      <Text style={{ color: "#71717a", fontSize: 10.5, fontWeight: "600", textTransform: "uppercase" }}>
+                    <View style={{ width: 1, height: 22, backgroundColor: "rgba(255, 255, 255, 0.06)" }} />
+
+                    <View className="flex-1 items-center">
+                      <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
                         Atendimentos
                       </Text>
                       <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
@@ -914,38 +919,40 @@ export default function ClientesScreen() {
                       </Text>
                     </View>
 
+                    <View style={{ width: 1, height: 22, backgroundColor: "rgba(255, 255, 255, 0.06)" }} />
+
                     <View className="flex-1 items-center">
-                      <Text style={{ color: "#71717a", fontSize: 10.5, fontWeight: "600", textTransform: "uppercase" }}>
+                      <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
                         Total Gasto
                       </Text>
-                      <Text style={{ color: "#22c55e", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+                      <Text style={{ color: "#10b981", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
                         {formatCurrency(client.spent)}
                       </Text>
                     </View>
                   </View>
 
-                  {/* 3. Action Buttons Row */}
+                  {/* 3. Action Buttons Row (Contato | Agendar | Ficha) */}
                   <View className="flex-row items-center gap-2 pt-0.5">
                     {client.phone ? (
                       <Pressable
                         onPress={() => handleOpenWhatsApp(client)}
-                        className="flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-xl border"
+                        className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border"
                         style={{
                           backgroundColor: "rgba(34, 197, 94, 0.08)",
-                          borderColor: "rgba(34, 197, 94, 0.25)",
-                          height: 36,
+                          borderColor: "rgba(34, 197, 94, 0.22)",
+                          height: 38,
                         }}
                       >
                         <WhatsAppIcon size={14} />
                         <Text
                           style={{
                             color: "#22c55e",
-                            fontSize: 12,
+                            fontSize: 12.5,
                             fontWeight: "700",
+                            letterSpacing: 0.2,
                           }}
-                          numberOfLines={1}
                         >
-                          {client.phone}
+                          Contato
                         </Text>
                       </Pressable>
                     ) : null}
@@ -957,29 +964,29 @@ export default function ClientesScreen() {
                           params: { newForClient: client.id },
                         } as any);
                       }}
-                      className="flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-xl border"
+                      className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border"
                       style={{
-                        backgroundColor: "#181920",
-                        borderColor: "rgba(255, 255, 255, 0.1)",
-                        height: 36,
+                        backgroundColor: "#17181f",
+                        borderColor: "rgba(255, 255, 255, 0.08)",
+                        height: 38,
                       }}
                     >
                       <CalendarPlus size={14} color="#9ca3af" />
-                      <Text style={{ color: "#d1d5db", fontSize: 12, fontWeight: "600" }}>
+                      <Text style={{ color: "#e4e4e7", fontSize: 12.5, fontWeight: "600" }}>
                         Agendar
                       </Text>
                     </Pressable>
 
                     <Pressable
                       onPress={() => setSelectedClient(client)}
-                      className="px-3 py-2 rounded-xl border items-center justify-center"
+                      className="px-3.5 rounded-xl border items-center justify-center"
                       style={{
-                        backgroundColor: "#181920",
-                        borderColor: "rgba(255, 255, 255, 0.1)",
-                        height: 36,
+                        backgroundColor: "#17181f",
+                        borderColor: "rgba(255, 255, 255, 0.08)",
+                        height: 38,
                       }}
                     >
-                      <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "600" }}>
+                      <Text style={{ color: "#9ca3af", fontSize: 12.5, fontWeight: "600" }}>
                         Ficha
                       </Text>
                     </Pressable>
