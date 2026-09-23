@@ -48,7 +48,7 @@ export default function CustomerAccessScreen() {
   const { refresh } = useSession();
   const { isDark, toggleTheme, colors: themeColors, primaryColor } = useTheme();
 
-  const [step, setStep] = useState<Step>("phone");
+  const [step, setStep] = useState<Step>("pin_login");
   const [phone, setPhone] = useState("");
   const [maskedPhone, setMaskedPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -498,13 +498,22 @@ export default function CustomerAccessScreen() {
                     style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
                   >
                     <ArrowLeft size={14} color={subtitleColor} />
-                    <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Trocar número</Text>
+                    <Text style={{ color: subtitleColor, fontSize: 12.5 }}>
+                      {phone ? "Trocar número" : "Buscar por celular"}
+                    </Text>
                   </Pressable>
 
                   <Pressable
                     hitSlop={8}
-                    onPress={handleRequestPinReset}
-                    disabled={loading || !phone}
+                    onPress={() => {
+                      setError(null);
+                      if (!phone) {
+                        setStep("phone");
+                      } else {
+                        void handleRequestPinReset();
+                      }
+                    }}
+                    disabled={loading}
                   >
                     <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "600" }}>
                       Esqueci meu PIN

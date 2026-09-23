@@ -96,15 +96,23 @@ export class CustomerAccessService {
 
     if (indexedCredential) return indexedCredential;
 
-    // Credenciais criadas antes da coluna de busca precisam ser comparadas pelo
-    // bcrypt. Esse caminho desaparece naturalmente conforme os clientes entram.
-    const legacyCredentials = await db
-      .select()
-      .from(customerCredentials)
-      .where(isNull(customerCredentials.pinLookupHash));
+    // Fallback de segurança universal: se o hash indexado não encontrar (por exemplo, se o AUTH_SECRET
+    // foi redefinido ou se a credencial foi criada sem o hash), verifica todas as credenciais via bcrypt.
+    // Ao encontrar uma correspondência, auto-cura o pinLookupHash no banco.
+    const allCredentials = await db.select().from(customerCredentials);
 
-    for (const credential of legacyCredentials) {
-      if (await verifyPassword(pin, credential.pinHash)) return credential;
+    for (const credential of allCredentials) {
+      if (await verifyPassword(pin, credential.pinHash)) {
+        try {
+          await db
+            .update(customerCredentials)
+            .set({ pinLookupHash: lookupHash, updatedAt: new Date() })
+            .where(eq(customerCredentials.id, credential.id));
+        } catch (updateErr) {
+          console.error("[CustomerAccessService] Erro ao auto-curar pinLookupHash:", updateErr);
+        }
+        return credential;
+      }
     }
 
     return null;

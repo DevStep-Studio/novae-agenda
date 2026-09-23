@@ -77,8 +77,9 @@ export async function deleteEmployee(id: string): Promise<void> {
 }
 
 export async function getEmployeeSchedules(id: string): Promise<EmployeeScheduleDTO[]> {
-  const res = await api<{ data: EmployeeScheduleDTO[] }>(`/api/employees/${id}/schedules`);
-  return res.data ?? [];
+  const res = await api<EmployeeScheduleDTO[] | { data: EmployeeScheduleDTO[] }>(`/api/employees/${id}/schedules`);
+  if (Array.isArray(res)) return res;
+  return (res as any)?.data ?? [];
 }
 
 export async function updateEmployeeSchedules(

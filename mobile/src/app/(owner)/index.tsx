@@ -41,6 +41,7 @@ import { AppointmentCard } from "@/components/ui/appointment-card";
 import { PageHeader } from "@/components/ui/page-header";
 import { colors, radius } from "@/constants/design-tokens";
 import { ApiError, api, resolveImageUrl } from "@/lib/api-client";
+import { getAppointments, todayKey } from "@/lib/appointments";
 import { getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
@@ -158,16 +159,15 @@ export default function OwnerHomeScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
+      const today = todayKey();
       const [statsData, aptsData, setupData] = await Promise.all([
         getStats("today"),
-        api<{ appointments: any[] }>("/api/appointments?range=today").catch(() => ({
-          appointments: [],
-        })),
+        getAppointments({ from: today, to: today }),
         api<SetupStatus>("/api/company/setup-status").catch(() => null),
         refresh().catch(() => null),
       ]);
       setStats(statsData);
-      setAppointments(Array.isArray(aptsData) ? aptsData : (aptsData?.appointments || []));
+      setAppointments(Array.isArray(aptsData) ? aptsData : []);
       if (setupData) setSetupStatus(setupData);
     } catch (err) {
       setError(

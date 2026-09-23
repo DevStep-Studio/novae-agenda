@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CustomerAccessService, hashPinLookup } from "@/lib/customer-access/service";
 import { normalizePhoneDigits } from "@/lib/domain";
-import { AUTH_RULES, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
+import { AUTH_RULES, clearRateLimit, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 
 export const dynamic = "force-dynamic";
@@ -28,23 +28,16 @@ export async function POST(request: Request) {
 
     const { phone, pin } = parsed.data;
 
-    // Rate limiting por IP e por PIN
-    const ipLimit = await consumeRateLimit(`customer-pin-login:ip:${ip}`, AUTH_RULES.login);
+    // Rate limiting por IP
+    const ipBucket = `customer-pin-login:ip:${ip}`;
+    const ipLimit = await consumeRateLimit(ipBucket, AUTH_RULES.login);
     if (!ipLimit.ok) return tooManyRequests(ipLimit.retryAfterSeconds);
 
-    const lookupHash = hashPinLookup(pin);
-    const pinLimit = await consumeRateLimit(
-      `customer-pin-login:pin:${lookupHash}`,
-      AUTH_RULES.login,
-    );
-    if (!pinLimit.ok) return tooManyRequests(pinLimit.retryAfterSeconds);
-
+    let phoneBucket: string | null = null;
     if (phone && phone.trim().length >= 8) {
       const digits = normalizePhoneDigits(phone);
-      const phoneLimit = await consumeRateLimit(
-        `customer-pin-login:phone:${digits}`,
-        AUTH_RULES.login,
-      );
+      phoneBucket = `customer-pin-login:phone:${digits}`;
+      const phoneLimit = await consumeRateLimit(phoneBucket, AUTH_RULES.login);
       if (!phoneLimit.ok) return tooManyRequests(phoneLimit.retryAfterSeconds);
     }
 
@@ -54,6 +47,12 @@ export async function POST(request: Request) {
       ipAddress: ip,
       userAgent,
     });
+
+    // Limpa os limites de taxa em caso de sucesso
+    await Promise.all([
+      clearRateLimit(ipBucket),
+      phoneBucket ? clearRateLimit(phoneBucket) : Promise.resolve(),
+    ]).catch(() => null);
 
     return NextResponse.json({
       data: {
