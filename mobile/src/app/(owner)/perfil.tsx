@@ -139,6 +139,8 @@ export default function PerfilPersonalizacaoScreen() {
   const [primaryColor, setPrimaryColor] = useState(
     session?.company?.primaryColor || themePrimaryColor || "#3b82f6"
   );
+  const activePrimary = primaryColor || themePrimaryColor || "#3b82f6";
+  const activeForeground = isLightHex(activePrimary) ? "#0a0a0a" : "#ffffff";
   const [avatarUrl, setAvatarUrl] = useState(
     session?.avatarUrl || session?.company?.logoUrl || ""
   );
@@ -504,17 +506,17 @@ export default function PerfilPersonalizacaoScreen() {
                 disabled={saving}
                 className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
                 style={{
-                  backgroundColor: "#52545d",
-                  borderColor: "rgba(255, 255, 255, 0.08)",
+                  backgroundColor: activePrimary,
+                  borderColor: "transparent",
                   height: 44,
                 }}
               >
                 {saving ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
+                  <ActivityIndicator size="small" color={activeForeground} />
                 ) : (
                   <>
-                    <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                    <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>
+                    <Check size={16} color={activeForeground} strokeWidth={2.5} />
+                    <Text style={{ color: activeForeground, fontSize: 12.5, fontWeight: "700" }}>
                       Salvar alterações
                     </Text>
                   </>
@@ -1436,17 +1438,17 @@ export default function PerfilPersonalizacaoScreen() {
             disabled={saving}
             className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
             style={{
-              backgroundColor: "#52545d",
-              borderColor: "rgba(255, 255, 255, 0.08)",
+              backgroundColor: activePrimary,
+              borderColor: "transparent",
               height: 44,
             }}
           >
             {saving ? (
-              <ActivityIndicator size="small" color="#ffffff" />
+              <ActivityIndicator size="small" color={activeForeground} />
             ) : (
               <>
-                <Check size={16} color="#ffffff" strokeWidth={2.5} />
-                <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                <Check size={16} color={activeForeground} strokeWidth={2.5} />
+                <Text style={{ color: activeForeground, fontSize: 13.5, fontWeight: "700" }}>
                   Salvar alterações
                 </Text>
               </>

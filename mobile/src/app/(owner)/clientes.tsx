@@ -1188,12 +1188,12 @@ export default function ClientesScreen() {
                   }}
                   className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
                   style={{
-                    backgroundColor: "#52545d",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: primaryColor,
+                    borderColor: "transparent",
                   }}
                 >
-                  <CalendarPlus size={14} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>
+                  <CalendarPlus size={14} color={primaryForeground} />
+                  <Text style={{ color: primaryForeground, fontSize: 12.5, fontWeight: "700" }}>
                     Agendar
                   </Text>
                 </Pressable>

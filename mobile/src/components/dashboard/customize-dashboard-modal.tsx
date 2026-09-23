@@ -9,7 +9,8 @@ import {
   View,
 } from "react-native";
 
-import { colors, radius, typography } from "@/constants/design-tokens";
+import { radius, typography } from "@/constants/design-tokens";
+import { useTheme } from "@/hooks/use-theme";
 
 export type DashboardSectionKey =
   | "showBanner"
@@ -107,6 +108,7 @@ export function CustomizeDashboardModal({
   onClose,
   onSave,
 }: CustomizeDashboardModalProps) {
+  const { primaryColor, primaryForeground, colors } = useTheme();
   const [prefs, setPrefs] = useState<DashboardPrefs>(currentPrefs);
   const [saving, setSaving] = useState(false);
 
@@ -289,7 +291,7 @@ export function CustomizeDashboardModal({
                   <Switch
                     value={isEnabled}
                     onValueChange={() => toggle(key)}
-                    trackColor={{ false: "#333338", true: colors.primary }}
+                    trackColor={{ false: "#333338", true: primaryColor }}
                     thumbColor="#ffffff"
                     ios_backgroundColor="#333338"
                   />
@@ -310,9 +312,9 @@ export function CustomizeDashboardModal({
               onPress={handleSave}
               disabled={saving}
               className="w-full py-3 rounded-xl items-center justify-center"
-              style={{ backgroundColor: "#ffffff" }}
+              style={{ backgroundColor: primaryColor }}
             >
-              <Text style={{ color: "#000000", fontSize: 14, fontWeight: "700" }}>
+              <Text style={{ color: primaryForeground, fontSize: 14, fontWeight: "700" }}>
                 {saving ? "Salvando..." : "Salvar preferências"}
               </Text>
             </Pressable>
