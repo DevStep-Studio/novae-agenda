@@ -184,6 +184,15 @@ export default function ServicosScreen() {
     );
   };
 
+  const counts = useMemo(() => {
+    const list = services ?? [];
+    return {
+      all: list.length,
+      active: list.filter((s) => s.active).length,
+      inactive: list.filter((s) => !s.active).length,
+    };
+  }, [services]);
+
   const visible = useMemo(() => {
     const list = services ?? [];
     if (filter === "Todos") return list;
@@ -223,20 +232,43 @@ export default function ServicosScreen() {
           }
         />
 
-        {/* 2. Top Sub-tabs: Serviços Avulsos | Planos Mensais */}
-        <View className="flex-row border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
+        {/* 2. Top Segmented Navigation: Serviços Avulsos | Planos Mensais */}
+        <View
+          className="flex-row p-1 rounded-2xl border"
+          style={{
+            backgroundColor: isDark ? "#121318" : "#f4f4f5",
+            borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
+          }}
+        >
           <Pressable
             onPress={() => setSubTab("services")}
-            className="py-2.5 px-4 flex-row items-center gap-2"
+            className="flex-1 py-2.5 px-3 rounded-xl flex-row items-center justify-center gap-2"
             style={{
-              borderBottomWidth: 2,
-              borderBottomColor: subTab === "services" ? primaryColor : "transparent",
+              backgroundColor:
+                subTab === "services"
+                  ? isDark
+                    ? "#20222a"
+                    : "#ffffff"
+                  : "transparent",
+              borderWidth: 1,
+              borderColor:
+                subTab === "services"
+                  ? isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.08)"
+                  : "transparent",
             }}
           >
+            <Tag size={15} color={subTab === "services" ? primaryColor : "#71717a"} />
             <Text
               style={{
-                color: subTab === "services" ? "#ffffff" : "#71717a",
-                fontSize: 13.5,
+                color:
+                  subTab === "services"
+                    ? isDark
+                      ? "#ffffff"
+                      : "#18181b"
+                    : "#71717a",
+                fontSize: 13,
                 fontWeight: subTab === "services" ? "700" : "500",
               }}
             >
@@ -246,16 +278,33 @@ export default function ServicosScreen() {
 
           <Pressable
             onPress={() => setSubTab("memberships")}
-            className="py-2.5 px-4 flex-row items-center gap-2"
+            className="flex-1 py-2.5 px-3 rounded-xl flex-row items-center justify-center gap-2"
             style={{
-              borderBottomWidth: 2,
-              borderBottomColor: subTab === "memberships" ? primaryColor : "transparent",
+              backgroundColor:
+                subTab === "memberships"
+                  ? isDark
+                    ? "#20222a"
+                    : "#ffffff"
+                  : "transparent",
+              borderWidth: 1,
+              borderColor:
+                subTab === "memberships"
+                  ? isDark
+                    ? "rgba(255, 255, 255, 0.12)"
+                    : "rgba(0, 0, 0, 0.08)"
+                  : "transparent",
             }}
           >
+            <Layers size={15} color={subTab === "memberships" ? primaryColor : "#71717a"} />
             <Text
               style={{
-                color: subTab === "memberships" ? "#ffffff" : "#71717a",
-                fontSize: 13.5,
+                color:
+                  subTab === "memberships"
+                    ? isDark
+                      ? "#ffffff"
+                      : "#18181b"
+                    : "#71717a",
+                fontSize: 13,
                 fontWeight: subTab === "memberships" ? "700" : "500",
               }}
             >
@@ -285,30 +334,79 @@ export default function ServicosScreen() {
         ) : (
           /* View: Serviços Avulsos */
           <>
-            {/* 3. Filter Tabs: Todos | Ativos | Inativos */}
-            <View className="flex-row border-b pt-1" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
-              {FILTERS.map((tab) => {
-                const isActive = filter === tab;
+            {/* 3. Filter Tabs / Chips: Todos | Ativos | Inativos */}
+            <View className="flex-row items-center gap-2">
+              {([
+                { id: "Todos" as const, label: "Todos", count: counts.all },
+                { id: "Ativos" as const, label: "Ativos", count: counts.active },
+                { id: "Inativos" as const, label: "Inativos", count: counts.inactive },
+              ]).map((tab) => {
+                const isActive = filter === tab.id;
 
                 return (
                   <Pressable
-                    key={tab}
-                    onPress={() => setFilter(tab)}
-                    className="py-2 px-3 mr-2"
+                    key={tab.id}
+                    onPress={() => setFilter(tab.id)}
+                    className="flex-row items-center gap-2 px-3.5 py-2 rounded-xl border"
                     style={{
-                      borderBottomWidth: 2,
-                      borderBottomColor: isActive ? primaryColor : "transparent",
+                      backgroundColor: isActive
+                        ? isDark
+                          ? "rgba(220, 255, 76, 0.12)"
+                          : "rgba(0, 0, 0, 0.06)"
+                        : isDark
+                        ? "#16171d"
+                        : "#f4f4f5",
+                      borderColor: isActive
+                        ? isDark
+                          ? "rgba(220, 255, 76, 0.35)"
+                          : "rgba(0, 0, 0, 0.2)"
+                        : isDark
+                        ? "rgba(255, 255, 255, 0.07)"
+                        : "rgba(0, 0, 0, 0.06)",
+                      height: 38,
                     }}
                   >
                     <Text
                       style={{
-                        color: isActive ? "#ffffff" : "#71717a",
-                        fontSize: 13.5,
+                        color: isActive
+                          ? isDark
+                            ? primaryColor
+                            : "#000000"
+                          : isDark
+                          ? "#9ca3af"
+                          : "#71717a",
+                        fontSize: 12.5,
                         fontWeight: isActive ? "700" : "500",
                       }}
                     >
-                      {tab}
+                      {tab.label}
                     </Text>
+                    <View
+                      className="px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: isActive
+                          ? isDark
+                            ? "rgba(220, 255, 76, 0.2)"
+                            : "rgba(0, 0, 0, 0.1)"
+                          : isDark
+                          ? "rgba(255, 255, 255, 0.06)"
+                          : "rgba(0, 0, 0, 0.05)",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isActive
+                            ? isDark
+                              ? primaryColor
+                              : "#000000"
+                            : "#71717a",
+                          fontSize: 11,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {tab.count}
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               })}
