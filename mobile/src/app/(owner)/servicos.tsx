@@ -1,8 +1,11 @@
 import {
+  Calendar,
   Check,
+  CheckCircle2,
   ChevronDown,
   Clock3,
   Coins,
+  Crown,
   FileText,
   FolderPlus,
   Image as ImageIcon,
@@ -12,10 +15,12 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   Tag,
   Trash2,
+  TrendingUp,
   Users,
   X,
 } from "lucide-react-native";
@@ -35,6 +40,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 
 import { Button } from "@/components/ui/button";
+import { MembershipPlanEditorModal } from "@/components/membership/membership-plan-editor-modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { ServiceCard } from "@/components/ui/service-card";
@@ -44,12 +50,18 @@ import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError, api } from "@/lib/api-client";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
 import {
+  deleteMembershipPlan,
+  getMembershipPlans,
+  type MembershipPlanDTO,
+} from "@/lib/memberships";
+import {
   deleteService,
   getServices,
   type ServiceDTO,
 } from "@/lib/services";
 import { getServiceDescription } from "@/lib/service-utils";
 import { useSession } from "@/lib/session-context";
+import { formatBRL } from "@/lib/stats";
 
 type SubTab = "services" | "memberships";
 type Filter = "Todos" | "Ativos" | "Inativos";
@@ -151,7 +163,6 @@ function ServiceEditorModal({
         )
       );
 
-      // Map linked employees
       const linked = employees
         .filter((e) => e.serviceIds?.includes(service.id) || e.services?.includes(service.name))
         .map((e) => e.id);
@@ -174,7 +185,6 @@ function ServiceEditorModal({
       setCancellationPolicy("");
       setShowAdvanced(false);
 
-      // Default select all active employees for new service
       const activeIds = employees.filter((e) => e.active).map((e) => e.id);
       setSelectedEmployeeIds(activeIds);
     }
@@ -382,7 +392,7 @@ function ServiceEditorModal({
             borderColor: "rgba(255, 255, 255, 0.12)",
           }}
         >
-          {/* 1. Modal Header: Title + Dark Circular Close Button */}
+          {/* 1. Modal Header */}
           <View
             className="flex-row items-center justify-between px-5 pt-4 pb-3.5 border-b"
             style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}
@@ -686,7 +696,7 @@ function ServiceEditorModal({
                 </Text>
               </View>
 
-              {/* Pricing Segmented Control (Stacked vertically on mobile responsive) */}
+              {/* Pricing Segmented Control */}
               <View
                 className="p-1 rounded-xl border gap-1"
                 style={{
@@ -1266,7 +1276,7 @@ function ServiceEditorModal({
               )}
             </View>
 
-            {/* 5. OPÇÕES AVANÇADAS (Accordion) */}
+            {/* 5. OPÇÕES AVANÇADAS */}
             <View className="gap-2">
               <Pressable
                 onPress={() => setShowAdvanced(!showAdvanced)}
@@ -1501,6 +1511,7 @@ export default function ServicosScreen() {
 
   const [subTab, setSubTab] = useState<SubTab>("services");
   const [services, setServices] = useState<ServiceDTO[] | null>(null);
+  const [membershipPlans, setMembershipPlans] = useState<MembershipPlanDTO[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [employees, setEmployees] = useState<EmployeeDTO[]>([]);
   const [filter, setFilter] = useState<Filter>("Todos");
@@ -1508,9 +1519,13 @@ export default function ServicosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modal state
+  // Service Modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceDTO | null>(null);
+
+  // Membership Plan Modal state
+  const [membershipModalVisible, setMembershipModalVisible] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<MembershipPlanDTO | null>(null);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -1539,9 +1554,18 @@ export default function ServicosScreen() {
     }
   }, []);
 
+  const loadMembershipPlans = useCallback(async () => {
+    try {
+      const res = await getMembershipPlans(true);
+      setMembershipPlans(Array.isArray(res) ? res : []);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const loadAll = useCallback(async () => {
-    await Promise.all([loadServices(), loadCategories(), loadEmployees()]);
-  }, [loadServices, loadCategories, loadEmployees]);
+    await Promise.all([loadServices(), loadCategories(), loadEmployees(), loadMembershipPlans()]);
+  }, [loadServices, loadCategories, loadEmployees, loadMembershipPlans]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1565,14 +1589,24 @@ export default function ServicosScreen() {
     setServices((prev) => prev?.map((s) => (s.id === updated.id ? updated : s)) ?? prev);
   }
 
-  const handleOpenCreate = () => {
+  const handleOpenCreateService = () => {
     setSelectedService(null);
     setModalVisible(true);
   };
 
-  const handleOpenEdit = (service: ServiceDTO) => {
+  const handleOpenEditService = (service: ServiceDTO) => {
     setSelectedService(service);
     setModalVisible(true);
+  };
+
+  const handleOpenCreatePlan = () => {
+    setSelectedPlan(null);
+    setMembershipModalVisible(true);
+  };
+
+  const handleOpenEditPlan = (plan: MembershipPlanDTO) => {
+    setSelectedPlan(plan);
+    setMembershipModalVisible(true);
   };
 
   const handleDeleteService = async (service: ServiceDTO) => {
@@ -1606,6 +1640,33 @@ export default function ServicosScreen() {
     });
   };
 
+  const handleDeletePlan = async (plan: MembershipPlanDTO) => {
+    return new Promise<void>((resolve, reject) => {
+      Alert.alert(
+        "Desativar plano",
+        `Deseja realmente desativar o plano "${plan.name}"? Assinantes existentes continuarão ativos, mas novos clientes não poderão aderir.`,
+        [
+          { text: "Cancelar", style: "cancel", onPress: () => resolve() },
+          {
+            text: "Desativar plano",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                await deleteMembershipPlan(plan.id);
+                await loadAll();
+                Alert.alert("Sucesso", `Plano "${plan.name}" desativado.`);
+                resolve();
+              } catch (err: any) {
+                Alert.alert("Erro", err?.message || "Não foi possível desativar o plano.");
+                reject(err);
+              }
+            },
+          },
+        ]
+      );
+    });
+  };
+
   const counts = useMemo(() => {
     const list = services ?? [];
     return {
@@ -1615,7 +1676,7 @@ export default function ServicosScreen() {
     };
   }, [services]);
 
-  const visible = useMemo(() => {
+  const visibleServices = useMemo(() => {
     const list = services ?? [];
     if (filter === "Todos") return list;
     return list.filter((s) => s.active === (filter === "Ativos"));
@@ -1632,14 +1693,18 @@ export default function ServicosScreen() {
         contentContainerStyle={{ gap: 16, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
-        {/* 1. Header Section: Eyebrow + Title + Subtitle + Action Button */}
+        {/* 1. Header Section */}
         <PageHeader
-          eyebrow="CATÁLOGO DE SERVIÇOS"
-          title="Serviços"
-          subtitle={`${services?.length ?? 0} ${services?.length === 1 ? "serviço cadastrado" : "serviços cadastrados"} no seu catálogo.`}
+          eyebrow={subTab === "services" ? "CATÁLOGO DE SERVIÇOS" : "RECORRÊNCIA & MENSALISTAS"}
+          title={subTab === "services" ? "Serviços" : "Planos Mensais"}
+          subtitle={
+            subTab === "services"
+              ? `${services?.length ?? 0} ${services?.length === 1 ? "serviço cadastrado" : "serviços cadastrados"} no seu catálogo.`
+              : `${membershipPlans.length} ${membershipPlans.length === 1 ? "plano mensal configurado" : "planos mensais configurados"}.`
+          }
           action={
             <Pressable
-              onPress={handleOpenCreate}
+              onPress={subTab === "services" ? handleOpenCreateService : handleOpenCreatePlan}
               className="flex-row items-center gap-2 px-4 rounded-xl self-start"
               style={{
                 backgroundColor: primaryColor,
@@ -1648,7 +1713,7 @@ export default function ServicosScreen() {
             >
               <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
               <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
-                Novo serviço
+                {subTab === "services" ? "Novo serviço" : "Novo plano mensal"}
               </Text>
             </Pressable>
           }
@@ -1737,25 +1802,144 @@ export default function ServicosScreen() {
 
         {subTab === "memberships" ? (
           /* View: Planos Mensais */
-          <View
-            className="p-6 rounded-2xl border items-center text-center gap-3"
-            style={{ backgroundColor: "#121318", borderColor: "rgba(255, 255, 255, 0.08)" }}
-          >
-            <Layers size={36} color={primaryColor} />
-            <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "700", textAlign: "center" }}>
-              Clubes e Assinaturas Mensais
-            </Text>
-            <Text style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", lineHeight: 18 }}>
-              Crie planos recorrentes para fidelizar seus clientes com agendamentos ilimitados ou créditos periódicos.
-            </Text>
-            <Pressable
-              onPress={() => setSubTab("services")}
-              className="mt-2 px-4 py-2.5 rounded-xl border"
-              style={{ backgroundColor: "#1c1d22", borderColor: "rgba(255, 255, 255, 0.12)" }}
+          membershipPlans.length === 0 ? (
+            <View
+              className="p-6 rounded-2xl border items-center text-center gap-3"
+              style={{ backgroundColor: "#121318", borderColor: "rgba(255, 255, 255, 0.08)" }}
             >
-              <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>Voltar para Serviços Avulsos</Text>
-            </Pressable>
-          </View>
+              <Layers size={36} color={primaryColor} />
+              <Text style={{ color: "#ffffff", fontSize: 17, fontWeight: "700", textAlign: "center" }}>
+                Nenhum plano mensal cadastrado
+              </Text>
+              <Text style={{ color: "#9ca3af", fontSize: 13, textAlign: "center", lineHeight: 18 }}>
+                Crie planos recorrentes para fidelizar seus clientes com agendamentos automáticos e receita previsível.
+              </Text>
+              <Pressable
+                onPress={handleOpenCreatePlan}
+                className="mt-2 px-4 py-2.5 rounded-xl border flex-row items-center gap-2"
+                style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+              >
+                <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+                <Text style={{ color: primaryForeground, fontSize: 13, fontWeight: "700" }}>
+                  Cadastrar Primeiro Plano
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View className="gap-3">
+              {membershipPlans.map((plan) => {
+                const freqLabel =
+                  plan.frequencyType === "WEEKLY_CALENDAR_BASED"
+                    ? plan.weeklyFrequency === 1
+                      ? "Semanal (4 a 5 sessões/mês)"
+                      : `${plan.weeklyFrequency}x por semana`
+                    : `${plan.sessionsPerPeriod} sessões/mês (fixo)`;
+
+                return (
+                  <View
+                    key={plan.id}
+                    className="p-4 rounded-2xl border gap-3"
+                    style={{
+                      backgroundColor: "#16171c",
+                      borderColor: "rgba(255, 255, 255, 0.08)",
+                      opacity: plan.active ? 1 : 0.65,
+                    }}
+                  >
+                    {/* Top row: Frequency Badge + Edit action */}
+                    <View className="flex-row items-center justify-between">
+                      <View
+                        className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-full border"
+                        style={{
+                          backgroundColor: "#1c1d24",
+                          borderColor: plan.badgeColor ? hexToRgba(plan.badgeColor, 0.4) : "rgba(255, 255, 255, 0.12)",
+                        }}
+                      >
+                        <Calendar size={11} color={plan.badgeColor || primaryColor} />
+                        <Text
+                          style={{
+                            color: plan.badgeColor || primaryColor,
+                            fontSize: 11,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {freqLabel}
+                        </Text>
+                      </View>
+
+                      <Pressable
+                        onPress={() => handleOpenEditPlan(plan)}
+                        className="p-1.5 rounded-lg border"
+                        style={{
+                          backgroundColor: "#20222a",
+                          borderColor: "rgba(255, 255, 255, 0.12)",
+                        }}
+                      >
+                        <Pencil size={13} color="#ffffff" />
+                      </Pressable>
+                    </View>
+
+                    {/* Title + Description */}
+                    <View className="gap-0.5">
+                      <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "700" }}>{plan.name}</Text>
+                      {Boolean(plan.description) && (
+                        <Text style={{ color: "#9ca3af", fontSize: 12.5, lineHeight: 17 }}>
+                          {plan.description}
+                        </Text>
+                      )}
+                    </View>
+
+                    {/* Price Block */}
+                    <View
+                      className="flex-row items-center justify-between p-3 rounded-xl border"
+                      style={{
+                        backgroundColor: "#111215",
+                        borderColor: "rgba(255, 255, 255, 0.06)",
+                      }}
+                    >
+                      <View>
+                        <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "600" }}>Mensalidade</Text>
+                        <View className="flex-row items-baseline gap-1">
+                          <Text style={{ color: "#ffffff", fontSize: 16, fontWeight: "800" }}>
+                            {formatBRL(plan.price)}
+                          </Text>
+                          <Text style={{ color: "#9ca3af", fontSize: 11 }}>/mês</Text>
+                        </View>
+                      </View>
+
+                      <View className="items-end">
+                        <Text style={{ color: "#71717a", fontSize: 11, fontWeight: "600" }}>Cobrança</Text>
+                        <Text style={{ color: "#d1d5db", fontSize: 12.5, fontWeight: "700" }}>Presencial</Text>
+                      </View>
+                    </View>
+
+                    {/* Services Included List */}
+                    {Boolean(plan.services && plan.services.length > 0) && (
+                      <View className="gap-1.5 pt-1">
+                        <Text style={{ color: "#9ca3af", fontSize: 11, fontWeight: "700", textTransform: "uppercase" }}>
+                          Serviços Incluídos
+                        </Text>
+                        <View className="gap-1">
+                          {plan.services?.map((s) => (
+                            <View key={s.id} className="flex-row items-center justify-between py-0.5">
+                              <View className="flex-row items-center gap-1.5 flex-1 mr-2">
+                                <CheckCircle2 size={12} color={primaryColor} />
+                                <Text numberOfLines={1} style={{ color: "#ffffff", fontSize: 12, fontWeight: "500" }}>
+                                  {s.name}
+                                </Text>
+                              </View>
+                              <Text style={{ color: "#71717a", fontSize: 11 }}>
+                                {s.price != null ? formatBRL(s.price) : ""}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          )
         ) : (
           /* View: Serviços Avulsos */
           <>
@@ -1841,7 +2025,7 @@ export default function ServicosScreen() {
                 <Text style={{ color: colors.textSecondary, textAlign: "center" }}>{error}</Text>
                 <Button label="Tentar novamente" onPress={loadAll} />
               </View>
-            ) : visible.length === 0 ? (
+            ) : visibleServices.length === 0 ? (
               <View className="items-center gap-2 py-16">
                 <Tag size={32} color={colors.textMuted} />
                 <Text style={{ color: "#ffffff", fontSize: 15, fontWeight: "600" }}>Nenhum serviço encontrado</Text>
@@ -1851,12 +2035,12 @@ export default function ServicosScreen() {
               </View>
             ) : (
               <View className="gap-3">
-                {visible.map((service) => (
+                {visibleServices.map((service) => (
                   <ServiceCard
                     key={service.id}
                     service={service}
                     onToggled={handleToggled}
-                    onEdit={handleOpenEdit}
+                    onEdit={handleOpenEditService}
                     onDelete={handleDeleteService}
                   />
                 ))}
@@ -1879,6 +2063,20 @@ export default function ServicosScreen() {
         onSaved={loadAll}
         onCategoriesUpdated={loadCategories}
         onDeleteService={handleDeleteService}
+      />
+
+      {/* Complete Redesigned Membership Plan Editor Modal */}
+      <MembershipPlanEditorModal
+        visible={membershipModalVisible}
+        plan={selectedPlan}
+        services={services || []}
+        employees={employees}
+        onClose={() => {
+          setMembershipModalVisible(false);
+          setSelectedPlan(null);
+        }}
+        onSaved={loadAll}
+        onDeletePlan={handleDeletePlan}
       />
     </Screen>
   );
