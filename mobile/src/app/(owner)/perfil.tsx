@@ -1,4 +1,5 @@
 import * as ImagePicker from "expo-image-picker";
+import * as SecureStore from "expo-secure-store";
 import {
   ArrowRight,
   Building2,
@@ -46,6 +47,8 @@ import { api, resolveImageUrl, resolveImageUrlWithFallback } from "@/lib/api-cli
 import { useSession } from "@/lib/session-context";
 import { useTheme } from "@/hooks/use-theme";
 import { Sun, Moon } from "lucide-react-native";
+
+const RECENT_LOGOS_STORAGE_KEY = "novae_recent_logos_history_v1";
 
 export const PRIMARY_COLOR_PRESETS = [
   { id: "blue", name: "Azul Elétrico (Padrão)", hex: "#3b82f6" },
@@ -147,6 +150,7 @@ export default function PerfilPersonalizacaoScreen() {
   const [bannerUrl, setBannerUrl] = useState(
     session?.company?.bannerUrl || session?.bannerUrl || ""
   );
+  const [logoHistory, setLogoHistory] = useState<string[]>([]);
 
   // Dashboard Preferences State
   const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
@@ -184,6 +188,37 @@ export default function PerfilPersonalizacaoScreen() {
       }
     }
   }, [session]);
+
+  // Load and manage recent logos history
+  useEffect(() => {
+    async function loadLogoHistory() {
+      try {
+        const stored = await SecureStore.getItemAsync(RECENT_LOGOS_STORAGE_KEY);
+        let list: string[] = stored ? JSON.parse(stored) : [];
+        if (!Array.isArray(list)) list = [];
+
+        const currentLogo = session?.company?.logoUrl || session?.avatarUrl;
+        if (currentLogo && !list.includes(currentLogo)) {
+          list = [currentLogo, ...list].slice(0, 10);
+        }
+        setLogoHistory(list);
+      } catch {
+        // ignore
+      }
+    }
+    loadLogoHistory();
+  }, [session?.company?.logoUrl, session?.avatarUrl]);
+
+  const saveLogoToHistory = useCallback(async (url: string) => {
+    const clean = url.trim();
+    if (!clean) return;
+    setLogoHistory((prev) => {
+      const filtered = prev.filter((item) => item !== clean);
+      const updated = [clean, ...filtered].slice(0, 10);
+      void SecureStore.setItemAsync(RECENT_LOGOS_STORAGE_KEY, JSON.stringify(updated)).catch(() => null);
+      return updated;
+    });
+  }, []);
 
   const defaultBanner =
     "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80";
@@ -297,6 +332,7 @@ export default function PerfilPersonalizacaoScreen() {
           ? `data:${asset.mimeType || "image/jpeg"};base64,${asset.base64}`
           : asset.uri;
         setAvatarUrl(dataUrl);
+        await saveLogoToHistory(dataUrl);
         Alert.alert("Logo / Foto Selecionada", "Clique em 'Salvar alterações' para aplicar a todos.");
       }
     } catch {
@@ -311,6 +347,9 @@ export default function PerfilPersonalizacaoScreen() {
     try {
       if (primaryColor) {
         await setPrimaryColorOverride(primaryColor);
+      }
+      if (avatarUrl && avatarUrl.trim()) {
+        await saveLogoToHistory(avatarUrl.trim());
       }
 
       await api("/api/profile", {
@@ -1002,41 +1041,89 @@ export default function PerfilPersonalizacaoScreen() {
                 ) : null}
               </View>
 
-              {/* Suggested Logos List */}
+              {/* Histórico de Logos do Proprietário */}
               <View className="gap-2.5 pt-1">
-                <Text style={{ fontSize: 12.5, fontWeight: "600", color: "#9ca3af" }}>
-                  Logos e Ícones Sugeridos:
-                </Text>
-
-                <View className="flex-row items-center gap-3.5">
-                  {AVATAR_PRESETS.map((preset) => {
-                    const isSelected = avatarUrl === preset.url;
-                    return (
-                      <Pressable
-                        key={preset.id}
-                        onPress={() => {
-                          setAvatarUrl(preset.url);
-                        }}
-                        className="overflow-hidden border-2"
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 12,
-                          backgroundColor: "#181920",
-                          borderColor: isSelected
-                            ? (primaryColor || "#ffffff")
-                            : "rgba(255, 255, 255, 0.15)",
-                        }}
-                      >
-                        <Image
-                          source={{ uri: preset.url }}
-                          style={{ width: "100%", height: "100%" }}
-                          contentFit="cover"
-                        />
-                      </Pressable>
-                    );
-                  })}
+                <View className="flex-row items-center justify-between">
+                  <Text style={{ fontSize: 12.5, fontWeight: "600", color: "#9ca3af" }}>
+                    Histórico de Logos Usadas {logoHistory.length > 0 ? `(${logoHistory.length})` : ""}:
+                  </Text>
+                  {logoHistory.length > 0 && (
+                    <Text style={{ fontSize: 11, color: "#6b7280" }}>
+                      Toque para selecionar
+                    </Text>
+                  )}
                 </View>
+
+                {logoHistory.length > 0 ? (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 10, paddingVertical: 4 }}
+                  >
+                    {logoHistory.map((historyUrl, idx) => {
+                      const isSelected = avatarUrl === historyUrl;
+                      const resolvedUri = resolveImageUrl(historyUrl) || historyUrl;
+                      return (
+                        <View key={`${historyUrl}-${idx}`} className="relative">
+                          <Pressable
+                            onPress={() => {
+                              setAvatarUrl(historyUrl);
+                            }}
+                            className="overflow-hidden border-2 items-center justify-center"
+                            style={{
+                              width: 52,
+                              height: 52,
+                              borderRadius: 12,
+                              backgroundColor: "#181920",
+                              borderColor: isSelected
+                                ? activePrimary
+                                : "rgba(255, 255, 255, 0.15)",
+                            }}
+                          >
+                            <Image
+                              source={{ uri: resolvedUri }}
+                              style={{ width: "100%", height: "100%" }}
+                              contentFit="cover"
+                            />
+                          </Pressable>
+
+                          {isSelected && (
+                            <View
+                              style={{
+                                position: "absolute",
+                                bottom: -3,
+                                right: -3,
+                                backgroundColor: activePrimary,
+                                borderRadius: 10,
+                                width: 16,
+                                height: 16,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderWidth: 1.5,
+                                borderColor: "#0d0e12",
+                              }}
+                            >
+                              <Check size={10} color={activeForeground} strokeWidth={3} />
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  <View
+                    className="p-3 rounded-xl border flex-row items-center gap-2.5"
+                    style={{
+                      backgroundColor: "#0d0e12",
+                      borderColor: "rgba(255, 255, 255, 0.06)",
+                    }}
+                  >
+                    <ImageIcon size={16} color="#6b7280" />
+                    <Text style={{ color: "#6b7280", fontSize: 12, flex: 1 }}>
+                      Nenhuma logo anterior no histórico. Faça upload ou insira uma URL para registrar suas logos.
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>

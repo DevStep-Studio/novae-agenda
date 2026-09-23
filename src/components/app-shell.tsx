@@ -7543,6 +7543,7 @@ function ProfilePage({
   const [businessType, setBusinessType] = useState(session?.company?.businessType ?? "");
   const [avatarUrl, setAvatarUrl] = useState(session?.avatarUrl || session?.company?.logoUrl || "");
   const [bannerUrl, setBannerUrl] = useState(session?.company?.bannerUrl ?? "");
+  const [logoHistory, setLogoHistory] = useState<string[]>([]);
 
   useEffect(() => {
     if (session?.avatarUrl || session?.company?.logoUrl) {
@@ -7550,6 +7551,37 @@ function ProfilePage({
       setAvatarUrl(session.avatarUrl || session.company?.logoUrl || "");
     }
   }, [session?.avatarUrl, session?.company?.logoUrl]);
+
+  useEffect(() => {
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("novae_recent_logos_history_v1") : null;
+      let list: string[] = stored ? JSON.parse(stored) : [];
+      if (!Array.isArray(list)) list = [];
+      const current = session?.company?.logoUrl || session?.avatarUrl;
+      if (current && !list.includes(current)) {
+        list = [current, ...list].slice(0, 10);
+      }
+      setLogoHistory(list);
+    } catch {
+      // ignore
+    }
+  }, [session?.company?.logoUrl, session?.avatarUrl]);
+
+  const saveLogoToHistory = (url: string) => {
+    const clean = url.trim();
+    if (!clean) return;
+    setLogoHistory((prev) => {
+      const filtered = prev.filter((item) => item !== clean);
+      const updated = [clean, ...filtered].slice(0, 10);
+      try {
+        localStorage.setItem("novae_recent_logos_history_v1", JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
   const [primaryColor, setPrimaryColor] = useState(session?.company?.primaryColor ?? "#3b82f6");
   const [dashboardPrefs, setDashboardPrefs] = useState(() => ({
     showBanner: session?.company?.dashboardPreferences?.showBanner ?? true,
@@ -7592,6 +7624,7 @@ function ProfilePage({
       const dataUrl = await prepareImageUpload(file, { maxDimension: 512, square: true });
       setAvatarUrl(dataUrl);
       setAvatarError(false);
+      saveLogoToHistory(dataUrl);
       notify("Logo / foto carregada! Clique em 'Salvar alterações' para aplicar a todos os usuários.");
     } catch (err) {
       notify(err instanceof Error ? err.message : "Erro ao carregar foto/logo.", "error");
@@ -7609,6 +7642,9 @@ function ProfilePage({
   const handleSave = async () => {
     setSaving(true);
     try {
+      if (avatarUrl && avatarUrl.trim()) {
+        saveLogoToHistory(avatarUrl.trim());
+      }
       const result = await updateProfile({
         name: name.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -7907,24 +7943,30 @@ function ProfilePage({
 
               <div>
                 <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", display: "block", marginBottom: 8 }}>
-                  Logos e Ícones Sugeridos:
+                  Histórico de Logos Usadas {logoHistory.length > 0 ? `(${logoHistory.length})` : ""}:
                 </span>
-                <div className="avatar-presets-row">
-                  {AVATAR_PRESETS.map((preset) => (
-                    <button
-                      type="button"
-                      key={preset.id}
-                      className={`avatar-preset-btn ${avatarUrl === preset.url ? "active" : ""}`}
-                      onClick={() => {
-                        setAvatarUrl(preset.url);
-                        setAvatarError(false);
-                      }}
-                      title={preset.name}
-                    >
-                      <NextImage src={preset.url} alt={preset.name} width={40} height={40} unoptimized />
-                    </button>
-                  ))}
-                </div>
+                {logoHistory.length > 0 ? (
+                  <div className="avatar-presets-row">
+                    {logoHistory.map((historyUrl, idx) => (
+                      <button
+                        type="button"
+                        key={`${historyUrl}-${idx}`}
+                        className={`avatar-preset-btn ${avatarUrl === historyUrl ? "active" : ""}`}
+                        onClick={() => {
+                          setAvatarUrl(historyUrl);
+                          setAvatarError(false);
+                        }}
+                        title={`Logo ${idx + 1}`}
+                      >
+                        <NextImage src={historyUrl} alt={`Logo ${idx + 1}`} width={40} height={40} unoptimized />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
+                    Nenhuma logo anterior no histórico. Faça upload ou insira uma URL para registrar suas logos.
+                  </p>
+                )}
               </div>
             </div>
           </div>
