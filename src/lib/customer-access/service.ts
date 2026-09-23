@@ -694,6 +694,16 @@ export class CustomerAccessService {
 
     const lookupHash = hashPinLookup(params.pin);
 
+    // Verifica se este PIN já está em uso por outro cliente
+    const existingWithPin = await this.findCredentialByPin(params.pin);
+    if (
+      existingWithPin &&
+      ((params.authenticatedUserId && existingWithPin.userId !== params.authenticatedUserId) ||
+        (params.phone && existingWithPin.phoneNormalized !== normalizePhoneDigits(params.phone)))
+    ) {
+      throw new Error("PIN já está em uso por outro cliente. Escolha outra combinação de 6 dígitos.");
+    }
+
     // Validação de identidade segura e estrita
     let identityVerified = false;
     let user: typeof users.$inferSelect | null = null;

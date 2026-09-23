@@ -1,19 +1,42 @@
 "use client";
 
-import { use } from "react";
-import { notFound } from "next/navigation";
+import { use, useMemo } from "react";
+import { useParams, notFound } from "next/navigation";
 import { AppGate } from "@/components/app-gate";
-import { isManagementView } from "@/lib/management-routes";
+import { isManagementView, type ManagementView } from "@/lib/management-routes";
 
 export default function ManagementViewPage({
   params,
 }: {
-  params: Promise<{ view: string }>;
+  params?: Promise<{ view: string }> | { view: string };
 }) {
-  const { view } = use(params);
+  const urlParams = useParams<{ view: string }>();
 
-  if (!isManagementView(view) || view === "dashboard") notFound();
+  let view: string | undefined =
+    typeof urlParams?.view === "string"
+      ? urlParams.view
+      : Array.isArray(urlParams?.view)
+      ? urlParams.view[0]
+      : undefined;
 
-  return <AppGate initialView={view} />;
+  if (!view && params) {
+    if (typeof (params as any)?.then === "function") {
+      try {
+        const unwrapped = use(params as Promise<{ view: string }>);
+        view = unwrapped?.view;
+      } catch {
+        // ignore
+      }
+    } else if ((params as { view: string })?.view) {
+      view = (params as { view: string }).view;
+    }
+  }
+
+  if (!view || !isManagementView(view) || view === "dashboard") {
+    notFound();
+  }
+
+  return <AppGate initialView={view as ManagementView} />;
 }
+
 

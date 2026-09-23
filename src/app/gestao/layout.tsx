@@ -9,7 +9,9 @@ function ManagementAccess({ children }: { children: ReactNode }) {
   const redirectingToClient = !loading && session?.primaryRole === "client";
 
   useEffect(() => {
-    if (redirectingToClient) window.location.replace("/cliente");
+    if (redirectingToClient && typeof window !== "undefined") {
+      window.location.replace("/cliente");
+    }
   }, [redirectingToClient]);
 
   if (redirectingToClient) {
