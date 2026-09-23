@@ -27,6 +27,8 @@ export type EmployeeDTO = {
   commissionValue: number;
   services: string[];
   serviceIds?: string[];
+  userId?: string | null;
+  hasLogin?: boolean;
 };
 
 export async function getEmployees(): Promise<EmployeeDTO[]> {

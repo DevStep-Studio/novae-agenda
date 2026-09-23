@@ -57,12 +57,14 @@ export async function GET() {
     const linkedUser = row.userId ? userMap.get(row.userId) : null;
     const isOwnerMatch =
       (row.userId && row.userId === auth.user.userId) ||
-      (ownerUser && row.name.trim().toLowerCase() === ownerUser.name.trim().toLowerCase());
+      (rows.length === 1 && auth.user.role === "owner") ||
+      (ownerUser && row.name.trim().toLowerCase() === ownerUser.name.trim().toLowerCase()) ||
+      (ownerUser && row.name.trim().toLowerCase().slice(0, 3) === ownerUser.name.trim().toLowerCase().slice(0, 3));
 
     const resolvedPhotoUrl =
       row.photoUrl ??
       linkedUser?.avatarUrl ??
-      (isOwnerMatch ? ownerUser?.avatarUrl : null) ??
+      (isOwnerMatch ? (ownerUser?.avatarUrl || companyRow?.logoUrl) : null) ??
       null;
 
     const resolvedBannerUrl =
