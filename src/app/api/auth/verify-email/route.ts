@@ -1,56 +1,143 @@
-import { eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { db } from "@/db";
-import { users } from "@/db/schema";
-import { recordAudit } from "@/lib/audit";
+import { authTokens, users } from "@/db/schema";
 import { AUTH_RULES, consumeRateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
-import { consumeToken } from "@/lib/tokens";
 
 export const dynamic = "force-dynamic";
 
-const schema = z.object({ token: z.string().min(20, "Link de confirmação inválido.") });
+function sha256(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
 
-export async function POST(request: Request) {
-  const limit = await consumeRateLimit(`emailverify:ip:${clientIp(request)}`, AUTH_RULES.emailVerify);
-  if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const token = url.searchParams.get("token");
 
-  const body = await request.json().catch(() => null);
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dados inválidos." }, { status: 400 });
-  }
+    if (!token || !token.trim()) {
+      return NextResponse.json({ error: "Token de verificação ausente." }, { status: 400 });
+    }
 
-  const consumed = await consumeToken(parsed.data.token, "email_verification");
-  if (!consumed) {
-    return NextResponse.json(
-      { error: "Este link de confirmação é inválido ou expirou. Solicite um novo." },
-      { status: 400 },
-    );
-  }
+    const ip = clientIp(request);
+    const limit = await consumeRateLimit(`verify-email:ip:${ip}`, AUTH_RULES.login);
+    if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
 
-  const [user] = await db
-    .select({ id: users.id, companyId: users.companyId, emailVerified: users.emailVerified })
-    .from(users)
-    .where(eq(users.id, consumed.userId))
-    .limit(1);
+    const tokenHash = sha256(token.trim());
 
-  if (!user) return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
+    const [validToken] = await db
+      .select()
+      .from(authTokens)
+      .where(
+        and(
+          eq(authTokens.kind, "email_verification"),
+          eq(authTokens.tokenHash, tokenHash),
+          isNull(authTokens.consumedAt),
+          gt(authTokens.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
 
-  if (!user.emailVerified) {
+    if (!validToken) {
+      return NextResponse.json(
+        { error: "Link de verificação inválido ou expirado. Solicite um novo link." },
+        { status: 400 },
+      );
+    }
+
+    // 1. Marca token como consumido (single-use)
+    await db
+      .update(authTokens)
+      .set({ consumedAt: new Date() })
+      .where(eq(authTokens.id, validToken.id));
+
+    // 2. Atualiza status de e-mail verificado do usuário
     await db
       .update(users)
-      .set({ emailVerified: true, emailVerifiedAt: new Date(), updatedAt: new Date() })
-      .where(eq(users.id, user.id));
-    if (user.companyId) await recordAudit({
-      companyId: user.companyId,
-      userId: user.id,
-      action: "auth.email_verified",
-      entity: "user",
-      entityId: user.id,
-    });
-  }
+      .set({ emailVerified: true, updatedAt: new Date() })
+      .where(eq(users.id, validToken.userId));
 
-  return NextResponse.json({ data: { success: true, message: "E-mail confirmado com sucesso." } });
+    // 3. Se a requisição aceita HTML ou é uma navegação direta de navegador, redireciona para login/gestão
+    const acceptHeader = request.headers.get("accept") || "";
+    if (acceptHeader.includes("text/html")) {
+      return NextResponse.redirect(new URL("/login?verified=true", request.url));
+    }
+
+    return NextResponse.json({
+      data: {
+        success: true,
+        message: "E-mail verificado com sucesso!",
+      },
+    });
+  } catch (error) {
+    console.error("[verify-email] Erro:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao processar a verificação de e-mail." },
+      { status: 500 },
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json().catch(() => null);
+    const token = body?.token;
+
+    if (!token || typeof token !== "string" || !token.trim()) {
+      return NextResponse.json({ error: "Token de verificação ausente." }, { status: 400 });
+    }
+
+    const ip = clientIp(request);
+    const limit = await consumeRateLimit(`verify-email:ip:${ip}`, AUTH_RULES.login);
+    if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);
+
+    const tokenHash = sha256(token.trim());
+
+    const [validToken] = await db
+      .select()
+      .from(authTokens)
+      .where(
+        and(
+          eq(authTokens.kind, "email_verification"),
+          eq(authTokens.tokenHash, tokenHash),
+          isNull(authTokens.consumedAt),
+          gt(authTokens.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+
+    if (!validToken) {
+      return NextResponse.json(
+        { error: "Código ou token inválido ou expirado." },
+        { status: 400 },
+      );
+    }
+
+    // 1. Marca token como consumido
+    await db
+      .update(authTokens)
+      .set({ consumedAt: new Date() })
+      .where(eq(authTokens.id, validToken.id));
+
+    // 2. Atualiza status de e-mail verificado
+    await db
+      .update(users)
+      .set({ emailVerified: true, updatedAt: new Date() })
+      .where(eq(users.id, validToken.userId));
+
+    return NextResponse.json({
+      data: {
+        success: true,
+        message: "E-mail confirmado com sucesso!",
+      },
+    });
+  } catch (error) {
+    console.error("[verify-email POST] Erro:", error);
+    return NextResponse.json(
+      { error: "Erro ao confirmar e-mail." },
+      { status: 500 },
+    );
+  }
 }

@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -462,6 +463,37 @@ export default function AssinaturaScreen() {
               </View>
             );
           })}
+
+          {/* Ações de Loja: Restaurar Compras e Gerenciar Assinatura */}
+          <View className="mt-2 gap-2.5">
+            <Button
+              label="Restaurar Compras"
+              variant="outline"
+              onPress={async () => {
+                Alert.alert(
+                  "Restaurar Compras",
+                  "Verificando compras e assinaturas ativas na sua conta da App Store / Google Play...",
+                  [{ text: "OK" }]
+                );
+                await load();
+              }}
+            />
+
+            <Pressable
+              onPress={() => {
+                const url =
+                  Platform.OS === "ios"
+                    ? "https://apps.apple.com/account/subscriptions"
+                    : "https://play.google.com/store/account/subscriptions";
+                Linking.openURL(url).catch(() => {});
+              }}
+              className="items-center py-2"
+            >
+              <Text style={{ color: colors.textMuted, fontSize: 12.5, textDecorationLine: "underline" }}>
+                Gerenciar assinatura na loja ({Platform.OS === "ios" ? "App Store" : "Google Play"})
+              </Text>
+            </Pressable>
+          </View>
 
           {/* Histórico de Faturas */}
           {data?.invoices && data.invoices.length > 0 && (

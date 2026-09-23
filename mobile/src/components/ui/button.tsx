@@ -2,7 +2,7 @@ import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } fr
 
 import { useTheme } from "@/hooks/use-theme";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 
 export interface ButtonProps {
   label: string;
@@ -33,7 +33,10 @@ export function Button({ label, variant = "primary", loading, disabled, onPress,
         ? "#ffffff"
         : colors.textPrimary;
 
-  const borderColor = variant === "ghost" ? colors.border : "transparent";
+  const borderColor =
+    variant === "ghost" || variant === "outline"
+      ? colors.border
+      : "transparent";
 
   return (
     <Pressable

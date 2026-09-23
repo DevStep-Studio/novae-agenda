@@ -763,7 +763,7 @@ export const customerCredentials = mysqlTable("customer_credentials", {
 }, (table) => ({
   userIdIdx: uniqueIndex("customer_credentials_user_id_idx").on(table.userId),
   phoneNormalizedIdx: uniqueIndex("customer_credentials_phone_normalized_idx").on(table.phoneNormalized),
-  pinLookupHashIdx: uniqueIndex("customer_credentials_pin_lookup_hash_idx").on(table.pinLookupHash),
+  pinLookupHashIdx: index("customer_credentials_pin_lookup_hash_idx").on(table.pinLookupHash),
 }));
 
 export const customerAccessLogs = mysqlTable("customer_access_logs", {

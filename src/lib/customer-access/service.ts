@@ -118,15 +118,6 @@ export class CustomerAccessService {
     return null;
   }
 
-  private static async assertPinAvailable(pin: string, userId?: string) {
-    const existing = await this.findCredentialByPin(pin);
-    if (existing && existing.userId !== userId) {
-      throw new Error(
-        "Este PIN já está em uso por outro cliente. Por favor, escolha outra combinação de 6 números.",
-      );
-    }
-  }
-
   static async userHasPin(userId: string): Promise<boolean> {
     const [credential] = await db
       .select({ id: customerCredentials.id })
@@ -137,11 +128,7 @@ export class CustomerAccessService {
   }
 
   static async generateAvailablePin(): Promise<string> {
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      const pin = generateRandomPin();
-      if (!(await this.findCredentialByPin(pin))) return pin;
-    }
-    throw new Error("Não foi possível gerar um PIN disponível. Tente novamente.");
+    return generateRandomPin();
   }
 
   /**
@@ -817,8 +804,6 @@ export class CustomerAccessService {
       if (existingCred) credential = existingCred;
     }
 
-    await this.assertPinAvailable(params.pin, user.id);
-
     const pinHash = await hashPassword(params.pin);
     const phoneNorm = normalized || (user.phone ? normalizePhoneDigits(user.phone) : "");
 
@@ -1138,10 +1123,7 @@ export class CustomerAccessService {
       throw new Error("Código de verificação inválido ou expirado.");
     }
 
-    await this.assertPinAvailable(params.newPin, user.id);
-
-    // Marca token como consumido somente depois de validar o novo PIN, para que
-    // uma combinação duplicada não inutilize o código de recuperação.
+    // Marca token como consumido ao aplicar o novo PIN
     await db
       .update(authTokens)
       .set({ consumedAt: new Date() })

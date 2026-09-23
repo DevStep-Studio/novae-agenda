@@ -23,7 +23,10 @@
       },
       "entitlements": {
         "aps-environment": "production"
-      }
+      },
+      "associatedDomains": [
+        "applinks:usereservei.com.br"
+      ]
     },
     "android": {
       "package": "br.com.usereservei.app",
@@ -34,6 +37,38 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "usereservei.com.br",
+              "pathPrefix": "/agendar"
+            },
+            {
+              "scheme": "https",
+              "host": "usereservei.com.br",
+              "pathPrefix": "/r"
+            },
+            {
+              "scheme": "https",
+              "host": "usereservei.com.br",
+              "pathPrefix": "/minhas-reservas"
+            },
+            {
+              "scheme": "https",
+              "host": "usereservei.com.br",
+              "pathPrefix": "/verify-email"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE",
