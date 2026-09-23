@@ -538,7 +538,7 @@ export default function EquipeScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 4, paddingBottom: 4 }}
+            contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
           >
             {(
               [
@@ -554,17 +554,17 @@ export default function EquipeScreen() {
                 <Pressable
                   key={tab.id}
                   onPress={() => setActiveTab(tab.id)}
-                  className="flex-row items-center gap-1.5 px-3"
+                  className="flex-row items-center gap-2 px-3 py-2 rounded-xl border"
                   style={{
+                    backgroundColor: isActive ? hexToRgba(primaryColor, 0.14) : "#16171d",
+                    borderColor: isActive ? hexToRgba(primaryColor, 0.35) : "rgba(255, 255, 255, 0.06)",
                     height: 38,
-                    borderBottomWidth: 2,
-                    borderBottomColor: isActive ? primaryColor : "transparent",
                   }}
                 >
-                  {TabIcon && <TabIcon size={13} color={isActive ? primaryColor : "#71717a"} />}
+                  {TabIcon && <TabIcon size={13.5} color={isActive ? primaryColor : "#9ca3af"} />}
                   <Text
                     style={{
-                      color: isActive ? primaryColor : "#71717a",
+                      color: isActive ? "#ffffff" : "#9ca3af",
                       fontSize: 12.5,
                       fontWeight: isActive ? "700" : "500",
                     }}
@@ -572,13 +572,18 @@ export default function EquipeScreen() {
                     {tab.label}
                   </Text>
                   <View
-                    className="px-1.5 py-0.5 rounded-full border"
+                    className="items-center justify-center px-2 py-0.5 rounded-full"
                     style={{
-                      backgroundColor: isActive ? hexToRgba(primaryColor, 0.14) : "#17181d",
-                      borderColor: isActive ? hexToRgba(primaryColor, 0.3) : "rgba(255, 255, 255, 0.08)",
+                      backgroundColor: isActive ? hexToRgba(primaryColor, 0.25) : "rgba(255, 255, 255, 0.06)",
                     }}
                   >
-                    <Text style={{ color: isActive ? primaryColor : "#71717a", fontSize: 10.5, fontWeight: "700" }}>
+                    <Text
+                      style={{
+                        color: isActive ? "#ffffff" : "#71717a",
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
                       {tab.count}
                     </Text>
                   </View>
