@@ -1972,32 +1972,59 @@ export default function LinkAgendamentoScreen() {
               </View>
 
               {/* Action Buttons: Compartilhar | Visualizar | QR Code */}
-              <View className="flex-row gap-2">
+              <View className="flex-row items-center gap-2">
                 <Pressable
                   onPress={handleCopyLink}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
-                  style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-xl border"
+                  style={{
+                    backgroundColor: "#1c1d24",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    height: 40,
+                  }}
                 >
-                  <Share2 size={15} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>Compartilhar</Text>
+                  <Share2 size={14} color="#ffffff" />
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }}
+                  >
+                    Compartilhar
+                  </Text>
                 </Pressable>
 
                 <Pressable
                   onPress={() => Linking.openURL(publicUrl)}
-                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 rounded-xl border"
-                  style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-xl border"
+                  style={{
+                    backgroundColor: "#1c1d24",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    height: 40,
+                  }}
                 >
-                  <ExternalLink size={15} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>Visualizar</Text>
+                  <ExternalLink size={14} color="#ffffff" />
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }}
+                  >
+                    Visualizar
+                  </Text>
                 </Pressable>
 
                 <Pressable
                   onPress={() => setShowQrModal(true)}
-                  className="flex-row items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border"
-                  style={{ backgroundColor: "#1c1d24", borderColor: "rgba(255, 255, 255, 0.1)" }}
+                  className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-xl border"
+                  style={{
+                    backgroundColor: "#1c1d24",
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    height: 40,
+                  }}
                 >
-                  <QrCode size={15} color="#ffffff" />
-                  <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700" }}>QR Code</Text>
+                  <QrCode size={14} color="#ffffff" />
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }}
+                  >
+                    QR Code
+                  </Text>
                 </Pressable>
               </View>
 
