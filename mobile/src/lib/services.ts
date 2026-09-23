@@ -13,6 +13,10 @@ export type ServiceDTO = {
   active: boolean;
   imageUrl?: string | null;
   paymentType?: string;
+  bufferMinutes?: number;
+  deliveryMode?: string;
+  depositAmount?: number;
+  cancellationPolicy?: string;
 };
 
 export async function getServices() {
