@@ -48,12 +48,11 @@ export function MetricCard({
         style,
       ]}
     >
-      {/* Top row: Icon badge + Label */}
       <View
         style={{
           flexDirection: "row",
-          alignItems: "center",
-          gap: 10,
+          alignItems: "flex-start",
+          gap: 11,
         }}
       >
         <View
@@ -66,50 +65,47 @@ export function MetricCard({
             backgroundColor: iconBg,
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <Icon size={18} color={iconColor} />
+          <Icon size={17} color={iconColor} />
         </View>
-        <Text
-          style={{
-            color: textMuted,
-            fontSize: 12.5,
-            fontWeight: "500",
-            flex: 1,
-            lineHeight: 16,
-          }}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-      </View>
-
-      {/* Middle & Bottom: Big Value + Detail */}
-      <View style={{ gap: 2, marginTop: 10 }}>
-        <Text
-          style={{
-            color: textTitle,
-            fontSize: 22,
-            fontWeight: "800",
-            letterSpacing: -0.3,
-            lineHeight: 28,
-          }}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        {detail ? (
+        <View style={{ flex: 1, gap: 1 }}>
           <Text
             style={{
-              color: textDetail,
+              color: textMuted,
               fontSize: 11.5,
+              fontWeight: "500",
               lineHeight: 15,
             }}
             numberOfLines={1}
           >
-            {detail}
+            {label}
           </Text>
-        ) : null}
+          <Text
+            style={{
+              color: textTitle,
+              fontSize: 20,
+              fontWeight: "800",
+              letterSpacing: -0.3,
+            }}
+            numberOfLines={1}
+          >
+            {value}
+          </Text>
+          {detail ? (
+            <Text
+              style={{
+                color: textDetail,
+                fontSize: 10.5,
+                lineHeight: 14,
+              }}
+              numberOfLines={1}
+            >
+              {detail}
+            </Text>
+          ) : null}
+        </View>
       </View>
     </View>
   );

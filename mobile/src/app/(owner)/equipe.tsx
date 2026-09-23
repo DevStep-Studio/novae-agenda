@@ -530,67 +530,80 @@ export default function EquipeScreen() {
             borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          {/* Filter Tabs — mirrors the real .client-tab-btn: transparent bg,
-              muted grey when inactive, brand primary text/icon + bottom
-              underline when active (no gradient, no per-tab icon tinting —
-              globals.css:3179-3206 has one accent color for every active
-              tab, not a different color per tab). */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
+          {/* Filter Tabs — mirrors Web .client-segment-tabs with bottom active indicator */}
+          <View
+            style={{
+              borderBottomWidth: 1,
+              borderBottomColor: "rgba(255, 255, 255, 0.08)",
+              paddingBottom: 2,
+            }}
           >
-            {(
-              [
-                { id: "all" as const, label: "Todos os profissionais", icon: null, count: totalEmployees },
-                { id: "active" as const, label: "Ativos", icon: CheckCircle, count: activeEmployees.length },
-                { id: "with_today" as const, label: "Com agenda hoje", icon: CalendarDays, count: withTodayCount },
-                { id: "top" as const, label: "Mais produtivos", icon: Sparkles, count: topCount },
-              ]
-            ).map((tab) => {
-              const isActive = activeTab === tab.id;
-              const TabIcon = tab.icon;
-              return (
-                <Pressable
-                  key={tab.id}
-                  onPress={() => setActiveTab(tab.id)}
-                  className="flex-row items-center gap-2 px-3 py-2 rounded-xl border"
-                  style={{
-                    backgroundColor: isActive ? hexToRgba(primaryColor, 0.14) : "#16171d",
-                    borderColor: isActive ? hexToRgba(primaryColor, 0.35) : "rgba(255, 255, 255, 0.06)",
-                    height: 38,
-                  }}
-                >
-                  {TabIcon && <TabIcon size={13.5} color={isActive ? primaryColor : "#9ca3af"} />}
-                  <Text
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingHorizontal: 2 }}
+            >
+              {(
+                [
+                  { id: "all" as const, label: "Todos os profissionais", icon: null, count: totalEmployees },
+                  { id: "active" as const, label: "Ativos", icon: CheckCircle, count: activeEmployees.length },
+                  { id: "with_today" as const, label: "Com agenda hoje", icon: CalendarDays, count: withTodayCount },
+                  { id: "top" as const, label: "Mais produtivos", icon: Sparkles, count: topCount },
+                ]
+              ).map((tab) => {
+                const isActive = activeTab === tab.id;
+                const TabIcon = tab.icon;
+                return (
+                  <Pressable
+                    key={tab.id}
+                    onPress={() => setActiveTab(tab.id)}
                     style={{
-                      color: isActive ? "#ffffff" : "#9ca3af",
-                      fontSize: 12.5,
-                      fontWeight: isActive ? "700" : "500",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 6,
+                      paddingVertical: 8,
+                      paddingHorizontal: 6,
+                      borderBottomWidth: 2,
+                      borderBottomColor: isActive ? primaryColor : "transparent",
                     }}
                   >
-                    {tab.label}
-                  </Text>
-                  <View
-                    className="items-center justify-center px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: isActive ? hexToRgba(primaryColor, 0.25) : "rgba(255, 255, 255, 0.06)",
-                    }}
-                  >
+                    {TabIcon && <TabIcon size={14} color={isActive ? primaryColor : "#9ca3af"} />}
                     <Text
                       style={{
-                        color: isActive ? "#ffffff" : "#71717a",
-                        fontSize: 11,
-                        fontWeight: "700",
+                        color: isActive ? "#ffffff" : "#9ca3af",
+                        fontSize: 13,
+                        fontWeight: isActive ? "700" : "500",
                       }}
                     >
-                      {tab.count}
+                      {tab.label}
                     </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+                    <View
+                      style={{
+                        alignItems: "center",
+                        justifyContent: "center",
+                        paddingHorizontal: 6,
+                        paddingVertical: 1.5,
+                        borderRadius: 999,
+                        backgroundColor: isActive
+                          ? hexToRgba(primaryColor, 0.22)
+                          : "rgba(255, 255, 255, 0.07)",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: isActive ? primaryColor : "#71717a",
+                          fontSize: 11,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {tab.count}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
 
           {/* Search Box */}
           <View
