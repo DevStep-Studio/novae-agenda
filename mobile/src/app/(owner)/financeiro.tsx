@@ -7,6 +7,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { Screen } from "@/components/ui/screen";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ServiceRankRow, type ServiceRankRowData } from "@/components/ui/service-rank-row";
+import { PageHeader } from "@/components/ui/page-header";
 import { TeamRankRow, type TeamRankRowData } from "@/components/ui/team-rank-row";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, typography } from "@/constants/design-tokens";
@@ -228,13 +229,11 @@ export default function FinanceiroScreen() {
 
   return (
     <Screen header={<TopBar title="Financeiro" company={session?.company?.name || "Barbearia Pelly"} showBack={true} />} style={{ paddingTop: 16 }}>
-      <View>
-        <Text style={{ color: colors.primary, ...typography.eyebrow }}>VISÃO FINANCEIRA</Text>
-        <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Financeiro</Text>
-        <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-          Faturamento real calculado a partir dos atendimentos finalizados e comissões da equipe.
-        </Text>
-      </View>
+      <PageHeader
+        eyebrow="VISÃO FINANCEIRA"
+        title="Financeiro"
+        subtitle="Faturamento real calculado a partir dos atendimentos finalizados e comissões da equipe."
+      />
 
       {/* Period Tabs — mirrors the real .client-tab-btn: transparent bg,
           muted grey inactive, brand primary text/icon + bottom underline

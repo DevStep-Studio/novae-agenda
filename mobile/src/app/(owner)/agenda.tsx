@@ -34,6 +34,7 @@ import { router } from "expo-router";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -478,33 +479,11 @@ export default function AgendaScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {/* 1. Header Section */}
-        <View className="gap-1">
-          <Text
-            style={{
-              color: primaryColor,
-              fontSize: 11,
-              fontWeight: "700",
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-            }}
-          >
-            AGENDA DO ESTABELECIMENTO
-          </Text>
-          <Text
-            style={{
-              color: isDark ? "#ffffff" : "#0f172a",
-              fontSize: 22,
-              fontWeight: "800",
-              letterSpacing: -0.4,
-              lineHeight: 28,
-            }}
-          >
-            {calendarTitle}
-          </Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-            {activeCount} {activeCount === 1 ? "atendimento" : "atendimentos"} · {formatBRL(projectedRevenue)} previsto
-          </Text>
-        </View>
+        <PageHeader
+          eyebrow="AGENDA DO ESTABELECIMENTO"
+          title={calendarTitle}
+          subtitle={`${activeCount} ${activeCount === 1 ? "atendimento" : "atendimentos"} · ${formatBRL(projectedRevenue)} previsto`}
+        />
 
         {/* 2. Date Navigation Row */}
         <View

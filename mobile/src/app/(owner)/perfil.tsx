@@ -38,6 +38,7 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
@@ -357,6 +358,13 @@ export default function PerfilPersonalizacaoScreen() {
         contentContainerStyle={{ gap: 16, paddingBottom: 40, paddingHorizontal: 4 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header Section */}
+        <PageHeader
+          eyebrow="CONTA & IDENTIDADE VISUAL"
+          title="Meu Perfil"
+          subtitle="Personalize as cores, fotos de capa e informações da sua conta e da equipe."
+        />
+
         {/* 1. Shared Visual Identity Notice Banner (Web Parity) */}
         <View
           className="p-3.5 rounded-2xl border"

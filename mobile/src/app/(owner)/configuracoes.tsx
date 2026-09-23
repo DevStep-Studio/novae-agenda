@@ -29,6 +29,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -205,7 +206,7 @@ export default function ConfiguracoesScreen() {
         </View>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 40, gap: 20 }}
+          contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -214,6 +215,13 @@ export default function ConfiguracoesScreen() {
             />
           }
         >
+          {/* Header Section */}
+          <PageHeader
+            eyebrow="SISTEMA E HORÁRIOS"
+            title="Configurações"
+            subtitle="Gerencie os dados gerais do seu negócio, horários de funcionamento e regras."
+          />
+
           {/* Card do Link de Agendamento Público */}
           <View
             style={{

@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { AppointmentCard } from "@/components/ui/appointment-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { colors, radius } from "@/constants/design-tokens";
 import { ApiError, api, resolveImageUrl } from "@/lib/api-client";
 import { getStats, type StatsResponse } from "@/lib/stats";
@@ -1133,39 +1134,11 @@ export default function OwnerHomeScreen() {
           >
             {/* 1. Page Intro / Headings */}
             <View style={{ gap: 14, marginTop: 4, marginBottom: 2 }}>
-              <View style={{ gap: 6 }}>
-                <Text
-                  style={{
-                    color: isDark ? "#9ca3af" : "#64748b",
-                    fontSize: 11.5,
-                    fontWeight: "700",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.8,
-                  }}
-                >
-                  ACOMPANHE O DIA DE HOJE
-                </Text>
-                <Text
-                  style={{
-                    color: textTitle,
-                    fontSize: 28,
-                    fontWeight: "800",
-                    letterSpacing: -0.5,
-                    lineHeight: 34,
-                  }}
-                >
-                  Olá! Aqui está seu dia
-                </Text>
-                <Text
-                  style={{
-                    color: textMuted,
-                    fontSize: 14,
-                    lineHeight: 20,
-                  }}
-                >
-                  Acompanhe os atendimentos e a receita do seu estabelecimento hoje.
-                </Text>
-              </View>
+              <PageHeader
+                eyebrow="ACOMPANHE O DIA DE HOJE"
+                title="Olá! Aqui está seu dia"
+                subtitle="Acompanhe os atendimentos e a receita do seu estabelecimento hoje."
+              />
 
               {/* Action Buttons Row */}
               <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 2 }}>

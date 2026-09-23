@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { ServiceCard } from "@/components/ui/service-card";
 import { TopBar } from "@/components/ui/top-bar";
@@ -201,50 +202,26 @@ export default function ServicosScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {/* 1. Header Section: Eyebrow + Title + Subtitle + Action Button */}
-        <View className="gap-3">
-          <View className="gap-1">
-            <Text
+        <PageHeader
+          eyebrow="CATÁLOGO DE SERVIÇOS"
+          title="Serviços"
+          subtitle={`${services?.length ?? 0} ${services?.length === 1 ? "serviço cadastrado" : "serviços cadastrados"} no seu catálogo.`}
+          action={
+            <Pressable
+              onPress={() => setCreateModalVisible(true)}
+              className="flex-row items-center gap-2 px-4 rounded-xl self-start"
               style={{
-                color: primaryColor,
-                fontSize: 11,
-                fontWeight: "700",
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
+                backgroundColor: primaryColor,
+                height: 40,
               }}
             >
-              CATÁLOGO DE SERVIÇOS
-            </Text>
-            <Text
-              style={{
-                color: isDark ? "#ffffff" : "#0f172a",
-                fontSize: 22,
-                fontWeight: "800",
-                letterSpacing: -0.4,
-                lineHeight: 28,
-              }}
-            >
-              Serviços
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-              {services?.length ?? 0} {services?.length === 1 ? "serviço cadastrado" : "serviços cadastrados"} no seu catálogo.
-            </Text>
-          </View>
-
-          {/* Action Button: + Novo serviço */}
-          <Pressable
-            onPress={() => setCreateModalVisible(true)}
-            className="flex-row items-center gap-2 px-4 rounded-xl self-start"
-            style={{
-              backgroundColor: primaryColor,
-              height: 40,
-            }}
-          >
-            <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
-            <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
-              Novo serviço
-            </Text>
-          </Pressable>
-        </View>
+              <Plus size={16} color={primaryForeground} strokeWidth={2.5} />
+              <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                Novo serviço
+              </Text>
+            </Pressable>
+          }
+        />
 
         {/* 2. Top Sub-tabs: Serviços Avulsos | Planos Mensais */}
         <View className="flex-row border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>

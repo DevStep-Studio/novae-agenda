@@ -21,6 +21,7 @@ import { useFocusEffect } from "expo-router";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -101,24 +102,31 @@ export default function EmployeeAgendaScreen() {
             />
           }
           ListHeaderComponent={
-            <View className="flex-row gap-2.5 mb-2">
-              <View className="flex-1">
-                <MetricCard
-                  label="Atendimentos Hoje"
-                  value={String(appointments.length)}
-                  detail="Agendados"
-                  icon={CalendarDays}
-                  variant="teal"
-                />
-              </View>
-              <View className="flex-1">
-                <MetricCard
-                  label="Faturamento Estimado"
-                  value={formatBRL(todayRevenue)}
-                  detail="Previsto hoje"
-                  icon={CircleDollarSign}
-                  variant="teal"
-                />
+            <View style={{ gap: 12, marginBottom: 8 }}>
+              <PageHeader
+                eyebrow="AGENDA DO PROFISSIONAL"
+                title="Meus Atendimentos"
+                subtitle="Consulte sua programação diária e valores previstos."
+              />
+              <View className="flex-row gap-2.5">
+                <View className="flex-1">
+                  <MetricCard
+                    label="Atendimentos Hoje"
+                    value={String(appointments.length)}
+                    detail="Agendados"
+                    icon={CalendarDays}
+                    variant="teal"
+                  />
+                </View>
+                <View className="flex-1">
+                  <MetricCard
+                    label="Faturamento Estimado"
+                    value={formatBRL(todayRevenue)}
+                    detail="Previsto hoje"
+                    icon={CircleDollarSign}
+                    variant="teal"
+                  />
+                </View>
               </View>
             </View>
           }

@@ -37,6 +37,7 @@ import {
 import { useFocusEffect, router } from "expo-router";
 
 import { Avatar } from "@/components/ui/avatar";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
@@ -403,50 +404,26 @@ export default function ClientesScreen() {
         }
       >
         {/* 1. Header: Eyebrow + Title + Subtitle + Action Button */}
-        <View className="gap-3">
-          <View className="gap-1">
-            <Text
+        <PageHeader
+          eyebrow="BASE DE RELACIONAMENTO"
+          title="Clientes"
+          subtitle={`${totalClients} ${totalClients === 1 ? "pessoa já faz" : "pessoas já fazem"} parte da sua história.`}
+          action={
+            <Pressable
+              onPress={() => setCreateModalVisible(true)}
+              className="flex-row items-center gap-2 px-4 rounded-xl self-start"
               style={{
-                color: primaryColor,
-                fontSize: 11,
-                fontWeight: "700",
-                letterSpacing: 0.8,
-                textTransform: "uppercase",
+                backgroundColor: primaryColor,
+                height: 40,
               }}
             >
-              BASE DE RELACIONAMENTO
-            </Text>
-            <Text
-              style={{
-                color: isDark ? "#ffffff" : "#0f172a",
-                fontSize: 22,
-                fontWeight: "800",
-                letterSpacing: -0.4,
-                lineHeight: 28,
-              }}
-            >
-              Clientes
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-              {totalClients} {totalClients === 1 ? "pessoa já faz" : "pessoas já fazem"} parte da sua história.
-            </Text>
-          </View>
-
-          {/* Action Button: Novo cliente */}
-          <Pressable
-            onPress={() => setCreateModalVisible(true)}
-            className="flex-row items-center gap-2 px-4 rounded-xl self-start"
-            style={{
-              backgroundColor: primaryColor,
-              height: 40,
-            }}
-          >
-            <UserPlus size={16} color={primaryForeground} strokeWidth={2.4} />
-            <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
-              Novo cliente
-            </Text>
-          </Pressable>
-        </View>
+              <UserPlus size={16} color={primaryForeground} strokeWidth={2.4} />
+              <Text style={{ color: primaryForeground, fontSize: 13.5, fontWeight: "700" }}>
+                Novo cliente
+              </Text>
+            </Pressable>
+          }
+        />
 
         {/* 2. 2x2 Metrics Grid (Matching Web KPIs Exactly) */}
         <View className="gap-2.5">

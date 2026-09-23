@@ -5,6 +5,7 @@ import { useFocusEffect } from "expo-router";
 
 import { ClientCard } from "@/components/ui/client-card";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, typography } from "@/constants/design-tokens";
@@ -74,13 +75,11 @@ export default function EmployeeClientesScreen() {
 
   return (
     <Screen header={<TopBar title="Clientes" company={session?.company.name} />} style={{ paddingTop: 16 }}>
-      <View>
-        <Text style={{ color: colors.primary, ...typography.eyebrow }}>BASE DE RELACIONAMENTO</Text>
-        <Text style={{ color: colors.textPrimary, marginTop: 4, ...typography.pageTitle }}>Clientes</Text>
-        <Text style={{ color: colors.textMuted, marginTop: 6, ...typography.pageSubtitle }}>
-          {totalClients} {totalClients === 1 ? "pessoa cadastrada" : "pessoas cadastradas"} no estabelecimento.
-        </Text>
-      </View>
+      <PageHeader
+        eyebrow="BASE DE RELACIONAMENTO"
+        title="Clientes"
+        subtitle={`${totalClients} ${totalClients === 1 ? "pessoa cadastrada" : "pessoas cadastradas"} no estabelecimento.`}
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">

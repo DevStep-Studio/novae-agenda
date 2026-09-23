@@ -21,6 +21,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -83,6 +84,13 @@ export default function RelatoriosScreen() {
       header={<TopBar title="Relatórios & Analytics" company="Performance do negócio" showBack={true} />}
       style={{ paddingTop: 16 }}
     >
+      <PageHeader
+        eyebrow="ANÁLISES & INDICADORES"
+        title="Relatórios"
+        subtitle="Acompanhe métricas detalhadas de desempenho, clientes e serviços."
+        style={{ marginBottom: 16 }}
+      />
+
       {/* Seletor de Período */}
       <View style={{ marginBottom: 12 }}>
         <ScrollView

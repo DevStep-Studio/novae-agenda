@@ -24,6 +24,7 @@ import {
 import * as Application from "expo-application";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -102,6 +103,13 @@ export default function AjudaScreen() {
   return (
     <Screen header={<TopBar title="Ajuda & Suporte" company={companyName} showBack={true} />} style={{ paddingTop: 14 }}>
       <ScrollView className="flex-1" contentContainerStyle={{ gap: 14, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+        {/* Header da Página */}
+        <PageHeader
+          eyebrow="SUPORTE & ATENDIMENTO"
+          title="Ajuda e Suporte"
+          subtitle="Tire dúvidas, fale conosco e acesse guias de utilização do sistema."
+        />
+
         {/* Support Banner */}
         <View
           className="p-4 rounded-xl border gap-3"

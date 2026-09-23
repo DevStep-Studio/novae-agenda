@@ -20,6 +20,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
@@ -117,6 +118,13 @@ export default function ListaEsperaScreen() {
             />
           }
         >
+          {/* Header da Página */}
+          <PageHeader
+            eyebrow="DEMANDA E ENCAIXES"
+            title="Lista de Espera"
+            subtitle="Clientes aguardando vagas e cancelamentos para encaixe rápido na agenda."
+          />
+
           {/* Métricas */}
           <View className="flex-row gap-3">
             <View className="flex-1">

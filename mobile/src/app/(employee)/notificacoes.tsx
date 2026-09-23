@@ -18,6 +18,7 @@ import {
 import { useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
@@ -136,6 +137,13 @@ export default function EmployeeNotificacoesScreen() {
             />
           }
         >
+          {/* Header da Página */}
+          <PageHeader
+            eyebrow="CENTRAL DE ALERTAS"
+            title="Notificações"
+            subtitle={unreadCount > 0 ? `${unreadCount} nova${unreadCount > 1 ? "s" : ""} mensagem${unreadCount > 1 ? "s" : ""}` : "Todas as suas notificações e agendamentos recentes."}
+          />
+
           {/* Filter Tabs */}
           <View className="flex-row items-center gap-2 pb-1">
             <Pressable

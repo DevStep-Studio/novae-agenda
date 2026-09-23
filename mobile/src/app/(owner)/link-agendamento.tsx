@@ -55,6 +55,7 @@ import {
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
@@ -793,32 +794,11 @@ export default function LinkAgendamentoScreen() {
         }
       >
         {/* 1. Header: Eyebrow + Title + Subtitle */}
-        <View className="gap-1">
-          <Text
-            style={{
-              color: primaryColor || "#71717a",
-              fontSize: 11,
-              fontWeight: "700",
-              letterSpacing: 0.8,
-              textTransform: "uppercase",
-            }}
-          >
-            SUA AGENDA, A UM CLIQUE DE DISTÂNCIA
-          </Text>
-          <Text
-            style={{
-              color: "#ffffff",
-              fontSize: 26,
-              fontWeight: "800",
-              letterSpacing: -0.5,
-            }}
-          >
-            Link de agendamento
-          </Text>
-          <Text style={{ color: "#9ca3af", fontSize: 13.5, marginTop: 2 }}>
-            Receba reservas pelo Instagram, WhatsApp ou onde seus clientes estiverem.
-          </Text>
-        </View>
+        <PageHeader
+          eyebrow="PÁGINA PÚBLICA DE RESERVAS"
+          title="Link de agendamento"
+          subtitle="Receba reservas pelo Instagram, WhatsApp ou onde seus clientes estiverem."
+        />
 
         {/* 2. Top Navigation Tabs Bar */}
         <View

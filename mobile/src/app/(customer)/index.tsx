@@ -22,6 +22,7 @@ import {
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
@@ -125,9 +126,14 @@ export default function MyBookingsScreen() {
 
   return (
     <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ paddingHorizontal: 16, gap: 14 }}>
         <TopBar
           title="Meus Agendamentos"
+        />
+        <PageHeader
+          eyebrow="MINHAS RESERVAS"
+          title="Meus Agendamentos"
+          subtitle="Acompanhe seus horários marcados e histórico de atendimentos."
         />
       </View>
 

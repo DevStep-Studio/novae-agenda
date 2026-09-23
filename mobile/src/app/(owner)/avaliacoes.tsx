@@ -12,6 +12,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
@@ -96,6 +97,13 @@ export default function AvaliacoesScreen() {
             />
           }
         >
+          {/* Header da Página */}
+          <PageHeader
+            eyebrow="FEEDBACK DOS CLIENTES"
+            title="Avaliações"
+            subtitle="Monitore o índice de satisfação e comentários deixados pelos seus clientes."
+          />
+
           {/* Métricas Principais */}
           <View className="flex-row gap-3">
             <View className="flex-1">

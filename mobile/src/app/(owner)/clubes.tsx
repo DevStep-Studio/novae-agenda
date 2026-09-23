@@ -20,6 +20,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -108,6 +109,13 @@ export default function ClubesScreen() {
             />
           }
         >
+          {/* Header da Página */}
+          <PageHeader
+            eyebrow="FIDELIZAÇÃO E RECORRÊNCIA"
+            title="Clubes & Planos"
+            subtitle="Crie planos de assinatura mensais e programas de fidelidade para seus clientes."
+          />
+
           {/* Métricas Principais */}
           <View className="flex-row gap-3">
             <View className="flex-1">

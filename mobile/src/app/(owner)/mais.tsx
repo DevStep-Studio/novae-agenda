@@ -19,6 +19,7 @@ import { router } from "expo-router";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -135,6 +136,12 @@ export default function OwnerMoreScreen() {
 
   return (
     <Screen header={<TopBar title="Menu" company={session?.company.name} />} style={{ paddingTop: 16, gap: 16 }}>
+      <PageHeader
+        eyebrow="PAINEL DE CONTROLE"
+        title="Menu & Recursos"
+        subtitle="Acesse todas as ferramentas e configurações da sua empresa."
+      />
+
       {/* Header do Usuário / Estabelecimento */}
       <View
         className="flex-row items-center gap-3.5 rounded-xl border p-4"

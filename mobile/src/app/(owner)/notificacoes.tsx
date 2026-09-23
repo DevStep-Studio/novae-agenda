@@ -30,6 +30,7 @@ import {
 import { router } from "expo-router";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors } from "@/constants/design-tokens";
@@ -401,36 +402,23 @@ export default function NotificacoesScreen() {
           }
         >
           {/* Page Header */}
-          <View className="gap-3">
-            <View className="flex-row items-start justify-between gap-2">
-              <View className="flex-1 gap-1">
-                <View className="flex-row items-center gap-2">
-                  <View
-                    className="w-8 h-8 rounded-lg items-center justify-center border"
-                    style={{ backgroundColor: colors.primarySoft, borderColor: "rgba(220, 255, 76, 0.25)" }}
-                  >
-                    <Bell size={16} color={colors.primary} />
-                  </View>
-                  <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: "800" }}>
-                    Central de Notificações
-                  </Text>
-                </View>
-                <Text style={{ color: colors.textSecondary, fontSize: 12.5, lineHeight: 18 }}>
-                  Histórico completo de eventos, agendamentos, clientes e novidades da sua empresa.
-                </Text>
-              </View>
-
-              {counts.unread > 0 && (
+          <PageHeader
+            eyebrow="CENTRAL DE AVISOS"
+            title="Notificações"
+            subtitle="Histórico completo de eventos, agendamentos, clientes e novidades da sua empresa."
+            action={
+              counts.unread > 0 ? (
                 <View
-                  className="py-1 px-2 rounded-full items-center justify-center"
+                  className="py-1 px-2.5 rounded-full items-center justify-center self-start"
                   style={{ backgroundColor: colors.primary }}
                 >
                   <Text style={{ color: colors.primaryForeground, fontSize: 11, fontWeight: "700" }}>
                     {counts.unread} {counts.unread === 1 ? "não lida" : "não lidas"}
                   </Text>
                 </View>
-              )}
-            </View>
+              ) : null
+            }
+          />
 
             <View className="flex-row flex-wrap gap-2">
               {__DEV__ && (
@@ -469,7 +457,6 @@ export default function NotificacoesScreen() {
                 </Pressable>
               )}
             </View>
-          </View>
 
           {/* Filter Tabs */}
           <View

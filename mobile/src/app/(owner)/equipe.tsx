@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmployeeCard, type EmployeeMetrics } from "@/components/ui/employee-card";
 import { MetricCard } from "@/components/ui/metric-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
@@ -424,35 +425,11 @@ export default function EquipeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {/* 1. Header Section */}
-        <View className="gap-1">
-          <Text
-            style={{
-              color: primaryColor,
-              fontSize: 11,
-              fontWeight: "700",
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-            }}
-          >
-            PESSOAS E PERMISSÕES
-          </Text>
-          <Text
-            style={{
-              color: isDark ? "#ffffff" : "#0f172a",
-              fontSize: 22,
-              fontWeight: "800",
-              letterSpacing: -0.4,
-              lineHeight: 28,
-            }}
-          >
-            Equipe
-          </Text>
-          <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-            {totalEmployees} profissionais cadastrados no seu estabelecimento.
-          </Text>
-
-          {/* Action Button: + Adicionar profissional */}
-          <View className="mt-3 flex-row">
+        <PageHeader
+          eyebrow="PESSOAS E PERMISSÕES"
+          title="Equipe"
+          subtitle={`${totalEmployees} profissionais cadastrados no seu estabelecimento.`}
+          action={
             <Pressable
               onPress={() => setCreateModalVisible(true)}
               className="flex-row items-center gap-2 px-4 rounded-xl self-start"
@@ -466,8 +443,8 @@ export default function EquipeScreen() {
                 Adicionar profissional
               </Text>
             </Pressable>
-          </View>
-        </View>
+          }
+        />
 
         {/* 2. 2x2 KPI Metric Cards matching Web */}
         <View className="gap-2.5">

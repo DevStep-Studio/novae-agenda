@@ -15,6 +15,7 @@ import { router } from "expo-router";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
 import { useSession } from "@/lib/session-context";
@@ -24,6 +25,12 @@ export default function CustomerMoreScreen() {
 
   return (
     <Screen style={{ paddingTop: 12, gap: 16 }}>
+      <PageHeader
+        eyebrow="CONTA DO CLIENTE"
+        title="Menu do Cliente"
+        subtitle="Gerencie seus dados, preferências e segurança do PIN."
+      />
+
       {/* Header do Cliente */}
       <View
         className="flex-row items-center gap-3.5 rounded-xl border p-4"

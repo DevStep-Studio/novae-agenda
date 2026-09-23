@@ -22,6 +22,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
@@ -181,6 +182,13 @@ export default function AssinaturaScreen() {
             />
           }
         >
+          {/* Header da Página */}
+          <PageHeader
+            eyebrow="PLANO & PAGAMENTOS"
+            title="Minha Assinatura"
+            subtitle="Gerencie seu plano SaaS, cobranças e limites de profissionais."
+          />
+
           {/* Card da Assinatura Atual */}
           <View
             style={{
