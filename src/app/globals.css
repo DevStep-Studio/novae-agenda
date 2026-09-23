@@ -5387,9 +5387,9 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
-  min-height: 100px;
+  gap: 8px;
+  padding: 12px 13px;
+  min-height: 112px;
   border-radius: 12px;
   background: var(--surface-secondary, #10141d);
   border: 1px solid var(--border, #1f242e);
@@ -5398,7 +5398,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
 }
 
@@ -5467,11 +5467,12 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .service-card-title {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary, #ffffff);
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
+  margin: 2px 0 auto 0;
 }
 
 :root:not([data-theme="dark"]) .service-card-title {
@@ -5482,7 +5483,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
   margin-top: auto;
   padding-top: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -5498,19 +5499,47 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 800;
   font-size: 13px;
   letter-spacing: -0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .service-card-duration {
   color: var(--text-muted, #8a94a6);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
+  gap: 3px;
+  font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 :root:not([data-theme="dark"]) .service-card-duration {
   color: #5d7e72;
+}
+
+@media (max-width: 640px) {
+  .service-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding: 2px 2px 8px !important;
+  }
+  .service-option-card {
+    padding: 10px !important;
+    min-height: 112px !important;
+    gap: 6px !important;
+  }
+  .service-card-title {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    min-height: 31px !important;
+  }
+  .service-card-price {
+    font-size: 12.5px !important;
+  }
+  .service-card-duration {
+    font-size: 10.5px !important;
+  }
 }
 
 /* Selected Summary Bar */

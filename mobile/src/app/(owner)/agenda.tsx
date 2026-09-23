@@ -1,18 +1,30 @@
 import {
   AlertCircle,
+  Building2,
   Calendar,
   CalendarDays,
+  CalendarPlus,
   Check,
+  CheckCheck,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
   Clock3,
+  FileText,
+  Mail,
   MessageCircle,
   Phone,
   Plus,
+  Scissors,
+  Search,
+  ShieldCheck,
+  Sparkles,
   User,
+  UserCheck,
+  UserPlus,
+  UserRound,
   Users,
   X,
 } from "lucide-react-native";
@@ -27,6 +39,7 @@ import {
   ScrollView,
   Text,
   TextInput,
+  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -172,12 +185,22 @@ export default function AgendaScreen() {
   const [savingAction, setSavingAction] = useState(false);
 
   // New Appointment Form State
+  const [formClientId, setFormClientId] = useState("");
   const [formClientName, setFormClientName] = useState("");
   const [formClientPhone, setFormClientPhone] = useState("");
-  const [formServiceId, setFormServiceId] = useState("");
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [creatingClientBusy, setCreatingClientBusy] = useState(false);
+
+  const [formServiceIds, setFormServiceIds] = useState<string[]>([]);
   const [formEmployeeId, setFormEmployeeId] = useState("");
-  const [formTime, setFormTime] = useState("10:00");
+  const [formTime, setFormTime] = useState("09:00");
   const [formNotes, setFormNotes] = useState("");
+  const [availableSlots, setAvailableSlots] = useState<Array<{ startTime: string; endTime: string }>>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Block Modal Form State
   const [blockEmpId, setBlockEmpId] = useState("");
@@ -287,16 +310,141 @@ export default function AgendaScreen() {
 
   const colWidth = useMemo(() => {
     if (visibleEmployees.length <= 1) {
-      // 1 professional expands to fill 100% of available calendar width
       return employeeAreaWidth;
     }
-    // Multiple professionals: each gets at least 175px or equal split
     return Math.max(Math.floor(employeeAreaWidth / visibleEmployees.length), 175);
   }, [visibleEmployees.length, employeeAreaWidth]);
 
   const weekColWidth = useMemo(() => {
     return Math.max(Math.floor((calendarAvailableWidth - 65) / 3), 130);
   }, [calendarAvailableWidth]);
+
+  // Appointment Modal Helpers
+  const selectedServices = useMemo(
+    () => services.filter((s) => formServiceIds.includes(s.id)),
+    [services, formServiceIds]
+  );
+  const totalServiceDuration = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0),
+    [selectedServices]
+  );
+  const totalServicePrice = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + (s.price || 0), 0),
+    [selectedServices]
+  );
+
+  const eligibleEmployees = useMemo(() => {
+    const matched = employees.filter((employee) => {
+      if (!employee.active) return false;
+      if (formServiceIds.length === 0) return true;
+      return !employee.serviceIds?.length || formServiceIds.every((sid) => employee.serviceIds?.includes(sid));
+    });
+    if (matched.length > 0) return matched;
+    return employees.filter((e) => e.active);
+  }, [employees, formServiceIds]);
+
+  useEffect(() => {
+    if (formEmployeeId && eligibleEmployees.some((e) => e.id === formEmployeeId)) return;
+    setFormEmployeeId(eligibleEmployees.length === 1 ? eligibleEmployees[0].id : (eligibleEmployees[0]?.id || ""));
+  }, [eligibleEmployees, formEmployeeId]);
+
+  const toggleService = (id: string) => {
+    setFormServiceIds((current) =>
+      current.includes(id) ? current.filter((s) => s !== id) : [...current, id]
+    );
+  };
+
+  const serviceSelectionKey = formServiceIds.join(",");
+  useEffect(() => {
+    if (!newModalVisible || !formEmployeeId || !selectedDate || totalServiceDuration <= 0) {
+      setAvailableSlots([]);
+      return;
+    }
+    let active = true;
+    setLoadingSlots(true);
+    api<{ slots: Array<{ startTime: string; endTime: string }> }>(
+      `/api/availability?employeeId=${formEmployeeId}&date=${selectedDate}&serviceIds=${serviceSelectionKey}`
+    )
+      .then((res) => {
+        if (active) {
+          const slots = res.slots || [];
+          setAvailableSlots(slots);
+          if (slots.length > 0 && !slots.some((s) => s.startTime === formTime)) {
+            setFormTime(slots[0].startTime);
+          }
+        }
+      })
+      .catch(() => {
+        if (active) setAvailableSlots([]);
+      })
+      .finally(() => {
+        if (active) setLoadingSlots(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [newModalVisible, formEmployeeId, selectedDate, totalServiceDuration, serviceSelectionKey]);
+
+  const matchingClients = useMemo(() => {
+    if (!clientSearchQuery.trim() || clientSearchQuery.trim().length < 2) return [];
+    const q = clientSearchQuery.toLowerCase();
+    return clients
+      .filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.phone && c.phone.includes(q)) ||
+          (c.email && c.email.toLowerCase().includes(q))
+      )
+      .slice(0, 6);
+  }, [clients, clientSearchQuery]);
+
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === formClientId) || null,
+    [clients, formClientId]
+  );
+
+  const handleCreateNewClient = async () => {
+    if (!newClientName.trim() || newClientPhone.replace(/\D/g, "").length < 8) {
+      Alert.alert("Erro", "Informe ao menos nome e telefone válidos.");
+      return;
+    }
+    setCreatingClientBusy(true);
+    try {
+      const res = await api<{ id: string; name: string; phone?: string; email?: string }>("/api/clients", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newClientName.trim(),
+          phone: newClientPhone.trim(),
+          email: newClientEmail.trim() || undefined,
+        }),
+      });
+      const createdClient: ClientDTO = {
+        id: res.id,
+        name: res.name,
+        phone: res.phone || newClientPhone.trim(),
+        email: res.email || newClientEmail.trim() || null,
+        notes: null,
+        photoUrl: null,
+        active: true,
+        visits: 0,
+        spent: 0,
+        lastVisit: null,
+        nextVisit: null,
+        createdAt: new Date().toISOString(),
+      };
+      setClients((prev) => [createdClient, ...prev]);
+      setFormClientId(res.id);
+      setIsCreatingClient(false);
+      setNewClientName("");
+      setNewClientPhone("");
+      setNewClientEmail("");
+      setClientSearchQuery("");
+    } catch (err: any) {
+      Alert.alert("Erro ao criar cliente", err?.message || "Não foi possível cadastrar o cliente.");
+    } finally {
+      setCreatingClientBusy(false);
+    }
+  };
 
   const handleSlotPress = (empId: string, time: string, date: string = selectedDate) => {
     const apt = appointments.find(
@@ -310,98 +458,78 @@ export default function AgendaScreen() {
       setDetailAppointment(apt);
     } else {
       if (empId) setFormEmployeeId(empId);
-      setFormTime(time);
+      setFormTime(time || "09:00");
       setSelectedDate(date);
-      if (services.length > 0 && !formServiceId) {
-        setFormServiceId(services[0].id);
+      if (services.length > 0 && formServiceIds.length === 0) {
+        setFormServiceIds([services[0].id]);
       }
       setNewModalVisible(true);
     }
   };
 
-  const handleCreateAppointment = async () => {
-    if (!formClientName.trim()) {
-      Alert.alert("Erro", "Informe o nome do cliente.");
+  const handleCreateAppointment = async (forceConflict = false) => {
+    const clientName = selectedClient?.name || formClientName.trim();
+    const clientPhone = selectedClient?.phone || formClientPhone.trim();
+
+    if (!formClientId && !clientName) {
+      Alert.alert("Erro", "Selecione ou informe o nome do cliente.");
       return;
     }
+    if (formServiceIds.length === 0) {
+      Alert.alert("Erro", "Selecione ao menos um serviço.");
+      return;
+    }
+    if (!formEmployeeId) {
+      Alert.alert("Erro", "Selecione um profissional.");
+      return;
+    }
+
     setSavingAction(true);
     try {
-      const selectedService = services.find((s) => s.id === formServiceId) || services[0];
-      const selectedEmp = employees.find((e) => e.id === formEmployeeId) || employees[0];
-
-      if (!selectedService) {
-        Alert.alert("Erro", "Cadastre ou selecione ao menos um serviço.");
-        return;
-      }
-      if (!selectedEmp) {
-        Alert.alert("Erro", "Cadastre ou selecione ao menos um profissional.");
-        return;
-      }
-
       await api("/api/appointments", {
         method: "POST",
         body: JSON.stringify({
-          clientName: formClientName.trim(),
-          clientPhone: formClientPhone.trim() || undefined,
-          serviceId: selectedService.id,
-          serviceIds: [selectedService.id],
-          employeeId: selectedEmp.id,
+          clientId: formClientId || undefined,
+          clientName: clientName || undefined,
+          clientPhone: clientPhone || undefined,
+          serviceId: formServiceIds[0],
+          serviceIds: formServiceIds,
+          employeeId: formEmployeeId,
           date: selectedDate,
           startTime: formTime,
           time: formTime,
           notes: formNotes.trim() || undefined,
+          allowConflict: forceConflict,
         }),
       });
 
       setNewModalVisible(false);
+      setFormClientId("");
       setFormClientName("");
       setFormClientPhone("");
+      setClientSearchQuery("");
+      setIsCreatingClient(false);
       setFormNotes("");
       await load(selectedDate);
       Alert.alert("Sucesso", "Agendamento criado com sucesso!");
     } catch (err: any) {
-      const isConflict = err instanceof ApiError && (err.status === 409 || err.message?.toLowerCase().includes("atendimento") || err.message?.toLowerCase().includes("bloqueio") || err.message?.toLowerCase().includes("jornada") || err.message?.toLowerCase().includes("conflito"));
-      if (isConflict) {
+      const isConflict =
+        err instanceof ApiError &&
+        (err.status === 409 ||
+          err.message?.toLowerCase().includes("atendimento") ||
+          err.message?.toLowerCase().includes("bloqueio") ||
+          err.message?.toLowerCase().includes("jornada") ||
+          err.message?.toLowerCase().includes("conflito"));
+      if (isConflict && !forceConflict) {
         Alert.alert(
           "Aviso de Conflito",
-          `${err.message}\n\nDeseja realizar o encaixe forçado para este horário?`,
+          `${err.message}\n\nDeseja realizar o encaixe manual forçado para este horário?`,
           [
             { text: "Cancelar", style: "cancel" },
             {
               text: "Forçar Encaixe",
               style: "destructive",
-              onPress: async () => {
-                try {
-                  setSavingAction(true);
-                  const selectedService = services.find((s) => s.id === formServiceId) || services[0];
-                  const selectedEmp = employees.find((e) => e.id === formEmployeeId) || employees[0];
-                  await api("/api/appointments", {
-                    method: "POST",
-                    body: JSON.stringify({
-                      clientName: formClientName.trim(),
-                      clientPhone: formClientPhone.trim() || undefined,
-                      serviceId: selectedService?.id,
-                      serviceIds: selectedService ? [selectedService.id] : [],
-                      employeeId: selectedEmp?.id,
-                      date: selectedDate,
-                      startTime: formTime,
-                      time: formTime,
-                      notes: formNotes.trim() || undefined,
-                      allowConflict: true,
-                    }),
-                  });
-                  setNewModalVisible(false);
-                  setFormClientName("");
-                  setFormClientPhone("");
-                  setFormNotes("");
-                  await load(selectedDate);
-                  Alert.alert("Sucesso", "Encaixe realizado com sucesso!");
-                } catch (forceErr: any) {
-                  Alert.alert("Erro", forceErr?.message || "Erro ao forçar encaixe.");
-                } finally {
-                  setSavingAction(false);
-                }
-              },
+              onPress: () => handleCreateAppointment(true),
             },
           ]
         );
@@ -579,12 +707,17 @@ export default function AgendaScreen() {
             </Text>
           </Pressable>
 
-          <Pressable
+          <TouchableOpacity
             onPress={() => {
-              if (services.length > 0 && !formServiceId) setFormServiceId(services[0].id);
-              if (employees.length > 0 && !formEmployeeId) setFormEmployeeId(employees[0].id);
+              if (services.length > 0 && formServiceIds.length === 0) {
+                setFormServiceIds([services[0].id]);
+              }
+              if (employees.length > 0 && !formEmployeeId) {
+                setFormEmployeeId(employees[0].id);
+              }
               setNewModalVisible(true);
             }}
+            activeOpacity={0.8}
             className="flex-1 flex-row items-center justify-center gap-1.5 py-3 px-3 rounded-xl"
             style={{ backgroundColor: primaryColor }}
           >
@@ -592,7 +725,7 @@ export default function AgendaScreen() {
             <Text style={{ color: primaryForeground, fontSize: 13, fontWeight: "700" }}>
               Novo agendamento
             </Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
 
         {/* 5. Professional Filter & Chips */}
@@ -1211,178 +1344,811 @@ export default function AgendaScreen() {
         </View>
       </ScrollView>
 
-      {/* Modal: Novo Agendamento Completo */}
+      {/* Modal: Novo Agendamento Completo (Web Parity) */}
       <Modal
         visible={newModalVisible}
         transparent
         animationType="slide"
         onRequestClose={() => setNewModalVisible(false)}
       >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
           <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
             style={{
+              width: "100%",
+              maxHeight: "92%",
               backgroundColor: "#111215",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.12)",
-              maxHeight: "90%",
+              paddingHorizontal: 20,
+              paddingTop: 18,
+              paddingBottom: 24,
+              gap: 16,
             }}
           >
-            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
-              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
-                Novo Agendamento
-              </Text>
-              <Pressable onPress={() => setNewModalVisible(false)} className="p-1 rounded-lg">
-                <X size={20} color="#ffffff" />
-              </Pressable>
+            {/* Modal Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: "rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
+                <CalendarPlus size={20} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800", letterSpacing: -0.3 }}>
+                  Novo agendamento
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setNewModalVisible(false)}
+                activeOpacity={0.7}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={18} color="#ffffff" />
+              </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-              {/* Cliente */}
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>NOME DO CLIENTE *</Text>
-                <TextInput
-                  value={formClientName}
-                  onChangeText={setFormClientName}
-                  placeholder="Ex: Pedro Henrique"
-                  placeholderTextColor={colors.textDisabled}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
+            {/* Modal Body */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingBottom: 12 }}>
+              {/* Field 1: Cliente */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <User size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Cliente</Text>
+                </View>
 
-              {/* WhatsApp */}
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>WHATSAPP / TELEFONE</Text>
-                <TextInput
-                  value={formClientPhone}
-                  onChangeText={setFormClientPhone}
-                  placeholder="(11) 99999-9999"
-                  placeholderTextColor={colors.textDisabled}
-                  keyboardType="phone-pad"
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              {/* Serviço */}
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>SERVIÇO</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
-                  {services.map((s) => {
-                    const isSelected = formServiceId === s.id;
-                    return (
-                      <Pressable
-                        key={s.id}
-                        onPress={() => setFormServiceId(s.id)}
-                        className="p-3 rounded-xl border mr-2"
+                {formClientId || selectedClient ? (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      backgroundColor: "#18191e",
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.08)",
+                      borderRadius: 12,
+                      padding: 12,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                      <View
                         style={{
-                          backgroundColor: isSelected ? primarySoft : "#18191e",
-                          borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
-                          minWidth: 140,
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          backgroundColor: primarySoft,
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                       >
-                        <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>{s.name}</Text>
-                        <Text style={{ color: primaryColor, fontSize: 12, fontWeight: "600", marginTop: 2 }}>
-                          R$ {s.price} · {s.durationMinutes} min
+                        <UserCheck size={18} color={primaryColor} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                          {selectedClient?.name || formClientName || "Cliente selecionado"}
                         </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+                          {selectedClient?.phone && (
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                              <Phone size={11} color="#8a94a6" />
+                              <Text style={{ color: "#8a94a6", fontSize: 11.5 }}>{selectedClient.phone}</Text>
+                            </View>
+                          )}
+                          {selectedClient?.email && (
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                              <Mail size={11} color="#8a94a6" />
+                              <Text style={{ color: "#8a94a6", fontSize: 11.5 }} numberOfLines={1}>{selectedClient.email}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setFormClientId("");
+                        setClientSearchQuery("");
+                      }}
+                      style={{ paddingHorizontal: 8, paddingVertical: 4 }}
+                    >
+                      <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "600" }}>Trocar</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        backgroundColor: "#18191e",
+                        borderWidth: 1,
+                        borderColor: "rgba(255, 255, 255, 0.1)",
+                        borderRadius: 10,
+                        height: 44,
+                        paddingHorizontal: 12,
+                        gap: 8,
+                      }}
+                    >
+                      <Search size={17} color="#64748b" />
+                      <TextInput
+                        value={clientSearchQuery}
+                        onChangeText={(t) => {
+                          setClientSearchQuery(t);
+                          setFormClientName(t);
+                        }}
+                        placeholder="Nome, telefone ou e-mail..."
+                        placeholderTextColor={colors.textDisabled}
+                        style={{
+                          flex: 1,
+                          color: "#ffffff",
+                          fontSize: 13.5,
+                        }}
+                      />
+                      {clientSearchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => { setClientSearchQuery(""); setFormClientName(""); }}>
+                          <X size={16} color="#64748b" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {/* Results list */}
+                    {matchingClients.length > 0 && (
+                      <View
+                        style={{
+                          backgroundColor: "#14161c",
+                          borderRadius: 10,
+                          borderWidth: 1,
+                          borderColor: "rgba(255, 255, 255, 0.1)",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {matchingClients.map((c) => (
+                          <TouchableOpacity
+                            key={c.id}
+                            onPress={() => {
+                              setFormClientId(c.id);
+                              setFormClientName(c.name);
+                              setFormClientPhone(c.phone || "");
+                              setClientSearchQuery("");
+                            }}
+                            activeOpacity={0.7}
+                            style={{
+                              paddingVertical: 9,
+                              paddingHorizontal: 12,
+                              borderBottomWidth: 1,
+                              borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                            }}
+                          >
+                            <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>{c.name}</Text>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                              {c.phone ? <Text style={{ color: "#8a94a6", fontSize: 11.5 }}>{c.phone}</Text> : null}
+                              {c.email ? <Text style={{ color: "#64748b", fontSize: 11.5 }}>• {c.email}</Text> : null}
+                            </View>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+
+                    {/* Create new client toggle */}
+                    {!isCreatingClient && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setIsCreatingClient(true);
+                          if (/^[+\d ()-]+$/.test(clientSearchQuery)) {
+                            setNewClientPhone(clientSearchQuery);
+                          } else {
+                            setNewClientName(clientSearchQuery);
+                          }
+                        }}
+                        style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 2 }}
+                      >
+                        <UserPlus size={14} color={primaryColor} />
+                        <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "600" }}>
+                          Criar novo cliente
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Inline client creation form */}
+                    {isCreatingClient && (
+                      <View
+                        style={{
+                          backgroundColor: "#16181f",
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: "rgba(255, 255, 255, 0.1)",
+                          padding: 14,
+                          gap: 10,
+                        }}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <UserPlus size={15} color={primaryColor} />
+                          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }}>Novo cliente</Text>
+                        </View>
+                        <View style={{ gap: 4 }}>
+                          <Text style={{ color: "#8a94a6", fontSize: 11, fontWeight: "600" }}>NOME *</Text>
+                          <TextInput
+                            value={newClientName}
+                            onChangeText={setNewClientName}
+                            placeholder="Nome completo"
+                            placeholderTextColor={colors.textDisabled}
+                            style={{
+                              backgroundColor: "#111215",
+                              borderWidth: 1,
+                              borderColor: "rgba(255, 255, 255, 0.08)",
+                              borderRadius: 8,
+                              height: 38,
+                              paddingHorizontal: 10,
+                              color: "#ffffff",
+                              fontSize: 13,
+                            }}
+                          />
+                        </View>
+                        <View style={{ gap: 4 }}>
+                          <Text style={{ color: "#8a94a6", fontSize: 11, fontWeight: "600" }}>TELEFONE *</Text>
+                          <TextInput
+                            value={newClientPhone}
+                            onChangeText={setNewClientPhone}
+                            placeholder="(00) 00000-0000"
+                            placeholderTextColor={colors.textDisabled}
+                            keyboardType="phone-pad"
+                            style={{
+                              backgroundColor: "#111215",
+                              borderWidth: 1,
+                              borderColor: "rgba(255, 255, 255, 0.08)",
+                              borderRadius: 8,
+                              height: 38,
+                              paddingHorizontal: 10,
+                              color: "#ffffff",
+                              fontSize: 13,
+                            }}
+                          />
+                        </View>
+                        <View style={{ gap: 4 }}>
+                          <Text style={{ color: "#8a94a6", fontSize: 11, fontWeight: "600" }}>E-MAIL (OPCIONAL)</Text>
+                          <TextInput
+                            value={newClientEmail}
+                            onChangeText={setNewClientEmail}
+                            placeholder="cliente@email.com"
+                            placeholderTextColor={colors.textDisabled}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            style={{
+                              backgroundColor: "#111215",
+                              borderWidth: 1,
+                              borderColor: "rgba(255, 255, 255, 0.08)",
+                              borderRadius: 8,
+                              height: 38,
+                              paddingHorizontal: 10,
+                              color: "#ffffff",
+                              fontSize: 13,
+                            }}
+                          />
+                        </View>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                          <TouchableOpacity
+                            onPress={handleCreateNewClient}
+                            disabled={creatingClientBusy || newClientName.trim().length < 2 || newClientPhone.replace(/\D/g, "").length < 8}
+                            style={{
+                              backgroundColor: primaryColor,
+                              paddingHorizontal: 14,
+                              paddingVertical: 8,
+                              borderRadius: 8,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Text style={{ color: primaryForeground, fontSize: 12.5, fontWeight: "700" }}>
+                              {creatingClientBusy ? "Salvando..." : "Salvar cliente"}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => setIsCreatingClient(false)}
+                            style={{ paddingHorizontal: 10, paddingVertical: 8 }}
+                          >
+                            <Text style={{ color: "#8a94a6", fontSize: 12.5 }}>Cancelar</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
 
-              {/* Profissional */}
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>PROFISSIONAL</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
-                  {employees.map((e) => {
+              {/* Field 2: Unidade */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Building2 size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Unidade</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Building2 size={17} color="#64748b" />
+                    <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>
+                      {companyName || "Unidade Principal"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={16} color="#64748b" />
+                </View>
+              </View>
+
+              {/* Field 3: Serviços disponíveis */}
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Scissors size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Serviços disponíveis</Text>
+                </View>
+
+                {/* 2-Column Grid */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {services
+                    .filter((s) => s.active)
+                    .map((service) => {
+                      const isSelected = formServiceIds.includes(service.id);
+                      const cardWidth = Math.floor((windowWidth - 48) / 2);
+                      return (
+                        <TouchableOpacity
+                          key={service.id}
+                          activeOpacity={0.7}
+                          onPress={() => toggleService(service.id)}
+                          style={{
+                            width: cardWidth,
+                            backgroundColor: isSelected ? primarySoft : "#14161d",
+                            borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
+                            borderWidth: 1,
+                            borderRadius: 12,
+                            padding: 11,
+                            minHeight: 114,
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          {/* Top row */}
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                            <View
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: 8,
+                                backgroundColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.06)",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Scissors size={14} color={isSelected ? primaryForeground : colors.textMuted} />
+                            </View>
+                            <View style={{ width: 20, height: 20, alignItems: "center", justifyContent: "center" }}>
+                              {isSelected ? (
+                                <CheckCircle2 size={18} color={primaryColor} />
+                              ) : (
+                                <View
+                                  style={{
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: 8,
+                                    borderWidth: 1.5,
+                                    borderColor: "rgba(255, 255, 255, 0.25)",
+                                  }}
+                                />
+                              )}
+                            </View>
+                          </View>
+
+                          {/* Title */}
+                          <Text
+                            style={{
+                              color: "#ffffff",
+                              fontSize: 12.5,
+                              fontWeight: "700",
+                              lineHeight: 16,
+                              marginVertical: 6,
+                            }}
+                            numberOfLines={2}
+                          >
+                            {service.name.toUpperCase()}
+                          </Text>
+
+                          {/* Footer */}
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              paddingTop: 7,
+                              borderTopWidth: 1,
+                              borderTopColor: "rgba(255, 255, 255, 0.08)",
+                            }}
+                          >
+                            <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "800", letterSpacing: -0.2 }}>
+                              {formatBRL(service.price)}
+                            </Text>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                              <Clock3 size={11} color="#8a94a6" />
+                              <Text style={{ color: "#8a94a6", fontSize: 11, fontWeight: "500" }}>
+                                {service.durationMinutes} min
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  {services.filter((s) => s.active).length === 0 && (
+                    <Text style={{ color: "#8a94a6", fontSize: 12 }}>Nenhum serviço ativo cadastrado.</Text>
+                  )}
+                </View>
+
+                {/* Selected Services Summary Bar */}
+                {formServiceIds.length > 0 && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 10,
+                      paddingHorizontal: 13,
+                      borderRadius: 10,
+                      backgroundColor: primarySoft,
+                      borderWidth: 1,
+                      borderColor: hexToRgba(primaryColor, 0.3) || "rgba(255, 255, 255, 0.15)",
+                      marginTop: 2,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flex: 1 }}>
+                      <CheckCheck size={16} color={primaryColor} />
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                        <Text style={{ color: "#ffffff", fontWeight: "700" }}>{formServiceIds.length}</Text>{" "}
+                        {formServiceIds.length === 1 ? "serviço selecionado" : "serviços selecionados"}
+                        {"  "}•{"  "}
+                        <Text style={{ color: "#8a94a6" }}>
+                          {totalServiceDuration} min total
+                        </Text>
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Text style={{ color: "#8a94a6", fontSize: 12 }}>Total:</Text>
+                      <Text style={{ color: primaryColor, fontSize: 14, fontWeight: "800" }}>
+                        {formatBRL(totalServicePrice)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+
+              {/* Field 4: Profissional */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <UserRound size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Profissional</Text>
+                </View>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {eligibleEmployees.map((e) => {
                     const isSelected = formEmployeeId === e.id;
                     return (
-                      <Pressable
+                      <TouchableOpacity
                         key={e.id}
+                        activeOpacity={0.7}
                         onPress={() => setFormEmployeeId(e.id)}
-                        className="px-3 py-2 rounded-xl border mr-2 flex-row items-center gap-2"
                         style={{
-                          backgroundColor: isSelected ? "#2a2b32" : "#18191e",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                          paddingVertical: 8,
+                          paddingHorizontal: 12,
+                          borderRadius: 12,
+                          backgroundColor: isSelected ? primarySoft : "#18191e",
+                          borderWidth: 1,
                           borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
                         }}
                       >
                         <Avatar name={e.name} photoUrl={e.photoUrl} size="xs" />
-                        <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}>{e.name}</Text>
-                      </Pressable>
+                        <View>
+                          <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>{e.name}</Text>
+                          {e.jobTitle ? (
+                            <Text style={{ color: colors.textMuted, fontSize: 11 }}>{e.jobTitle}</Text>
+                          ) : null}
+                        </View>
+                        {isSelected && <Check size={14} color={primaryColor} strokeWidth={2.5} />}
+                      </TouchableOpacity>
                     );
                   })}
                 </ScrollView>
+                {formServiceIds.length > 0 && eligibleEmployees.length === 0 && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+                    <AlertCircle size={14} color="#f59e0b" />
+                    <Text style={{ color: "#f59e0b", fontSize: 12 }}>
+                      Nenhum profissional selecionável realiza os serviços escolhidos.
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              {/* Horário */}
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>HORÁRIO DE INÍCIO</Text>
-                <TextInput
-                  value={formTime}
-                  onChangeText={setFormTime}
-                  placeholder="10:00"
-                  placeholderTextColor={colors.textDisabled}
+              {/* Field 5: Data */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Calendar size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Data</Text>
+                </View>
+                <View
                   style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                     backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
                     borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
                     height: 44,
-                    color: "#ffffff",
-                    fontSize: 14,
-                  }}
-                />
-              </View>
-
-              {/* Observações */}
-              <View className="gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12, fontWeight: "600" }}>OBSERVAÇÕES (OPCIONAL)</Text>
-                <TextInput
-                  value={formNotes}
-                  onChangeText={setFormNotes}
-                  placeholder="Detalhes ou preferências do atendimento..."
-                  placeholderTextColor={colors.textDisabled}
-                  multiline
-                  numberOfLines={2}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
                     paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    height: 60,
-                    color: "#ffffff",
-                    fontSize: 13,
-                    textAlignVertical: "top",
                   }}
-                />
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Calendar size={17} color="#64748b" />
+                    <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                      {selectedDate ? `${selectedDate.slice(8, 10)}/${selectedDate.slice(5, 7)}/${selectedDate.slice(0, 4)}` : "Selecionar data"}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <TouchableOpacity
+                      onPress={() => setSelectedDate(changeDateByMode(selectedDate, "day", -1))}
+                      style={{ padding: 4 }}
+                    >
+                      <ChevronLeft size={16} color="#94a3b8" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSelectedDate(todayKey())}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 6,
+                        backgroundColor: selectedDate === todayKey() ? primarySoft : "rgba(255, 255, 255, 0.06)",
+                      }}
+                    >
+                      <Text style={{ color: selectedDate === todayKey() ? primaryColor : "#94a3b8", fontSize: 11, fontWeight: "600" }}>
+                        Hoje
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSelectedDate(changeDateByMode(selectedDate, "day", 1))}
+                      style={{ padding: 4 }}
+                    >
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
 
-              <Button
-                label={savingAction ? "Salvando..." : "Confirmar Agendamento"}
-                onPress={handleCreateAppointment}
-                disabled={savingAction}
-              />
+              {/* Field 6: Horário de início */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Clock3 size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Horário de início</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                    gap: 10,
+                  }}
+                >
+                  <Clock3 size={17} color="#64748b" />
+                  <TextInput
+                    value={formTime}
+                    onChangeText={setFormTime}
+                    placeholder="09:00"
+                    placeholderTextColor={colors.textDisabled}
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                  />
+                </View>
+
+                {loadingSlots && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <ActivityIndicator size="small" color={primaryColor} />
+                    <Text style={{ color: "#8a94a6", fontSize: 12 }}>
+                      Calculando horários livres...
+                    </Text>
+                  </View>
+                )}
+
+                {!loadingSlots && availableSlots.length > 0 && (
+                  <View style={{ gap: 6, marginTop: 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                      <Sparkles size={12} color={primaryColor} />
+                      <Text style={{ color: "#8a94a6", fontSize: 12, fontWeight: "600" }}>
+                        Horários livres sugeridos ({availableSlots.length}):
+                      </Text>
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {availableSlots.map((slot) => {
+                        const isSlotSelected = formTime === slot.startTime;
+                        return (
+                          <TouchableOpacity
+                            key={slot.startTime}
+                            onPress={() => setFormTime(slot.startTime)}
+                            activeOpacity={0.7}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 4,
+                              paddingVertical: 6,
+                              paddingHorizontal: 10,
+                              borderRadius: 8,
+                              backgroundColor: isSlotSelected ? primaryColor : "#18191e",
+                              borderWidth: 1,
+                              borderColor: isSlotSelected ? primaryColor : "rgba(255, 255, 255, 0.1)",
+                            }}
+                          >
+                            <Clock3 size={11} color={isSlotSelected ? primaryForeground : "#8a94a6"} />
+                            <Text
+                              style={{
+                                color: isSlotSelected ? primaryForeground : "#ffffff",
+                                fontSize: 12,
+                                fontWeight: isSlotSelected ? "700" : "500",
+                              }}
+                            >
+                              {slot.startTime}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {!loadingSlots && formEmployeeId && selectedDate && totalServiceDuration > 0 && availableSlots.length === 0 && (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    <AlertCircle size={13} color="#f59e0b" />
+                    <Text style={{ color: "#f59e0b", fontSize: 12 }}>
+                      Nenhum horário livre para este profissional nesta data.
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Field 7: Observações */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <FileText size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Observações (opcional)</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    gap: 10,
+                  }}
+                >
+                  <FileText size={17} color="#64748b" style={{ marginTop: 2 }} />
+                  <TextInput
+                    value={formNotes}
+                    onChangeText={setFormNotes}
+                    placeholder="Alguma informação importante para este agendamento?"
+                    placeholderTextColor={colors.textDisabled}
+                    multiline
+                    numberOfLines={3}
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13,
+                      minHeight: 54,
+                      textAlignVertical: "top",
+                    }}
+                  />
+                </View>
+              </View>
             </ScrollView>
+
+            {/* Modal Footer */}
+            <View
+              style={{
+                paddingTop: 12,
+                borderTopWidth: 1,
+                borderTopColor: "rgba(255, 255, 255, 0.08)",
+                gap: 10,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <ShieldCheck size={15} color="#8a94a6" />
+                <Text style={{ color: "#8a94a6", fontSize: 12 }}>
+                  Revise os dados antes de confirmar
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => setNewModalVisible(false)}
+                  activeOpacity={0.7}
+                  style={{
+                    flex: 1,
+                    height: 46,
+                    borderRadius: 12,
+                    backgroundColor: "#1c1e24",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.08)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleCreateAppointment(false)}
+                  disabled={savingAction || (!formClientId && !formClientName.trim()) || formServiceIds.length === 0 || !formEmployeeId || loadingSlots}
+                  activeOpacity={0.8}
+                  style={{
+                    flex: 2,
+                    height: 46,
+                    borderRadius: 12,
+                    backgroundColor: (!formClientId && !formClientName.trim()) || formServiceIds.length === 0 || !formEmployeeId || loadingSlots
+                      ? "rgba(255, 255, 255, 0.1)"
+                      : primaryColor,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                  }}
+                >
+                  {savingAction ? (
+                    <ActivityIndicator size="small" color={primaryForeground} />
+                  ) : (
+                    <>
+                      <Check size={18} color={primaryForeground} strokeWidth={2.5} />
+                      <Text
+                        style={{
+                          color: (!formClientId && !formClientName.trim()) || formServiceIds.length === 0 || !formEmployeeId || loadingSlots
+                            ? colors.textDisabled
+                            : primaryForeground,
+                          fontSize: 14,
+                          fontWeight: "700",
+                        }}
+                      >
+                        Confirmar agendamento
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
