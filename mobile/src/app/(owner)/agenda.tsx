@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  Ban,
   Building2,
   Calendar,
   CalendarDays,
@@ -21,6 +22,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Tag,
   User,
   UserCheck,
   UserPlus,
@@ -203,10 +205,17 @@ export default function AgendaScreen() {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Block Modal Form State
-  const [blockEmpId, setBlockEmpId] = useState("");
+  const [blockEmpId, setBlockEmpId] = useState("all");
+  const [blockLocationId, setBlockLocationId] = useState("");
+  const [blockType, setBlockType] = useState<"hours" | "allDay" | "period">("hours");
+  const [blockStartDate, setBlockStartDate] = useState(todayKey());
+  const [blockEndDate, setBlockEndDate] = useState(todayKey());
   const [blockStartTime, setBlockStartTime] = useState("12:00");
   const [blockEndTime, setBlockEndTime] = useState("13:00");
-  const [blockReason, setBlockReason] = useState("Almoço / Intervalo");
+  const [blockReason, setBlockReason] = useState("");
+  const [empPickerOpen, setEmpPickerOpen] = useState(false);
+  const [locPickerOpen, setLocPickerOpen] = useState(false);
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
 
   const companyName = session?.company?.name || "";
 
@@ -544,25 +553,26 @@ export default function AgendaScreen() {
   const handleCreateBlock = async () => {
     setSavingAction(true);
     try {
-      const selectedEmp = employees.find((e) => e.id === blockEmpId) || employees[0];
       await api("/api/blocks", {
         method: "POST",
         body: JSON.stringify({
-          employeeId: selectedEmp?.id,
-          date: selectedDate,
-          startTime: blockStartTime,
-          endTime: blockEndTime,
-          reason: blockReason,
+          employeeId: blockEmpId === "all" ? null : blockEmpId,
+          locationId: blockLocationId || null,
+          date: blockStartDate,
+          endDate: blockType === "period" ? blockEndDate : blockStartDate,
+          startsAt: blockType === "hours" ? blockStartTime : undefined,
+          endsAt: blockType === "hours" ? blockEndTime : undefined,
+          allDay: blockType !== "hours",
+          reason: blockReason.trim() || (blockType === "period" ? "Férias" : blockType === "allDay" ? "Feriado" : "Bloqueio"),
         }),
-      }).catch(() => {
-        // Fallback: create as blocked slot
       });
 
       setBlockModalVisible(false);
+      setBlockReason("");
       await load(selectedDate);
-      Alert.alert("Horário Bloqueado", `Intervalo de ${blockStartTime} às ${blockEndTime} bloqueado.`);
+      Alert.alert("Sucesso", "Período bloqueado com sucesso!");
     } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Não foi possível bloquear o horário.");
+      Alert.alert("Erro", err instanceof ApiError ? err.message : "Não foi possível bloquear o período.");
     } finally {
       setSavingAction(false);
     }
@@ -696,8 +706,22 @@ export default function AgendaScreen() {
 
         {/* 4. Action Buttons Row: Bloquear horário | + Novo agendamento */}
         <View className="flex-row items-center gap-2.5">
-          <Pressable
-            onPress={() => setBlockModalVisible(true)}
+          <TouchableOpacity
+            onPress={() => {
+              setBlockStartDate(selectedDate);
+              setBlockEndDate(selectedDate);
+              setBlockStartTime("12:00");
+              setBlockEndTime("13:00");
+              setBlockType("hours");
+              setBlockEmpId(employeeFilter !== "all" ? employeeFilter : "all");
+              setBlockLocationId("");
+              setBlockReason("");
+              setEmpPickerOpen(false);
+              setLocPickerOpen(false);
+              setTypePickerOpen(false);
+              setBlockModalVisible(true);
+            }}
+            activeOpacity={0.7}
             className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3 rounded-xl border"
             style={{ backgroundColor: "#111215", borderColor: "rgba(255, 255, 255, 0.12)" }}
           >
@@ -705,7 +729,7 @@ export default function AgendaScreen() {
             <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "600" }}>
               Bloquear horário
             </Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => {
@@ -2252,97 +2276,585 @@ export default function AgendaScreen() {
         </View>
       </Modal>
 
-      {/* Modal: Bloquear Horário */}
+      {/* Modal: Bloquear Horário ou Período (Web Parity) */}
       <Modal
         visible={blockModalVisible}
         transparent
         animationType="slide"
         onRequestClose={() => setBlockModalVisible(false)}
       >
-        <View className="flex-1 justify-end" style={{ backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
+        <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0, 0, 0, 0.75)" }}>
           <View
-            className="w-full rounded-t-3xl border-t p-5 gap-4"
             style={{
+              width: "100%",
+              maxHeight: "92%",
               backgroundColor: "#111215",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              borderWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.12)",
+              paddingHorizontal: 20,
+              paddingTop: 18,
+              paddingBottom: 24,
+              gap: 16,
             }}
           >
-            <View className="flex-row items-center justify-between pb-2 border-b" style={{ borderBottomColor: "rgba(255, 255, 255, 0.08)" }}>
-              <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800" }}>
-                Bloquear Horário
-              </Text>
-              <Pressable onPress={() => setBlockModalVisible(false)}>
-                <X size={20} color="#ffffff" />
-              </Pressable>
-            </View>
-
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-              Bloqueie intervalos para almoço, folgas ou manutenção na data {selectedDate}.
-            </Text>
-
-            <View className="flex-row gap-3">
-              <View className="flex-1 gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>INÍCIO</Text>
-                <TextInput
-                  value={blockStartTime}
-                  onChangeText={setBlockStartTime}
-                  placeholder="12:00"
-                  placeholderTextColor={colors.textDisabled}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                  }}
-                />
+            {/* Modal Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingBottom: 14,
+                borderBottomWidth: 1,
+                borderBottomColor: "rgba(255, 255, 255, 0.08)",
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
+                <Ban size={20} color="#ffffff" />
+                <Text style={{ color: "#ffffff", fontSize: 18, fontWeight: "800", letterSpacing: -0.3 }}>
+                  Bloquear horário ou período
+                </Text>
               </View>
-              <View className="flex-1 gap-1.5">
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>FIM</Text>
-                <TextInput
-                  value={blockEndTime}
-                  onChangeText={setBlockEndTime}
-                  placeholder="13:00"
-                  placeholderTextColor={colors.textDisabled}
-                  style={{
-                    backgroundColor: "#18191e",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    borderWidth: 1,
-                    borderRadius: radius.sm,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    color: "#ffffff",
-                  }}
-                />
-              </View>
-            </View>
-
-            <View className="gap-1.5">
-              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>MOTIVO DO BLOQUEIO</Text>
-              <TextInput
-                value={blockReason}
-                onChangeText={setBlockReason}
-                placeholder="Ex: Almoço / Intervalo"
-                placeholderTextColor={colors.textDisabled}
+              <TouchableOpacity
+                onPress={() => setBlockModalVisible(false)}
+                activeOpacity={0.7}
                 style={{
-                  backgroundColor: "#18191e",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
-                  borderWidth: 1,
-                  borderRadius: radius.sm,
-                  paddingHorizontal: 12,
-                  height: 44,
-                  color: "#ffffff",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-              />
+              >
+                <X size={18} color="#ffffff" />
+              </TouchableOpacity>
             </View>
 
-            <Button
-              label={savingAction ? "Salvando..." : "Salvar Bloqueio"}
-              onPress={handleCreateBlock}
-              disabled={savingAction}
-            />
+            {/* Modal Body */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 16, paddingBottom: 10 }}>
+              {/* Field 1: Profissional */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <UserRound size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Profissional</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEmpPickerOpen((prev) => !prev);
+                    setLocPickerOpen(false);
+                    setTypePickerOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                    <UserRound size={17} color="#64748b" />
+                    <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "500" }} numberOfLines={1}>
+                      {blockEmpId === "all"
+                        ? "Toda a equipe (Geral da empresa)"
+                        : (employees.find((e) => e.id === blockEmpId)?.name || "Selecione...")}
+                    </Text>
+                  </View>
+                  <ChevronDown size={16} color="#64748b" />
+                </TouchableOpacity>
+
+                {empPickerOpen && (
+                  <View
+                    style={{
+                      backgroundColor: "#14161c",
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        setBlockEmpId("all");
+                        setEmpPickerOpen(false);
+                      }}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        backgroundColor: blockEmpId === "all" ? primarySoft : "transparent",
+                        borderBottomWidth: 1,
+                        borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                      }}
+                    >
+                      <Text style={{ color: blockEmpId === "all" ? primaryColor : "#ffffff", fontSize: 13, fontWeight: "600" }}>
+                        Toda a equipe (Geral da empresa)
+                      </Text>
+                    </TouchableOpacity>
+                    {employees
+                      .filter((e) => e.active)
+                      .map((emp) => {
+                        const isSelected = blockEmpId === emp.id;
+                        return (
+                          <TouchableOpacity
+                            key={emp.id}
+                            onPress={() => {
+                              setBlockEmpId(emp.id);
+                              setEmpPickerOpen(false);
+                            }}
+                            style={{
+                              paddingVertical: 10,
+                              paddingHorizontal: 12,
+                              backgroundColor: isSelected ? primarySoft : "transparent",
+                              borderBottomWidth: 1,
+                              borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                            }}
+                          >
+                            <Text style={{ color: isSelected ? primaryColor : "#ffffff", fontSize: 13, fontWeight: "600" }}>
+                              {emp.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                  </View>
+                )}
+              </View>
+
+              {/* Field 2: Unidade */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Building2 size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Unidade</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    setLocPickerOpen((prev) => !prev);
+                    setEmpPickerOpen(false);
+                    setTypePickerOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                    <Building2 size={17} color="#64748b" />
+                    <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "500" }} numberOfLines={1}>
+                      {blockLocationId
+                        ? (session?.locations?.find((l) => l.id === blockLocationId)?.name || companyName || "Unidade")
+                        : "Todas as unidades"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={16} color="#64748b" />
+                </TouchableOpacity>
+
+                {locPickerOpen && (
+                  <View
+                    style={{
+                      backgroundColor: "#14161c",
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <TouchableOpacity
+                      onPress={() => {
+                        setBlockLocationId("");
+                        setLocPickerOpen(false);
+                      }}
+                      style={{
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        backgroundColor: !blockLocationId ? primarySoft : "transparent",
+                        borderBottomWidth: 1,
+                        borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                      }}
+                    >
+                      <Text style={{ color: !blockLocationId ? primaryColor : "#ffffff", fontSize: 13, fontWeight: "600" }}>
+                        Todas as unidades
+                      </Text>
+                    </TouchableOpacity>
+                    {(session?.locations || []).map((loc) => {
+                      const isSelected = blockLocationId === loc.id;
+                      return (
+                        <TouchableOpacity
+                          key={loc.id}
+                          onPress={() => {
+                            setBlockLocationId(loc.id);
+                            setLocPickerOpen(false);
+                          }}
+                          style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            backgroundColor: isSelected ? primarySoft : "transparent",
+                            borderBottomWidth: 1,
+                            borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                          }}
+                        >
+                          <Text style={{ color: isSelected ? primaryColor : "#ffffff", fontSize: 13, fontWeight: "600" }}>
+                            {loc.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+
+              {/* Field 3: Tipo de bloqueio */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Tag size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Tipo de bloqueio</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    setTypePickerOpen((prev) => !prev);
+                    setEmpPickerOpen(false);
+                    setLocPickerOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}>
+                    <Tag size={17} color="#64748b" />
+                    <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "500" }}>
+                      {blockType === "hours"
+                        ? "Parcial (Horário específico)"
+                        : blockType === "allDay"
+                        ? "Dia inteiro (Feriado/Folga)"
+                        : "Período de múltiplos dias (Férias)"}
+                    </Text>
+                  </View>
+                  <ChevronDown size={16} color="#64748b" />
+                </TouchableOpacity>
+
+                {typePickerOpen && (
+                  <View
+                    style={{
+                      backgroundColor: "#14161c",
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {[
+                      { key: "hours", label: "Parcial (Horário específico)" },
+                      { key: "allDay", label: "Dia inteiro (Feriado/Folga)" },
+                      { key: "period", label: "Período de múltiplos dias (Férias)" },
+                    ].map((item) => {
+                      const isSelected = blockType === item.key;
+                      return (
+                        <TouchableOpacity
+                          key={item.key}
+                          onPress={() => {
+                            setBlockType(item.key as "hours" | "allDay" | "period");
+                            setTypePickerOpen(false);
+                          }}
+                          style={{
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            backgroundColor: isSelected ? primarySoft : "transparent",
+                            borderBottomWidth: 1,
+                            borderBottomColor: "rgba(255, 255, 255, 0.05)",
+                          }}
+                        >
+                          <Text style={{ color: isSelected ? primaryColor : "#ffffff", fontSize: 13, fontWeight: "600" }}>
+                            {item.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+
+              {/* Field 4: Motivo */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <FileText size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Motivo</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                    gap: 10,
+                  }}
+                >
+                  <FileText size={17} color="#64748b" />
+                  <TextInput
+                    value={blockReason}
+                    onChangeText={setBlockReason}
+                    placeholder="Ex.: Almoço, Reforma, Férias..."
+                    placeholderTextColor={colors.textDisabled}
+                    style={{
+                      flex: 1,
+                      color: "#ffffff",
+                      fontSize: 13.5,
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Field 5: Data inicial */}
+              <View style={{ gap: 7 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Calendar size={15} color="#94a3b8" />
+                  <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Data inicial</Text>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    backgroundColor: "#18191e",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderRadius: 10,
+                    height: 44,
+                    paddingHorizontal: 12,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <Calendar size={17} color="#64748b" />
+                    <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                      {blockStartDate
+                        ? `${blockStartDate.slice(8, 10)}/${blockStartDate.slice(5, 7)}/${blockStartDate.slice(0, 4)}`
+                        : "Selecionar data"}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <TouchableOpacity
+                      onPress={() => setBlockStartDate(changeDateByMode(blockStartDate, "day", -1))}
+                      style={{ padding: 4 }}
+                    >
+                      <ChevronLeft size={16} color="#94a3b8" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setBlockStartDate(todayKey())}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 6,
+                        backgroundColor: blockStartDate === todayKey() ? primarySoft : "rgba(255, 255, 255, 0.06)",
+                      }}
+                    >
+                      <Text style={{ color: blockStartDate === todayKey() ? primaryColor : "#94a3b8", fontSize: 11, fontWeight: "600" }}>
+                        Hoje
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setBlockStartDate(changeDateByMode(blockStartDate, "day", 1))}
+                      style={{ padding: 4 }}
+                    >
+                      <ChevronRight size={16} color="#94a3b8" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {/* Field 6: Data final (only if period) */}
+              {blockType === "period" && (
+                <View style={{ gap: 7 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Calendar size={15} color="#94a3b8" />
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Data final</Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      backgroundColor: "#18191e",
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderRadius: 10,
+                      height: 44,
+                      paddingHorizontal: 12,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <Calendar size={17} color="#64748b" />
+                      <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>
+                        {blockEndDate
+                          ? `${blockEndDate.slice(8, 10)}/${blockEndDate.slice(5, 7)}/${blockEndDate.slice(0, 4)}`
+                          : "Selecionar data final"}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <TouchableOpacity
+                        onPress={() => setBlockEndDate(changeDateByMode(blockEndDate, "day", -1))}
+                        style={{ padding: 4 }}
+                      >
+                        <ChevronLeft size={16} color="#94a3b8" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => setBlockEndDate(changeDateByMode(blockEndDate, "day", 1))}
+                        style={{ padding: 4 }}
+                      >
+                        <ChevronRight size={16} color="#94a3b8" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+
+              {/* Field 7: Horário início (only if hours) */}
+              {blockType === "hours" && (
+                <View style={{ gap: 7 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Clock3 size={15} color="#94a3b8" />
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Horário início</Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: "#18191e",
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderRadius: 10,
+                      height: 44,
+                      paddingHorizontal: 12,
+                      gap: 10,
+                    }}
+                  >
+                    <Clock3 size={17} color="#64748b" />
+                    <TextInput
+                      value={blockStartTime}
+                      onChangeText={setBlockStartTime}
+                      placeholder="12:00"
+                      placeholderTextColor={colors.textDisabled}
+                      style={{
+                        flex: 1,
+                        color: "#ffffff",
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    />
+                    <Clock3 size={16} color="#64748b" />
+                  </View>
+                </View>
+              )}
+
+              {/* Field 8: Horário fim (only if hours) */}
+              {blockType === "hours" && (
+                <View style={{ gap: 7 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Clock3 size={15} color="#94a3b8" />
+                    <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Horário fim</Text>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: "#18191e",
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.1)",
+                      borderRadius: 10,
+                      height: 44,
+                      paddingHorizontal: 12,
+                      gap: 10,
+                    }}
+                  >
+                    <Clock3 size={17} color="#64748b" />
+                    <TextInput
+                      value={blockEndTime}
+                      onChangeText={setBlockEndTime}
+                      placeholder="13:00"
+                      placeholderTextColor={colors.textDisabled}
+                      style={{
+                        flex: 1,
+                        color: "#ffffff",
+                        fontSize: 14,
+                        fontWeight: "600",
+                      }}
+                    />
+                    <Clock3 size={16} color="#64748b" />
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Footer & Actions */}
+            <View style={{ gap: 10, paddingTop: 6 }}>
+              <TouchableOpacity
+                onPress={handleCreateBlock}
+                disabled={savingAction}
+                activeOpacity={0.8}
+                style={{
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: "#52525b",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {savingAction ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}>
+                    Bloquear
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setBlockModalVisible(false)}
+                activeOpacity={0.7}
+                style={{
+                  height: 46,
+                  borderRadius: 12,
+                  backgroundColor: "#1c1e24",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.12)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "600" }}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 4 }}>
+                <AlertCircle size={14} color="#8a94a6" />
+                <Text style={{ color: "#8a94a6", fontSize: 12 }}>
+                  O motor impedirá agendamentos neste intervalo
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
       </Modal>
