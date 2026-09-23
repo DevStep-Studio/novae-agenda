@@ -198,125 +198,204 @@ export default function RelatoriosScreen() {
           {/* Performance da Equipe */}
           {data?.byEmployee && data.byEmployee.length > 0 && (
             <View
+              className="p-4 rounded-2xl border gap-3.5"
               style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderWidth: 1,
-                borderRadius: radius.md,
-                padding: 16,
-                gap: 14,
+                backgroundColor: "#111216",
+                borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              <Text
-                style={{
-                  color: colors.textPrimary,
-                  fontSize: 16,
-                  fontFamily: fontFamily.display,
-                }}
+              {/* Header */}
+              <View
+                className="flex-row items-center justify-between pb-3 border-b"
+                style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}
               >
-                Faturamento por Profissional
-              </Text>
-
-              {data.byEmployee.map((emp, idx) => (
-                <View
-                  key={emp.employeeId}
-                  className="flex-row items-center justify-between py-1 border-b border-neutral-800 last:border-0"
-                >
-                  <View className="flex-row items-center gap-2.5 flex-1 pr-2" style={{ flex: 1, flexShrink: 1 }}>
-                    <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: "700", width: 18, flexShrink: 0 }}>
-                      #{idx + 1}
-                    </Text>
-                    <Avatar name={emp.name} photoUrl={emp.photoUrl} size="md" />
-                    <View className="gap-0.5" style={{ flex: 1, flexShrink: 1 }}>
-                      <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "600", flexShrink: 1 }} numberOfLines={1}>
-                        {emp.name}
-                      </Text>
-                      <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-                        {emp.appointments} {emp.appointments === 1 ? "atendimento" : "atendimentos"}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="items-end gap-0.5" style={{ flexShrink: 0 }}>
-                    <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "700" }}>
-                      {formatBRL(emp.revenue)}
-                    </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                      Comissão: {formatBRL(emp.commission)}
-                    </Text>
-                  </View>
+                <View className="flex-row items-center gap-2">
+                  <UserCheck size={16} color="#a1a1aa" />
+                  <Text
+                    style={{
+                      color: "#ffffff",
+                      fontSize: 15,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Faturamento por Profissional
+                  </Text>
                 </View>
-              ))}
+                <View
+                  className="px-2.5 py-0.5 rounded-full border"
+                  style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.04)",
+                    borderColor: "rgba(255, 255, 255, 0.08)",
+                  }}
+                >
+                  <Text style={{ color: "#a1a1aa", fontSize: 11, fontWeight: "600" }}>
+                    {data.byEmployee.length} {data.byEmployee.length === 1 ? "profissional" : "profissionais"}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Lista de Profissionais */}
+              <View className="gap-2.5">
+                {data.byEmployee.map((emp, idx) => {
+                  const isTop1 = idx === 0;
+                  const isTop2 = idx === 1;
+
+                  return (
+                    <View
+                      key={emp.employeeId}
+                      className="p-3 rounded-xl border flex-row items-center justify-between"
+                      style={{
+                        backgroundColor: "#181920",
+                        borderColor: isTop1
+                          ? "rgba(234, 179, 8, 0.2)"
+                          : "rgba(255, 255, 255, 0.07)",
+                      }}
+                    >
+                      {/* Left: Rank + Avatar + Name + Appointments */}
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2" style={{ flexShrink: 1 }}>
+                        <View
+                          className="w-6 h-6 rounded-lg items-center justify-center border"
+                          style={{
+                            backgroundColor: isTop1
+                              ? "rgba(234, 179, 8, 0.12)"
+                              : isTop2
+                              ? "rgba(148, 163, 184, 0.12)"
+                              : "rgba(255, 255, 255, 0.04)",
+                            borderColor: isTop1
+                              ? "rgba(234, 179, 8, 0.28)"
+                              : isTop2
+                              ? "rgba(148, 163, 184, 0.2)"
+                              : "rgba(255, 255, 255, 0.08)",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: isTop1 ? "#eab308" : isTop2 ? "#94a3b8" : "#71717a",
+                              fontSize: 11,
+                              fontWeight: "800",
+                            }}
+                          >
+                            {idx + 1}º
+                          </Text>
+                        </View>
+
+                        <Avatar name={emp.name} photoUrl={emp.photoUrl} size="md" />
+
+                        <View className="gap-0.5 flex-1" style={{ flexShrink: 1 }}>
+                          <Text
+                            style={{ color: "#ffffff", fontSize: 14, fontWeight: "700" }}
+                            numberOfLines={1}
+                          >
+                            {emp.name}
+                          </Text>
+                          <Text style={{ color: "#a1a1aa", fontSize: 12 }}>
+                            {emp.appointments} {emp.appointments === 1 ? "atendimento" : "atendimentos"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Right: Faturamento + Comissão */}
+                      <View className="items-end gap-0.5" style={{ flexShrink: 0 }}>
+                        <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "800", letterSpacing: 0.2 }}>
+                          {formatBRL(emp.revenue)}
+                        </Text>
+                        <Text
+                          style={{
+                            color: emp.commission > 0 ? "#34d399" : "#71717a",
+                            fontSize: 11.5,
+                            fontWeight: emp.commission > 0 ? "600" : "500",
+                          }}
+                        >
+                          Comissão: {formatBRL(emp.commission)}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
             </View>
           )}
 
           {/* Formas de Pagamento */}
           {data?.byMethod && data.byMethod.length > 0 && (
             <View
+              className="p-4 rounded-2xl border gap-3.5"
               style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                borderWidth: 1,
-                borderRadius: radius.md,
-                padding: 16,
-                gap: 14,
+                backgroundColor: "#111216",
+                borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              <View className="flex-row items-center gap-2">
-                <CreditCard size={18} color={colors.primary} />
+              <View
+                className="flex-row items-center gap-2 pb-3 border-b"
+                style={{ borderBottomColor: "rgba(255, 255, 255, 0.06)" }}
+              >
+                <CreditCard size={16} color="#a1a1aa" />
                 <Text
                   style={{
-                    color: colors.textPrimary,
-                    fontSize: 16,
-                    fontFamily: fontFamily.display,
+                    color: "#ffffff",
+                    fontSize: 15,
+                    fontWeight: "700",
                   }}
                 >
                   Meios de Pagamento
                 </Text>
               </View>
 
-              {data.byMethod.map((item) => {
-                const percent = Math.round((item.total / totalMethods) * 100);
-                const methodName =
-                  item.method === "pix"
-                    ? "Pix Instantâneo"
-                    : item.method === "card"
-                    ? "Cartão de Crédito / Débito"
-                    : item.method === "cash"
-                    ? "Dinheiro"
-                    : item.method.toUpperCase();
+              <View className="gap-2.5">
+                {data.byMethod.map((item) => {
+                  const percent = Math.round((item.total / totalMethods) * 100);
+                  const methodName =
+                    item.method === "pix"
+                      ? "Pix Instantâneo"
+                      : item.method === "card"
+                      ? "Cartão de Crédito / Débito"
+                      : item.method === "cash"
+                      ? "Dinheiro"
+                      : item.method.toUpperCase();
 
-                return (
-                  <View key={item.method} className="gap-2">
-                    <View className="flex-row items-center justify-between">
-                      <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "500" }}>
-                        {methodName}
-                      </Text>
-                      <Text style={{ color: colors.textPrimary, fontSize: 14, fontWeight: "700" }}>
-                        {formatBRL(item.total)} ({percent}%)
-                      </Text>
-                    </View>
-
-                    {/* Barra de Progresso */}
+                  return (
                     <View
+                      key={item.method}
+                      className="p-3 rounded-xl border gap-2"
                       style={{
-                        backgroundColor: colors.surfaceSecondary,
-                        height: 6,
-                        borderRadius: 3,
-                        overflow: "hidden",
+                        backgroundColor: "#181920",
+                        borderColor: "rgba(255, 255, 255, 0.07)",
                       }}
                     >
+                      <View className="flex-row items-center justify-between">
+                        <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "600" }}>
+                          {methodName}
+                        </Text>
+                        <Text style={{ color: "#ffffff", fontSize: 13.5, fontWeight: "700" }}>
+                          {formatBRL(item.total)}{" "}
+                          <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "500" }}>
+                            ({percent}%)
+                          </Text>
+                        </Text>
+                      </View>
+
+                      {/* Barra de Progresso */}
                       <View
                         style={{
-                          backgroundColor: colors.primary,
-                          height: "100%",
-                          width: `${Math.min(100, Math.max(5, percent))}%`,
+                          backgroundColor: "rgba(255, 255, 255, 0.06)",
+                          height: 5,
+                          borderRadius: 3,
+                          overflow: "hidden",
                         }}
-                      />
+                      >
+                        <View
+                          style={{
+                            backgroundColor: colors.primary || "#38bdf8",
+                            height: "100%",
+                            borderRadius: 3,
+                            width: `${Math.min(100, Math.max(5, percent))}%`,
+                          }}
+                        />
+                      </View>
                     </View>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
             </View>
           )}
         </ScrollView>
