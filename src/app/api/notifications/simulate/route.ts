@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
       const timeFormatted = apt?.startTime ? apt.startTime.slice(0, 5) : "15:00";
       const customer = apt?.clientName || "Cliente VIP";
-      const title = "⏰ Lembrete de Agendamento (Simulação)";
+      const title = "Lembrete de Agendamento (Simulação)";
       const messageBody = `Lembrete automático: ${customer} possui agendamento hoje às ${timeFormatted}.`;
 
       const notifId = await NotificationService.createNotification({

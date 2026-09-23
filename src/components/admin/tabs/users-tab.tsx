@@ -446,10 +446,10 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
             }}
           >
             <option value="all">Todos os Níveis</option>
-            <option value="superadmin">🛡️ Super Admin</option>
-            <option value="owner">👑 Proprietário</option>
-            <option value="employee">💼 Colaborador / Profissional</option>
-            <option value="customer">👤 Cliente</option>
+            <option value="superadmin">Super Admin</option>
+            <option value="owner">Proprietário</option>
+            <option value="employee">Colaborador / Profissional</option>
+            <option value="customer">Cliente</option>
           </select>
 
           <select
@@ -970,10 +970,10 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                       value={newUserForm.role}
                       onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as any })}
                     >
-                      <option value="owner">👑 Proprietário (Empresa)</option>
-                      <option value="superadmin">🛡️ Super Admin da Plataforma</option>
-                      <option value="employee">💼 Colaborador / Profissional</option>
-                      <option value="customer">👤 Cliente Final</option>
+                      <option value="owner">Proprietário (Empresa)</option>
+                      <option value="superadmin">Super Admin da Plataforma</option>
+                      <option value="employee">Colaborador / Profissional</option>
+                      <option value="customer">Cliente Final</option>
                     </select>
                   </div>
                   <div>
@@ -1000,8 +1000,9 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                       marginBottom: 14,
                     }}
                   >
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#dcff4c", marginBottom: 10 }}>
-                      🏢 Dados da Empresa & Assinatura (Criar no MySQL)
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#dcff4c", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Building2 size={16} color="#dcff4c" />
+                      Dados da Empresa & Assinatura (Criar no MySQL)
                     </div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
@@ -1223,10 +1224,10 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
                     value={editForm.role}
                     onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                   >
-                    <option value="owner">👑 Proprietário</option>
-                    <option value="employee">💼 Colaborador / Profissional</option>
-                    <option value="customer">👤 Cliente Final</option>
-                    <option value="superadmin">🛡️ Super Administrador</option>
+                    <option value="owner">Proprietário</option>
+                    <option value="employee">Colaborador / Profissional</option>
+                    <option value="customer">Cliente Final</option>
+                    <option value="superadmin">Super Administrador</option>
                   </select>
                 </div>
 
@@ -1401,9 +1402,10 @@ export function UsersTab({ onSwitchToPins }: UsersTabProps = {}) {
               </div>
 
               {bulkDeleteMode === "hard" && (
-                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8, marginBottom: 12 }}>
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8, marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <AlertTriangle size={16} color="#fca5a5" style={{ flexShrink: 0, marginTop: 2 }} />
                   <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
-                    ⚠️ <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente os <strong>{selectedUserIds.length}</strong> usuários selecionados do MySQL. Esta ação não pode ser desfeita.
+                    <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente os <strong>{selectedUserIds.length}</strong> usuários selecionados do MySQL. Esta ação não pode ser desfeita.
                   </p>
                 </div>
               )}

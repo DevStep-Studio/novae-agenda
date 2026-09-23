@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   Layers,
   ListOrdered,
+  Lock,
   MapPin,
   Moon,
   Navigation,
@@ -262,24 +263,43 @@ export default function LinkAgendamentoScreen() {
     []
   );
 
+  const getCancellationIcon = (val: string) => {
+    switch (val) {
+      case "-1":
+        return Lock;
+      case "0":
+        return Zap;
+      case "2":
+      case "6":
+      case "12":
+        return Clock;
+      case "24":
+      case "48":
+      case "72":
+        return Calendar;
+      default:
+        return ShieldCheck;
+    }
+  };
+
   const getCancellationDescription = (val: string) => {
     switch (val) {
       case "-1":
-        return "🔒 Somente o estabelecimento pode cancelar ou remarcar o agendamento.";
+        return "Somente o estabelecimento pode cancelar ou remarcar o agendamento.";
       case "0":
-        return "⚡ O cliente pode cancelar ou remarcar a qualquer momento até o início do atendimento.";
+        return "O cliente pode cancelar ou remarcar a qualquer momento até o início do atendimento.";
       case "2":
-        return "⏱️ O cliente pode cancelar ou remarcar até 2 horas antes do horário agendado.";
+        return "O cliente pode cancelar ou remarcar até 2 horas antes do horário agendado.";
       case "6":
-        return "⏱️ O cliente pode cancelar ou remarcar até 6 horas antes do horário agendado.";
+        return "O cliente pode cancelar ou remarcar até 6 horas antes do horário agendado.";
       case "12":
-        return "⏱️ O cliente pode cancelar ou remarcar até 12 horas antes do horário agendado.";
+        return "O cliente pode cancelar ou remarcar até 12 horas antes do horário agendado.";
       case "24":
-        return "📅 O cliente pode cancelar ou remarcar até 24 horas antes (1 dia de antecedência).";
+        return "O cliente pode cancelar ou remarcar até 24 horas antes (1 dia de antecedência).";
       case "48":
-        return "📅 O cliente pode cancelar ou remarcar até 48 horas antes (2 dias de antecedência).";
+        return "O cliente pode cancelar ou remarcar até 48 horas antes (2 dias de antecedência).";
       case "72":
-        return "📅 O cliente pode cancelar ou remarcar até 72 horas antes (3 dias de antecedência).";
+        return "O cliente pode cancelar ou remarcar até 72 horas antes (3 dias de antecedência).";
       default:
         return "Defina a antecedência mínima permitida para o cliente alterar o agendamento.";
     }
@@ -2424,7 +2444,10 @@ export default function LinkAgendamentoScreen() {
                     borderColor: "rgba(255, 255, 255, 0.06)",
                   }}
                 >
-                  <ShieldCheck size={16} color={primaryColor || themePrimaryColor} style={{ marginTop: 1 }} />
+                  {(() => {
+                    const CancellationIcon = getCancellationIcon(cancellationHours);
+                    return <CancellationIcon size={16} color={primaryColor || themePrimaryColor} style={{ marginTop: 1 }} />;
+                  })()}
                   <View className="flex-1 gap-0.5">
                     <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
                       Regra Selecionada
@@ -2488,9 +2511,12 @@ export default function LinkAgendamentoScreen() {
                   </View>
                 </View>
 
-                <Text style={{ color: "#52525b", fontSize: 11, lineHeight: 15 }}>
-                  🔒 Não pode ser alterado após o primeiro agendamento criado para preservar o histórico.
-                </Text>
+                <View className="flex-row items-center gap-1.5 pt-0.5">
+                  <Lock size={12} color="#71717a" />
+                  <Text style={{ color: "#71717a", fontSize: 11, lineHeight: 15, flex: 1 }}>
+                    Não pode ser alterado após o primeiro agendamento criado para preservar o histórico.
+                  </Text>
+                </View>
               </View>
 
               <View className="gap-1.5 pt-2 border-t" style={{ borderTopColor: "rgba(255, 255, 255, 0.06)" }}>

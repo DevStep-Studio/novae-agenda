@@ -1490,8 +1490,9 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
 
               {deleteMode === "hard" && (
                 <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "14px 16px", borderRadius: 8 }}>
-                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
-                    ⚠️ ATENÇÃO: Esta ação é irreversível!
+                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                    <AlertTriangle size={15} color="#fca5a5" />
+                    ATENÇÃO: Esta ação é irreversível!
                   </div>
                   <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
                     A exclusão definitiva removerá permanentemente a empresa <strong>{ownerToDelete.name}</strong> e todos os seus registros vinculados do banco de dados.
@@ -1564,8 +1565,9 @@ export function OwnersTab({ onSwitchToUsers }: OwnersTabProps = {}) {
 
               {bulkDeleteMode === "hard" && (
                 <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "14px 16px", borderRadius: 8 }}>
-                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
-                    ⚠️ ATENÇÃO: Esta ação é irreversível!
+                  <div style={{ color: "#fca5a5", fontSize: 13, fontWeight: 700, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                    <AlertTriangle size={15} color="#fca5a5" />
+                    ATENÇÃO: Esta ação é irreversível!
                   </div>
                   <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
                     A exclusão definitiva removerá permanentemente os <strong>{selectedOwnerIds.length}</strong> estabelecimentos selecionados e todos os seus vínculos (profissionais, serviços, agendamentos, clientes) do banco de dados MySQL.

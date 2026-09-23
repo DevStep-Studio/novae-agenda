@@ -393,9 +393,9 @@ export function PinsTab() {
             }}
           >
             <option value="all">Todos os Status de PIN</option>
-            <option value="configured">✅ Com PIN Ativo</option>
-            <option value="not_configured">⏳ Sem PIN Configurado</option>
-            <option value="locked">🚫 Bloqueados por Tentativas</option>
+            <option value="configured">Com PIN Ativo</option>
+            <option value="not_configured">Sem PIN Configurado</option>
+            <option value="locked">Bloqueados por Tentativas</option>
           </select>
 
           <select
@@ -407,10 +407,10 @@ export function PinsTab() {
             }}
           >
             <option value="all">Todos os Níveis</option>
-            <option value="customer">👤 Clientes Finais</option>
-            <option value="owner">👑 Proprietários</option>
-            <option value="employee">💼 Colaboradores</option>
-            <option value="superadmin">🛡️ Super Admin</option>
+            <option value="customer">Clientes Finais</option>
+            <option value="owner">Proprietários</option>
+            <option value="employee">Colaboradores</option>
+            <option value="superadmin">Super Admin</option>
           </select>
         </div>
 

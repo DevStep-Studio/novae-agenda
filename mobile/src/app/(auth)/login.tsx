@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import {
   AlertCircle,
   CalendarDays,
+  Check,
   CheckCircle2,
   Eye,
   EyeOff,
@@ -13,6 +14,7 @@ import {
   RotateCcw,
   Sun,
   User,
+  X,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
@@ -426,7 +428,7 @@ export default function LoginScreen() {
                       }}
                     >
                       {remember ? (
-                        <Text style={{ color: "#0a0a0a", fontSize: 11, fontWeight: "900" }}>✓</Text>
+                        <Check size={12} color="#0a0a0a" strokeWidth={3} />
                       ) : null}
                     </View>
                     <Text style={{ color: subtitleColor, fontSize: 13, fontWeight: "500" }}>
@@ -602,15 +604,22 @@ export default function LoginScreen() {
                   />
 
                   {confirmPassword.length > 0 && (
-                    <Text
-                      style={{
-                        fontSize: 11.5,
-                        fontWeight: "600",
-                        color: password === confirmPassword ? "#10b981" : colors.danger,
-                      }}
-                    >
-                      {password === confirmPassword ? "✓ As senhas coincidem" : "✕ As senhas não coincidem"}
-                    </Text>
+                    <View className="flex-row items-center gap-1.5 pt-0.5">
+                      {password === confirmPassword ? (
+                        <Check size={13} color="#10b981" strokeWidth={2.5} />
+                      ) : (
+                        <X size={13} color={colors.danger} strokeWidth={2.5} />
+                      )}
+                      <Text
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: "600",
+                          color: password === confirmPassword ? "#10b981" : colors.danger,
+                        }}
+                      >
+                        {password === confirmPassword ? "As senhas coincidem" : "As senhas não coincidem"}
+                      </Text>
+                    </View>
                   )}
                 </View>
 

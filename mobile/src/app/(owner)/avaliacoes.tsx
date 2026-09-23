@@ -111,7 +111,7 @@ export default function AvaliacoesScreen() {
             <View className="flex-1">
               <MetricCard
                 label="Nota Média"
-                value={data?.averageRating ? `${data.averageRating} ★` : "5.0 ★"}
+                value={data?.averageRating ? Number(data.averageRating).toFixed(1) : "5.0"}
                 detail="De 5.0 estrelas"
                 icon={Star}
                 variant="amber"
@@ -149,7 +149,7 @@ export default function AvaliacoesScreen() {
                     borderRadius: radius.pill,
                     flexDirection: "row",
                     alignItems: "center",
-                    gap: 4,
+                    gap: 5,
                   }}
                 >
                   <Text
@@ -159,8 +159,15 @@ export default function AvaliacoesScreen() {
                       fontWeight: active ? "700" : "500",
                     }}
                   >
-                    {r === "all" ? "Todas" : `${r} ★`}
+                    {r === "all" ? "Todas" : String(r)}
                   </Text>
+                  {r !== "all" && (
+                    <Star
+                      size={12}
+                      color={active ? colors.primaryForeground : "#f59e0b"}
+                      fill={active ? colors.primaryForeground : "#f59e0b"}
+                    />
+                  )}
                 </Pressable>
               );
             })}

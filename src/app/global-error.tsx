@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 import "./globals.css";
 
 export default function GlobalError({
@@ -18,8 +19,8 @@ export default function GlobalError({
     <html lang="pt-BR">
       <body>
         <div className="state-screen">
-          <span className="state-screen-icon" style={{ fontSize: 28 }}>
-            ⚠
+          <span className="state-screen-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <AlertTriangle size={32} color="var(--danger, #ef4444)" />
           </span>
           <h1>Algo deu errado.</h1>
           <p className="state-screen-desc">

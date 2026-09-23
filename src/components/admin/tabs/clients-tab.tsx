@@ -692,9 +692,10 @@ export function ClientsTab() {
               </div>
 
               {deleteMode === "hard" && (
-                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8 }}>
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <AlertTriangle size={16} color="#fca5a5" style={{ flexShrink: 0, marginTop: 2 }} />
                   <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
-                    ⚠️ <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente o cliente <strong>{clientToDelete.name}</strong> e todos os seus registros associados. Esta ação não poderá ser desfeita.
+                    <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente o cliente <strong>{clientToDelete.name}</strong> e todos os seus registros associados. Esta ação não poderá ser desfeita.
                   </p>
                 </div>
               )}
@@ -753,9 +754,10 @@ export function ClientsTab() {
               </div>
 
               {bulkDeleteMode === "hard" && (
-                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8 }}>
+                <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "12px 14px", borderRadius: 8, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                  <AlertTriangle size={16} color="#fca5a5" style={{ flexShrink: 0, marginTop: 2 }} />
                   <p style={{ margin: 0, fontSize: 12.5, color: "#fca5a5", lineHeight: 1.4 }}>
-                    ⚠️ <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente os <strong>{selectedClientIds.length}</strong> clientes selecionados. Esta ação não poderá ser desfeita.
+                    <strong>Atenção:</strong> A exclusão definitiva removerá permanentemente os <strong>{selectedClientIds.length}</strong> clientes selecionados. Esta ação não poderá ser desfeita.
                   </p>
                 </div>
               )}
