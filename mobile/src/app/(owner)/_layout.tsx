@@ -1,4 +1,4 @@
-import { CalendarDays, Home, Menu, Users } from "lucide-react-native";
+import { CalendarDays, CircleDollarSign, Home, Users } from "lucide-react-native";
 import { Redirect, Tabs } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
@@ -47,19 +47,19 @@ export default function OwnerLayout() {
         }}
       />
       <Tabs.Screen
-        name="mais"
+        name="financeiro"
         options={{
-          title: "Menu",
-          tabBarIcon: ({ color, size }) => <Menu color={color} size={size} />,
+          title: "Financeiro",
+          tabBarIcon: ({ color, size }) => <CircleDollarSign color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="mais" options={{ href: null }} />
       <Tabs.Screen name="ajuda" options={{ href: null }} />
       <Tabs.Screen name="assinatura" options={{ href: null }} />
       <Tabs.Screen name="avaliacoes" options={{ href: null }} />
       <Tabs.Screen name="clubes" options={{ href: null }} />
       <Tabs.Screen name="configuracoes" options={{ href: null }} />
       <Tabs.Screen name="equipe" options={{ href: null }} />
-      <Tabs.Screen name="financeiro" options={{ href: null }} />
       <Tabs.Screen name="lista-espera" options={{ href: null }} />
       <Tabs.Screen name="link-agendamento" options={{ href: null }} />
       <Tabs.Screen name="notificacoes" options={{ href: null }} />
