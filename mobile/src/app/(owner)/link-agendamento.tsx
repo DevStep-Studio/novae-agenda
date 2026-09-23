@@ -1439,24 +1439,29 @@ export default function LinkAgendamentoScreen() {
               </View>
 
               <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "600" }}>Combinação de fontes</Text>
-              <View className="flex-row flex-wrap gap-2.5">
+              <View className="flex-row flex-wrap gap-2">
                 {FONT_OPTIONS.map((f) => {
                   const isSelected = fontFamily === f.id;
                   return (
                     <Pressable
                       key={f.id}
                       onPress={() => setFontFamily(f.id)}
-                      className="py-3 px-4 rounded-xl border items-center justify-center min-w-[100px]"
+                      className="py-2.5 px-2 rounded-xl border items-center justify-center"
                       style={{
+                        width: "31.3%",
+                        minHeight: 66,
                         backgroundColor: isSelected ? "#27272a" : "#181920",
-                        borderColor: isSelected ? "#ffffff" : "rgba(255, 255, 255, 0.08)",
+                        borderColor: isSelected ? (primaryColor || "#ffffff") : "rgba(255, 255, 255, 0.08)",
                         borderWidth: isSelected ? 1.5 : 1,
                       }}
                     >
                       <Text style={{ color: isSelected ? "#ffffff" : "#a1a1aa", fontSize: 16, fontWeight: "800" }}>
                         Aa
                       </Text>
-                      <Text style={{ color: isSelected ? "#ffffff" : "#71717a", fontSize: 12, fontWeight: "600", marginTop: 2 }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{ color: isSelected ? "#ffffff" : "#71717a", fontSize: 11.5, fontWeight: "600", marginTop: 3 }}
+                      >
                         {f.name}
                       </Text>
                     </Pressable>
