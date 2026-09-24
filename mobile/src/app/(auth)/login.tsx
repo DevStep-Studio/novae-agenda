@@ -12,9 +12,8 @@ import {
   Lock,
   Mail,
   MailCheck,
-  Moon,
   RotateCcw,
-  Sun,
+  Settings,
   User,
   X,
 } from "lucide-react-native";
@@ -22,7 +21,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -45,7 +43,7 @@ type RecoveryStep = "request_email" | "email_sent";
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { session, refresh } = useSession();
-  const { isDark, toggleTheme, colors: themeColors, primaryColor } = useTheme();
+  const { isDark, toggleTheme, primaryColor } = useTheme();
 
   const [mode, setMode] = useState<AuthMode>("login");
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("request_email");
@@ -236,27 +234,33 @@ export default function LoginScreen() {
   const strengthLabels = ["Muito fraca", "Fraca", "Média", "Forte", "Excelente"];
   const strengthColors = ["#ef4444", "#f87171", "#f59e0b", "#10b981", "#10b981"];
 
-  const formBackground = isDark ? "#0d0f14" : "#ffffff";
+  const formBackground = isDark ? "#0c0e12" : "#ffffff";
   const titleColor = isDark ? "#ffffff" : "#0f172a";
   const subtitleColor = isDark ? "#94a3b8" : "#64748b";
 
   return (
     <Screen noPadding>
-      <ScrollView
-        scrollEnabled={false}
-        bounces={false}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
-        style={{ backgroundColor: formBackground }}
-      >
-        {/* Top Graphic Hero Banner */}
+      <View style={[styles.rootContainer, { backgroundColor: formBackground }]}>
+        {/* Top Graphic Hero Banner with Blue Gear Button in Top Right */}
         <View style={styles.bannerContainer}>
           <Image
             source={require("../../../assets/images/login-banner.png")}
             style={styles.bannerImage}
             contentFit="cover"
           />
+
+          {/* Blue circular button with Settings/Gear icon on top right (como na imagem) */}
+          <Pressable
+            onPress={toggleTheme}
+            style={[
+              styles.topRightGearBtn,
+              { top: Math.max(insets.top + 6, 14) },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Alternar tema"
+          >
+            <Settings size={22} color="#ffffff" />
+          </Pressable>
         </View>
 
         {/* Main Form Sheet */}
@@ -265,32 +269,13 @@ export default function LoginScreen() {
             styles.formPane,
             {
               backgroundColor: formBackground,
-              paddingBottom: Math.max(insets.bottom + 10, 20),
+              paddingBottom: Math.max(insets.bottom + 8, 16),
             },
           ]}
         >
-          {/* Top Row: Logo on Left + Theme Toggle Button on Right (circulado na imagem) */}
-          <View style={styles.topRow}>
+          {/* Logo Brand Header */}
+          <View style={styles.logoRow}>
             <ReserveiLogo variant="full" height={30} />
-
-            <Pressable
-              onPress={toggleTheme}
-              style={[
-                styles.themeToggleBtn,
-                {
-                  backgroundColor: isDark ? "#181b24" : "#f1f5f9",
-                  borderColor: isDark ? "#282e3d" : "#e2e8f0",
-                },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-            >
-              {isDark ? (
-                <Sun size={16} color={primaryColor} />
-              ) : (
-                <Moon size={16} color="#0f172a" />
-              )}
-            </Pressable>
           </View>
 
           {/* Feedback: Error banner */}
@@ -389,7 +374,7 @@ export default function LoginScreen() {
                         height: 18,
                         borderRadius: 4,
                         borderWidth: 1.5,
-                        borderColor: remember ? primaryColor : (isDark ? "#32384a" : "#cbd5e1"),
+                        borderColor: remember ? primaryColor : (isDark ? "#353d52" : "#cbd5e1"),
                         backgroundColor: remember ? primaryColor : "transparent",
                         alignItems: "center",
                         justifyContent: "center",
@@ -416,18 +401,18 @@ export default function LoginScreen() {
 
               {/* Divider */}
               <View style={styles.dividerRow}>
-                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#232838" : "#e2e8f0" }]} />
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#202533" : "#e2e8f0" }]} />
                 <Text style={styles.dividerText}>ou</Text>
-                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#232838" : "#e2e8f0" }]} />
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#202533" : "#e2e8f0" }]} />
               </View>
 
-              {/* Secondary PIN Action Feature Card (Sem a tag PIN) */}
+              {/* Secondary PIN Action Feature Card */}
               <Pressable
                 style={[
                   styles.featureCard,
                   {
                     backgroundColor: isDark ? "#141720" : "#f8fafc",
-                    borderColor: isDark ? "#232838" : "#e2e8f0",
+                    borderColor: isDark ? "#242938" : "#e2e8f0",
                   },
                 ]}
                 onPress={() => router.push("/(auth)/customer-access")}
@@ -438,7 +423,7 @@ export default function LoginScreen() {
                     { backgroundColor: primaryColor },
                   ]}
                 >
-                  <KeyRound size={19} color="#0a0a0a" />
+                  <KeyRound size={20} color="#0a0a0a" />
                 </View>
 
                 <View style={styles.featureTextCol}>
@@ -611,9 +596,9 @@ export default function LoginScreen() {
 
               {/* Divider */}
               <View style={styles.dividerRow}>
-                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#232838" : "#e2e8f0" }]} />
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#202533" : "#e2e8f0" }]} />
                 <Text style={styles.dividerText}>ou</Text>
-                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#232838" : "#e2e8f0" }]} />
+                <View style={[styles.dividerLine, { backgroundColor: isDark ? "#202533" : "#e2e8f0" }]} />
               </View>
 
               {/* Secondary PIN Action Feature Card */}
@@ -622,7 +607,7 @@ export default function LoginScreen() {
                   styles.featureCard,
                   {
                     backgroundColor: isDark ? "#141720" : "#f8fafc",
-                    borderColor: isDark ? "#232838" : "#e2e8f0",
+                    borderColor: isDark ? "#242938" : "#e2e8f0",
                   },
                 ]}
                 onPress={() => router.push("/(auth)/customer-access")}
@@ -633,7 +618,7 @@ export default function LoginScreen() {
                     { backgroundColor: primaryColor },
                   ]}
                 >
-                  <KeyRound size={19} color="#0a0a0a" />
+                  <KeyRound size={20} color="#0a0a0a" />
                 </View>
 
                 <View style={styles.featureTextCol}>
@@ -716,7 +701,7 @@ export default function LoginScreen() {
                       styles.sentCard,
                       {
                         backgroundColor: isDark ? "#141720" : "#f8fafc",
-                        borderColor: isDark ? "#232838" : "#e2e8f0",
+                        borderColor: isDark ? "#242938" : "#e2e8f0",
                       },
                     ]}
                   >
@@ -779,56 +764,56 @@ export default function LoginScreen() {
             <Text style={{ textDecorationLine: "underline", color: titleColor }}>Política de Privacidade</Text>.
           </Text>
         </View>
-      </ScrollView>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "space-between",
+  rootContainer: {
+    flex: 1,
   },
   bannerContainer: {
     width: "100%",
-    height: 150,
-    backgroundColor: "#0d0f14",
+    height: 180,
+    backgroundColor: "#0c0e12",
     overflow: "hidden",
+    position: "relative",
   },
   bannerImage: {
     width: "100%",
     height: "100%",
   },
+  topRightGearBtn: {
+    position: "absolute",
+    right: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#0084ff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 5,
+    zIndex: 20,
+  },
   formPane: {
     flex: 1,
-    marginTop: -22,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingHorizontal: 20,
-    paddingTop: 18,
+    marginTop: -16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 22,
+    paddingTop: 16,
     maxWidth: 460,
     width: "100%",
     alignSelf: "center",
     justifyContent: "space-between",
   },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  themeToggleBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
+  logoRow: {
+    marginBottom: 2,
   },
   alertBox: {
     flexDirection: "row",
@@ -838,34 +823,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: 6,
+    marginBottom: 2,
   },
   formContent: {
-    gap: 13,
+    gap: 12,
   },
   headerBlock: {
     gap: 4,
-    marginTop: 2,
   },
   title: {
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: "800",
-    letterSpacing: -0.4,
-    lineHeight: 29,
+    letterSpacing: -0.5,
+    lineHeight: 30,
   },
   subtitle: {
-    fontSize: 12.5,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
   },
   fieldsBlock: {
-    gap: 12,
+    gap: 11,
   },
   rememberRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: -3,
+    marginTop: -2,
     marginBottom: 1,
   },
   rememberBtn: {
@@ -891,25 +875,25 @@ const styles = StyleSheet.create({
   featureCard: {
     borderRadius: 12,
     borderWidth: 1,
-    padding: 11,
+    padding: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   featureIconBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 9,
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   featureTextCol: {
     flex: 1,
-    marginLeft: 11,
+    marginLeft: 12,
     marginRight: 6,
   },
   featureTitle: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: "700",
   },
   featureSubtitle: {
@@ -933,9 +917,10 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 11,
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 8,
     lineHeight: 15,
   },
 });
+
 
 
