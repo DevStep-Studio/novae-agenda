@@ -34,7 +34,7 @@ describe("Unified Web & Mobile — Production Readiness Test Suite", () => {
       userId: userAId,
       phoneNormalized: phoneA,
       pinHash: pinHashA,
-    }).onDuplicateKeyUpdate({ set: { pinHash: pinHashA, phoneNormalized: phoneA } });
+    }).onDuplicateKeyUpdate({ set: { userId: userAId, pinHash: pinHashA, phoneNormalized: phoneA } });
 
     // Cria/Verifica Cliente B com o MESMO PIN
     const rawPhoneB = "11933334444";
@@ -57,7 +57,7 @@ describe("Unified Web & Mobile — Production Readiness Test Suite", () => {
       userId: userBId,
       phoneNormalized: phoneB,
       pinHash: pinHashB,
-    }).onDuplicateKeyUpdate({ set: { pinHash: pinHashB, phoneNormalized: phoneB } });
+    }).onDuplicateKeyUpdate({ set: { userId: userBId, pinHash: pinHashB, phoneNormalized: phoneB } });
 
     // Login com Telefone + PIN para cada cliente
     const authA = await CustomerAccessService.loginWithPin({

@@ -196,6 +196,23 @@ export class CustomerAccessService {
     });
 
     if (matchedUser) {
+      const [credByUser] = await db
+        .select()
+        .from(customerCredentials)
+        .where(eq(customerCredentials.userId, matchedUser.id))
+        .limit(1);
+
+      if (credByUser) {
+        if (credByUser.phoneNormalized !== phoneNormalized) {
+          await db
+            .update(customerCredentials)
+            .set({ phoneNormalized, updatedAt: new Date() })
+            .where(eq(customerCredentials.id, credByUser.id))
+            .catch(() => {});
+        }
+        return { user: matchedUser, credential: credByUser };
+      }
+
       return { user: matchedUser, credential: null };
     }
 
@@ -218,7 +235,13 @@ export class CustomerAccessService {
         .limit(1);
 
       if (linkedUser && (linkedUser.role === "customer" || linkedUser.role === "client")) {
-        return { user: linkedUser, credential: null };
+        const [credByUser] = await db
+          .select()
+          .from(customerCredentials)
+          .where(eq(customerCredentials.userId, linkedUser.id))
+          .limit(1);
+
+        return { user: linkedUser, credential: credByUser || null };
       }
     }
 
