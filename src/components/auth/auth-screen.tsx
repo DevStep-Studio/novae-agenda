@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   AlertCircle,
   Eye,
   EyeOff,
@@ -720,17 +721,28 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
               <div className="auth-split-divider">
                 <div className="auth-split-divider-line" />
-                <span className="auth-split-divider-text">ou é cliente?</span>
+                <span className="auth-split-divider-text">ou</span>
                 <div className="auth-split-divider-line" />
               </div>
 
               <button
                 type="button"
-                className="auth-split-secondary-btn"
+                className="auth-split-feature-card"
                 onClick={() => handleModeChange("reservas")}
               >
-                <CalendarDays size={16} />
-                <span>Consultar minhas reservas com PIN</span>
+                <div className="auth-split-feature-icon-badge">
+                  <KeyRound size={20} />
+                </div>
+                <div className="auth-split-feature-text-col">
+                  <div className="auth-split-feature-title-row">
+                    <span className="auth-split-feature-title">Consultar reservas com PIN</span>
+                    <span className="auth-split-pro-badge">PIN</span>
+                  </div>
+                  <span className="auth-split-feature-subtitle">
+                    Acesse seus agendamentos rápidos com celular e PIN
+                  </span>
+                </div>
+                <ChevronRight size={18} className="auth-split-chevron" />
               </button>
 
               <div className="auth-split-switch-row">
@@ -897,17 +909,28 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
 
               <div className="auth-split-divider">
                 <div className="auth-split-divider-line" />
-                <span className="auth-split-divider-text">ou acesse com</span>
+                <span className="auth-split-divider-text">ou</span>
                 <div className="auth-split-divider-line" />
               </div>
 
               <button
                 type="button"
-                className="auth-split-secondary-btn"
+                className="auth-split-feature-card"
                 onClick={() => handleModeChange("reservas")}
               >
-                <CalendarDays size={16} />
-                <span>Ver minhas reservas</span>
+                <div className="auth-split-feature-icon-badge">
+                  <KeyRound size={20} />
+                </div>
+                <div className="auth-split-feature-text-col">
+                  <div className="auth-split-feature-title-row">
+                    <span className="auth-split-feature-title">Consultar reservas com PIN</span>
+                    <span className="auth-split-pro-badge">PIN</span>
+                  </div>
+                  <span className="auth-split-feature-subtitle">
+                    Acesse seus agendamentos rápidos com celular e PIN
+                  </span>
+                </div>
+                <ChevronRight size={18} className="auth-split-chevron" />
               </button>
 
               <div className="auth-split-switch-row">
