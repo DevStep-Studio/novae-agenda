@@ -32,6 +32,11 @@ describe("Reservei — Customer Access by Phone + 6-digit PIN Suite", () => {
 
   before(async () => {
     f = await bookingFixture();
+    await db.delete(customerCredentials).where(eq(customerCredentials.phoneNormalized, normalizedPhone));
+    await db.delete(customerAccessLogs).where(eq(customerAccessLogs.phoneNormalized, normalizedPhone));
+    for (const c of f.customers) {
+      await db.delete(customerCredentials).where(eq(customerCredentials.userId, c.id));
+    }
   });
 
   after(async () => {
