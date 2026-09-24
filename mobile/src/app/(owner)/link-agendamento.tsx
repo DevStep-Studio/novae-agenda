@@ -337,8 +337,9 @@ export default function LinkAgendamentoScreen() {
 
   // Preview Booking Page in-app
   const handlePreview = () => {
-    if (slug) {
-      router.push(`/agendar/${encodeURIComponent(slug)}`);
+    const targetSlug = slug || session?.company?.publicSlug || session?.company?.slug;
+    if (targetSlug) {
+      router.push(`/agendar/${encodeURIComponent(targetSlug)}`);
     } else {
       Linking.openURL(publicUrl);
     }
@@ -1983,9 +1984,15 @@ export default function LinkAgendamentoScreen() {
                 className="flex-row items-center justify-between p-3 rounded-xl border"
                 style={{ backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.08)" }}
               >
-                <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700", flex: 1, marginRight: 8 }} numberOfLines={1}>
-                  {publicUrl}
-                </Text>
+                <Pressable
+                  onPress={handlePreview}
+                  style={{ flex: 1, marginRight: 8, justifyContent: "center" }}
+                  hitSlop={8}
+                >
+                  <Text style={{ color: "#ffffff", fontSize: 13, fontWeight: "700" }} numberOfLines={1}>
+                    {publicUrl}
+                  </Text>
+                </Pressable>
 
                 <Pressable
                   onPress={handleCopyLink}

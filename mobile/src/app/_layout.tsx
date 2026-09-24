@@ -17,6 +17,7 @@ import { LogBox, useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import * as Linking from "expo-linking";
 import { AppThemeProvider, useAppTheme } from "@/lib/theme-context";
 import { SessionProvider, useSession } from "@/lib/session-context";
 import { setupNotificationListeners } from "@/lib/push-notifications";
@@ -68,6 +69,42 @@ function RootNavigator() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
+  // Handle incoming Universal Links & Deep Links (e.g. https://usereservei.com.br/agendar/:slug or reservei://agendar/:slug)
+  useEffect(() => {
+    function handleIncomingUrl(rawUrl: string | null) {
+      if (!rawUrl) return;
+      try {
+        const parsed = Linking.parse(rawUrl);
+        const path = (parsed.path || "").replace(/^\/+/, "");
+        if (path.startsWith("agendar/")) {
+          const slugPart = path.replace(/^agendar\//, "");
+          if (slugPart) {
+            router.push(`/agendar/${encodeURIComponent(slugPart)}` as any);
+          }
+        } else if (path.startsWith("r/")) {
+          const slugPart = path.replace(/^r\//, "");
+          if (slugPart) {
+            router.push(`/agendar/${encodeURIComponent(slugPart)}` as any);
+          }
+        } else if (path && !path.startsWith("(") && !path.includes("api/")) {
+          const knownAppRoutes = ["login", "register", "gestao", "minhas-reservas", "verify-email"];
+          const firstSegment = path.split("/")[0];
+          if (!knownAppRoutes.includes(firstSegment)) {
+            router.push(`/agendar/${encodeURIComponent(firstSegment)}` as any);
+          }
+        }
+      } catch (err) {
+        console.warn("[Deep Link Parse Error]:", err);
+      }
+    }
+
+    Linking.getInitialURL().then(handleIncomingUrl);
+    const sub = Linking.addEventListener("url", (event) => handleIncomingUrl(event.url));
+    return () => {
+      sub.remove();
+    };
+  }, [router]);
+
   useEffect(() => {
     const cleanup = setupNotificationListeners(
       (notification) => {
@@ -111,6 +148,7 @@ function RootNavigator() {
         <Stack.Screen name="(owner)" />
         <Stack.Screen name="(employee)" />
         <Stack.Screen name="(customer)" />
+        <Stack.Screen name="agendar/[slug]" />
       </Stack>
     </>
   );

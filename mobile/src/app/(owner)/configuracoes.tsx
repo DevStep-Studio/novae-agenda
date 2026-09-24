@@ -14,6 +14,7 @@ import {
   Sliders,
 } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
@@ -52,6 +53,7 @@ import {
 } from "@/lib/company-settings";
 
 export default function ConfiguracoesScreen() {
+  const router = useRouter();
   const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [profile, setProfile] = useState<CompanyDTO | null>(null);
   const [settings, setSettings] = useState<CompanySettingsDTO | null>(null);
@@ -176,7 +178,7 @@ export default function ConfiguracoesScreen() {
   }
 
   const publicUrl = profile?.publicSlug
-    ? `https://usereservei.com.br/r/${profile.publicSlug}`
+    ? `https://usereservei.com.br/agendar/${profile.publicSlug}`
     : "https://usereservei.com.br";
 
   async function handleShareLink() {
@@ -324,7 +326,13 @@ export default function ConfiguracoesScreen() {
               </Pressable>
 
               <Pressable
-                onPress={() => Linking.openURL(publicUrl)}
+                onPress={() => {
+                  if (profile?.publicSlug) {
+                    router.push(`/agendar/${encodeURIComponent(profile.publicSlug)}`);
+                  } else {
+                    Linking.openURL(publicUrl);
+                  }
+                }}
                 style={{
                   backgroundColor: colors.surfaceSecondary,
                   borderColor: colors.border,
