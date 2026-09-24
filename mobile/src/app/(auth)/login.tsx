@@ -243,41 +243,54 @@ export default function LoginScreen() {
   return (
     <Screen noPadding>
       <ScrollView
+        scrollEnabled={false}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={styles.scrollContent}
         style={{ backgroundColor: formBackground }}
       >
-        {/* Top Graphic Hero Banner with Floating Theme Toggle */}
+        {/* Top Graphic Hero Banner */}
         <View style={styles.bannerContainer}>
           <Image
             source={require("../../../assets/images/login-banner.png")}
             style={styles.bannerImage}
             contentFit="cover"
           />
-
-          {/* Floating theme toggle button at top right */}
-          <Pressable
-            onPress={toggleTheme}
-            style={[
-              styles.floatingThemeBtn,
-              { top: Math.max(insets.top + 8, 16) },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
-          >
-            {isDark ? (
-              <Sun size={17} color={primaryColor} />
-            ) : (
-              <Moon size={17} color="#ffffff" />
-            )}
-          </Pressable>
         </View>
 
         {/* Main Form Sheet */}
-        <View style={[styles.formPane, { backgroundColor: formBackground }]}>
-          {/* Logo Brand Header */}
-          <View style={styles.logoRow}>
-            <ReserveiLogo variant="full" height={32} />
+        <View
+          style={[
+            styles.formPane,
+            {
+              backgroundColor: formBackground,
+              paddingBottom: Math.max(insets.bottom + 10, 20),
+            },
+          ]}
+        >
+          {/* Top Row: Logo on Left + Theme Toggle Button on Right (circulado na imagem) */}
+          <View style={styles.topRow}>
+            <ReserveiLogo variant="full" height={30} />
+
+            <Pressable
+              onPress={toggleTheme}
+              style={[
+                styles.themeToggleBtn,
+                {
+                  backgroundColor: isDark ? "#181b24" : "#f1f5f9",
+                  borderColor: isDark ? "#282e3d" : "#e2e8f0",
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
+            >
+              {isDark ? (
+                <Sun size={16} color={primaryColor} />
+              ) : (
+                <Moon size={16} color="#0f172a" />
+              )}
+            </Pressable>
           </View>
 
           {/* Feedback: Error banner */}
@@ -291,8 +304,8 @@ export default function LoginScreen() {
                 },
               ]}
             >
-              <AlertCircle size={16} color={authSplit.errorText} />
-              <Text style={{ color: authSplit.errorText, flex: 1, ...typography.authError }}>
+              <AlertCircle size={15} color={authSplit.errorText} />
+              <Text style={{ color: authSplit.errorText, flex: 1, ...typography.authError, fontSize: 12 }}>
                 {error}
               </Text>
             </View>
@@ -309,8 +322,8 @@ export default function LoginScreen() {
                 },
               ]}
             >
-              <CheckCircle2 size={16} color="#10b981" />
-              <Text style={{ color: "#86efac", flex: 1, ...typography.authError }}>
+              <CheckCircle2 size={15} color="#10b981" />
+              <Text style={{ color: "#86efac", flex: 1, ...typography.authError, fontSize: 12 }}>
                 {successBanner}
               </Text>
             </View>
@@ -372,9 +385,9 @@ export default function LoginScreen() {
                   >
                     <View
                       style={{
-                        width: 19,
-                        height: 19,
-                        borderRadius: 5,
+                        width: 18,
+                        height: 18,
+                        borderRadius: 4,
                         borderWidth: 1.5,
                         borderColor: remember ? primaryColor : (isDark ? "#32384a" : "#cbd5e1"),
                         backgroundColor: remember ? primaryColor : "transparent",
@@ -383,16 +396,16 @@ export default function LoginScreen() {
                       }}
                     >
                       {remember ? (
-                        <Check size={12} color="#0a0a0a" strokeWidth={3} />
+                        <Check size={11} color="#0a0a0a" strokeWidth={3} />
                       ) : null}
                     </View>
-                    <Text style={{ color: subtitleColor, fontSize: 13.5, fontWeight: "500" }}>
+                    <Text style={{ color: subtitleColor, fontSize: 13, fontWeight: "500" }}>
                       Lembrar de mim
                     </Text>
                   </Pressable>
 
                   <Pressable hitSlop={8} onPress={() => switchMode("forgot-password")}>
-                    <Text style={{ color: primaryColor, fontSize: 13.5, fontWeight: "600" }}>
+                    <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "600" }}>
                       Esqueci minha senha
                     </Text>
                   </Pressable>
@@ -408,7 +421,7 @@ export default function LoginScreen() {
                 <View style={[styles.dividerLine, { backgroundColor: isDark ? "#232838" : "#e2e8f0" }]} />
               </View>
 
-              {/* Secondary PIN Action Feature Card */}
+              {/* Secondary PIN Action Feature Card (Sem a tag PIN) */}
               <Pressable
                 style={[
                   styles.featureCard,
@@ -425,26 +438,13 @@ export default function LoginScreen() {
                     { backgroundColor: primaryColor },
                   ]}
                 >
-                  <KeyRound size={20} color="#0a0a0a" />
+                  <KeyRound size={19} color="#0a0a0a" />
                 </View>
 
                 <View style={styles.featureTextCol}>
-                  <View style={styles.featureTitleRow}>
-                    <Text style={[styles.featureTitle, { color: titleColor }]}>
-                      Consultar reservas com PIN
-                    </Text>
-                    <View
-                      style={[
-                        styles.proBadge,
-                        {
-                          backgroundColor: "rgba(220, 255, 76, 0.16)",
-                          borderColor: "rgba(220, 255, 76, 0.35)",
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.proBadgeText, { color: primaryColor }]}>PIN</Text>
-                    </View>
-                  </View>
+                  <Text style={[styles.featureTitle, { color: titleColor }]}>
+                    Consultar reservas com PIN
+                  </Text>
                   <Text style={[styles.featureSubtitle, { color: subtitleColor }]}>
                     Acesse seus agendamentos rápidos com celular e PIN
                   </Text>
@@ -455,11 +455,11 @@ export default function LoginScreen() {
 
               {/* Switch to Register */}
               <View style={styles.switchRow}>
-                <Text style={{ color: subtitleColor, fontSize: 13 }}>
+                <Text style={{ color: subtitleColor, fontSize: 12.5 }}>
                   É dono de estabelecimento?{" "}
                 </Text>
                 <Pressable onPress={() => switchMode("register")}>
-                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
+                  <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "700" }}>
                     Criar conta de proprietário
                   </Text>
                 </Pressable>
@@ -507,7 +507,7 @@ export default function LoginScreen() {
                   onChangeText={setEmail}
                 />
 
-                <View style={{ gap: 6 }}>
+                <View style={{ gap: 4 }}>
                   <TextField
                     label="Senha"
                     required
@@ -530,14 +530,14 @@ export default function LoginScreen() {
                   />
 
                   {password.length > 0 ? (
-                    <View style={{ gap: 4, paddingTop: 4 }}>
+                    <View style={{ gap: 3, paddingTop: 2 }}>
                       <View style={{ flexDirection: "row", gap: 4 }}>
                         {[1, 2, 3, 4].map((step) => (
                           <View
                             key={step}
                             style={{
                               flex: 1,
-                              height: 4,
+                              height: 3.5,
                               borderRadius: 2,
                               backgroundColor:
                                 passwordScore >= step
@@ -549,7 +549,7 @@ export default function LoginScreen() {
                       </View>
                       <Text
                         style={{
-                          fontSize: 11,
+                          fontSize: 10.5,
                           color: strengthColors[passwordScore],
                           fontWeight: "600",
                         }}
@@ -558,13 +558,13 @@ export default function LoginScreen() {
                       </Text>
                     </View>
                   ) : (
-                    <Text style={{ fontSize: 11.5, color: subtitleColor }}>
+                    <Text style={{ fontSize: 11, color: subtitleColor }}>
                       Pelo menos 8 caracteres
                     </Text>
                   )}
                 </View>
 
-                <View style={{ gap: 6 }}>
+                <View style={{ gap: 4 }}>
                   <TextField
                     label="Confirmar senha"
                     required
@@ -587,15 +587,15 @@ export default function LoginScreen() {
                   />
 
                   {confirmPassword.length > 0 && (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingTop: 2 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingTop: 1 }}>
                       {password === confirmPassword ? (
-                        <Check size={13} color="#10b981" strokeWidth={2.5} />
+                        <Check size={12} color="#10b981" strokeWidth={2.5} />
                       ) : (
-                        <X size={13} color={colors.danger} strokeWidth={2.5} />
+                        <X size={12} color={colors.danger} strokeWidth={2.5} />
                       )}
                       <Text
                         style={{
-                          fontSize: 11.5,
+                          fontSize: 11,
                           fontWeight: "600",
                           color: password === confirmPassword ? "#10b981" : colors.danger,
                         }}
@@ -633,26 +633,13 @@ export default function LoginScreen() {
                     { backgroundColor: primaryColor },
                   ]}
                 >
-                  <KeyRound size={20} color="#0a0a0a" />
+                  <KeyRound size={19} color="#0a0a0a" />
                 </View>
 
                 <View style={styles.featureTextCol}>
-                  <View style={styles.featureTitleRow}>
-                    <Text style={[styles.featureTitle, { color: titleColor }]}>
-                      Consultar reservas com PIN
-                    </Text>
-                    <View
-                      style={[
-                        styles.proBadge,
-                        {
-                          backgroundColor: "rgba(220, 255, 76, 0.16)",
-                          borderColor: "rgba(220, 255, 76, 0.35)",
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.proBadgeText, { color: primaryColor }]}>PIN</Text>
-                    </View>
-                  </View>
+                  <Text style={[styles.featureTitle, { color: titleColor }]}>
+                    Consultar reservas com PIN
+                  </Text>
                   <Text style={[styles.featureSubtitle, { color: subtitleColor }]}>
                     Acesse seus agendamentos rápidos com celular e PIN
                   </Text>
@@ -663,9 +650,9 @@ export default function LoginScreen() {
 
               {/* Switch to Login */}
               <View style={styles.switchRow}>
-                <Text style={{ color: subtitleColor, fontSize: 13 }}>Já tem uma conta? </Text>
+                <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Já tem uma conta? </Text>
                 <Pressable onPress={() => switchMode("login")}>
-                  <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
+                  <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "700" }}>
                     Entrar
                   </Text>
                 </Pressable>
@@ -707,9 +694,9 @@ export default function LoginScreen() {
 
                   {/* Switch back to Login */}
                   <View style={styles.switchRow}>
-                    <Text style={{ color: subtitleColor, fontSize: 13 }}>Lembrou sua senha? </Text>
+                    <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Lembrou sua senha? </Text>
                     <Pressable onPress={() => switchMode("login")}>
-                      <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "700" }}>
+                      <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "700" }}>
                         Voltar ao login
                       </Text>
                     </Pressable>
@@ -735,31 +722,31 @@ export default function LoginScreen() {
                   >
                     <View
                       style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 24,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
                         backgroundColor: colors.primarySoft,
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <MailCheck size={24} color={primaryColor} />
+                      <MailCheck size={22} color={primaryColor} />
                     </View>
 
                     <View
                       style={{
                         paddingHorizontal: 12,
-                        paddingVertical: 6,
+                        paddingVertical: 5,
                         backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
                         borderRadius: radius.pill,
                       }}
                     >
-                      <Text style={{ color: titleColor, fontSize: 13, fontWeight: "600" }}>
+                      <Text style={{ color: titleColor, fontSize: 12.5, fontWeight: "600" }}>
                         {recoveryEmail}
                       </Text>
                     </View>
 
-                    <Text style={{ color: subtitleColor, fontSize: 12.5, textAlign: "center", lineHeight: 18 }}>
+                    <Text style={{ color: subtitleColor, fontSize: 12, textAlign: "center", lineHeight: 17 }}>
                       Abra sua caixa de entrada e siga as instruções para redefinir sua senha com segurança.
                     </Text>
                   </View>
@@ -767,14 +754,14 @@ export default function LoginScreen() {
                   <Button label="Voltar ao login" onPress={() => switchMode("login")} />
 
                   <View style={styles.switchRow}>
-                    <Text style={{ color: subtitleColor, fontSize: 13 }}>Não recebeu o e-mail? </Text>
+                    <Text style={{ color: subtitleColor, fontSize: 12.5 }}>Não recebeu o e-mail? </Text>
                     <Pressable
                       onPress={handleResendRecoveryEmail}
                       disabled={resendCooldown > 0 || loading}
                       style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
                     >
-                      <RotateCcw size={13} color={primaryColor} />
-                      <Text style={{ color: primaryColor, fontSize: 13, fontWeight: "600" }}>
+                      <RotateCcw size={12} color={primaryColor} />
+                      <Text style={{ color: primaryColor, fontSize: 12.5, fontWeight: "600" }}>
                         {resendCooldown > 0 ? `Reenviar em ${resendCooldown}s` : "Reenviar e-mail"}
                       </Text>
                     </Pressable>
@@ -798,49 +785,50 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "space-between",
+  },
   bannerContainer: {
     width: "100%",
-    height: 220,
+    height: 150,
     backgroundColor: "#0d0f14",
     overflow: "hidden",
-    position: "relative",
   },
   bannerImage: {
     width: "100%",
     height: "100%",
   },
-  floatingThemeBtn: {
-    position: "absolute",
-    right: 18,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(10, 12, 16, 0.65)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.16)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 4,
-  },
   formPane: {
     flex: 1,
-    marginTop: -24,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 22,
-    paddingTop: 24,
-    paddingBottom: 36,
+    marginTop: -22,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingHorizontal: 20,
+    paddingTop: 18,
     maxWidth: 460,
     width: "100%",
     alignSelf: "center",
+    justifyContent: "space-between",
   },
-  logoRow: {
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 4,
+  },
+  themeToggleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
   },
   alertBox: {
     flexDirection: "row",
@@ -848,37 +836,37 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 10,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginTop: 12,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 8,
+    marginBottom: 4,
   },
   formContent: {
-    gap: 18,
+    gap: 13,
   },
   headerBlock: {
-    gap: 6,
-    marginTop: 6,
+    gap: 4,
+    marginTop: 2,
   },
   title: {
-    fontSize: 27,
+    fontSize: 24,
     fontWeight: "800",
-    letterSpacing: -0.5,
-    lineHeight: 33,
+    letterSpacing: -0.4,
+    lineHeight: 29,
   },
   subtitle: {
-    fontSize: 13.5,
-    lineHeight: 19,
+    fontSize: 12.5,
+    lineHeight: 17,
   },
   fieldsBlock: {
-    gap: 16,
+    gap: 12,
   },
   rememberRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: -2,
-    marginBottom: 2,
+    marginTop: -3,
+    marginBottom: 1,
   },
   rememberBtn: {
     flexDirection: "row",
@@ -889,80 +877,65 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginVertical: 4,
+    marginVertical: 2,
   },
   dividerLine: {
     flex: 1,
     height: 1,
   },
   dividerText: {
-    fontSize: 12.5,
+    fontSize: 12,
     color: "#94a3b8",
     fontWeight: "500",
   },
   featureCard: {
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 13,
+    padding: 11,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   featureIconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
   featureTextCol: {
     flex: 1,
-    marginLeft: 12,
-    marginRight: 8,
-  },
-  featureTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+    marginLeft: 11,
+    marginRight: 6,
   },
   featureTitle: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: "700",
   },
-  proBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 5,
-    borderWidth: 1,
-  },
-  proBadgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-  },
   featureSubtitle: {
-    fontSize: 11.5,
-    lineHeight: 15,
+    fontSize: 11,
+    lineHeight: 14,
     marginTop: 2,
   },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 4,
+    paddingTop: 2,
   },
   sentCard: {
     borderRadius: 14,
     borderWidth: 1,
-    padding: 18,
+    padding: 16,
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   footerText: {
-    fontSize: 11.5,
+    fontSize: 11,
     textAlign: "center",
-    marginTop: 22,
-    lineHeight: 17,
+    marginTop: 10,
+    lineHeight: 15,
   },
 });
+
 

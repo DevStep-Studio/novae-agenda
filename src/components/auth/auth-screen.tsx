@@ -734,10 +734,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   <KeyRound size={20} />
                 </div>
                 <div className="auth-split-feature-text-col">
-                  <div className="auth-split-feature-title-row">
-                    <span className="auth-split-feature-title">Consultar reservas com PIN</span>
-                    <span className="auth-split-pro-badge">PIN</span>
-                  </div>
+                  <span className="auth-split-feature-title">Consultar reservas com PIN</span>
                   <span className="auth-split-feature-subtitle">
                     Acesse seus agendamentos rápidos com celular e PIN
                   </span>
@@ -922,10 +919,7 @@ export function AuthScreen({ onAuthenticated, initialMode }: AuthScreenProps) {
                   <KeyRound size={20} />
                 </div>
                 <div className="auth-split-feature-text-col">
-                  <div className="auth-split-feature-title-row">
-                    <span className="auth-split-feature-title">Consultar reservas com PIN</span>
-                    <span className="auth-split-pro-badge">PIN</span>
-                  </div>
+                  <span className="auth-split-feature-title">Consultar reservas com PIN</span>
                   <span className="auth-split-feature-subtitle">
                     Acesse seus agendamentos rápidos com celular e PIN
                   </span>
