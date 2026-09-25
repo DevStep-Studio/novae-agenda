@@ -103,7 +103,7 @@ function ServiceEditorModal({
   onCategoriesUpdated,
   onDeleteService,
 }: ServiceEditorModalProps) {
-  const { isDark, primaryColor, primaryForeground } = useTheme();
+  const { isDark, primaryColor, primaryForeground, primarySoft } = useTheme();
 
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -699,50 +699,136 @@ function ServiceEditorModal({
                 </Text>
               </View>
 
-              {/* Pricing Segmented Control */}
-              <View
-                className="p-1 rounded-xl border gap-1"
-                style={{
-                  backgroundColor: "#16171c",
-                  borderColor: "rgba(255, 255, 255, 0.08)",
-                }}
-              >
+              {/* Pricing Dual-Card Selector (Preço Fixo vs Sob Consulta) */}
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {/* Option 1: Preço fixo */}
                 <Pressable
                   onPress={() => setIsQuote(false)}
-                  className="flex-row items-center justify-center gap-2 py-2.5 px-3 rounded-lg"
                   style={{
-                    backgroundColor: !isQuote ? "#52525b" : "transparent",
+                    flex: 1,
+                    padding: 13,
+                    borderRadius: 14,
+                    backgroundColor: !isQuote ? primarySoft : "#15161c",
+                    borderWidth: !isQuote ? 1.5 : 1,
+                    borderColor: !isQuote ? primaryColor : "rgba(255, 255, 255, 0.08)",
+                    gap: 8,
+                    justifyContent: "space-between",
                   }}
                 >
-                  <Coins size={13} color={!isQuote ? "#ffffff" : "#9ca3af"} />
-                  <Text
-                    style={{
-                      color: !isQuote ? "#ffffff" : "#9ca3af",
-                      fontSize: 12.5,
-                      fontWeight: !isQuote ? "700" : "600",
-                    }}
-                  >
-                    Preço fixo
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 9,
+                        backgroundColor: !isQuote ? primaryColor : "rgba(255, 255, 255, 0.06)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Coins size={15} color={!isQuote ? primaryForeground : "#9ca3af"} />
+                    </View>
+                    <View
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        borderWidth: !isQuote ? 0 : 1.5,
+                        borderColor: "rgba(255, 255, 255, 0.25)",
+                        backgroundColor: !isQuote ? primaryColor : "transparent",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {!isQuote ? <Check size={11} color={primaryForeground} strokeWidth={3} /> : null}
+                    </View>
+                  </View>
+
+                  <View style={{ gap: 2 }}>
+                    <Text
+                      style={{
+                        color: "#ffffff",
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      Preço fixo
+                    </Text>
+                    <Text
+                      style={{
+                        color: !isQuote ? "#cbd5e1" : "#64748b",
+                        fontSize: 11,
+                        lineHeight: 14,
+                      }}
+                    >
+                      Valor tabelado por serviço
+                    </Text>
+                  </View>
                 </Pressable>
 
+                {/* Option 2: Sob consulta */}
                 <Pressable
                   onPress={() => setIsQuote(true)}
-                  className="flex-row items-center justify-center gap-2 py-2.5 px-3 rounded-lg"
                   style={{
-                    backgroundColor: isQuote ? "#52525b" : "transparent",
+                    flex: 1,
+                    padding: 13,
+                    borderRadius: 14,
+                    backgroundColor: isQuote ? primarySoft : "#15161c",
+                    borderWidth: isQuote ? 1.5 : 1,
+                    borderColor: isQuote ? primaryColor : "rgba(255, 255, 255, 0.08)",
+                    gap: 8,
+                    justifyContent: "space-between",
                   }}
                 >
-                  <FileText size={13} color={isQuote ? "#ffffff" : "#9ca3af"} />
-                  <Text
-                    style={{
-                      color: isQuote ? "#ffffff" : "#9ca3af",
-                      fontSize: 12.5,
-                      fontWeight: isQuote ? "700" : "600",
-                    }}
-                  >
-                    Orçamento direto (Sob consulta)
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 9,
+                        backgroundColor: isQuote ? primaryColor : "rgba(255, 255, 255, 0.06)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <FileText size={15} color={isQuote ? primaryForeground : "#9ca3af"} />
+                    </View>
+                    <View
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        borderWidth: isQuote ? 0 : 1.5,
+                        borderColor: "rgba(255, 255, 255, 0.25)",
+                        backgroundColor: isQuote ? primaryColor : "transparent",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {isQuote ? <Check size={11} color={primaryForeground} strokeWidth={3} /> : null}
+                    </View>
+                  </View>
+
+                  <View style={{ gap: 2 }}>
+                    <Text
+                      style={{
+                        color: "#ffffff",
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      Sob consulta
+                    </Text>
+                    <Text
+                      style={{
+                        color: isQuote ? "#cbd5e1" : "#64748b",
+                        fontSize: 11,
+                        lineHeight: 14,
+                      }}
+                    >
+                      Orçamento sob demanda
+                    </Text>
+                  </View>
                 </Pressable>
               </View>
 
