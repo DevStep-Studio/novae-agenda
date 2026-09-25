@@ -1737,25 +1737,24 @@ export default function AgendaScreen() {
                   <Text style={{ color: "#94a3b8", fontSize: 13, fontWeight: "600" }}>Serviços disponíveis</Text>
                 </View>
 
-                {/* 2-Column Grid */}
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {/* 2-Column Grid (2x2) */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 10 }}>
                   {services
                     .filter((s) => s.active)
                     .map((service) => {
                       const isSelected = formServiceIds.includes(service.id);
-                      const cardWidth = Math.floor((windowWidth - 48) / 2);
                       return (
                         <TouchableOpacity
                           key={service.id}
                           activeOpacity={0.7}
                           onPress={() => toggleService(service.id)}
                           style={{
-                            width: cardWidth,
+                            width: "48.5%",
                             backgroundColor: isSelected ? primarySoft : "#14161d",
                             borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
-                            borderWidth: 1,
-                            borderRadius: 12,
-                            padding: 11,
+                            borderWidth: isSelected ? 1.5 : 1,
+                            borderRadius: 14,
+                            padding: 12,
                             minHeight: 114,
                             justifyContent: "space-between",
                           }}
