@@ -53,8 +53,8 @@ export async function POST(request: Request) {
     const price = targetDbPlan
       ? (billingInterval === "yearly" ? targetDbPlan.annualPrice : targetDbPlan.monthlyPrice)
       : (billingInterval === "yearly"
-          ? DEFAULT_SAAS_PLANS.find((p) => p.slug === targetPlanSlug)?.annualPrice ?? "399.00"
-          : DEFAULT_SAAS_PLANS.find((p) => p.slug === targetPlanSlug)?.monthlyPrice ?? "39.90");
+          ? DEFAULT_SAAS_PLANS.find((p) => p.slug === targetPlanSlug)?.annualPrice ?? "499.00"
+          : DEFAULT_SAAS_PLANS.find((p) => p.slug === targetPlanSlug)?.monthlyPrice ?? "49.90");
 
     const [existingSub] = await db
       .select()

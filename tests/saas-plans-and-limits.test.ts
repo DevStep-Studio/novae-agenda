@@ -45,15 +45,15 @@ test("SaaS Plans and Limits — Comprehensive Test Suite", async (t) => {
 
     const profissional = DEFAULT_SAAS_PLANS.find((p) => p.slug === "profissional");
     assert.ok(profissional);
-    assert.equal(profissional.monthlyPrice, "39.90");
-    assert.equal(profissional.annualPrice, "399.00");
+    assert.equal(profissional.monthlyPrice, "49.90");
+    assert.equal(profissional.annualPrice, "499.00");
     assert.equal(profissional.employeeLimit, 5);
     assert.equal(profissional.badge, "Mais escolhido");
 
     const equipe = DEFAULT_SAAS_PLANS.find((p) => p.slug === "equipe");
     assert.ok(equipe);
-    assert.equal(equipe.monthlyPrice, "69.90");
-    assert.equal(equipe.annualPrice, "699.00");
+    assert.equal(equipe.monthlyPrice, "79.90");
+    assert.equal(equipe.annualPrice, "799.00");
     assert.equal(equipe.employeeLimit, 10);
 
     const negocio = DEFAULT_SAAS_PLANS.find((p) => p.slug === "negocio");
@@ -244,7 +244,7 @@ test("SaaS Plans and Limits — Comprehensive Test Suite", async (t) => {
 
     assert.ok(result.invoiceId);
     assert.ok(result.paymentId);
-    assert.equal(result.amount, 39.90);
+    assert.equal(result.amount, 49.90);
     assert.ok(result.copiaECola.includes("br.gov.bcb.pix"));
     assert.equal(result.status, "pending");
   });
@@ -285,7 +285,7 @@ test("SaaS Plans and Limits — Comprehensive Test Suite", async (t) => {
     );
 
     assert.equal(approvedResult.status, "approved");
-    assert.equal(approvedResult.amount, 69.90);
+    assert.equal(approvedResult.amount, 79.90);
 
     // 2. Rejected card
     const rejectedResult = await provider.createCardPayment(

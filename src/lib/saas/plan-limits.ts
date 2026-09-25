@@ -97,8 +97,8 @@ export class PlanLimitService {
 
     let planSlug = "profissional";
     let planName = "Profissional";
-    let monthlyPrice = 39.90;
-    let annualPrice = 399.00;
+    let monthlyPrice = 49.90;
+    let annualPrice = 499.00;
     let employeeLimit = 5;
     let planId: string | null = null;
     let subscriptionStatus = sub?.status ?? "trialing";

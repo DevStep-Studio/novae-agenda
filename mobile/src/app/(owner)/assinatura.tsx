@@ -42,8 +42,8 @@ const PLAN_PRESETS = [
   {
     key: "essencial",
     name: "Essencial",
-    monthlyPrice: 59.9,
-    yearlyPrice: 49.9,
+    monthlyPrice: 19.9,
+    yearlyPrice: 15.9,
     description: "Ideal para profissionais autônomos e estúdios individuais.",
     features: [
       "Até 2 profissionais",
@@ -56,8 +56,8 @@ const PLAN_PRESETS = [
   {
     key: "profissional",
     name: "Profissional",
-    monthlyPrice: 89.9,
-    yearlyPrice: 74.9,
+    monthlyPrice: 49.9,
+    yearlyPrice: 39.9,
     popular: true,
     description: "O mais escolhido por barbearias, clínicas e salões em crescimento.",
     features: [
@@ -73,8 +73,8 @@ const PLAN_PRESETS = [
   {
     key: "equipe",
     name: "Equipe & Expansão",
-    monthlyPrice: 149.9,
-    yearlyPrice: 124.9,
+    monthlyPrice: 79.9,
+    yearlyPrice: 63.9,
     description: "Para empresas consolidadas com múltiplos profissionais e unidades.",
     features: [
       "Até 15 profissionais",

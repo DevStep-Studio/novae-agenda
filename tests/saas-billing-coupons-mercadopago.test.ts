@@ -59,8 +59,8 @@ test("SaaS Billing, Coupons & Mercado Pago — Complete Validation Suite", async
 
     const expected = [
       { slug: "essencial", price: "19.90", annual: "199.00", limit: 2 },
-      { slug: "profissional", price: "39.90", annual: "399.00", limit: 5 },
-      { slug: "equipe", price: "69.90", annual: "699.00", limit: 10 },
+      { slug: "profissional", price: "49.90", annual: "499.00", limit: 5 },
+      { slug: "equipe", price: "79.90", annual: "799.00", limit: 10 },
       { slug: "negocio", price: "119.90", annual: "1199.00", limit: 20 },
       { slug: "empresa", price: "229.90", annual: "2299.00", limit: 50 },
       { slug: "enterprise", price: "399.90", annual: "3999.00", limit: 100 },
@@ -195,9 +195,9 @@ test("SaaS Billing, Coupons & Mercado Pago — Complete Validation Suite", async
 
     assert.equal(validated.valid, true);
     assert.equal(validated.coupon.code, "RESERVEI10");
-    assert.equal(validated.originalPrice, 39.9);
-    assert.equal(validated.discountAmount, 3.99);
-    assert.equal(validated.finalPrice, 35.91);
+    assert.equal(validated.originalPrice, 49.9);
+    assert.equal(validated.discountAmount, 4.99);
+    assert.equal(validated.finalPrice, 44.91);
 
     // 5.2. Inactive coupon check
     const inactiveCode = `INATIVO_${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
@@ -315,7 +315,7 @@ test("SaaS Billing, Coupons & Mercado Pago — Complete Validation Suite", async
     });
 
     assert.equal(approvedRes.status, "approved");
-    assert.equal(approvedRes.amount, 39.9);
+    assert.equal(approvedRes.amount, 49.9);
     assert.ok(approvedRes.paymentId);
 
     // 7.2. Rejected Card
@@ -342,9 +342,9 @@ test("SaaS Billing, Coupons & Mercado Pago — Complete Validation Suite", async
       payerName: "Coupon Owner",
     });
 
-    assert.equal(couponRes.subtotal, 39.9);
-    assert.equal(couponRes.discount, 3.99);
-    assert.equal(couponRes.amount, 35.91);
+    assert.equal(couponRes.subtotal, 49.9);
+    assert.equal(couponRes.discount, 4.99);
+    assert.equal(couponRes.amount, 44.91);
     assert.equal(couponRes.status, "approved");
   });
 
@@ -483,8 +483,8 @@ test("SaaS Billing, Coupons & Mercado Pago — Complete Validation Suite", async
 
     const matrix = [
       { slug: "essencial", monthly: 19.9, yearly: 199.0, limit: 2 },
-      { slug: "profissional", monthly: 39.9, yearly: 399.0, limit: 5 },
-      { slug: "equipe", monthly: 69.9, yearly: 699.0, limit: 10 },
+      { slug: "profissional", monthly: 49.9, yearly: 499.0, limit: 5 },
+      { slug: "equipe", monthly: 79.9, yearly: 799.0, limit: 10 },
       { slug: "negocio", monthly: 119.9, yearly: 1199.0, limit: 20 },
       { slug: "empresa", monthly: 229.9, yearly: 2299.0, limit: 50 },
       { slug: "enterprise", monthly: 399.9, yearly: 3999.0, limit: 100 },

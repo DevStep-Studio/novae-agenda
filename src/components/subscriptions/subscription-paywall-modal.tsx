@@ -31,8 +31,8 @@ const FALLBACK_PLANS: CheckoutPlan[] = [
     slug: "profissional",
     name: "Profissional",
     description: "Ideal para equipes em crescimento que buscam organização.",
-    monthlyPrice: 39.9,
-    annualPrice: 399.0,
+    monthlyPrice: 49.9,
+    annualPrice: 499.0,
     employeeLimit: 5,
     popular: true,
     features: [
@@ -50,8 +50,8 @@ const FALLBACK_PLANS: CheckoutPlan[] = [
     slug: "equipe",
     name: "Equipe",
     description: "Perfeito para negócios consolidados com múltiplos profissionais.",
-    monthlyPrice: 69.9,
-    annualPrice: 699.0,
+    monthlyPrice: 79.9,
+    annualPrice: 799.0,
     employeeLimit: 10,
     popular: false,
     features: [
