@@ -1956,9 +1956,16 @@ button.outline:hover:not(:disabled),
   margin: 0 2px;
   flex-shrink: 0;
 }
+.bookingsPrimaryAction,
+a.bookingsPrimaryAction,
+.bookingsPrimaryAction:visited,
+.bookingsPrimaryAction span,
+.bookingsPrimaryAction svg {
+  color: #000000 !important;
+}
 .bookingsPrimaryAction {
   background: var(--accent) !important;
-  color: #09090b !important;
+  color: #000000 !important;
   font-weight: 700 !important;
   border: 1px solid var(--accent) !important;
   min-height: 38px !important;
@@ -1972,8 +1979,13 @@ button.outline:hover:not(:disabled),
 .bookingsPrimaryAction:hover {
   background: var(--accent-hover) !important;
   border-color: var(--accent-hover) !important;
+  color: #000000 !important;
   transform: translateY(-1px);
   box-shadow: none !important;
+}
+.bookingsPrimaryAction:hover svg,
+.bookingsPrimaryAction:hover span {
+  color: #000000 !important;
 }
 .bookingsSecondaryActions {
   display: flex;
@@ -2542,28 +2554,42 @@ button.outline:hover:not(:disabled),
   max-width: 380px;
   line-height: 1.5;
 }
+.emptyCtaButton,
+a.emptyCtaButton,
+.emptyCtaButton:visited,
+.emptyCtaButton span,
+.emptyCtaButton svg {
+  color: #000000 !important;
+}
 .emptyCtaButton {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 10px 22px;
   border-radius: 10px;
-  background: var(--accent);
-  color: #09090b;
-  font-size: 13px;
+  background: var(--accent) !important;
+  color: #000000 !important;
+  font-size: 13.5px;
   font-weight: 700;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent) !important;
   cursor: pointer;
-  text-decoration: none;
+  text-decoration: none !important;
   margin-top: 8px;
   transition: all 0.15s ease;
   outline: none !important;
   box-shadow: none !important;
 }
 .emptyCtaButton:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
+  color: #000000 !important;
   transform: translateY(-1px);
+  box-shadow: none !important;
+}
+.emptyCtaButton:hover span,
+.emptyCtaButton:hover svg {
+  color: #000000 !important;
 }
 .emptySecondaryButton {
   display: inline-flex;
