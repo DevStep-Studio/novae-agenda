@@ -1470,7 +1470,7 @@ export function MyBookings({
                     key={t}
                     onClick={() => setTab(t)}
                   >
-                    <span>{t}</span>
+                    <span className={b.bookingTabLabel}>{t}</span>
                     <span className={b.bookingTabBadge}>{count}</span>
                   </button>
                 );

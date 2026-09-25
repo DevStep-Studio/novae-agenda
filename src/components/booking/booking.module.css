@@ -2063,15 +2063,15 @@ a.bookingsPrimaryAction,
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px;
-  background: var(--booking-surface);
-  border: 1px solid var(--booking-border);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   padding: 4px;
   border-radius: 12px;
   margin-bottom: 24px;
   width: 100%;
 }
 .bookingTab {
-  min-height: 40px;
+  min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2080,9 +2080,9 @@ a.bookingsPrimaryAction,
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: var(--booking-text-secondary);
+  color: #94a3b8;
   font: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -2091,28 +2091,37 @@ a.bookingsPrimaryAction,
   box-shadow: none !important;
 }
 .bookingTab:hover {
-  color: var(--booking-text-primary);
-  background: var(--booking-surface-hover);
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.04);
 }
 .bookingTab:focus-visible {
   outline: none !important;
 }
 .bookingTabActive {
-  background: var(--booking-surface-secondary) !important;
-  border: 1px solid var(--booking-border-strong) !important;
-  color: var(--booking-text-primary) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--accent, #10b981) !important;
   font-weight: 700 !important;
   box-shadow: none !important;
 }
-.bookingTab > span,
+.bookingTabLabel {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+}
+.bookingTabActive .bookingTabLabel {
+  color: var(--accent, #10b981) !important;
+}
 .bookingTabBadge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
-  background: var(--booking-surface-hover);
-  border: 1px solid var(--booking-border);
-  color: var(--booking-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #64748b;
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -2120,11 +2129,10 @@ a.bookingsPrimaryAction,
   justify-content: center;
   transition: all 0.15s ease;
 }
-.bookingTabActive > span,
 .bookingTabActive .bookingTabBadge {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-  color: #09090b !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  color: var(--accent, #10b981) !important;
   font-weight: 800 !important;
 }
 .bookingCards { display: grid; gap: 20px; }
