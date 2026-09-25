@@ -31,10 +31,13 @@ import { router } from "expo-router";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -459,60 +462,18 @@ export default function NotificacoesScreen() {
               )}
             </View>
 
-          {/* Filter Tabs */}
-          <View
-            className="rounded-xl border p-1"
-            style={{ backgroundColor: colors.surfaceSecondary, borderColor: colors.border }}
-          >
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
-              {filters.map((f) => {
-                const isActive = activeFilter === f.key;
-                return (
-                  <Pressable
-                    key={f.key}
-                    onPress={() => setActiveFilter(f.key)}
-                    className="flex-row items-center gap-1.5 py-2 px-3 rounded-lg"
-                    style={{
-                      backgroundColor: isActive ? colors.surface : "transparent",
-                      borderWidth: isActive ? 1 : 0,
-                      borderColor: colors.borderStrong,
-                    }}
-                  >
-                    {f.icon}
-                    <Text
-                      style={{
-                        color: isActive ? colors.textPrimary : colors.textSecondary,
-                        fontSize: 12.5,
-                        fontWeight: isActive ? "700" : "500",
-                      }}
-                    >
-                      {f.label}
-                    </Text>
-                    {f.count > 0 && (
-                      <View
-                        className="px-1.5 rounded-full items-center justify-center"
-                        style={{
-                          backgroundColor: f.highlight ? colors.primary : "rgba(255, 255, 255, 0.08)",
-                          minWidth: 18,
-                          height: 16,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: f.highlight ? colors.primaryForeground : colors.textMuted,
-                            fontSize: 10,
-                            fontWeight: f.highlight ? "700" : "600",
-                          }}
-                        >
-                          {f.count}
-                        </Text>
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          {/* Filter Tabs Responsivo */}
+          <ResponsiveTabs
+            tabs={filters.map((f) => ({
+              id: f.key,
+              label: f.label,
+              icon: f.icon,
+              badgeCount: f.count,
+            }))}
+            activeTab={activeFilter}
+            onTabChange={(id) => setActiveFilter(id as CategoryFilter)}
+            variant="pill"
+          />
 
           {/* Notification Stream */}
           {groupedNotifications.length > 0 ? (

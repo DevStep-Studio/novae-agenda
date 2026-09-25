@@ -24,12 +24,15 @@ import { Button } from "@/components/ui/button";
 import { MembershipPlanEditorModal } from "@/components/membership/membership-plan-editor-modal";
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
+import { scaleFont } from "@/lib/responsive";
 import {
   deleteMembershipPlan,
   getCustomerMemberships,
@@ -189,7 +192,7 @@ export default function ClubesScreen() {
           />
 
           {/* Métricas Principais */}
-          <View className="flex-row gap-3">
+          <View className="flex-row gap-2.5">
             <View className="flex-1">
               <MetricCard
                 label="Assinantes Ativos"
@@ -210,53 +213,16 @@ export default function ClubesScreen() {
             </View>
           </View>
 
-          {/* Abas: Assinantes vs Planos */}
-          <View
-            className="flex-row rounded-lg p-1 border"
-            style={{ backgroundColor: colors.surface, borderColor: colors.border }}
-          >
-            <Pressable
-              onPress={() => setTab("members")}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                paddingVertical: 8,
-                backgroundColor: tab === "members" ? colors.surfaceSecondary : "transparent",
-                borderRadius: radius.sm,
-              }}
-            >
-              <Text
-                style={{
-                  color: tab === "members" ? colors.textPrimary : colors.textMuted,
-                  fontSize: 13,
-                  fontWeight: tab === "members" ? "700" : "500",
-                }}
-              >
-                Assinantes ({memberships.length})
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setTab("plans")}
-              style={{
-                flex: 1,
-                alignItems: "center",
-                paddingVertical: 8,
-                backgroundColor: tab === "plans" ? colors.surfaceSecondary : "transparent",
-                borderRadius: radius.sm,
-              }}
-            >
-              <Text
-                style={{
-                  color: tab === "plans" ? colors.textPrimary : colors.textMuted,
-                  fontSize: 13,
-                  fontWeight: tab === "plans" ? "700" : "500",
-                }}
-              >
-                Planos Oferecidos ({plans.length})
-              </Text>
-            </Pressable>
-          </View>
+          {/* Abas: Assinantes vs Planos Responsivo */}
+          <ResponsiveTabs
+            tabs={[
+              { id: "members", label: `Assinantes (${memberships.length})`, icon: <Users size={14} color={tab === "members" ? colors.primaryForeground : colors.textMuted} /> },
+              { id: "plans", label: `Planos Oferecidos (${plans.length})`, icon: <Crown size={14} color={tab === "plans" ? colors.primaryForeground : colors.textMuted} /> },
+            ]}
+            activeTab={tab}
+            onTabChange={(id) => setTab(id as "members" | "plans")}
+            variant="pill"
+          />
 
           {/* Conteúdo da Aba Selecionada */}
           {tab === "members" ? (

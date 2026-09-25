@@ -20,7 +20,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { ApiError } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -29,6 +31,7 @@ import {
 
 export default function CustomerNotificacoesScreen() {
   const router = useRouter();
+  const { isTablet, isCompact } = useResponsive();
   const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);

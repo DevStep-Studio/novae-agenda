@@ -13,11 +13,14 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import { getCompanyReviews, type ReviewDTO, type ReviewsResponse } from "@/lib/reviews";
 
 export default function AvaliacoesScreen() {
@@ -107,7 +110,8 @@ export default function AvaliacoesScreen() {
           />
 
           {/* Métricas Principais */}
-          <View className="flex-row gap-3">
+          {/* Métricas Principais */}
+          <View className="flex-row gap-2.5">
             <View className="flex-1">
               <MetricCard
                 label="Nota Média"
@@ -128,50 +132,20 @@ export default function AvaliacoesScreen() {
             </View>
           </View>
 
-          {/* Filtro por Estrelas */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
-          >
-            {(["all", 5, 4, 3, 2, 1] as const).map((r) => {
-              const active = selectedRating === r;
-              return (
-                <Pressable
-                  key={String(r)}
-                  onPress={() => setSelectedRating(r)}
-                  style={{
-                    backgroundColor: active ? colors.primary : colors.surface,
-                    borderColor: active ? colors.primary : colors.border,
-                    borderWidth: 1,
-                    paddingHorizontal: 14,
-                    paddingVertical: 7,
-                    borderRadius: radius.pill,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: active ? colors.primaryForeground : colors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: active ? "700" : "500",
-                    }}
-                  >
-                    {r === "all" ? "Todas" : String(r)}
-                  </Text>
-                  {r !== "all" && (
-                    <Star
-                      size={12}
-                      color={active ? colors.primaryForeground : "#f59e0b"}
-                      fill={active ? colors.primaryForeground : "#f59e0b"}
-                    />
-                  )}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {/* Filtro por Estrelas Responsivo */}
+          <ResponsiveTabs
+            tabs={[
+              { id: "all", label: "Todas as Notas" },
+              { id: "5", label: "5 Estrelas", icon: <Star size={12} color="#f59e0b" fill="#f59e0b" /> },
+              { id: "4", label: "4 Estrelas", icon: <Star size={12} color="#f59e0b" fill="#f59e0b" /> },
+              { id: "3", label: "3 Estrelas", icon: <Star size={12} color="#f59e0b" fill="#f59e0b" /> },
+              { id: "2", label: "2 Estrelas", icon: <Star size={12} color="#f59e0b" fill="#f59e0b" /> },
+              { id: "1", label: "1 Estrela", icon: <Star size={12} color="#f59e0b" fill="#f59e0b" /> },
+            ]}
+            activeTab={String(selectedRating)}
+            onTabChange={(id) => setSelectedRating(id === "all" ? "all" : Number(id))}
+            variant="pill"
+          />
 
           {/* Lista de Avaliações */}
           {filteredReviews.length === 0 ? (

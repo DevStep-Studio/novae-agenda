@@ -9,6 +9,9 @@ import type { EmployeeDTO } from "@/lib/employees";
 import { useSession } from "@/lib/session-context";
 import { formatBRL } from "@/lib/stats";
 
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
+
 export interface EmployeeMetrics {
   todayCount: number;
   monthCount: number;
@@ -46,6 +49,7 @@ export function EmployeeCard({
 }: EmployeeCardProps) {
   const { session } = useSession();
   const { primaryColor, primarySoft, coverUrl, ownerAvatarUrl, logoUrl } = useTheme();
+  const { isCompact } = useResponsive();
 
   const [avatarFailedPrimary, setAvatarFailedPrimary] = useState(false);
   const [avatarFailedFallback, setAvatarFailedFallback] = useState(false);

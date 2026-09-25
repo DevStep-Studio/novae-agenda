@@ -22,13 +22,16 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getCompanyReports, type ReportsDataDTO } from "@/lib/reports";
 import { formatBRL } from "@/lib/stats";
+import { scaleFont } from "@/lib/responsive";
 
 const RANGES = [
   { key: "today", label: "Hoje" },
@@ -39,6 +42,7 @@ const RANGES = [
 
 export default function RelatoriosScreen() {
   const { colors, primaryColor, primaryForeground, isDark } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
   const [range, setRange] = useState<"today" | "7d" | "month" | "prev_month">("month");
   const [data, setData] = useState<ReportsDataDTO | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,41 +97,14 @@ export default function RelatoriosScreen() {
         style={{ marginBottom: 16 }}
       />
 
-      {/* Seletor de Período */}
-      <View style={{ marginBottom: 12 }}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8 }}
-        >
-          {RANGES.map((r) => {
-            const active = range === r.key;
-            return (
-              <Pressable
-                key={r.key}
-                onPress={() => setRange(r.key)}
-                style={{
-                  backgroundColor: active ? colors.primary : colors.surface,
-                  borderColor: active ? colors.primary : colors.border,
-                  borderWidth: 1,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: radius.pill,
-                }}
-              >
-                <Text
-                  style={{
-                    color: active ? colors.primaryForeground : colors.textSecondary,
-                    fontSize: 13,
-                    fontWeight: active ? "700" : "500",
-                  }}
-                >
-                  {r.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+      {/* Seletor de Período Responsivo */}
+      <View style={{ marginBottom: 16 }}>
+        <ResponsiveTabs
+          tabs={RANGES.map((r) => ({ id: r.key, label: r.label }))}
+          activeTab={range}
+          onTabChange={(id) => setRange(id as any)}
+          variant="pill"
+        />
       </View>
 
       {loading ? (
@@ -144,6 +121,7 @@ export default function RelatoriosScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -153,8 +131,8 @@ export default function RelatoriosScreen() {
           }
         >
           {/* Grid de KPIs Financeiros e Operacionais */}
-          <View className="flex-row gap-3">
-            <View className="flex-1">
+          <View className={isTablet ? "flex-row gap-3" : "flex-row flex-wrap gap-2.5"}>
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
               <MetricCard
                 label="Faturamento Realizado"
                 value={formatBRL(m?.realizedRevenue ?? 0)}
@@ -163,7 +141,7 @@ export default function RelatoriosScreen() {
                 variant="teal"
               />
             </View>
-            <View className="flex-1">
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
               <MetricCard
                 label="Ticket Médio"
                 value={formatBRL(m?.averageTicket ?? 0)}
@@ -172,10 +150,7 @@ export default function RelatoriosScreen() {
                 variant="teal"
               />
             </View>
-          </View>
-
-          <View className="flex-row gap-3">
-            <View className="flex-1">
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
               <MetricCard
                 label="Novos Clientes"
                 value={String(m?.newClients ?? 0)}
@@ -184,7 +159,7 @@ export default function RelatoriosScreen() {
                 variant="teal"
               />
             </View>
-            <View className="flex-1">
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
               <MetricCard
                 label="Taxa de Ocupação"
                 value={`${Math.round(m?.occupancyRate ?? 0)}%`}

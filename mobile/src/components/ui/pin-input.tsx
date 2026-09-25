@@ -10,7 +10,9 @@ import {
 } from "react-native";
 
 import { authSplit, fontFamily } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme } from "@/hooks/use-theme";
+import { calculatePinDimensions } from "@/lib/responsive";
 
 export interface PinInputProps {
   value: string;
@@ -36,8 +38,11 @@ export function PinInput({
   style,
 }: PinInputProps) {
   const { colors, primaryColor } = useTheme();
+  const { width } = useResponsive();
   const inputRef = useRef<TextInput>(null);
   const [isFocused, setIsFocused] = useState(false);
+
+  const { boxWidth, boxHeight, gap, fontSize } = calculatePinDimensions(width, length);
 
   useEffect(() => {
     if (autoFocus) {
@@ -66,8 +71,6 @@ export function PinInput({
     inputRef.current?.focus();
   };
 
-  const activeIndex = Math.min(value.length, length - 1);
-
   return (
     <Pressable
       onPress={handleBoxPress}
@@ -92,7 +95,7 @@ export function PinInput({
         aria-hidden={true}
       />
 
-      <View style={styles.boxesRow}>
+      <View style={[styles.boxesRow, { gap }]}>
         {Array.from({ length }).map((_, index) => {
           const char = digits[index] || "";
           const isFilled = Boolean(char);
@@ -111,6 +114,8 @@ export function PinInput({
               style={[
                 styles.box,
                 {
+                  width: boxWidth,
+                  height: boxHeight,
                   borderColor,
                   backgroundColor: authSplit.inputBackground,
                   borderWidth: isCurrent || isFilled || error ? 1.5 : 1,
@@ -121,13 +126,23 @@ export function PinInput({
                 <Text
                   style={[
                     styles.digitText,
-                    mask ? [styles.maskedBullet, { color: primaryColor }] : styles.plainDigit,
+                    mask
+                      ? [styles.maskedBullet, { color: primaryColor, fontSize: fontSize * 0.8 }]
+                      : [styles.plainDigit, { fontSize }],
                   ]}
                 >
                   {mask ? "●" : char}
                 </Text>
               ) : isCurrent ? (
-                <View style={[styles.activeCursor, { backgroundColor: primaryColor }]} />
+                <View
+                  style={[
+                    styles.activeCursor,
+                    {
+                      backgroundColor: primaryColor,
+                      height: Math.round(boxHeight * 0.4),
+                    },
+                  ]}
+                />
               ) : null}
             </View>
           );
@@ -146,13 +161,10 @@ const styles = StyleSheet.create({
   },
   boxesRow: {
     flexDirection: "row",
-    gap: 8,
     justifyContent: "center",
     alignItems: "center",
   },
   box: {
-    width: 46,
-    height: 54,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
@@ -162,17 +174,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   maskedBullet: {
-    fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   plainDigit: {
-    fontSize: 22,
     fontFamily: fontFamily.display,
     fontWeight: "700",
   },
   activeCursor: {
     width: 2,
-    height: 22,
     borderRadius: 1,
   },
   hiddenInput: {

@@ -27,8 +27,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import { formatBRL } from "@/lib/stats";
 import {
   createCheckoutSession,
@@ -87,6 +89,7 @@ const PLAN_PRESETS = [
 
 export default function AssinaturaScreen() {
   const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
   const [data, setData] = useState<SubscriptionDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -370,99 +373,105 @@ export default function AssinaturaScreen() {
           </View>
 
           {/* Lista de Planos Disponíveis */}
-          {PLAN_PRESETS.map((plan) => {
-            const price =
-              billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
+          <View className={isTablet ? "flex-row gap-4 items-stretch" : "gap-4"}>
+            {PLAN_PRESETS.map((plan) => {
+              const price =
+                billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
 
-            return (
-              <View
-                key={plan.key}
-                style={{
-                  backgroundColor: colors.surface,
-                  borderColor: plan.popular ? colors.primary : colors.border,
-                  borderWidth: plan.popular ? 2 : 1,
-                  borderRadius: radius.md,
-                  padding: 18,
-                  gap: 14,
-                }}
-              >
-                {plan.popular && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: -12,
-                      right: 16,
-                      backgroundColor: colors.primary,
-                      paddingHorizontal: 10,
-                      paddingVertical: 3,
-                      borderRadius: radius.pill,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: colors.primaryForeground,
-                        fontSize: 11,
-                        fontWeight: "800",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Mais Popular
-                    </Text>
-                  </View>
-                )}
+              return (
+                <View
+                  key={plan.key}
+                  style={{
+                    flex: isTablet ? 1 : undefined,
+                    backgroundColor: colors.surface,
+                    borderColor: plan.popular ? colors.primary : colors.border,
+                    borderWidth: plan.popular ? 2 : 1,
+                    borderRadius: radius.md,
+                    padding: 18,
+                    gap: 14,
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View className="gap-3">
+                    {plan.popular && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: -12,
+                          right: 16,
+                          backgroundColor: colors.primary,
+                          paddingHorizontal: 10,
+                          paddingVertical: 3,
+                          borderRadius: radius.pill,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: colors.primaryForeground,
+                            fontSize: scaleFont(11),
+                            fontWeight: "800",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Mais Popular
+                        </Text>
+                      </View>
+                    )}
 
-                <View className="gap-1">
-                  <Text
-                    style={{
-                      color: colors.textPrimary,
-                      fontSize: 18,
-                      fontFamily: fontFamily.display,
-                    }}
-                  >
-                    {plan.name}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-                    {plan.description}
-                  </Text>
-                </View>
-
-                <View className="flex-row items-baseline gap-1">
-                  <Text
-                    style={{
-                      color: colors.textPrimary,
-                      fontSize: 26,
-                      fontFamily: fontFamily.display,
-                    }}
-                  >
-                    {formatBRL(price)}
-                  </Text>
-                  <Text style={{ color: colors.textMuted, fontSize: 13 }}>/ mês</Text>
-                </View>
-
-                <View style={{ borderTopColor: colors.border, borderTopWidth: 1, paddingTop: 12, gap: 8 }}>
-                  {plan.features.map((feat) => (
-                    <View key={feat} className="flex-row items-center gap-2">
-                      <Check size={16} color={colors.primary} />
-                      <Text style={{ color: colors.textSecondary, fontSize: 13, flex: 1 }}>
-                        {feat}
+                    <View className="gap-1">
+                      <Text
+                        style={{
+                          color: colors.textPrimary,
+                          fontSize: scaleFont(18),
+                          fontFamily: fontFamily.display,
+                        }}
+                      >
+                        {plan.name}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: scaleFont(13) }}>
+                        {plan.description}
                       </Text>
                     </View>
-                  ))}
-                </View>
 
-                <Button
-                  label={
-                    upgradingKey === plan.key
-                      ? "Processando..."
-                      : `Assinar ${plan.name}`
-                  }
-                  variant={plan.popular ? "primary" : "secondary"}
-                  onPress={() => handleSelectPlan(plan.key)}
-                  disabled={upgradingKey !== null}
-                />
-              </View>
-            );
-          })}
+                    <View className="flex-row items-baseline gap-1">
+                      <Text
+                        style={{
+                          color: colors.textPrimary,
+                          fontSize: scaleFont(26),
+                          fontFamily: fontFamily.display,
+                        }}
+                      >
+                        {formatBRL(price)}
+                      </Text>
+                      <Text style={{ color: colors.textMuted, fontSize: scaleFont(13) }}>/ mês</Text>
+                    </View>
+
+                    <View style={{ borderTopColor: colors.border, borderTopWidth: 1, paddingTop: 12, gap: 8 }}>
+                      {plan.features.map((feat) => (
+                        <View key={feat} className="flex-row items-center gap-2">
+                          <Check size={16} color={colors.primary} />
+                          <Text style={{ color: colors.textSecondary, fontSize: scaleFont(12.5), flex: 1 }}>
+                            {feat}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  <Button
+                    label={
+                      upgradingKey === plan.key
+                        ? "Processando..."
+                        : `Assinar ${plan.name}`
+                    }
+                    variant={plan.popular ? "primary" : "secondary"}
+                    onPress={() => handleSelectPlan(plan.key)}
+                    disabled={upgradingKey !== null}
+                  />
+                </View>
+              );
+            })}
+          </View>
 
           {/* Ações de Loja: Restaurar Compras e Gerenciar Assinatura */}
           <View className="mt-2 gap-2.5">

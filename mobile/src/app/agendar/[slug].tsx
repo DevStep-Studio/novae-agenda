@@ -46,8 +46,10 @@ import { Screen } from "@/components/ui/screen";
 import { TextField } from "@/components/ui/text-field";
 import { PinInput } from "@/components/ui/pin-input";
 import { colors, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { api, resolveImageUrl } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import { formatBRL } from "@/lib/stats";
 import { formatDuration } from "@/lib/services";
 import { useSession } from "@/lib/session-context";
@@ -143,6 +145,7 @@ export default function PublicBookingScreen() {
   const router = useRouter();
   const { session } = useSession();
   const { primaryColor: defaultColor } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -1386,56 +1389,64 @@ export default function PublicBookingScreen() {
           paddingHorizontal: 20,
           paddingVertical: 14,
           paddingBottom: 24,
-          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 14,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: "800" }} numberOfLines={1}>
-            {selectedService?.name || "Nenhum serviço"}
-          </Text>
-          <Text style={{ color: activeColor, fontSize: 12, fontWeight: "700" }}>
-            {selectedSlot ? `${formatDateDisplay(selectedDate).split(",")[0]}, ${selectedSlot}` : "Escolha o horário"}
-          </Text>
-          <Text style={{ color: "#10b981", fontSize: 15, fontWeight: "900" }}>
-            {selectedService ? formatBRL(selectedService.price) : "R$ 0,00"}
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={handleConfirmBooking}
-          disabled={!selectedService || !selectedSlot || submitting}
+        <View
           style={{
-            backgroundColor: selectedService && selectedSlot ? activeColor : "#27272a",
-            paddingHorizontal: 20,
-            height: 48,
-            borderRadius: 14,
+            maxWidth: 680,
+            width: "100%",
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            opacity: submitting ? 0.7 : 1,
+            justifyContent: "space-between",
+            gap: 14,
           }}
         >
-          {submitting ? (
-            <ActivityIndicator size="small" color="#000000" />
-          ) : (
-            <>
-              <Text
-                style={{
-                  color: selectedService && selectedSlot ? "#000000" : "#71717a",
-                  fontSize: 14,
-                  fontWeight: "800",
-                }}
-              >
-                Reservar Horário
-              </Text>
-              <ChevronRight size={16} color={selectedService && selectedSlot ? "#000000" : "#71717a"} />
-            </>
-          )}
-        </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#ffffff", fontSize: scaleFont(14), fontWeight: "800" }} numberOfLines={1}>
+              {selectedService?.name || "Nenhum serviço"}
+            </Text>
+            <Text style={{ color: activeColor, fontSize: scaleFont(12), fontWeight: "700" }}>
+              {selectedSlot ? `${formatDateDisplay(selectedDate).split(",")[0]}, ${selectedSlot}` : "Escolha o horário"}
+            </Text>
+            <Text style={{ color: "#10b981", fontSize: scaleFont(15), fontWeight: "900" }}>
+              {selectedService ? formatBRL(selectedService.price) : "R$ 0,00"}
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={handleConfirmBooking}
+            disabled={!selectedService || !selectedSlot || submitting}
+            style={{
+              backgroundColor: selectedService && selectedSlot ? activeColor : "#27272a",
+              paddingHorizontal: 20,
+              height: 48,
+              borderRadius: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              opacity: submitting ? 0.7 : 1,
+            }}
+          >
+            {submitting ? (
+              <ActivityIndicator size="small" color="#000000" />
+            ) : (
+              <>
+                <Text
+                  style={{
+                    color: selectedService && selectedSlot ? "#000000" : "#71717a",
+                    fontSize: scaleFont(14),
+                    fontWeight: "800",
+                  }}
+                >
+                  Reservar Horário
+                </Text>
+                <ChevronRight size={16} color={selectedService && selectedSlot ? "#000000" : "#71717a"} />
+              </>
+            )}
+          </Pressable>
+        </View>
       </View>
     </Screen>
   );

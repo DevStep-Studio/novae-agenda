@@ -9,13 +9,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { ApiError } from "@/lib/api-client";
 import { getClients, isFrequentOrVip, type ClientDTO } from "@/lib/clients";
+import { scaleFont } from "@/lib/responsive";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 
 export default function EmployeeClientesScreen() {
   const { session } = useSession();
+  const { isTablet, isCompact } = useResponsive();
   const [clients, setClients] = useState<ClientDTO[] | null>(null);
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +96,7 @@ export default function EmployeeClientesScreen() {
         <ScrollView
           className="flex-1 mt-4"
           contentContainerClassName="gap-4 pb-6"
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -101,26 +105,34 @@ export default function EmployeeClientesScreen() {
             />
           }
         >
-          <View className="flex-row flex-wrap gap-3">
-            <MetricCard icon={Users} label="Total de clientes" value={String(totalClients)} detail="base cadastrada" />
-            <MetricCard
-              icon={Sparkles}
-              label="Clientes mensalistas"
-              value={String(membershipCount)}
-              detail="planos recorrentes"
-            />
-            <MetricCard
-              icon={Sparkles}
-              label="Clientes frequentes"
-              value={String(frequentCount)}
-              detail={totalClients > 0 ? `${Math.round((frequentCount / totalClients) * 100)}% taxa de retenção` : undefined}
-            />
-            <MetricCard
-              icon={CircleDollarSign}
-              label="Ticket médio"
-              value={formatBRL(averageTicket)}
-              detail="por atendimento"
-            />
+          <View className={isTablet ? "flex-row gap-3" : "flex-row flex-wrap gap-2.5"}>
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
+              <MetricCard icon={Users} label="Total de clientes" value={String(totalClients)} detail="base cadastrada" />
+            </View>
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
+              <MetricCard
+                icon={Sparkles}
+                label="Clientes mensalistas"
+                value={String(membershipCount)}
+                detail="planos recorrentes"
+              />
+            </View>
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
+              <MetricCard
+                icon={Sparkles}
+                label="Clientes frequentes"
+                value={String(frequentCount)}
+                detail={totalClients > 0 ? `${Math.round((frequentCount / totalClients) * 100)}% retenção` : undefined}
+              />
+            </View>
+            <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
+              <MetricCard
+                icon={CircleDollarSign}
+                label="Ticket médio"
+                value={formatBRL(averageTicket)}
+                detail="por atendimento"
+              />
+            </View>
           </View>
 
           <View

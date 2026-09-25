@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react-native";
 import { StyleProp, Text, View, ViewStyle } from "react-native";
 
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 
 export interface MetricCardProps {
@@ -22,6 +23,7 @@ export function MetricCard({
   fullWidth = false,
 }: MetricCardProps) {
   const { isDark, primaryColor, primarySoft } = useTheme();
+  const { scaleFont, isCompact } = useResponsive();
 
   // Standardized Home Card colors & layout
   const cardBg = isDark ? "#111215" : "#ffffff";
@@ -32,6 +34,8 @@ export function MetricCard({
   const iconBg = primarySoft || hexToRgba(primaryColor, isDark ? 0.16 : 0.12);
   const iconColor = primaryColor;
 
+  const valueFontSize = scaleFont(isCompact ? 18 : 20);
+
   return (
     <View
       style={[
@@ -40,9 +44,9 @@ export function MetricCard({
           borderColor: cardBorder,
           borderWidth: 1,
           borderRadius: 16,
-          padding: 14,
+          padding: isCompact ? 12 : 14,
           justifyContent: "space-between",
-          minHeight: fullWidth ? 76 : 110,
+          minHeight: fullWidth ? 76 : (isCompact ? 96 : 108),
           flex: 1,
         },
         style,
@@ -52,13 +56,13 @@ export function MetricCard({
         style={{
           flexDirection: "row",
           alignItems: "flex-start",
-          gap: 11,
+          gap: isCompact ? 8 : 11,
         }}
       >
         <View
           style={{
-            width: 36,
-            height: 36,
+            width: isCompact ? 32 : 36,
+            height: isCompact ? 32 : 36,
             borderRadius: 10,
             borderWidth: 1,
             borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "#e2e8f0",
@@ -68,13 +72,13 @@ export function MetricCard({
             flexShrink: 0,
           }}
         >
-          <Icon size={17} color={iconColor} />
+          <Icon size={isCompact ? 15 : 17} color={iconColor} />
         </View>
         <View style={{ flex: 1, gap: 1 }}>
           <Text
             style={{
               color: textMuted,
-              fontSize: 11.5,
+              fontSize: scaleFont(11.5),
               fontWeight: "500",
               lineHeight: 15,
             }}
@@ -85,11 +89,12 @@ export function MetricCard({
           <Text
             style={{
               color: textTitle,
-              fontSize: 20,
+              fontSize: valueFontSize,
               fontWeight: "800",
               letterSpacing: -0.3,
             }}
             numberOfLines={1}
+            adjustsFontSizeToFit
           >
             {value}
           </Text>
@@ -97,7 +102,7 @@ export function MetricCard({
             <Text
               style={{
                 color: textDetail,
-                fontSize: 10.5,
+                fontSize: scaleFont(10.5),
                 lineHeight: 14,
               }}
               numberOfLines={1}

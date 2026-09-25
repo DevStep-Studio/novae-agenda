@@ -60,13 +60,16 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { api, resolveImageUrl } from "@/lib/api-client";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
+import { scaleFont } from "@/lib/responsive";
 import { useSession } from "@/lib/session-context";
 import { formatBRL } from "@/lib/stats";
 
@@ -1043,125 +1046,19 @@ export default function LinkAgendamentoScreen() {
           subtitle="Receba reservas pelo Instagram, WhatsApp ou onde seus clientes estiverem."
         />
 
-        {/* 2. Top Navigation Tabs Bar */}
-        <View
-          className="rounded-2xl border p-1.5"
-          style={{
-            backgroundColor: "#0f1014",
-            borderColor: "rgba(255, 255, 255, 0.08)",
-          }}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6 }}
-          >
-            <Pressable
-              onPress={() => setActiveTab("branding")}
-              className="flex-row items-center gap-2 py-2.5 px-3.5 rounded-xl"
-              style={{
-                backgroundColor: activeTab === "branding" ? "#27272a" : "transparent",
-                borderWidth: activeTab === "branding" ? 1 : 0,
-                borderColor: "rgba(255, 255, 255, 0.15)",
-              }}
-            >
-              <Palette size={15} color={activeTab === "branding" ? "#ffffff" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "branding" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "branding" ? "700" : "500",
-                }}
-              >
-                Identidade & Branding Studio
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("carousel")}
-              className="flex-row items-center gap-2 py-2.5 px-3.5 rounded-xl"
-              style={{
-                backgroundColor: activeTab === "carousel" ? "#27272a" : "transparent",
-                borderWidth: activeTab === "carousel" ? 1 : 0,
-                borderColor: "rgba(255, 255, 255, 0.15)",
-              }}
-            >
-              <Film size={15} color={activeTab === "carousel" ? "#ffffff" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "carousel" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "carousel" ? "700" : "500",
-                }}
-              >
-                Carrossel Promocional
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("link")}
-              className="flex-row items-center gap-2 py-2.5 px-3.5 rounded-xl"
-              style={{
-                backgroundColor: activeTab === "link" ? "#27272a" : "transparent",
-                borderWidth: activeTab === "link" ? 1 : 0,
-                borderColor: "rgba(255, 255, 255, 0.15)",
-              }}
-            >
-              <Globe size={15} color={activeTab === "link" ? "#ffffff" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "link" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "link" ? "700" : "500",
-                }}
-              >
-                Link & Informações
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("schedules")}
-              className="flex-row items-center gap-2 py-2.5 px-3.5 rounded-xl"
-              style={{
-                backgroundColor: activeTab === "schedules" ? "#27272a" : "transparent",
-                borderWidth: activeTab === "schedules" ? 1 : 0,
-                borderColor: "rgba(255, 255, 255, 0.15)",
-              }}
-            >
-              <Clock size={15} color={activeTab === "schedules" ? "#ffffff" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "schedules" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "schedules" ? "700" : "500",
-                }}
-              >
-                Horários da Equipe
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setActiveTab("extras")}
-              className="flex-row items-center gap-2 py-2.5 px-3.5 rounded-xl"
-              style={{
-                backgroundColor: activeTab === "extras" ? "#27272a" : "transparent",
-                borderWidth: activeTab === "extras" ? 1 : 0,
-                borderColor: "rgba(255, 255, 255, 0.15)",
-              }}
-            >
-              <ShoppingBag size={15} color={activeTab === "extras" ? "#ffffff" : "#71717a"} />
-              <Text
-                style={{
-                  color: activeTab === "extras" ? "#ffffff" : "#71717a",
-                  fontSize: 13,
-                  fontWeight: activeTab === "extras" ? "700" : "500",
-                }}
-              >
-                Produtos & Cupons
-              </Text>
-            </Pressable>
-          </ScrollView>
-        </View>
+        {/* 2. Top Navigation Tabs Bar Responsivo */}
+        <ResponsiveTabs
+          tabs={[
+            { id: "branding", label: "Identidade & Branding", icon: <Palette size={15} color={activeTab === "branding" ? "#ffffff" : "#71717a"} /> },
+            { id: "carousel", label: "Carrossel Promocional", icon: <Film size={15} color={activeTab === "carousel" ? "#ffffff" : "#71717a"} /> },
+            { id: "link", label: "Link & Informações", icon: <Globe size={15} color={activeTab === "link" ? "#ffffff" : "#71717a"} /> },
+            { id: "schedules", label: "Horários da Equipe", icon: <Clock size={15} color={activeTab === "schedules" ? "#ffffff" : "#71717a"} /> },
+            { id: "extras", label: "Produtos & Cupons", icon: <ShoppingBag size={15} color={activeTab === "extras" ? "#ffffff" : "#71717a"} /> },
+          ]}
+          activeTab={activeTab}
+          onTabChange={(id) => setActiveTab(id as TabKey)}
+          variant="pill"
+        />
 
         {/* TAB 1: IDENTIDADE & BRANDING STUDIO */}
         {activeTab === "branding" && (

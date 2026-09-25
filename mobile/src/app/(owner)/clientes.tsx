@@ -51,7 +51,10 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { useTheme } from "@/hooks/use-theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 import { ApiError, api, formatPhoneForWhatsApp } from "@/lib/api-client";
 import { type ClientDTO } from "@/lib/clients";
 import { useSession } from "@/lib/session-context";
@@ -125,6 +128,7 @@ function getInitials(name: string): string {
 export default function ClientesScreen() {
   const { session } = useSession();
   const { isDark, primaryColor, primaryForeground, colors } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
   const [clients, setClients] = useState<ClientDTO[] | null>(null);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<ClientTab>("all");
@@ -596,15 +600,16 @@ export default function ClientesScreen() {
           }
         />
 
-        {/* 2. 2x2 Metrics Grid (Matching Web KPIs Exactly) */}
+        {/* 2. Metrics Grid (Matching Web KPIs Exactly) */}
         <View className="gap-2.5">
-          <View className="flex-row gap-2.5">
+          <View className={isTablet ? "flex-row gap-2.5 flex-wrap" : "flex-row gap-2.5"}>
             {/* Card 1: Total de clientes */}
             <View
               className="flex-1 p-4 rounded-2xl border"
               style={{
                 backgroundColor: "#121318",
                 borderColor: "rgba(255, 255, 255, 0.08)",
+                minWidth: isTablet ? "23%" : undefined,
               }}
             >
               <View
@@ -618,13 +623,13 @@ export default function ClientesScreen() {
               >
                 <Users size={18} color="#9ca3af" />
               </View>
-              <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "500", marginTop: 10 }}>
+              <Text style={{ color: "#9ca3af", fontSize: scaleFont(12, { min: 10.5, max: 13 }), fontWeight: "500", marginTop: 10 }}>
                 Total de clientes
               </Text>
-              <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "800", marginTop: 2 }}>
+              <Text style={{ color: "#ffffff", fontSize: scaleFont(24, { min: 20, max: 26 }), fontWeight: "800", marginTop: 2 }}>
                 {totalClients}
               </Text>
-              <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 2 }}>
+              <Text style={{ color: "#71717a", fontSize: scaleFont(11.5, { min: 10, max: 12.5 }), marginTop: 2 }}>
                 base cadastrada
               </Text>
             </View>
@@ -635,6 +640,7 @@ export default function ClientesScreen() {
               style={{
                 backgroundColor: "#121318",
                 borderColor: "rgba(255, 255, 255, 0.08)",
+                minWidth: isTablet ? "23%" : undefined,
               }}
             >
               <View
@@ -648,25 +654,26 @@ export default function ClientesScreen() {
               >
                 <Sparkles size={18} color="#9ca3af" />
               </View>
-              <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "500", marginTop: 10 }}>
+              <Text style={{ color: "#9ca3af", fontSize: scaleFont(12, { min: 10.5, max: 13 }), fontWeight: "500", marginTop: 10 }}>
                 Clientes mensalistas
               </Text>
-              <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "800", marginTop: 2 }}>
+              <Text style={{ color: "#ffffff", fontSize: scaleFont(24, { min: 20, max: 26 }), fontWeight: "800", marginTop: 2 }}>
                 {membershipClients.length}
               </Text>
-              <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 2 }}>
+              <Text style={{ color: "#71717a", fontSize: scaleFont(11.5, { min: 10, max: 12.5 }), marginTop: 2 }}>
                 planos recorrentes
               </Text>
             </View>
           </View>
 
-          <View className="flex-row gap-2.5">
+          <View className={isTablet ? "flex-row gap-2.5 flex-wrap" : "flex-row gap-2.5"}>
             {/* Card 3: Clientes frequentes */}
             <View
               className="flex-1 p-4 rounded-2xl border"
               style={{
                 backgroundColor: "#121318",
                 borderColor: "rgba(255, 255, 255, 0.08)",
+                minWidth: isTablet ? "23%" : undefined,
               }}
             >
               <View
@@ -680,13 +687,13 @@ export default function ClientesScreen() {
               >
                 <Sparkles size={18} color="#9ca3af" />
               </View>
-              <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "500", marginTop: 10 }}>
+              <Text style={{ color: "#9ca3af", fontSize: scaleFont(12, { min: 10.5, max: 13 }), fontWeight: "500", marginTop: 10 }}>
                 Clientes frequentes
               </Text>
-              <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "800", marginTop: 2 }}>
+              <Text style={{ color: "#ffffff", fontSize: scaleFont(24, { min: 20, max: 26 }), fontWeight: "800", marginTop: 2 }}>
                 {vipClients.length}
               </Text>
-              <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 2 }}>
+              <Text style={{ color: "#71717a", fontSize: scaleFont(11.5, { min: 10, max: 12.5 }), marginTop: 2 }}>
                 {retentionRate}% taxa de retenção
               </Text>
             </View>
@@ -697,6 +704,7 @@ export default function ClientesScreen() {
               style={{
                 backgroundColor: "#121318",
                 borderColor: "rgba(255, 255, 255, 0.08)",
+                minWidth: isTablet ? "23%" : undefined,
               }}
             >
               <View
@@ -710,13 +718,13 @@ export default function ClientesScreen() {
               >
                 <CircleDollarSign size={18} color="#9ca3af" />
               </View>
-              <Text style={{ color: "#9ca3af", fontSize: 12, fontWeight: "500", marginTop: 10 }}>
+              <Text style={{ color: "#9ca3af", fontSize: scaleFont(12, { min: 10.5, max: 13 }), fontWeight: "500", marginTop: 10 }}>
                 Ticket médio
               </Text>
-              <Text style={{ color: "#ffffff", fontSize: 24, fontWeight: "800", marginTop: 2 }}>
+              <Text style={{ color: "#ffffff", fontSize: scaleFont(24, { min: 20, max: 26 }), fontWeight: "800", marginTop: 2 }}>
                 {formatCurrency(averageTicket)}
               </Text>
-              <Text style={{ color: "#71717a", fontSize: 11.5, marginTop: 2 }}>
+              <Text style={{ color: "#71717a", fontSize: scaleFont(11.5, { min: 10, max: 12.5 }), marginTop: 2 }}>
                 por atendimento
               </Text>
             </View>
@@ -731,58 +739,17 @@ export default function ClientesScreen() {
             borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          {/* Segmented Filter Tabs */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingBottom: 2 }}
-          >
-            {tabs.map((tab) => {
-              const active = activeTab === tab.id;
-              const TabIcon = tab.icon;
-              return (
-                <Pressable
-                  key={tab.id}
-                  onPress={() => setActiveTab(tab.id)}
-                  className="flex-row items-center gap-2 px-3 py-2 rounded-xl border"
-                  style={{
-                    backgroundColor: active ? "#20222a" : "transparent",
-                    borderColor: active ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.06)",
-                    height: 38,
-                  }}
-                >
-                  {TabIcon && (
-                    <TabIcon size={14} color={active ? "#ffffff" : "#9ca3af"} />
-                  )}
-                  <Text
-                    style={{
-                      color: active ? "#ffffff" : "#9ca3af",
-                      fontSize: 12.5,
-                      fontWeight: active ? "700" : "500",
-                    }}
-                  >
-                    {tab.label}
-                  </Text>
-                  <View
-                    className="items-center justify-center px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: active ? "#2c2e3a" : "rgba(255, 255, 255, 0.06)",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: active ? "#ffffff" : "#71717a",
-                        fontSize: 11,
-                        fontWeight: "700",
-                      }}
-                    >
-                      {tab.count}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {/* Segmented Responsive Filter Tabs */}
+          <ResponsiveTabs
+            tabs={tabs.map((t) => ({
+              id: t.id,
+              label: t.label,
+              count: t.count,
+              icon: t.icon,
+            }))}
+            activeTab={activeTab}
+            onChange={(id) => setActiveTab(id as ClientTab)}
+          />
 
           {/* Inactive retention days options */}
           {activeTab === "inactive" && (

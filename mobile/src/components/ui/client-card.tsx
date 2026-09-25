@@ -7,6 +7,8 @@ import { colors, typography } from "@/constants/design-tokens";
 import { clientTier, type ClientDTO } from "@/lib/clients";
 import { formatPhoneForWhatsApp } from "@/lib/api-client";
 import { formatBRL } from "@/lib/stats";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 
 function shortDate(date: string): string {
   const d = new Date(`${date}T12:00:00`);
@@ -16,6 +18,7 @@ function shortDate(date: string): string {
 
 export function ClientCard({ client }: { client: ClientDTO }) {
   const tier = clientTier(client);
+  const { isCompact } = useResponsive();
 
   function openWhatsApp() {
     const digits = formatPhoneForWhatsApp(client.phone);
@@ -30,20 +33,20 @@ export function ClientCard({ client }: { client: ClientDTO }) {
         gap: 12,
         borderRadius: 16,
         borderWidth: 1,
-        padding: 16,
+        padding: isCompact ? 12 : 16,
         backgroundColor: "#111216",
         borderColor: "rgba(255, 255, 255, 0.08)",
       }}
     >
       {/* 1. Header: Avatar + Name/Badge + Subtitle */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar name={client.name} photoUrl={client.photoUrl} size="md" />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: isCompact ? 8 : 12 }}>
+        <Avatar name={client.name} photoUrl={client.photoUrl} size={isCompact ? "sm" : "md"} />
         <View style={{ flex: 1, flexShrink: 1, gap: 2 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <Text
               style={{
                 color: "#ffffff",
-                fontSize: 15.5,
+                fontSize: scaleFont(15.5, { min: 13.5, max: 16.5 }),
                 fontWeight: "700",
                 letterSpacing: -0.2,
                 flexShrink: 1,
@@ -57,7 +60,7 @@ export function ClientCard({ client }: { client: ClientDTO }) {
           <Text
             style={{
               color: "#71717a",
-              fontSize: 12,
+              fontSize: scaleFont(12, { min: 10.5, max: 13 }),
               fontWeight: "500",
             }}
             numberOfLines={1}
@@ -74,7 +77,7 @@ export function ClientCard({ client }: { client: ClientDTO }) {
           alignItems: "center",
           justifyContent: "space-between",
           paddingVertical: 9,
-          paddingHorizontal: 12,
+          paddingHorizontal: isCompact ? 8 : 12,
           borderRadius: 12,
           backgroundColor: "#16171d",
           borderWidth: 1,
@@ -82,10 +85,10 @@ export function ClientCard({ client }: { client: ClientDTO }) {
         }}
       >
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <Text style={{ color: "#71717a", fontSize: scaleFont(10, { min: 8.5, max: 10.5 }), fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
             Última Visita
           </Text>
-          <Text style={{ color: "#e4e4e7", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+          <Text style={{ color: "#e4e4e7", fontSize: scaleFont(12.5, { min: 10.5, max: 13 }), fontWeight: "700", marginTop: 2 }}>
             {client.lastVisit ? shortDate(client.lastVisit) : "—"}
           </Text>
         </View>
@@ -93,10 +96,10 @@ export function ClientCard({ client }: { client: ClientDTO }) {
         <View style={{ width: 1, height: 20, backgroundColor: "rgba(255, 255, 255, 0.06)" }} />
 
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <Text style={{ color: "#71717a", fontSize: scaleFont(10, { min: 8.5, max: 10.5 }), fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
             Atendimentos
           </Text>
-          <Text style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+          <Text style={{ color: "#ffffff", fontSize: scaleFont(12.5, { min: 10.5, max: 13 }), fontWeight: "700", marginTop: 2 }}>
             {client.visits || 0} {client.visits === 1 ? "visita" : "visitas"}
           </Text>
         </View>
@@ -104,10 +107,10 @@ export function ClientCard({ client }: { client: ClientDTO }) {
         <View style={{ width: 1, height: 20, backgroundColor: "rgba(255, 255, 255, 0.06)" }} />
 
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ color: "#71717a", fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <Text style={{ color: "#71717a", fontSize: scaleFont(10, { min: 8.5, max: 10.5 }), fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>
             Total Gasto
           </Text>
-          <Text style={{ color: "#10b981", fontSize: 12.5, fontWeight: "700", marginTop: 2 }}>
+          <Text style={{ color: "#10b981", fontSize: scaleFont(12.5, { min: 10.5, max: 13 }), fontWeight: "700", marginTop: 2 }}>
             {formatBRL(client.spent)}
           </Text>
         </View>
@@ -132,7 +135,7 @@ export function ClientCard({ client }: { client: ClientDTO }) {
           onPress={openWhatsApp}
         >
           <WhatsAppIcon size={14} />
-          <Text style={{ color: "#22c55e", fontSize: 12.5, fontWeight: "700", letterSpacing: 0.2 }}>
+          <Text style={{ color: "#22c55e", fontSize: scaleFont(12.5, { min: 11, max: 13 }), fontWeight: "700", letterSpacing: 0.2 }}>
             Contato
           </Text>
         </Pressable>
@@ -140,3 +143,4 @@ export function ClientCard({ client }: { client: ClientDTO }) {
     </View>
   );
 }
+

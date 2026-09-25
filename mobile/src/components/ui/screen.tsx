@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { View, type ViewProps } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme } from "@/hooks/use-theme";
 
 export interface ScreenProps extends ViewProps {
@@ -12,7 +13,7 @@ export interface ScreenProps extends ViewProps {
    * edge to avoid double-padding.
    */
   header?: ReactNode;
-  /** Opt out of the default 20px horizontal padding for full-bleed content (e.g. login's banner image). */
+  /** Opt out of default responsive horizontal padding for full-bleed content (e.g. login banner). */
   noPadding?: boolean;
   /**
    * Explicit edges for SafeAreaView. Defaults to skipping top when header is present,
@@ -20,13 +21,27 @@ export interface ScreenProps extends ViewProps {
    * avoiding double-padding / black bar above the navbar.
    */
   edges?: readonly Edge[];
+  /** Custom max width override for content container. */
+  maxWidth?: number;
 }
 
-export function Screen({ header, noPadding, edges, style, children, ...rest }: ScreenProps) {
+export function Screen({
+  header,
+  noPadding,
+  edges,
+  maxWidth,
+  style,
+  children,
+  ...rest
+}: ScreenProps) {
   const { colors } = useTheme();
+  const { horizontalPadding, isAnyTablet, contentMaxWidth } = useResponsive();
 
   const resolvedEdges: readonly Edge[] =
     edges ?? (header ? ["left", "right"] : ["top", "left", "right"]);
+
+  const appliedMaxWidth = maxWidth ?? (isAnyTablet ? contentMaxWidth : undefined);
+  const appliedPadding = noPadding ? 0 : horizontalPadding;
 
   return (
     <SafeAreaView
@@ -38,7 +53,10 @@ export function Screen({ header, noPadding, edges, style, children, ...rest }: S
         style={[
           {
             flex: 1,
-            paddingHorizontal: noPadding ? 0 : 20,
+            paddingHorizontal: appliedPadding,
+            maxWidth: appliedMaxWidth,
+            alignSelf: appliedMaxWidth ? "center" : undefined,
+            width: appliedMaxWidth ? "100%" : undefined,
           },
           style,
         ]}

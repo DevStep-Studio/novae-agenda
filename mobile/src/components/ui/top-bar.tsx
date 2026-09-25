@@ -39,6 +39,9 @@ import { useSession } from "@/lib/session-context";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { SidebarDrawer } from "@/components/drawer/sidebar-drawer";
 
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
+
 export interface TopBarProps {
   title: string;
   company?: string | null;
@@ -57,6 +60,7 @@ export function TopBar({
   const insets = useSafeAreaInsets();
   const { session } = useSession();
   const { isDark, toggleTheme, colors: themeColors, primaryColor, companyName: brandingCompanyName, ownerAvatarUrl, logoUrl } = useTheme();
+  const { isCompact, isTablet, horizontalPadding, contentMaxWidth } = useResponsive();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -146,14 +150,14 @@ export function TopBar({
         style={{
           paddingTop: insets.top,
           height: 60 + insets.top,
-          paddingHorizontal: 16,
+          paddingHorizontal: horizontalPadding,
           backgroundColor: isDark ? "#0a0b0e" : "#ffffff",
           borderBottomColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
           zIndex: 90,
         }}
       >
         {/* Left Side: Back or Hamburger Menu + Title & Company */}
-        <View className="flex-row items-center flex-1 min-w-0 pr-2" style={{ gap: 4 }}>
+        <View className="flex-row items-center flex-1 min-w-0 pr-2" style={{ gap: isCompact ? 4 : 8 }}>
           {showBack ? (
             <Pressable
               accessibilityRole="button"
@@ -196,10 +200,10 @@ export function TopBar({
             <Text
               style={{
                 color: isDark ? "#ffffff" : "#0f172a",
-                fontSize: 17,
+                fontSize: scaleFont(17, { min: 14.5, max: 18 }),
                 fontWeight: "700",
                 letterSpacing: -0.4,
-                lineHeight: 21,
+                lineHeight: isCompact ? 18 : 21,
               }}
               numberOfLines={1}
             >
@@ -209,9 +213,9 @@ export function TopBar({
               <Text
                 style={{
                   color: isDark ? "#9ca3af" : "#64748b",
-                  fontSize: 12,
+                  fontSize: scaleFont(12, { min: 10.5, max: 13 }),
                   fontWeight: "500",
-                  lineHeight: 15,
+                  lineHeight: isCompact ? 13 : 15,
                 }}
                 numberOfLines={1}
               >
@@ -222,7 +226,7 @@ export function TopBar({
         </View>
 
         {/* Right Side Actions: Theme Toggle, Notifications, Avatar */}
-        <View className="flex-row items-center" style={{ gap: 8 }}>
+        <View className="flex-row items-center" style={{ gap: isCompact ? 4 : 8 }}>
           {/* Theme Button */}
           <Pressable
             accessibilityRole="button"

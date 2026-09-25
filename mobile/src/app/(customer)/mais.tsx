@@ -17,14 +17,18 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
+import { TopBar } from "@/components/ui/top-bar";
 import { colors, fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 import { useSession } from "@/lib/session-context";
 
 export default function CustomerMoreScreen() {
   const { session, signOut } = useSession();
+  const { isTablet, isCompact } = useResponsive();
 
   return (
-    <Screen style={{ paddingTop: 12, gap: 16 }}>
+    <Screen header={<TopBar title="Menu" showBack={false} />} style={{ paddingTop: 16, gap: 16 }}>
       <PageHeader
         eyebrow="CONTA DO CLIENTE"
         title="Menu do Cliente"

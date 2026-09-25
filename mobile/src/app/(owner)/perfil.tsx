@@ -40,10 +40,13 @@ import {
 import { router } from "expo-router";
 
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { api, resolveImageUrl, resolveImageUrlWithFallback } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import { useSession } from "@/lib/session-context";
 import { useTheme } from "@/hooks/use-theme";
 import { Sun, Moon } from "lucide-react-native";
@@ -388,6 +391,15 @@ export default function PerfilPersonalizacaoScreen() {
     ]);
   };
 
+  const { isCompact, isTablet } = useResponsive();
+
+  const profileTabs = useMemo(() => [
+    { id: "visual", label: "Identidade Visual & Cores", icon: <Palette size={15} color={activeTab === "visual" ? "#ffffff" : "#9ca3af"} /> },
+    { id: "dados", label: "Dados da Conta & Empresa", icon: <User size={15} color={activeTab === "dados" ? "#ffffff" : "#9ca3af"} /> },
+    { id: "widgets", label: "Widgets do Início", icon: <SlidersHorizontal size={15} color={activeTab === "widgets" ? "#ffffff" : "#9ca3af"} /> },
+    { id: "atalhos", label: "Ações & Links", icon: <Sparkles size={15} color={activeTab === "atalhos" ? "#ffffff" : "#9ca3af"} /> },
+  ], [activeTab]);
+
   return (
     <Screen
       header={<TopBar title="Meu Perfil & Personalização" company={companyName} />}
@@ -430,7 +442,7 @@ export default function PerfilPersonalizacaoScreen() {
               <Text
                 style={{
                   color: "#ffffff",
-                  fontSize: 14,
+                  fontSize: scaleFont(14),
                   fontWeight: "700",
                   lineHeight: 19,
                 }}
@@ -507,7 +519,7 @@ export default function PerfilPersonalizacaoScreen() {
                 <Text
                   style={{
                     color: "#ffffff",
-                    fontSize: 22,
+                    fontSize: scaleFont(20),
                     fontWeight: "800",
                     letterSpacing: -0.4,
                   }}
@@ -515,18 +527,19 @@ export default function PerfilPersonalizacaoScreen() {
                 >
                   {name || session?.name || "Proprietário"}
                 </Text>
-                <Text style={{ color: "#9ca3af", fontSize: 13, fontWeight: "500" }} numberOfLines={1}>
+                <Text style={{ color: "#9ca3af", fontSize: scaleFont(12.5), fontWeight: "500" }} numberOfLines={1}>
                   {companyName} · Proprietário
                 </Text>
               </View>
             </View>
 
-            {/* Hero Actions Row: [ Página de Agendamento ] & [ Salvar alterações ] */}
-            <View className="flex-row items-center gap-2.5 pt-1">
+            {/* Hero Actions Row: Stacks on compact devices */}
+            <View className={isCompact ? "gap-2 pt-1" : "flex-row items-center gap-2.5 pt-1"}>
               <Pressable
                 onPress={handleOpenPublicPage}
-                className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
+                className="flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
                 style={{
+                  flex: isCompact ? undefined : 1,
                   backgroundColor: "#17181f",
                   borderColor: "rgba(255, 255, 255, 0.12)",
                   height: 44,
@@ -534,7 +547,7 @@ export default function PerfilPersonalizacaoScreen() {
               >
                 <Globe size={15} color="#ffffff" />
                 <Text
-                  style={{ color: "#ffffff", fontSize: 12.5, fontWeight: "600" }}
+                  style={{ color: "#ffffff", fontSize: scaleFont(12.5), fontWeight: "600" }}
                   numberOfLines={1}
                 >
                   Página de Agendamento
@@ -544,8 +557,9 @@ export default function PerfilPersonalizacaoScreen() {
               <Pressable
                 onPress={handleSave}
                 disabled={saving}
-                className="flex-1 flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
+                className="flex-row items-center justify-center gap-2 py-3 px-3.5 rounded-xl border"
                 style={{
+                  flex: isCompact ? undefined : 1,
                   backgroundColor: activePrimary,
                   borderColor: "transparent",
                   height: 44,
@@ -556,7 +570,7 @@ export default function PerfilPersonalizacaoScreen() {
                 ) : (
                   <>
                     <Check size={16} color={activeForeground} strokeWidth={2.5} />
-                    <Text style={{ color: activeForeground, fontSize: 12.5, fontWeight: "700" }}>
+                    <Text style={{ color: activeForeground, fontSize: scaleFont(12.5), fontWeight: "700" }}>
                       Salvar alterações
                     </Text>
                   </>
@@ -566,111 +580,13 @@ export default function PerfilPersonalizacaoScreen() {
           </View>
         </View>
 
-        {/* 3. Navigation Tabs Bar */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingVertical: 2 }}
-        >
-          <Pressable
-            onPress={() => setActiveTab("visual")}
-            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
-            style={{
-              backgroundColor: activeTab === "visual" ? "#1e2027" : "#121318",
-              borderColor:
-                activeTab === "visual"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
-              height: 46,
-            }}
-          >
-            <Palette size={16} color={activeTab === "visual" ? "#ffffff" : "#9ca3af"} />
-            <Text
-              style={{
-                color: activeTab === "visual" ? "#ffffff" : "#9ca3af",
-                fontSize: 13,
-                fontWeight: activeTab === "visual" ? "700" : "600",
-              }}
-            >
-              Identidade Visual & Cores
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab("dados")}
-            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
-            style={{
-              backgroundColor: activeTab === "dados" ? "#1e2027" : "#121318",
-              borderColor:
-                activeTab === "dados"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
-              height: 46,
-            }}
-          >
-            <User size={16} color={activeTab === "dados" ? "#ffffff" : "#9ca3af"} />
-            <Text
-              style={{
-                color: activeTab === "dados" ? "#ffffff" : "#9ca3af",
-                fontSize: 13,
-                fontWeight: activeTab === "dados" ? "700" : "600",
-              }}
-            >
-              Dados da Conta & Empresa
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab("widgets")}
-            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
-            style={{
-              backgroundColor: activeTab === "widgets" ? "#1e2027" : "#121318",
-              borderColor:
-                activeTab === "widgets"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
-              height: 46,
-            }}
-          >
-            <SlidersHorizontal
-              size={16}
-              color={activeTab === "widgets" ? "#ffffff" : "#9ca3af"}
-            />
-            <Text
-              style={{
-                color: activeTab === "widgets" ? "#ffffff" : "#9ca3af",
-                fontSize: 13,
-                fontWeight: activeTab === "widgets" ? "700" : "600",
-              }}
-            >
-              Widgets do Início
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab("atalhos")}
-            className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border"
-            style={{
-              backgroundColor: activeTab === "atalhos" ? "#1e2027" : "#121318",
-              borderColor:
-                activeTab === "atalhos"
-                  ? "rgba(255, 255, 255, 0.25)"
-                  : "rgba(255, 255, 255, 0.08)",
-              height: 46,
-            }}
-          >
-            <Sparkles size={16} color={activeTab === "atalhos" ? "#ffffff" : "#9ca3af"} />
-            <Text
-              style={{
-                color: activeTab === "atalhos" ? "#ffffff" : "#9ca3af",
-                fontSize: 13,
-                fontWeight: activeTab === "atalhos" ? "700" : "600",
-              }}
-            >
-              Ações & Links
-            </Text>
-          </Pressable>
-        </ScrollView>
+        {/* 3. Navigation Tabs Bar Responsivo */}
+        <ResponsiveTabs
+          tabs={profileTabs}
+          activeTab={activeTab}
+          onTabChange={(id) => setActiveTab(id as any)}
+          variant="pill"
+        />
 
         {/* 4. Tab 1: Identidade Visual & Cores */}
         {activeTab === "visual" && (

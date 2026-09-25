@@ -45,6 +45,8 @@ import { getAppointments, todayKey } from "@/lib/appointments";
 import { getStats, type StatsResponse } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 import {
   CustomizeDashboardModal,
   DEFAULT_DASHBOARD_PREFS,
@@ -107,6 +109,7 @@ function formatDashboardCurrency(val: number | null | undefined): string {
 export default function OwnerHomeScreen() {
   const { session, refresh, signOut } = useSession();
   const { isDark, colors: themeColors, primaryColor, primaryForeground, primarySoft } = useTheme();
+  const { isCompact, isTablet, horizontalPadding, contentMaxWidth } = useResponsive();
 
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -577,13 +580,13 @@ export default function OwnerHomeScreen() {
           },
         ];
 
-        const isOddTotal = kpis.length % 2 !== 0;
+        const cardWidth = isTablet ? "31.5%" : isCompact ? "100%" : "48.5%";
 
         return (
           <View key="showKpis" style={styles.kpiGrid}>
             {kpis.map((kpi, index) => {
               const isLast = index === kpis.length - 1;
-              const isFullWidth = isLast && isOddTotal;
+              const isFullWidth = isLast && !isTablet && !isCompact && (kpis.length % 2 !== 0);
               const IconComponent = kpi.icon;
 
               if (isFullWidth) {
@@ -628,7 +631,7 @@ export default function OwnerHomeScreen() {
                           <Text
                             style={{
                               color: textMuted,
-                              fontSize: 13,
+                              fontSize: scaleFont(13, { min: 11.5, max: 14 }),
                               fontWeight: "500",
                             }}
                           >
@@ -637,7 +640,7 @@ export default function OwnerHomeScreen() {
                           <Text
                             style={{
                               color: isDark ? "#6b7280" : "#94a3b8",
-                              fontSize: 11.5,
+                              fontSize: scaleFont(11.5, { min: 10, max: 12.5 }),
                             }}
                           >
                             {kpi.subtitle}
@@ -647,7 +650,7 @@ export default function OwnerHomeScreen() {
                       <Text
                         style={{
                           color: textTitle,
-                          fontSize: 24,
+                          fontSize: scaleFont(24, { min: 20, max: 26 }),
                           fontWeight: "800",
                           letterSpacing: -0.3,
                           paddingLeft: 8,
@@ -665,7 +668,7 @@ export default function OwnerHomeScreen() {
                   key={kpi.id}
                   style={[
                     styles.kpiCard,
-                    { backgroundColor: cardBg, borderColor: cardBorder },
+                    { width: cardWidth, backgroundColor: cardBg, borderColor: cardBorder },
                   ]}
                 >
                   <View
@@ -692,7 +695,7 @@ export default function OwnerHomeScreen() {
                     <Text
                       style={{
                         color: textMuted,
-                        fontSize: 12.5,
+                        fontSize: scaleFont(12.5, { min: 11, max: 13.5 }),
                         fontWeight: "500",
                         lineHeight: 16,
                       }}
@@ -702,7 +705,7 @@ export default function OwnerHomeScreen() {
                     <Text
                       style={{
                         color: textTitle,
-                        fontSize: 22,
+                        fontSize: scaleFont(22, { min: 18, max: 24 }),
                         fontWeight: "800",
                         letterSpacing: -0.3,
                       }}
@@ -712,7 +715,7 @@ export default function OwnerHomeScreen() {
                     <Text
                       style={{
                         color: isDark ? "#6b7280" : "#94a3b8",
-                        fontSize: 11.5,
+                        fontSize: scaleFont(11.5, { min: 10, max: 12.5 }),
                       }}
                     >
                       {kpi.subtitle}

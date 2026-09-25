@@ -28,7 +28,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { fontFamily, radius, typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme } from "@/hooks/use-theme";
+import { scaleFont } from "@/lib/responsive";
 import { useSession } from "@/lib/session-context";
 
 interface FAQItem {

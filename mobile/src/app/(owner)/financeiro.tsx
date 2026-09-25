@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/ui/metric-card";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { ServiceRankRow, type ServiceRankRowData } from "@/components/ui/service-rank-row";
@@ -11,11 +12,13 @@ import { PageHeader } from "@/components/ui/page-header";
 import { TeamRankRow, type TeamRankRowData } from "@/components/ui/team-rank-row";
 import { TopBar } from "@/components/ui/top-bar";
 import { typography } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
 import { getAppointments, type AppointmentDTO } from "@/lib/appointments";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
 import { formatBRL } from "@/lib/stats";
+import { scaleFont } from "@/lib/responsive";
 import { useSession } from "@/lib/session-context";
 
 const PENDING_STATUSES = new Set(["scheduled", "confirmed", "waiting", "in_progress"]);
@@ -229,6 +232,16 @@ export default function FinanceiroScreen() {
   const maxServiceCount = topServices[0]?.count ?? 0;
   const totalPaymentAll = paymentBreakdown.reduce((acc, p) => acc + p.total, 0) || 1;
 
+  const { isCompact, isTablet, horizontalPadding } = useResponsive();
+
+  const periodTabsList = useMemo(() => {
+    return PERIOD_TABS.map((t) => ({
+      id: t.id,
+      label: t.label,
+      icon: <CalendarDays size={13} color={period === t.id ? colors.primary : colors.textSecondary} />,
+    }));
+  }, [period, colors.primary, colors.textSecondary]);
+
   return (
     <Screen header={<TopBar title="Financeiro" company={session?.company?.name} showBack={false} />} style={{ paddingTop: 16 }}>
       <PageHeader
@@ -237,35 +250,14 @@ export default function FinanceiroScreen() {
         subtitle="Faturamento real calculado a partir dos atendimentos finalizados e comissões da equipe."
       />
 
-      {/* Period Tabs — mirrors the real .client-tab-btn: transparent bg,
-          muted grey inactive, brand primary text/icon + bottom underline
-          when active (globals.css:3179-3206). */}
-      <View
-        className="mt-4 rounded-t-xl border-b px-2"
-        style={{ backgroundColor: colors.surfaceSecondary, borderBottomColor: "rgba(255, 255, 255, 0.08)" }}
-      >
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
-          {PERIOD_TABS.map((tab) => {
-            const isActive = period === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                onPress={() => setPeriod(tab.id)}
-                className="flex-row items-center gap-1.5 px-3.5"
-                style={{
-                  height: 38,
-                  borderBottomWidth: 2,
-                  borderBottomColor: isActive ? colors.primary : "transparent",
-                }}
-              >
-                <CalendarDays size={13} color={isActive ? colors.primary : "#71717a"} />
-                <Text style={{ color: isActive ? colors.primary : "#71717a", fontSize: 12.5, fontWeight: isActive ? "700" : "500" }}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+      {/* Responsive Period Tabs */}
+      <View className="mt-3">
+        <ResponsiveTabs
+          tabs={periodTabsList}
+          activeTab={period}
+          onTabChange={(id) => setPeriod(id as FinancialPeriod)}
+          variant="underline"
+        />
       </View>
 
       {loading ? (
@@ -281,12 +273,13 @@ export default function FinanceiroScreen() {
         <ScrollView
           className="flex-1 mt-4"
           contentContainerClassName="gap-5 pb-6"
+          showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         >
-          {/* 2x2 Metrics Grid */}
+          {/* Responsive Metrics Grid */}
           <View className="gap-2.5">
-            <View className="flex-row gap-2.5">
-              <View className="flex-1">
+            <View className={isTablet ? "flex-row gap-3" : "flex-row flex-wrap gap-2.5"}>
+              <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
                 <MetricCard
                   icon={WalletCards}
                   label="Receita realizada"
@@ -294,7 +287,7 @@ export default function FinanceiroScreen() {
                   detail={`${completedCount} atendimentos recebidos`}
                 />
               </View>
-              <View className="flex-1">
+              <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
                 <MetricCard
                   icon={TrendingUp}
                   label="Receita prevista"
@@ -302,22 +295,20 @@ export default function FinanceiroScreen() {
                   detail={`${pendingCount} atendimentos futuros`}
                 />
               </View>
-            </View>
-            <View className="flex-row gap-2.5">
-              <View className="flex-1">
+              <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
                 <MetricCard
                   icon={BarChart3}
                   label="Comissões a pagar"
                   value={formatBRL(totalCommissions)}
-                  detail={`${teamRanking.length} profissionais comissionados`}
+                  detail={`${teamRanking.length} profissionais`}
                 />
               </View>
-              <View className="flex-1">
+              <View style={{ flexBasis: isTablet ? "23%" : isCompact ? "100%" : "48%", flexGrow: 1 }}>
                 <MetricCard
                   icon={ReceiptText}
                   label="Lucro líquido"
                   value={formatBRL(netProfit)}
-                  detail={`${netMargin}% margem de rentabilidade`}
+                  detail={`${netMargin}% margem`}
                 />
               </View>
             </View>
@@ -325,58 +316,59 @@ export default function FinanceiroScreen() {
 
           {/* 7-Day Revenue Evolution Bar Chart */}
           <View
-            className="p-5 rounded-2xl border gap-4"
+            className="p-4 sm:p-5 rounded-2xl border gap-4"
             style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
           >
-            <View className="flex-row items-center justify-between gap-3">
-              <View className="flex-1 gap-1">
+            <View className="flex-row items-center justify-between gap-3 flex-wrap">
+              <View className="flex-1 gap-1" style={{ minWidth: 160 }}>
                 <View className="flex-row items-center gap-1.5">
                   <TrendingUp size={16} color={primaryColor} />
-                  <Text style={{ color: colors.textPrimary, fontSize: 15.5, fontWeight: "700" }}>
+                  <Text style={{ color: colors.textPrimary, fontSize: scaleFont(15.5), fontWeight: "700" }}>
                     Evolução de Faturamento
                   </Text>
                 </View>
-                <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                <Text style={{ color: colors.textSecondary, fontSize: scaleFont(12) }}>
                   Receita diária dos últimos 7 dias
                 </Text>
               </View>
               <View
-                className="items-end py-2 px-3 rounded-xl border"
+                className="items-end py-1.5 px-3 rounded-xl border"
                 style={{
                   backgroundColor: isDark ? "#181920" : "#f4f4f5",
                   borderColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
                 }}
               >
-                <Text style={{ color: colors.textMuted, fontSize: 9.5, fontWeight: "700", letterSpacing: 0.5 }}>
+                <Text style={{ color: colors.textMuted, fontSize: scaleFont(9.5), fontWeight: "700", letterSpacing: 0.5 }}>
                   MÉDIA DIÁRIA
                 </Text>
-                <Text style={{ color: primaryColor, fontSize: 14.5, fontWeight: "800", marginTop: 1 }}>
+                <Text style={{ color: primaryColor, fontSize: scaleFont(14.5), fontWeight: "800", marginTop: 1 }}>
                   {formatBRL(last7DaysData.dailyAverage)}
                 </Text>
               </View>
             </View>
 
             <View
-              className="flex-row items-end justify-between gap-2 pt-3 border-b"
+              className="flex-row items-end justify-between gap-1 sm:gap-2 pt-3 border-b"
               style={{ height: 190, borderBottomColor: "rgba(255, 255, 255, 0.08)" }}
             >
               {last7DaysData.days.map((day) => {
                 const heightPct = Math.max(Math.round((day.revenue / last7DaysData.maxDayRevenue) * 100), 6);
                 return (
-                  <View key={day.date} className="flex-1 items-center justify-end gap-1.5" style={{ height: "100%" }}>
+                  <View key={day.date} className="flex-1 items-center justify-end gap-1" style={{ height: "100%" }}>
                     <Text
                       style={{
                         color: day.isToday ? colors.primary : colors.textSecondary,
-                        fontSize: 9,
+                        fontSize: scaleFont(isCompact ? 7.5 : 8.5),
                         fontWeight: day.isToday ? "700" : "600",
                       }}
                       numberOfLines={1}
+                      adjustsFontSizeToFit
                     >
                       {day.revenue > 0 ? formatBRL(day.revenue) : "R$ 0"}
                     </Text>
                     <View
                       className="w-full items-center justify-end rounded-t-md overflow-hidden"
-                      style={{ maxWidth: 40, height: 130, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
+                      style={{ maxWidth: isTablet ? 56 : 38, height: 130, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
                     >
                       <View
                         className="w-full rounded-t-md"
@@ -389,10 +381,10 @@ export default function FinanceiroScreen() {
                         }}
                       />
                     </View>
-                    <Text style={{ color: colors.textPrimary, fontSize: 11, fontWeight: "600", marginTop: 2 }}>
+                    <Text style={{ color: colors.textPrimary, fontSize: scaleFont(10.5), fontWeight: "600", marginTop: 2 }}>
                       {day.weekday}
                     </Text>
-                    <Text style={{ color: colors.textMuted, fontSize: 9 }}>{day.label}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: scaleFont(8.5) }}>{day.label}</Text>
                   </View>
                 );
               })}
@@ -400,9 +392,9 @@ export default function FinanceiroScreen() {
           </View>
 
           {/* Rankings: Team & Services */}
-          <View className="gap-5">
+          <View className={isTablet ? "flex-row gap-5" : "gap-5"}>
             <View
-              className="p-5 rounded-2xl border gap-1"
+              className="p-4 sm:p-5 rounded-2xl border gap-1 flex-1"
               style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
             >
               <SectionHeading
@@ -421,7 +413,7 @@ export default function FinanceiroScreen() {
             </View>
 
             <View
-              className="p-5 rounded-2xl border gap-1"
+              className="p-4 sm:p-5 rounded-2xl border gap-1 flex-1"
               style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
             >
               <SectionHeading
@@ -443,7 +435,7 @@ export default function FinanceiroScreen() {
           {/* Payment Methods Breakdown */}
           {paymentBreakdown.length > 0 && (
             <View
-              className="p-5 rounded-2xl border gap-1"
+              className="p-4 sm:p-5 rounded-2xl border gap-1"
               style={{ backgroundColor: "#111216", borderColor: "rgba(255, 255, 255, 0.09)" }}
             >
               <SectionHeading title="Por forma de pagamento" description="Distribuição dos valores recebidos no período" />
@@ -454,21 +446,26 @@ export default function FinanceiroScreen() {
                     <View
                       key={row.method}
                       className="p-3 rounded-xl border gap-2"
-                      style={{ flexBasis: "48%", flexGrow: 1, backgroundColor: "#181920", borderColor: "rgba(255, 255, 255, 0.08)" }}
+                      style={{
+                        flexBasis: isTablet ? "31%" : isCompact ? "100%" : "48%",
+                        flexGrow: 1,
+                        backgroundColor: "#181920",
+                        borderColor: "rgba(255, 255, 255, 0.08)",
+                      }}
                     >
                       <View className="flex-row items-center justify-between">
-                        <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: "600", textTransform: "capitalize" }}>
+                        <Text style={{ color: colors.textSecondary, fontSize: scaleFont(11), fontWeight: "600", textTransform: "capitalize" }}>
                           {PAYMENT_LABELS[row.method] || row.method}
                         </Text>
                         <View className="py-0.5 px-1.5 rounded-md border" style={{ backgroundColor: "rgba(255, 255, 255, 0.05)", borderColor: "rgba(255, 255, 255, 0.08)" }}>
-                          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>{pct}%</Text>
+                          <Text style={{ color: colors.primary, fontSize: scaleFont(10), fontWeight: "700" }}>{pct}%</Text>
                         </View>
                       </View>
-                      <Text style={{ color: colors.textPrimary, fontSize: 15, fontWeight: "700" }}>{formatBRL(row.total)}</Text>
+                      <Text style={{ color: colors.textPrimary, fontSize: scaleFont(15), fontWeight: "700" }}>{formatBRL(row.total)}</Text>
                       <View className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255, 255, 255, 0.08)" }}>
                         <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: colors.primary }} />
                       </View>
-                      <Text style={{ color: colors.textMuted, fontSize: 10 }}>{row.count} recebimentos</Text>
+                      <Text style={{ color: colors.textMuted, fontSize: scaleFont(10) }}>{row.count} recebimentos</Text>
                     </View>
                   );
                 })}

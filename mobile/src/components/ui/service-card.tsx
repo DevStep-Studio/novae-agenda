@@ -4,6 +4,8 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 import {
   formatDuration,
   getServiceDescription,
@@ -22,6 +24,7 @@ export interface ServiceCardProps {
 
 export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCardProps) {
   const { primaryColor } = useTheme();
+  const { isCompact } = useResponsive();
   const [toggling, setToggling] = useState(false);
   const numericPrice = Number(service.price) || 0;
   const isQuote = service.paymentType === "QUOTE" || numericPrice === 0;
@@ -49,44 +52,48 @@ export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCar
         borderColor: "rgba(255, 255, 255, 0.1)",
         backgroundColor: "#0d0e12",
         opacity: service.active ? 1 : 0.65,
-        minHeight: 250,
+        minHeight: 240,
       }}
     >
       {/* Background Image with Dark Minimalist Overlay */}
       <Image
         source={{ uri: getServiceImage(service) }}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
         contentFit="cover"
       />
       <View
         style={{
           position: "absolute",
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           backgroundColor: "rgba(8, 8, 12, 0.72)",
         }}
       />
 
-      <View style={{ padding: 18, minHeight: 250, justifyContent: "space-between" }}>
+      <View style={{ padding: isCompact ? 14 : 18, minHeight: 240, justifyContent: "space-between" }}>
         {/* Top Header Bar: [ Editar ] [ Excluir ] on left, [ Sem categoria ] on right */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6, flexWrap: "wrap" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {onEdit && (
               <Pressable
                 onPress={() => onEdit(service)}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 6,
-                  paddingHorizontal: 12,
+                  gap: 5,
+                  paddingHorizontal: isCompact ? 10 : 12,
                   paddingVertical: 5,
                   borderRadius: 999,
                   backgroundColor: "rgba(18, 18, 22, 0.8)",
                   borderWidth: 1,
                   borderColor: "rgba(255, 255, 255, 0.2)",
+                  minHeight: 32,
                 }}
               >
                 <Pencil size={12} color="#ffffff" />
-                <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "600" }}>Editar</Text>
+                <Text style={{ color: "#ffffff", fontSize: scaleFont(12, { min: 11, max: 13 }), fontWeight: "600" }}>Editar</Text>
               </Pressable>
             )}
 
@@ -96,9 +103,9 @@ export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCar
                 style={{
                   alignItems: "center",
                   justifyContent: "center",
-                  width: 28,
-                  height: 28,
-                  borderRadius: 14,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
                   backgroundColor: "rgba(239, 68, 68, 0.2)",
                   borderWidth: 1,
                   borderColor: "rgba(239, 68, 68, 0.4)",
@@ -113,17 +120,25 @@ export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCar
             style={{
               flexDirection: "row",
               alignItems: "center",
-              gap: 5,
-              paddingHorizontal: 12,
+              gap: 4,
+              paddingHorizontal: isCompact ? 8 : 12,
               paddingVertical: 5,
               borderRadius: 999,
               backgroundColor: "rgba(0, 0, 0, 0.55)",
               borderWidth: 1,
               borderColor: "rgba(255, 255, 255, 0.16)",
+              maxWidth: "60%",
             }}
           >
             <Tag size={11} color="rgba(255, 255, 255, 0.85)" />
-            <Text style={{ color: "rgba(255, 255, 255, 0.85)", fontSize: 11.5, fontWeight: "500" }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                color: "rgba(255, 255, 255, 0.85)",
+                fontSize: scaleFont(11.5, { min: 10, max: 12 }),
+                fontWeight: "500",
+              }}
+            >
               {service.categoryName ?? "Sem categoria"}
             </Text>
           </View>
@@ -132,12 +147,12 @@ export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCar
         {/* Middle Body: Service Title and Smart Description */}
         <Pressable
           onPress={() => onEdit && onEdit(service)}
-          style={{ marginTop: 22, marginBottom: 12 }}
+          style={{ marginTop: 16, marginBottom: 10 }}
         >
           <Text
             style={{
               color: "#ffffff",
-              fontSize: 19,
+              fontSize: scaleFont(19, { min: 16, max: 20 }),
               fontWeight: "800",
               letterSpacing: -0.25,
               textTransform: "uppercase",
@@ -150,7 +165,7 @@ export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCar
             style={{
               marginTop: 6,
               color: "rgba(255, 255, 255, 0.88)",
-              fontSize: 12.5,
+              fontSize: scaleFont(12.5, { min: 11, max: 13.5 }),
               lineHeight: 18,
               fontWeight: "400",
             }}
@@ -172,15 +187,15 @@ export function ServiceCard({ service, onToggled, onEdit, onDelete }: ServiceCar
         >
           <View style={{ gap: 2 }}>
             {isQuote ? (
-              <Text style={{ color: "#38bdf8", fontSize: 15, fontWeight: "800" }}>Sob consulta</Text>
+              <Text style={{ color: "#38bdf8", fontSize: scaleFont(15, { min: 13, max: 16 }), fontWeight: "800" }}>Sob consulta</Text>
             ) : (
-              <Text style={{ color: "#ffffff", fontSize: 21, fontWeight: "800", letterSpacing: -0.5 }}>
+              <Text style={{ color: "#ffffff", fontSize: scaleFont(21, { min: 17, max: 22 }), fontWeight: "800", letterSpacing: -0.5 }}>
                 {formatBRL(numericPrice)}
               </Text>
             )}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
               <Clock3 size={12} color="#a1a1aa" />
-              <Text style={{ color: "#a1a1aa", fontSize: 12, fontWeight: "500" }}>
+              <Text style={{ color: "#a1a1aa", fontSize: scaleFont(12, { min: 10.5, max: 13 }), fontWeight: "500" }}>
                 {formatDuration(Number(service.durationMinutes) || 0)}
               </Text>
             </View>

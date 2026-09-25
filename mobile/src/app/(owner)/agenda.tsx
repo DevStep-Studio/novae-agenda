@@ -61,6 +61,8 @@ import { getClients, type ClientDTO } from "@/lib/clients";
 import { formatBRL } from "@/lib/stats";
 import { useSession } from "@/lib/session-context";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   weekday: "long",
@@ -174,6 +176,7 @@ const TIME_SLOTS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => {
 
 export default function AgendaScreen() {
   const { width: windowWidth } = useWindowDimensions();
+  const { isCompact, isTablet } = useResponsive();
   const { session } = useSession();
   const { isDark, primaryColor, primarySoft, primaryForeground } = useTheme();
   const [selectedDate, setSelectedDate] = useState(todayKey());
@@ -320,20 +323,21 @@ export default function AgendaScreen() {
   }, [employees, employeeFilter]);
 
   // Responsive calendar dimensions
-  const timeColWidth = 68;
-  const calendarAvailableWidth = Math.max(windowWidth - 42, 280);
-  const employeeAreaWidth = Math.max(calendarAvailableWidth - timeColWidth, 200);
+  const timeColWidth = isCompact ? 54 : 68;
+  const calendarAvailableWidth = Math.max(windowWidth - (isCompact ? 28 : 42), 260);
+  const employeeAreaWidth = Math.max(calendarAvailableWidth - timeColWidth, 180);
 
   const colWidth = useMemo(() => {
     if (visibleEmployees.length <= 1) {
       return employeeAreaWidth;
     }
-    return Math.max(Math.floor(employeeAreaWidth / visibleEmployees.length), 175);
-  }, [visibleEmployees.length, employeeAreaWidth]);
+    return Math.max(Math.floor(employeeAreaWidth / visibleEmployees.length), isCompact ? 140 : 175);
+  }, [visibleEmployees.length, employeeAreaWidth, isCompact]);
 
   const weekColWidth = useMemo(() => {
-    return Math.max(Math.floor((calendarAvailableWidth - 65) / 3), 130);
-  }, [calendarAvailableWidth]);
+    const cols = isTablet ? 7 : 3;
+    return Math.max(Math.floor((calendarAvailableWidth - (isCompact ? 50 : 65)) / cols), isCompact ? 100 : 130);
+  }, [calendarAvailableWidth, isTablet, isCompact]);
 
   // Appointment Modal Helpers
   const selectedServices = useMemo(

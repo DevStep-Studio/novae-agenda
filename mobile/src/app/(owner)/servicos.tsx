@@ -47,6 +47,9 @@ import { ServiceCard } from "@/components/ui/service-card";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius, typography } from "@/constants/design-tokens";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 import { ApiError, api } from "@/lib/api-client";
 import { getEmployees, type EmployeeDTO } from "@/lib/employees";
 import {
@@ -1508,6 +1511,7 @@ function ServiceEditorModal({
 export default function ServicosScreen() {
   const { session } = useSession();
   const { isDark, primaryColor, primaryForeground } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
 
   const [subTab, setSubTab] = useState<SubTab>("services");
   const [services, setServices] = useState<ServiceDTO[] | null>(null);
@@ -1944,76 +1948,15 @@ export default function ServicosScreen() {
           /* View: Serviços Avulsos */
           <>
             {/* 3. Filter Tabs / Chips: Todos | Ativos | Inativos */}
-            <View className="flex-row items-center gap-2">
-              {[
-                { id: "Todos" as const, label: "Todos", count: counts.all },
-                { id: "Ativos" as const, label: "Ativos", count: counts.active },
-                { id: "Inativos" as const, label: "Inativos", count: counts.inactive },
-              ].map((tab) => {
-                const isActive = filter === tab.id;
-
-                return (
-                  <Pressable
-                    key={tab.id}
-                    onPress={() => setFilter(tab.id)}
-                    className="flex-row items-center gap-2 px-3.5 py-2 rounded-xl border"
-                    style={{
-                      backgroundColor: isActive
-                        ? isDark
-                          ? hexToRgba(primaryColor, 0.12)
-                          : hexToRgba(primaryColor, 0.08)
-                        : isDark
-                        ? "#16171d"
-                        : "#f4f4f5",
-                      borderColor: isActive
-                        ? isDark
-                          ? hexToRgba(primaryColor, 0.35)
-                          : hexToRgba(primaryColor, 0.25)
-                        : isDark
-                        ? "rgba(255, 255, 255, 0.07)"
-                        : "rgba(0, 0, 0, 0.06)",
-                      height: 38,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: isActive
-                          ? primaryColor
-                          : isDark
-                          ? "#9ca3af"
-                          : "#71717a",
-                        fontSize: 12.5,
-                        fontWeight: isActive ? "700" : "500",
-                      }}
-                    >
-                      {tab.label}
-                    </Text>
-                    <View
-                      className="px-2 py-0.5 rounded-full"
-                      style={{
-                        backgroundColor: isActive
-                          ? isDark
-                            ? hexToRgba(primaryColor, 0.2)
-                            : hexToRgba(primaryColor, 0.12)
-                          : isDark
-                          ? "rgba(255, 255, 255, 0.06)"
-                          : "rgba(0, 0, 0, 0.05)",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: isActive ? primaryColor : "#71717a",
-                          fontSize: 11,
-                          fontWeight: "700",
-                        }}
-                      >
-                        {tab.count}
-                      </Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <ResponsiveTabs
+              tabs={[
+                { id: "Todos", label: "Todos", count: counts.all },
+                { id: "Ativos", label: "Ativos", count: counts.active },
+                { id: "Inativos", label: "Inativos", count: counts.inactive },
+              ]}
+              activeTab={filter}
+              onChange={(id) => setFilter(id as Filter)}
+            />
 
             {/* 4. Service Cards Grid */}
             {loading ? (

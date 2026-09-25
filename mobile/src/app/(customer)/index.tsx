@@ -32,6 +32,9 @@ import { getMyBookings, type MyBooking } from "@/lib/my-bookings";
 import { addBookingToNativeCalendar } from "@/lib/native-calendar";
 import { formatBRL } from "@/lib/stats";
 
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
+
 const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; bg: string }
@@ -44,6 +47,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default function MyBookingsScreen() {
+  const { isCompact, isTablet } = useResponsive();
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,17 +129,12 @@ export default function MyBookingsScreen() {
   }
 
   return (
-    <Screen style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
-      <View style={{ paddingHorizontal: 16, gap: 14 }}>
-        <TopBar
-          title="Meus Agendamentos"
-        />
-        <PageHeader
-          eyebrow="MINHAS RESERVAS"
-          title="Meus Agendamentos"
-          subtitle="Acompanhe seus horários marcados e histórico de atendimentos."
-        />
-      </View>
+    <Screen header={<TopBar title="Meus Agendamentos" showBack={false} />} style={{ paddingTop: 16 }}>
+      <PageHeader
+        eyebrow="MINHAS RESERVAS"
+        title="Meus Agendamentos"
+        subtitle="Acompanhe seus horários marcados e histórico de atendimentos."
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">

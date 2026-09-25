@@ -129,10 +129,13 @@ const SECTIONS: SectionItem[] = [
 ];
 
 import { useTheme } from "@/hooks/use-theme";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 
 export default function OwnerMoreScreen() {
   const { session, signOut } = useSession();
   const { primaryColor, primarySoft } = useTheme();
+  const { isTablet, isCompact } = useResponsive();
 
   return (
     <Screen header={<TopBar title="Menu" company={session?.company.name} />} style={{ paddingTop: 16, gap: 16 }}>
@@ -187,83 +190,88 @@ export default function OwnerMoreScreen() {
 
       {/* Lista de Seções */}
       <ScrollView
-        contentContainerStyle={{ gap: 8, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {SECTIONS.map((section) => {
-          const IconComponent = section.icon;
-          const resolvedIconColor = section.iconColor === colors.primary ? primaryColor : section.iconColor;
+        <View className={isTablet ? "flex-row flex-wrap gap-3" : "gap-2"}>
+          {SECTIONS.map((section) => {
+            const IconComponent = section.icon;
+            const resolvedIconColor = section.iconColor === colors.primary ? primaryColor : section.iconColor;
 
-          return (
-            <Pressable
-              key={section.label}
-              className="flex-row items-center justify-between rounded-xl border px-3.5 py-3"
-              style={{
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              }}
-              onPress={() => router.push(section.href)}
-            >
-              <View className="flex-row items-center gap-3 flex-1 pr-2">
-                <View
-                  style={{
-                    backgroundColor: colors.surfaceSecondary,
-                    padding: 8,
-                    borderRadius: radius.sm,
-                  }}
-                >
-                  <IconComponent size={20} color={resolvedIconColor} />
-                </View>
-
-                <View className="gap-0.5 flex-1">
-                  <View className="flex-row items-center gap-2">
-                    <Text
-                      style={{
-                        color: colors.textPrimary,
-                        fontSize: 14,
-                        fontWeight: "600",
-                      }}
-                    >
-                      {section.label}
-                    </Text>
-
-                    {section.badge && (
-                      <View
-                        style={{
-                          backgroundColor: primarySoft,
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          borderRadius: radius.pill,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: primaryColor,
-                            fontSize: 9,
-                            fontWeight: "800",
-                          }}
-                        >
-                          {section.badge}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <Text
+            return (
+              <Pressable
+                key={section.label}
+                className="flex-row items-center justify-between rounded-xl border px-3.5 py-3"
+                style={{
+                  flexBasis: isTablet ? "48.5%" : undefined,
+                  flexGrow: isTablet ? 1 : undefined,
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                }}
+                onPress={() => router.push(section.href)}
+              >
+                <View className="flex-row items-center gap-3 flex-1 pr-2">
+                  <View
                     style={{
-                      color: colors.textMuted,
-                      fontSize: 12,
+                      backgroundColor: colors.surfaceSecondary,
+                      padding: 8,
+                      borderRadius: radius.sm,
                     }}
                   >
-                    {section.subtitle}
-                  </Text>
-                </View>
-              </View>
+                    <IconComponent size={20} color={resolvedIconColor} />
+                  </View>
 
-              <ChevronRight size={18} color={colors.textMuted} />
-            </Pressable>
-          );
-        })}
+                  <View className="gap-0.5 flex-1">
+                    <View className="flex-row items-center gap-2 flex-wrap">
+                      <Text
+                        style={{
+                          color: colors.textPrimary,
+                          fontSize: scaleFont(14),
+                          fontWeight: "600",
+                        }}
+                      >
+                        {section.label}
+                      </Text>
+
+                      {section.badge && (
+                        <View
+                          style={{
+                            backgroundColor: primarySoft,
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: radius.pill,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: primaryColor,
+                              fontSize: scaleFont(9),
+                              fontWeight: "800",
+                            }}
+                          >
+                            {section.badge}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <Text
+                      style={{
+                        color: colors.textMuted,
+                        fontSize: scaleFont(12),
+                      }}
+                      numberOfLines={1}
+                    >
+                      {section.subtitle}
+                    </Text>
+                  </View>
+                </View>
+
+                <ChevronRight size={18} color={colors.textMuted} />
+              </Pressable>
+            );
+          })}
+        </View>
 
         {/* Botão Sair */}
         <View style={{ marginTop: 8 }}>

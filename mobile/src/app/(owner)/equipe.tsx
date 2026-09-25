@@ -38,6 +38,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Screen } from "@/components/ui/screen";
 import { TimePickerModal } from "@/components/ui/time-picker-modal";
 import { TopBar } from "@/components/ui/top-bar";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 import { colors, radius, typography } from "@/constants/design-tokens";
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
@@ -88,6 +91,7 @@ export default function EquipeScreen() {
   const router = useRouter();
   const { session } = useSession();
   const { isDark, primaryColor, primaryForeground, colors } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
 
   const [employees, setEmployees] = useState<EmployeeDTO[] | null>(null);
   const [appointments, setAppointments] = useState<AppointmentDTO[]>([]);
@@ -460,80 +464,17 @@ export default function EquipeScreen() {
             borderColor: "rgba(255, 255, 255, 0.08)",
           }}
         >
-          {/* Filter Tabs — mirrors Web .client-segment-tabs with bottom active indicator */}
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderBottomColor: "rgba(255, 255, 255, 0.08)",
-              paddingBottom: 2,
-            }}
-          >
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, paddingHorizontal: 2 }}
-            >
-              {(
-                [
-                  { id: "all" as const, label: "Todos os profissionais", icon: null, count: totalEmployees },
-                  { id: "active" as const, label: "Ativos", icon: CheckCircle, count: activeEmployees.length },
-                  { id: "with_today" as const, label: "Com agenda hoje", icon: CalendarDays, count: withTodayCount },
-                  { id: "top" as const, label: "Mais produtivos", icon: Sparkles, count: topCount },
-                ]
-              ).map((tab) => {
-                const isActive = activeTab === tab.id;
-                const TabIcon = tab.icon;
-                return (
-                  <Pressable
-                    key={tab.id}
-                    onPress={() => setActiveTab(tab.id)}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      gap: 6,
-                      paddingVertical: 8,
-                      paddingHorizontal: 6,
-                      borderBottomWidth: 2,
-                      borderBottomColor: isActive ? primaryColor : "transparent",
-                    }}
-                  >
-                    {TabIcon && <TabIcon size={14} color={isActive ? primaryColor : "#9ca3af"} />}
-                    <Text
-                      style={{
-                        color: isActive ? "#ffffff" : "#9ca3af",
-                        fontSize: 13,
-                        fontWeight: isActive ? "700" : "500",
-                      }}
-                    >
-                      {tab.label}
-                    </Text>
-                    <View
-                      style={{
-                        alignItems: "center",
-                        justifyContent: "center",
-                        paddingHorizontal: 6,
-                        paddingVertical: 1.5,
-                        borderRadius: 999,
-                        backgroundColor: isActive
-                          ? hexToRgba(primaryColor, 0.22)
-                          : "rgba(255, 255, 255, 0.07)",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: isActive ? primaryColor : "#71717a",
-                          fontSize: 11,
-                          fontWeight: "700",
-                        }}
-                      >
-                        {tab.count}
-                      </Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          {/* Filter Tabs — responsive with badge counters */}
+          <ResponsiveTabs
+            tabs={[
+              { id: "all", label: "Todos os profissionais", count: totalEmployees },
+              { id: "active", label: "Ativos", icon: CheckCircle, count: activeEmployees.length },
+              { id: "with_today", label: "Com agenda hoje", icon: CalendarDays, count: withTodayCount },
+              { id: "top", label: "Mais produtivos", icon: Sparkles, count: topCount },
+            ]}
+            activeTab={activeTab}
+            onChange={(id) => setActiveTab(id as TeamTab)}
+          />
 
           {/* Search Box */}
           <View

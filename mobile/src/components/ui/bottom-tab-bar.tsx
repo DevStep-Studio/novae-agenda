@@ -6,12 +6,15 @@ import { router } from "expo-router";
 import { bottomNav } from "@/constants/design-tokens";
 import { useTheme } from "@/hooks/use-theme";
 import { useSession } from "@/lib/session-context";
+import { useResponsive } from "@/hooks/use-responsive";
+import { scaleFont } from "@/lib/responsive";
 
 // .mobile-bottom-nav / .mobile-nav-item / .mobile-nav-indicator / .mobile-nav-add-btn
 // globals.css:8589-8706. Pixel perfect match with web responsive bottom bar.
 export function BottomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
   const { session } = useSession();
   const { primaryColor, primaryForeground } = useTheme();
+  const { isCompact, isTablet } = useResponsive();
 
   const visibleRoutes = state.routes.filter((route) => {
     const { options } = descriptors[route.key];
@@ -35,16 +38,26 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          gap: 3,
+          gap: 2,
           paddingVertical: 6,
+          minHeight: 44,
         }}
         onPress={() => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
         }}
       >
-        {options.tabBarIcon?.({ focused, color, size: bottomNav.iconSize })}
-        <Text style={{ color, fontSize: 11, fontWeight: focused ? "600" : "500" }}>{label}</Text>
+        {options.tabBarIcon?.({ focused, color, size: isCompact ? 18 : bottomNav.iconSize })}
+        <Text
+          numberOfLines={1}
+          style={{
+            color,
+            fontSize: scaleFont(11, { min: 9.5, max: 12 }),
+            fontWeight: focused ? "600" : "500",
+          }}
+        >
+          {label}
+        </Text>
         {focused ? (
           <View
             style={{
@@ -67,58 +80,75 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
   return (
     <View
       style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-around",
         borderTopWidth: 1,
-        height: bottomNav.height + insets.bottom,
-        paddingBottom: insets.bottom,
         backgroundColor: bottomNav.background,
         borderTopColor: bottomNav.borderTopColor,
+        alignItems: "center",
       }}
     >
-      {leftRoutes.map(renderRoute)}
-
-      {/* Center Elevated "+" FAB */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Novo agendamento"
+      <View
         style={{
-          flex: 1,
+          flexDirection: "row",
           alignItems: "center",
-          justifyContent: "center",
-          gap: 3,
-          marginTop: -14,
-        }}
-        onPress={() => {
-          if (session?.role === "employee") {
-            router.push("/(employee)");
-          } else {
-            router.push("/(owner)/agenda");
-          }
+          justifyContent: "space-around",
+          width: "100%",
+          maxWidth: isTablet ? 680 : undefined,
+          height: bottomNav.height + insets.bottom,
+          paddingBottom: insets.bottom,
         }}
       >
-        <View
+        {leftRoutes.map(renderRoute)}
+
+        {/* Center Elevated "+" FAB */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Novo agendamento"
           style={{
-            width: bottomNav.addButtonSize,
-            height: bottomNav.addButtonSize,
-            borderRadius: 14,
-            backgroundColor: primaryColor,
+            flex: 1,
             alignItems: "center",
             justifyContent: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.35,
-            shadowRadius: 8,
-            elevation: 6,
+            gap: 2,
+            marginTop: -14,
+          }}
+          onPress={() => {
+            if (session?.role === "employee") {
+              router.push("/(employee)");
+            } else {
+              router.push("/(owner)/agenda");
+            }
           }}
         >
-          <Plus size={24} color={primaryForeground} strokeWidth={2.5} />
-        </View>
-        <Text style={{ color: bottomNav.itemInactiveColor, fontSize: 11, fontWeight: "500" }}>Novo</Text>
-      </Pressable>
+          <View
+            style={{
+              width: isCompact ? 44 : bottomNav.addButtonSize,
+              height: isCompact ? 44 : bottomNav.addButtonSize,
+              borderRadius: 14,
+              backgroundColor: primaryColor,
+              alignItems: "center",
+              justifyContent: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.35,
+              shadowRadius: 8,
+              elevation: 6,
+            }}
+          >
+            <Plus size={isCompact ? 20 : 24} color={primaryForeground} strokeWidth={2.5} />
+          </View>
+          <Text
+            style={{
+              color: bottomNav.itemInactiveColor,
+              fontSize: scaleFont(11, { min: 9.5, max: 12 }),
+              fontWeight: "500",
+            }}
+          >
+            Novo
+          </Text>
+        </Pressable>
 
-      {rightRoutes.map(renderRoute)}
+        {rightRoutes.map(renderRoute)}
+      </View>
     </View>
   );
 }
+

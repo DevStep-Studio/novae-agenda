@@ -19,10 +19,13 @@ import { useRouter } from "expo-router";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { ResponsiveTabs } from "@/components/ui/responsive-tabs";
 import { Screen } from "@/components/ui/screen";
 import { TopBar } from "@/components/ui/top-bar";
 import { colors, radius } from "@/constants/design-tokens";
+import { useResponsive } from "@/hooks/use-responsive";
 import { ApiError } from "@/lib/api-client";
+import { scaleFont } from "@/lib/responsive";
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -144,68 +147,17 @@ export default function EmployeeNotificacoesScreen() {
             subtitle={unreadCount > 0 ? `${unreadCount} nova${unreadCount > 1 ? "s" : ""} mensagem${unreadCount > 1 ? "s" : ""}` : "Todas as suas notificações e agendamentos recentes."}
           />
 
-          {/* Filter Tabs */}
-          <View className="flex-row items-center gap-2 pb-1">
-            <Pressable
-              onPress={() => setFilter("all")}
-              style={{
-                backgroundColor: filter === "all" ? colors.primary : colors.surfaceSecondary,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: radius.pill,
-              }}
-            >
-              <Text
-                style={{
-                  color: filter === "all" ? colors.background : colors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
-              >
-                Todas ({notifications.length})
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setFilter("unread")}
-              style={{
-                backgroundColor: filter === "unread" ? colors.primary : colors.surfaceSecondary,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: radius.pill,
-              }}
-            >
-              <Text
-                style={{
-                  color: filter === "unread" ? colors.background : colors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
-              >
-                Não lidas ({unreadCount})
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => setFilter("bookings")}
-              style={{
-                backgroundColor: filter === "bookings" ? colors.primary : colors.surfaceSecondary,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: radius.pill,
-              }}
-            >
-              <Text
-                style={{
-                  color: filter === "bookings" ? colors.background : colors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: "600",
-                }}
-              >
-                Agendamentos
-              </Text>
-            </Pressable>
-          </View>
+          {/* Filter Tabs Responsivo */}
+          <ResponsiveTabs
+            tabs={[
+              { id: "all", label: `Todas (${notifications.length})` },
+              { id: "unread", label: "Não lidas", badgeCount: unreadCount },
+              { id: "bookings", label: "Agendamentos" },
+            ]}
+            activeTab={filter}
+            onTabChange={(id) => setFilter(id as "all" | "unread" | "bookings")}
+            variant="pill"
+          />
 
           {/* Action to Mark All as Read */}
           {unreadCount > 0 && (
