@@ -1927,33 +1927,35 @@ button.outline:hover:not(:disabled),
 }
 .bookingsHeader {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding-bottom: 24px;
-  margin-bottom: 28px;
+  gap: 20px;
+  padding-bottom: 22px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--booking-border-soft);
 }
 .bookingsHeaderInfo {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  max-width: 480px;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .bookingsHeaderActions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 .bookingsHeaderDivider {
   display: inline-block;
   width: 1px;
-  height: 24px;
+  height: 22px;
   background: var(--booking-border);
-  margin: 0 2px;
+  margin: 0 4px;
   flex-shrink: 0;
 }
 .bookingsPrimaryAction,
@@ -1974,6 +1976,12 @@ a.bookingsPrimaryAction,
   border-radius: 10px !important;
   font-size: 13px !important;
   box-shadow: none !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  flex-shrink: 0 !important;
   transition: transform 0.15s ease, background 0.15s ease !important;
 }
 .bookingsPrimaryAction:hover {
@@ -1991,6 +1999,8 @@ a.bookingsPrimaryAction,
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 .bookingsSecondaryBtn,
 button.bookingsSecondaryBtn,
