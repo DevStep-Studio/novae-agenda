@@ -1992,27 +1992,48 @@ a.bookingsPrimaryAction,
   align-items: center;
   gap: 8px;
 }
-.bookingsSecondaryBtn {
+.bookingsSecondaryBtn,
+button.bookingsSecondaryBtn,
+a.bookingsSecondaryBtn {
   min-height: 38px !important;
   height: 38px !important;
   padding: 0 13px !important;
   font-size: 12.5px !important;
   font-weight: 600 !important;
-  color: var(--booking-text-secondary) !important;
-  border: 1px solid var(--booking-border) !important;
-  background: var(--booking-surface-secondary) !important;
+  color: var(--booking-text-secondary, #94a3b8) !important;
+  border: 1px solid var(--booking-border, rgba(255, 255, 255, 0.1)) !important;
+  background: var(--booking-surface-secondary, rgba(255, 255, 255, 0.04)) !important;
   border-radius: 10px !important;
   box-shadow: none !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
   transition: all 0.15s ease !important;
 }
-.bookingsSecondaryBtn:hover {
-  background: var(--booking-surface-hover) !important;
+.bookingsSecondaryBtn svg,
+button.bookingsSecondaryBtn svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+  transition: color 0.15s ease, stroke 0.15s ease !important;
+}
+.bookingsSecondaryBtn:hover,
+button.bookingsSecondaryBtn:hover,
+.bookingsSecondaryBtn:hover:not(:disabled),
+button.bookingsSecondaryBtn:hover:not(:disabled) {
+  background: var(--booking-surface-hover, rgba(255, 255, 255, 0.08)) !important;
   border-color: var(--accent, #10b981) !important;
   color: var(--accent, #10b981) !important;
   transform: translateY(-1px);
+  box-shadow: none !important;
 }
 .bookingsSecondaryBtn:hover svg,
-.bookingsSecondaryBtn:hover span {
+button.bookingsSecondaryBtn:hover svg,
+.bookingsSecondaryBtn:hover span,
+button.bookingsSecondaryBtn:hover span {
   color: var(--accent, #10b981) !important;
   stroke: var(--accent, #10b981) !important;
 }

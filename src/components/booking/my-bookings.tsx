@@ -1295,7 +1295,7 @@ export function MyBookings({
                   <div className={b.bookingsSecondaryActions}>
                     <button
                       type="button"
-                      className={`${b.button} ${b.outline} ${b.small} ${b.bookingsSecondaryBtn}`}
+                      className={b.bookingsSecondaryBtn}
                       onClick={() => {
                         setProfileModalOpen(true);
                         setProfileName(user?.name || "");
@@ -1314,7 +1314,7 @@ export function MyBookings({
                     </button>
                     <button
                       type="button"
-                      className={`${b.button} ${b.outline} ${b.small} ${b.bookingsSecondaryBtn}`}
+                      className={b.bookingsSecondaryBtn}
                       onClick={() => {
                         setPinModalOpen(true);
                         setPinChangeVal("");
@@ -1327,7 +1327,7 @@ export function MyBookings({
                     </button>
                     <button
                       type="button"
-                      className={`${b.button} ${b.outline} ${b.small} ${b.bookingsSecondaryBtn}`}
+                      className={b.bookingsSecondaryBtn}
                       onClick={async () => {
                         await api("/api/auth/logout", { method: "POST" });
                         setUser(null);
