@@ -1277,21 +1277,14 @@ export function MyBookings({
           <>
             <header className={b.bookingsHeader}>
               <div className={b.bookingsHeaderInfo}>
-                <span className={b.bookingsBadge}>
-                  <span className={b.bookingsBadgeDot} aria-hidden="true" />
-                  {user.photoUrl ? (
-                    <img src={user.photoUrl} alt="" className={b.bookingsBadgeAvatar} />
-                  ) : (
-                    <UserRound size={12} />
-                  )}
-                  <span>{user.name ? `Olá, ${user.name.split(" ")[0]}` : "Área do Cliente"}</span>
-                </span>
                 <h1 className={b.title}>
                   {tab === "Anteriores"
                     ? "Histórico de reservas"
                     : tab === "Cancelados"
                       ? "Reservas canceladas"
-                      : "Minhas reservas"}
+                      : user?.name
+                        ? `Olá, ${user.name.split(" ")[0]} 👋`
+                        : "Minhas reservas"}
                 </h1>
                 <p className={b.subtitle}>
                   {tab === "Anteriores"
@@ -1316,7 +1309,12 @@ export function MyBookings({
                         setProfileSuccess("");
                       }}
                     >
-                      <UserRound size={13} /> Meus dados
+                      {user?.photoUrl ? (
+                        <img src={user.photoUrl} alt="" className={b.bookingsBadgeAvatar} />
+                      ) : (
+                        <UserRound size={13} />
+                      )}
+                      Meus dados
                     </button>
                     <button
                       type="button"
