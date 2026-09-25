@@ -567,14 +567,13 @@
   gap: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
-  flex-wrap: wrap;
 }
 
 .settingInfo {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 200px;
+  flex: 1 1 200px;
 }
 
 .settingTitle {
@@ -586,6 +585,7 @@
 .settingSub {
   font-size: 11.5px;
   color: var(--text-muted, #71717a);
+  line-height: 1.4;
 }
 
 .pillGroup {
@@ -596,7 +596,10 @@
 }
 
 .pillBtn {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 13px;
   border-radius: 8px;
   background: var(--surface, #14151b);
   border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
@@ -604,7 +607,9 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  user-select: none;
 }
 
 .pillBtn:hover {
@@ -618,4 +623,63 @@
   color: #090a0f !important;
   border-color: var(--primary, #dcff4c) !important;
   font-weight: 700;
+  box-shadow: 0 2px 8px rgba(220, 255, 76, 0.2);
+}
+
+.pillStatic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--primary-soft, rgba(220, 255, 76, 0.1));
+  border: 1px solid rgba(220, 255, 76, 0.25);
+  color: var(--primary, #dcff4c);
+  font-size: 12px;
+  font-weight: 600;
+  user-select: none;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 16px 12px;
+  }
+
+  .configSection {
+    padding: 14px 12px;
+    gap: 14px;
+  }
+
+  .settingRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .settingInfo {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pillGroup {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 6px;
+  }
+
+  .pillBtn,
+  .pillStatic {
+    width: 100%;
+    padding: 8px 6px;
+    text-align: center;
+    justify-content: center;
+    font-size: 11.5px;
+    white-space: normal;
+  }
+
+  .btnUpload {
+    width: 100%;
+  }
 }

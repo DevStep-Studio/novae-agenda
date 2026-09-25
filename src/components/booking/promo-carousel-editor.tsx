@@ -287,11 +287,11 @@ export function PromoCarouselEditor({
             <div className={styles.settingInfo}>
               <span className={styles.settingTitle}>Local de Exibição</span>
               <span className={styles.settingSub}>
-                Posicionado fixo diretamente abaixo do card <strong>&quot;Seu agendamento&quot;</strong> (e no resumo mobile).
+                Fixo diretamente abaixo do card <strong>&quot;Seu agendamento&quot;</strong>
               </span>
             </div>
             <div className={styles.pillGroup}>
-              <span className={`${styles.pillBtn} ${styles.pillBtnActive}`} style={{ cursor: "default" }}>
+              <span className={styles.pillStatic}>
                 Abaixo de &quot;Seu agendamento&quot;
               </span>
             </div>
@@ -309,21 +309,21 @@ export function PromoCarouselEditor({
                 className={`${styles.pillBtn} ${currentStyle === "overlay" ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ contentStyle: "overlay" })}
               >
-                Sobreposto (Gradiente Cinema)
+                Sobreposto
               </button>
               <button
                 type="button"
                 className={`${styles.pillBtn} ${currentStyle === "card" ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ contentStyle: "card" })}
               >
-                Card Abaixo da Arte
+                Card Abaixo
               </button>
               <button
                 type="button"
                 className={`${styles.pillBtn} ${currentStyle === "clean" ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ contentStyle: "clean" })}
               >
-                Apenas Arte Limpa
+                Apenas Arte
               </button>
             </div>
           </div>
@@ -340,14 +340,14 @@ export function PromoCarouselEditor({
                 className={`${styles.pillBtn} ${currentFit === "cover" ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ fit: "cover" })}
               >
-                Preencher Todo o Espaço (Cover)
+                Preencher (Cover)
               </button>
               <button
                 type="button"
                 className={`${styles.pillBtn} ${currentFit === "contain" ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ fit: "contain" })}
               >
-                Conter Sem Cortar (Contain)
+                Ajustar (Contain)
               </button>
             </div>
           </div>
@@ -364,21 +364,21 @@ export function PromoCarouselEditor({
                 className={`${styles.pillBtn} ${currentSpeed === 3000 ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ autoplaySpeed: 3000 })}
               >
-                Rápido (3s)
+                3s (Rápido)
               </button>
               <button
                 type="button"
                 className={`${styles.pillBtn} ${currentSpeed === 5000 ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ autoplaySpeed: 5000 })}
               >
-                Normal (5s)
+                5s (Normal)
               </button>
               <button
                 type="button"
                 className={`${styles.pillBtn} ${currentSpeed === 7000 ? styles.pillBtnActive : ""}`}
                 onClick={() => handleUpdateConfig({ autoplaySpeed: 7000 })}
               >
-                Lento (7s)
+                7s (Lento)
               </button>
               <button
                 type="button"
@@ -619,7 +619,7 @@ export function PromoCarouselEditor({
                           className={`${styles.pillBtn} ${item.focusPosition === "top" ? styles.pillBtnActive : ""}`}
                           onClick={() => handleUpdateItem(index, { focusPosition: "top" })}
                         >
-                          Topo (Rosto/Corte)
+                          Topo
                         </button>
                         <button
                           type="button"
