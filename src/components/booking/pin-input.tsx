@@ -12,7 +12,7 @@ export interface PinInputProps {
   mask?: boolean;
   className?: string;
   error?: boolean;
-  theme?: "dark" | "light";
+  theme?: "dark" | "light" | "auto";
 }
 
 export function PinInput({
@@ -25,7 +25,7 @@ export function PinInput({
   mask = true,
   className = "",
   error = false,
-  theme = "dark",
+  theme = "auto",
 }: PinInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -116,7 +116,14 @@ export function PinInput({
     inputRefs.current[focusIdx]?.focus();
   };
 
-  const isDark = theme === "dark";
+  const isLight =
+    theme === "light" ||
+    (theme === "auto" &&
+      typeof document !== "undefined" &&
+      (document.documentElement.getAttribute("data-theme") === "light" ||
+        document.body.classList.contains("light") ||
+        document.querySelector("[data-theme='light']") !== null));
+  const isDark = !isLight;
   const borderColor = error
     ? "#ef4444"
     : isDark

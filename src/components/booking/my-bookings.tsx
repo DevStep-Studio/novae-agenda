@@ -468,7 +468,7 @@ export function MyBookings({
                       value={pinChangeVal}
                       onChange={setPinChangeVal}
                       length={6}
-                      theme="dark"
+                      theme="auto"
                     />
                   </div>
                 </div>
@@ -483,7 +483,7 @@ export function MyBookings({
                       value={confirmPinChangeVal}
                       onChange={setConfirmPinChangeVal}
                       length={6}
-                      theme="dark"
+                      theme="auto"
                     />
                   </div>
                 </div>
@@ -659,16 +659,7 @@ export function MyBookings({
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     placeholder="Seu nome"
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "8px",
-                      background: "#18181b",
-                      border: "1px solid #27272a",
-                      color: "#f4f4f5",
-                      fontSize: "14px",
-                      outline: "none",
-                    }}
+                    className={b.modalInput}
                   />
                 </div>
 
@@ -681,16 +672,7 @@ export function MyBookings({
                     value={profileEmail}
                     onChange={(e) => setProfileEmail(e.target.value)}
                     placeholder="seu.email@exemplo.com"
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "8px",
-                      background: "#18181b",
-                      border: "1px solid #27272a",
-                      color: "#f4f4f5",
-                      fontSize: "14px",
-                      outline: "none",
-                    }}
+                    className={b.modalInput}
                   />
                 </div>
 

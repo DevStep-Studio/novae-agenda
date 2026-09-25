@@ -5692,6 +5692,23 @@ a.emptyCtaButton,
   gap: 10px;
 }
 
+.modalInput {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  font-size: 14px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.modalInput:focus {
+  border-color: var(--accent, #10b981);
+}
+
 /* Auth / Login Container */
 .authContainer {
   max-width: 480px;
@@ -5758,82 +5775,302 @@ a.emptyCtaButton,
   color: var(--booking-text-secondary);
 }
 
+/* =========================================================
+   LIGHT MODE: CUSTOMER DASHBOARD & TICKET PASS
+   ========================================================= */
+
+/* Header */
 .pageLight .bookingsHeader {
   border-bottom-color: #e2e8f0;
 }
-
 .pageLight .bookingsHeader .title {
   color: #0f172a;
 }
-
 .pageLight .bookingsHeader .subtitle {
   color: #64748b;
 }
-
 .pageLight .bookingsBadge {
   background: #ffffff;
   border-color: #e2e8f0;
   color: #1e293b;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-
 .pageLight .bookingsHeaderDivider {
   background: #e2e8f0;
 }
-
-.pageLight .bookingsSecondaryBtn {
+.pageLight .bookingsSecondaryBtn,
+.pageLight button.bookingsSecondaryBtn,
+.pageLight a.bookingsSecondaryBtn {
   background: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
   color: #334155 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
-
-.pageLight .bookingsSecondaryBtn:hover {
+.pageLight .bookingsSecondaryBtn:hover,
+.pageLight button.bookingsSecondaryBtn:hover,
+.pageLight a.bookingsSecondaryBtn:hover {
   background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+  border-color: var(--accent, #10b981) !important;
+  color: var(--accent, #059669) !important;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06) !important;
 }
-
-.pageLight .bookingTabActive {
-  background: #ffffff !important;
-  border-color: #cbd5e1 !important;
-  color: #0f172a !important;
+.pageLight .bookingsSecondaryBtn:hover svg,
+.pageLight button.bookingsSecondaryBtn:hover svg {
+  color: var(--accent, #059669) !important;
+  stroke: var(--accent, #059669) !important;
+}
+.pageLight .bookingsPrimaryAction,
+.pageLight a.bookingsPrimaryAction {
+  background: var(--accent, #10b981) !important;
+  color: #000000 !important;
+  border-color: var(--accent, #10b981) !important;
 }
 
-.pageLight .featuredBookingCard {
+/* Tabs */
+.pageLight .bookingTabs {
   background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+.pageLight .bookingTab {
+  color: #64748b;
+}
+.pageLight .bookingTab:hover {
+  color: #0f172a;
+  background: #f8fafc;
+}
+.pageLight .bookingTabActive {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: var(--accent, #059669) !important;
+}
+.pageLight .bookingTabLabel {
+  color: inherit !important;
+}
+.pageLight .bookingTabActive .bookingTabLabel {
+  color: var(--accent, #059669) !important;
+}
+.pageLight .bookingTabBadge {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+.pageLight .bookingTabActive .bookingTabBadge {
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #059669 !important;
+}
+
+/* Ticket Pass Card */
+.pageLight .ticketCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+}
+.pageLight .ticketCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.pageLight .featuredBookingCard {
   border-color: #84cc16;
   box-shadow: 0 4px 20px rgba(132, 204, 22, 0.12), 0 0 0 1px rgba(132, 204, 22, 0.25);
 }
-
 .pageLight .bookingCardCompact {
+  border-color: #e2e8f0;
+}
+.pageLight .ticketHeader {
+  background: #f8fafc;
+  border-bottom-color: #f1f5f9;
+}
+.pageLight .ticketCompanyLogo {
   background: #ffffff;
   border-color: #e2e8f0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+.pageLight .ticketCompanyFallbackLogo {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #059669;
+}
+.pageLight .ticketCompanyName {
+  color: #0f172a;
+}
+.pageLight .ticketCompanyCategory {
+  color: #64748b;
 }
 
+/* Status Badges */
+.pageLight .ticketStatus_completed {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
 .pageLight .ticketStatus_confirmed {
-  background: #f7fee7 !important;
-  border-color: #a3e635 !important;
-  color: #365314 !important;
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #059669 !important;
   box-shadow: none !important;
 }
+.pageLight .ticketStatus_cancelled {
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+  color: #dc2626 !important;
+}
 
+/* Ticket Body */
+.pageLight .ticketServiceTitle {
+  color: #0f172a;
+}
 .pageLight .bookingKicker {
-  color: #3f6212 !important;
+  color: #059669;
 }
-
+.pageLight .ticketGridLabel {
+  color: #64748b;
+}
+.pageLight .ticketGridValue {
+  color: #1e293b;
+}
 .pageLight .ticketGridIcon {
-  color: #4d7c0f !important;
+  color: #059669;
+}
+.pageLight .ticketProfDetails strong {
+  color: #0f172a;
+}
+.pageLight .ticketProfDetails small {
+  color: #64748b;
+}
+.pageLight .ticketAddressText {
+  color: #475569;
+}
+.pageLight .ticketDashedLine {
+  border-bottom-color: #e2e8f0;
 }
 
-.pageLight .ticketHeader {
-  background: rgba(132, 204, 22, 0.04);
+/* Ticket Stub */
+.pageLight .ticketStub {
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+.pageLight .ticketVoucherCode {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+.pageLight .ticketPriceValue {
+  color: #0f172a !important;
+}
+.pageLight .ticketBarcodeCol {
+  color: rgba(15, 23, 42, 0.45);
+}
+.pageLight .ticketBarcodeLabel {
+  color: #64748b;
 }
 
-.pageLight .bookingDateBlock {
-  background: color-mix(in srgb, var(--card-brand) 14%, #f1f5f9);
+/* Ticket Actions */
+.pageLight .ticketBtnSecondary,
+.pageLight button.ticketBtnSecondary {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #1e293b !important;
+}
+.pageLight .ticketBtnSecondary:hover:not(:disabled),
+.pageLight button.ticketBtnSecondary:hover:not(:disabled) {
+  background: #f0fdf4 !important;
+  border-color: #10b981 !important;
+  color: #059669 !important;
+}
+.pageLight .ticketBtnSecondary:hover svg,
+.pageLight button.ticketBtnSecondary:hover svg {
+  color: #059669 !important;
+  stroke: #059669 !important;
+}
+.pageLight .ticketBtnPrimary,
+.pageLight button.ticketBtnPrimary {
+  background: var(--accent, #10b981) !important;
+  border-color: var(--accent, #10b981) !important;
+  color: #000000 !important;
+}
+.pageLight .ticketBtnDanger,
+.pageLight button.ticketBtnDanger {
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #dc2626 !important;
+}
+.pageLight .ticketBtnDanger:hover:not(:disabled),
+.pageLight button.ticketBtnDanger:hover:not(:disabled) {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
+.pageLight .bookingUtilityActions {
+  border-top-color: #e2e8f0;
+}
+.pageLight .bookingUtilityActions a {
+  color: #64748b;
+}
+.pageLight .bookingUtilityActions a:hover {
+  color: #059669;
+}
+
+/* Empty State in Light */
+.pageLight .bookingsEmpty {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+.pageLight .bookingsEmptyIcon {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #059669;
+}
+.pageLight .bookingsEmpty h3 {
+  color: #0f172a;
+}
+.pageLight .bookingsEmpty p {
+  color: #64748b;
+}
+
+/* Details View in Light */
+.pageLight .backLink {
+  color: #64748b;
+}
+.pageLight .backLink:hover {
+  color: #059669;
+}
+.pageLight .detailCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+.pageLight .detailCompanyName {
+  color: #0f172a;
+}
+.pageLight .detailCompanyCategory {
+  color: #64748b;
+}
+.pageLight .detailTitle {
+  color: #0f172a;
+}
+.pageLight .detailSubtitle {
+  color: #64748b;
+}
+.pageLight .detailCardHeader {
+  border-bottom-color: #f1f5f9;
+}
+.pageLight .detailHighlightBox {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.pageLight .detailItemRow {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.pageLight .detailNotesBox {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+.pageLight .detailTotalRow {
+  border-top-color: #e2e8f0;
+  color: #0f172a;
 }
 
 @media (max-width: 640px) {
