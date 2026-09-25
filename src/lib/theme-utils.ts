@@ -30,7 +30,7 @@ export type ImagePreset = {
 export const BANNER_PRESETS: ImagePreset[] = [
   { id: "dark-minimal", name: "Minimal Escuro", url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80" },
   { id: "studio-noir", name: "Studio Noir", url: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=80" },
-  { id: "slate-flat", name: "Ardósia Flat", url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80" },
+  { id: "slate-flat", name: "Ardósia Flat", url: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80" },
   { id: "abstract-grid", name: "Linhas Modernas", url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1200&q=80" },
 ];
 

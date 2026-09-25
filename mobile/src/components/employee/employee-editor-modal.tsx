@@ -1,7 +1,9 @@
 import {
   Briefcase,
   Check,
+  CheckCircle2,
   ImagePlus,
+  Link2,
   Lock,
   Mail,
   Phone,
@@ -51,7 +53,7 @@ export const BANNER_PRESETS = [
   {
     id: "slate-flat",
     name: "Ardósia Flat",
-    url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80",
+    url: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80",
   },
   {
     id: "abstract-grid",
@@ -105,7 +107,12 @@ export function EmployeeEditorModal({
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoLoadError, setPhotoLoadError] = useState(false);
   const [bannerUrl, setBannerUrl] = useState(BANNER_PRESETS[0].url);
+  const [showCustomUrlInput, setShowCustomUrlInput] = useState(false);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
+
+  const isPresetBanner = BANNER_PRESETS.some((preset) => preset.url === bannerUrl);
+  const activePreset = BANNER_PRESETS.find((preset) => preset.url === bannerUrl);
+  const resolvedBannerUri = resolveImageUrl(bannerUrl) || bannerUrl || BANNER_PRESETS[0].url;
 
   // System access
   const [grantAccess, setGrantAccess] = useState(false);
@@ -634,13 +641,107 @@ export function EmployeeEditorModal({
             </View>
 
             {/* 7. Banner de capa do card */}
-            <View className="gap-2.5">
-              <View className="flex-row items-center gap-1.5">
-                <ImagePlus size={13} color={primaryColor} />
-                <Text style={{ color: "#d1d5db", fontSize: 12, fontWeight: "600" }}>
-                  Banner de capa do card
-                </Text>
+            <View className="gap-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-1.5">
+                  <ImagePlus size={14} color={primaryColor} />
+                  <Text style={{ color: "#d1d5db", fontSize: 12.5, fontWeight: "600" }}>
+                    Banner de capa do card
+                  </Text>
+                </View>
+                {isPresetBanner ? (
+                  <View
+                    style={{
+                      backgroundColor: hexToRgba(primaryColor, 0.12),
+                      paddingHorizontal: 8,
+                      paddingVertical: 2.5,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: hexToRgba(primaryColor, 0.25),
+                    }}
+                  >
+                    <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "700" }}>
+                      Preset ativo
+                    </Text>
+                  </View>
+                ) : (
+                  <View
+                    style={{
+                      backgroundColor: hexToRgba(primaryColor, 0.12),
+                      paddingHorizontal: 8,
+                      paddingVertical: 2.5,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: hexToRgba(primaryColor, 0.25),
+                    }}
+                  >
+                    <Text style={{ color: primaryColor, fontSize: 10, fontWeight: "700" }}>
+                      Foto personalizada
+                    </Text>
+                  </View>
+                )}
               </View>
+
+              {/* Active Banner Preview Card */}
+              <View
+                style={{
+                  height: 92,
+                  borderRadius: 14,
+                  borderWidth: 1.5,
+                  borderColor: hexToRgba(primaryColor, 0.5),
+                  overflow: "hidden",
+                  position: "relative",
+                  backgroundColor: "#16171c",
+                }}
+              >
+                <Image
+                  source={{ uri: resolvedBannerUri }}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+                  contentFit="cover"
+                />
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: "rgba(0, 0, 0, 0.38)",
+                  }}
+                />
+
+                {/* Badge Top Left */}
+                <View className="p-2.5">
+                  <View
+                    style={{
+                      alignSelf: "flex-start",
+                      backgroundColor: "rgba(0, 0, 0, 0.65)",
+                      paddingHorizontal: 8,
+                      paddingVertical: 3.5,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.15)",
+                    }}
+                    className="flex-row items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={11} color={primaryColor} />
+                    <Text style={{ color: "#ffffff", fontSize: 10.5, fontWeight: "700" }}>
+                      {activePreset ? activePreset.name : "Foto personalizada ativa"}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Card Caption Bottom */}
+                <View className="absolute bottom-2 left-2.5 right-2.5 flex-row items-center justify-between">
+                  <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 10, fontWeight: "500" }}>
+                    Pré-visualização do card deste profissional
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={{ color: "#9ca3af", fontSize: 11.5, fontWeight: "600", marginTop: 2 }}>
+                Escolha um estilo pronto ou envie sua foto:
+              </Text>
 
               {/* Presets Grid */}
               <View className="flex-row flex-wrap gap-2">
@@ -650,33 +751,56 @@ export function EmployeeEditorModal({
                     <Pressable
                       key={preset.id}
                       onPress={() => setBannerUrl(preset.url)}
-                      className="rounded-xl overflow-hidden border justify-end p-2.5"
+                      className="rounded-xl overflow-hidden justify-between p-2.5"
                       style={{
                         width: "48.5%",
                         height: 64,
                         borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.12)",
                         borderWidth: isSelected ? 2 : 1,
+                        backgroundColor: "#16171c",
                       }}
                     >
                       <Image
                         source={{ uri: preset.url }}
-                        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
                         contentFit="cover"
                       />
                       <View
                         style={{
                           position: "absolute",
-                          inset: 0,
-                          backgroundColor: "rgba(0, 0, 0, 0.45)",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundColor: isSelected ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.48)",
                         }}
                       />
+                      {/* Top Checkmark Indicator */}
+                      <View className="flex-row justify-end">
+                        {isSelected ? (
+                          <View
+                            style={{
+                              backgroundColor: primaryColor,
+                              borderRadius: 999,
+                              width: 17,
+                              height: 17,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Check size={10} color={primaryForeground || "#ffffff"} strokeWidth={3} />
+                          </View>
+                        ) : (
+                          <View style={{ height: 17 }} />
+                        )}
+                      </View>
                       <Text
                         numberOfLines={1}
                         style={{
                           color: "#ffffff",
                           fontSize: 11.5,
-                          fontWeight: "700",
-                          textShadowColor: "rgba(0,0,0,0.8)",
+                          fontWeight: isSelected ? "800" : "600",
+                          textShadowColor: "rgba(0,0,0,0.9)",
                           textShadowRadius: 3,
                         }}
                       >
@@ -687,47 +811,142 @@ export function EmployeeEditorModal({
                 })}
               </View>
 
-              {/* Upload or Custom URL row */}
-              <View className="flex-row items-center gap-2 mt-1">
+              {/* Upload or Custom Image Card */}
+              {!isPresetBanner && Boolean(bannerUrl) ? (
+                <View
+                  className="p-3 rounded-xl border gap-2.5"
+                  style={{
+                    backgroundColor: "#16171c",
+                    borderColor: hexToRgba(primaryColor, 0.35),
+                  }}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <View
+                      style={{
+                        width: 52,
+                        height: 36,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        borderWidth: 1,
+                        borderColor: "rgba(255,255,255,0.15)",
+                        backgroundColor: "#20222a",
+                      }}
+                    >
+                      <Image
+                        source={{ uri: resolvedBannerUri }}
+                        style={{ width: "100%", height: "100%" }}
+                        contentFit="cover"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
+                        Foto personalizada enviada
+                      </Text>
+                      <Text style={{ color: "#9ca3af", fontSize: 11 }}>
+                        Exibida nos cards deste profissional
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View
+                    className="flex-row items-center gap-2 pt-2 border-t"
+                    style={{ borderTopColor: "rgba(255,255,255,0.06)" }}
+                  >
+                    <Pressable
+                      onPress={handlePickBanner}
+                      disabled={uploadingBanner}
+                      className="flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-lg"
+                      style={{
+                        backgroundColor: hexToRgba(primaryColor, 0.15),
+                        borderWidth: 1,
+                        borderColor: hexToRgba(primaryColor, 0.4),
+                      }}
+                    >
+                      {uploadingBanner ? (
+                        <ActivityIndicator size="small" color={primaryColor} />
+                      ) : (
+                        <>
+                          <Upload size={13} color={primaryColor} />
+                          <Text style={{ color: primaryColor, fontSize: 11.5, fontWeight: "700" }}>
+                            Trocar foto
+                          </Text>
+                        </>
+                      )}
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => setBannerUrl(BANNER_PRESETS[0].url)}
+                      className="flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-lg border"
+                      style={{
+                        backgroundColor: "rgba(255, 255, 255, 0.05)",
+                        borderColor: "rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      <RefreshCw size={12} color="#9ca3af" />
+                      <Text style={{ color: "#d1d5db", fontSize: 11.5, fontWeight: "600" }}>
+                        Usar preset
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : (
                 <Pressable
                   onPress={handlePickBanner}
                   disabled={uploadingBanner}
-                  className="flex-row items-center gap-1.5 px-3 py-2.5 rounded-xl border"
+                  className="flex-row items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed"
                   style={{
                     backgroundColor: "#16171c",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    borderColor: "rgba(255, 255, 255, 0.2)",
                   }}
                 >
                   {uploadingBanner ? (
                     <ActivityIndicator size="small" color="#ffffff" />
                   ) : (
                     <>
-                      <Upload size={13} color="#ffffff" />
-                      <Text style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "600" }}>
-                        Subir foto (celular / PC)
+                      <Upload size={14} color="#ffffff" />
+                      <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}>
+                        Subir foto do dispositivo (celular / galeria)
                       </Text>
                     </>
                   )}
                 </Pressable>
+              )}
 
-                <View
-                  className="flex-1 px-3 rounded-xl border justify-center"
-                  style={{
-                    backgroundColor: "#16171c",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    height: 38,
-                  }}
+              {/* Toggle Direct URL Input */}
+              <View className="gap-2">
+                <Pressable
+                  onPress={() => setShowCustomUrlInput((prev) => !prev)}
+                  className="flex-row items-center gap-1.5 self-start py-0.5"
                 >
-                  <TextInput
-                    value={bannerUrl}
-                    onChangeText={setBannerUrl}
-                    placeholder="Ou cole a URL de uma image..."
-                    placeholderTextColor="#6b7280"
-                    className="text-white text-xs"
-                    style={{ height: 38 }}
-                  />
-                </View>
+                  <Link2 size={12} color="#6b7280" />
+                  <Text style={{ color: "#9ca3af", fontSize: 11 }}>
+                    {showCustomUrlInput ? "Ocultar link direto" : "Ou inserir link / URL direta"}
+                  </Text>
+                </Pressable>
+
+                {showCustomUrlInput && (
+                  <View
+                    className="px-3 rounded-xl border justify-center"
+                    style={{
+                      backgroundColor: "#16171c",
+                      borderColor: "rgba(255, 255, 255, 0.12)",
+                      height: 40,
+                    }}
+                  >
+                    <TextInput
+                      value={bannerUrl}
+                      onChangeText={setBannerUrl}
+                      placeholder="https://exemplo.com/banner.jpg"
+                      placeholderTextColor="#6b7280"
+                      className="text-white text-xs"
+                      style={{ height: 40 }}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                )}
               </View>
+
               <Text style={{ color: "#6b7280", fontSize: 11 }}>
                 Escolha uma imagem de capa para o card deste profissional.
               </Text>

@@ -48,7 +48,7 @@ import { useResponsive } from "@/hooks/use-responsive";
 import { api, resolveImageUrl, resolveImageUrlWithFallback } from "@/lib/api-client";
 import { scaleFont } from "@/lib/responsive";
 import { useSession } from "@/lib/session-context";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme, hexToRgba } from "@/hooks/use-theme";
 import { Sun, Moon } from "lucide-react-native";
 
 const RECENT_LOGOS_STORAGE_KEY = "novae_recent_logos_history_v1";
@@ -79,7 +79,7 @@ export const BANNER_PRESETS = [
   {
     id: "slate-flat",
     name: "Ardósia Flat",
-    url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80",
+    url: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1200&q=80",
   },
   {
     id: "abstract-grid",
@@ -739,6 +739,56 @@ export default function PerfilPersonalizacaoScreen() {
               <Text style={{ color: "#9ca3af", fontSize: 13, lineHeight: 18, marginTop: -4 }}>
                 Imagem decorativa de destaque exibida no topo do painel inicial para você e toda a equipe.
               </Text>
+
+              {/* Banner Preview */}
+              {Boolean(bannerUrl) && (
+                <View
+                  style={{
+                    height: 86,
+                    borderRadius: 14,
+                    borderWidth: 1.5,
+                    borderColor: hexToRgba(primaryColor, 0.4),
+                    overflow: "hidden",
+                    position: "relative",
+                    backgroundColor: "#16171c",
+                  }}
+                >
+                  <Image
+                    source={{ uri: resolveImageUrl(bannerUrl) || bannerUrl }}
+                    style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+                    contentFit="cover"
+                  />
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: "rgba(0, 0, 0, 0.35)",
+                    }}
+                  />
+                  <View className="p-2.5">
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        backgroundColor: "rgba(0, 0, 0, 0.6)",
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: "rgba(255, 255, 255, 0.15)",
+                      }}
+                      className="flex-row items-center gap-1.5"
+                    >
+                      <CheckCircle2 size={11} color={primaryColor} />
+                      <Text style={{ color: "#ffffff", fontSize: 10.5, fontWeight: "700" }}>
+                        Capa atual da empresa
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
 
               {/* URL Input & Limpar Button */}
               <View className="flex-row items-center gap-2">
