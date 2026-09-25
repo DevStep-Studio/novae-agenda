@@ -2007,9 +2007,14 @@ a.bookingsPrimaryAction,
 }
 .bookingsSecondaryBtn:hover {
   background: var(--booking-surface-hover) !important;
-  border-color: var(--booking-border-strong) !important;
-  color: var(--booking-text-primary) !important;
+  border-color: var(--accent, #10b981) !important;
+  color: var(--accent, #10b981) !important;
   transform: translateY(-1px);
+}
+.bookingsSecondaryBtn:hover svg,
+.bookingsSecondaryBtn:hover span {
+  color: var(--accent, #10b981) !important;
+  stroke: var(--accent, #10b981) !important;
 }
 .bookingsHeader .title {
   font-size: 28px;
@@ -2611,9 +2616,14 @@ a.emptyCtaButton,
 }
 .emptySecondaryButton:hover {
   background: var(--booking-surface-hover);
-  border-color: var(--booking-border-strong);
-  color: #ffffff;
+  border-color: var(--accent, #10b981) !important;
+  color: var(--accent, #10b981) !important;
   transform: translateY(-1px);
+}
+.emptySecondaryButton:hover svg,
+.emptySecondaryButton:hover span {
+  color: var(--accent, #10b981) !important;
+  stroke: var(--accent, #10b981) !important;
 }
 
 @media (max-width: 960px) and (min-width: 769px) {
