@@ -48,7 +48,7 @@ export const selectionSchema = z
 export const dateSchema = z.string().refine(isValidDateKey, "Data inválida.");
 export const timeSchema = z.string().refine(isValidTime, "Horário inválido.");
 export const searchSchema = z.object({
-  locationId: z.uuid(),
+  locationId: z.string().uuid().or(z.literal("")).optional().default(""),
   date: dateSchema,
   items: selectionSchema,
 });
@@ -56,7 +56,7 @@ export const createBookingSchema = searchSchema.extend({
   slug: slugSchema,
   startTime: timeSchema,
   notes: z.string().max(2000).optional(),
-  idempotencyKey: z.uuid(),
+  idempotencyKey: z.string().min(1).max(128).or(z.uuid()),
   // How the customer intends to pay at the establishment. Payment for the
   // service itself is always presential — this never triggers an online charge.
   intendedPaymentMethod: z
@@ -76,8 +76,8 @@ export const createBookingSchema = searchSchema.extend({
   couponCode: z.string().max(40).optional(),
   customer: z
     .object({
-      name: z.string().min(2, "Informe seu nome.").max(120),
-      phone: z.string().min(8, "Informe seu telefone.").max(25),
+      name: z.string().min(2, "Informe seu nome.").max(120).optional(),
+      phone: z.string().min(8, "Informe seu telefone.").max(25).optional(),
       email: z.string().email("E-mail inválido.").optional().or(z.literal("")).nullable(),
     })
     .optional(),

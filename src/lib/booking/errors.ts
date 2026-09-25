@@ -33,8 +33,18 @@ export function bookingError(error: unknown): Response {
       { status: 409 },
     );
   console.error("[booking]", error);
+  const userMessage =
+    error instanceof Error &&
+    error.message &&
+    !error.message.includes("sql") &&
+    !error.message.includes("SELECT") &&
+    !error.message.includes("INSERT") &&
+    !error.message.includes("UPDATE") &&
+    !error.message.includes("DELETE")
+      ? error.message
+      : "Não foi possível concluir. Tente novamente.";
   return Response.json(
-    { error: "Não foi possível concluir. Tente novamente." },
+    { error: userMessage },
     { status: 500 },
   );
 }

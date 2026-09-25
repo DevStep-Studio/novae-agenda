@@ -70,7 +70,11 @@ function generateId(): string {
       return crypto.randomUUID();
     } catch {}
   }
-  return "id-" + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 function downloadBookingIcs(booking: {
@@ -629,21 +633,29 @@ export function PublicBooking({ catalog }: { catalog: PublicCatalog }) {
     setBusy(true);
     setError("");
     try {
+      const activeLocationId = locationId || locations[0]?.id || "";
       const result = await api<{ id: string }>("/api/bookings", {
         method: "POST",
         body: JSON.stringify({
           slug: company.slug,
-          locationId,
+          locationId: activeLocationId || undefined,
           items,
           date,
           startTime: slot.startTime,
           notes,
-          idempotencyKey: requestId,
+          idempotencyKey: requestId || generateId(),
           products: Object.entries(extras)
             .filter(([, quantity]) => quantity > 0)
             .map(([productId, quantity]) => ({ productId, quantity })),
           couponCode: coupon,
           intendedPaymentMethod: paymentMethod,
+          customer: customer
+            ? {
+                name: customer.name || undefined,
+                phone: customer.phone || undefined,
+                email: customer.email || undefined,
+              }
+            : undefined,
         }),
       });
 
