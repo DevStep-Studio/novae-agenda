@@ -84,6 +84,7 @@ export function applyPrimaryColor(hex: string) {
   const softHover = isDarkMode ? `rgba(${r}, ${g}, ${b}, 0.25)` : `rgba(${r}, ${g}, ${b}, 0.18)`;
   const borderSubtle = isDarkMode ? `rgba(${r}, ${g}, ${b}, 0.3)` : `rgba(${r}, ${g}, ${b}, 0.22)`;
   const borderFocus = `rgba(${r}, ${g}, ${b}, 0.45)`;
+  const submetricIconBg = isLightColor ? "rgba(0, 0, 0, 0.10)" : "rgba(255, 255, 255, 0.22)";
 
   // Generate slightly darker/lighter hover tone
   const hoverR = Math.max(0, Math.min(255, isLightColor ? Math.round(r * 0.88) : Math.round(r * 1.15)));
@@ -98,6 +99,7 @@ export function applyPrimaryColor(hex: string) {
   root.style.setProperty("--primary-soft-hover", softHover);
   root.style.setProperty("--primary-foreground", foreground);
   root.style.setProperty("--primary-rgb", `${r}, ${g}, ${b}`);
+  root.style.setProperty("--submetric-icon-bg", submetricIconBg);
   root.style.setProperty("--brand-lime", hex);
   root.style.setProperty("--brand-lime-hover", hoverHex);
   root.style.setProperty("--brand-accent", hex);

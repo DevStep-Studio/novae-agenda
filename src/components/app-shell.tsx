@@ -432,64 +432,88 @@ function DashboardPage({
       )}
 
       {prefs.showKpis && (
-        <div className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", order: prefs.order.indexOf("showKpis") }}>
-          <div className="metric-card">
-            <div className="metric-icon metric-teal"><CalendarDays size={18} /></div>
-            <div className="metric-copy">
-              <p>Atendimentos hoje</p>
-              <strong>{stats?.today.appointments ?? 0}</strong>
-              <span className="metric-detail">agendados para hoje</span>
+        <div className="dashboard-kpis-wrapper" style={{ order: prefs.order.indexOf("showKpis") }}>
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <div className="metric-icon-box">
+                <CalendarDays size={18} />
+              </div>
+              <div className="metric-copy">
+                <p>Atendimentos hoje</p>
+                <strong>{stats?.today.appointments ?? 0}</strong>
+                <span className="metric-detail">agendados para hoje</span>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon-box">
+                <TrendingUp size={18} />
+              </div>
+              <div className="metric-copy">
+                <p>Receita prevista</p>
+                <strong>{formatCurrency(forecast)}</strong>
+                <span className="metric-detail">para hoje</span>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon-box">
+                <WalletCards size={18} />
+              </div>
+              <div className="metric-copy">
+                <p>Receita realizada</p>
+                <strong>{formatCurrency(realized)}</strong>
+                <span className="metric-detail">já recebida hoje</span>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="metric-icon-box">
+                <CircleDollarSign size={18} />
+              </div>
+              <div className="metric-copy">
+                <p>Receita pendente</p>
+                <strong>{formatCurrency(pendingAmount)}</strong>
+                <span className="metric-detail">a receber hoje</span>
+              </div>
             </div>
           </div>
-          <div className="metric-card">
-            <div className="metric-icon metric-teal"><TrendingUp size={18} /></div>
-            <div className="metric-copy">
-              <p>Receita prevista</p>
-              <strong>{formatCurrency(forecast)}</strong>
-              <span className="metric-detail">para hoje</span>
+
+          <div className="metric-card metric-card-full">
+            <div className="metric-card-full-left">
+              <div className="metric-icon-box">
+                <Users size={18} />
+              </div>
+              <div className="metric-copy">
+                <p>Clientes atendidos</p>
+                <span className="metric-detail">finalizados hoje</span>
+              </div>
             </div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-icon metric-teal"><WalletCards size={18} /></div>
-            <div className="metric-copy">
-              <p>Receita realizada</p>
-              <strong>{formatCurrency(realized)}</strong>
-              <span className="metric-detail">já recebida hoje</span>
-            </div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-icon metric-teal"><CircleDollarSign size={18} /></div>
-            <div className="metric-copy">
-              <p>Receita pendente</p>
-              <strong>{formatCurrency(pendingAmount)}</strong>
-              <span className="metric-detail">a receber hoje</span>
-            </div>
-          </div>
-          <div className="metric-card">
-            <div className="metric-icon metric-teal"><Users size={18} /></div>
-            <div className="metric-copy">
-              <p>Clientes atendidos</p>
-              <strong>{stats?.today.clientsServed ?? 0}</strong>
-              <span className="metric-detail">finalizados hoje</span>
-            </div>
+            <strong className="metric-card-full-val">{stats?.today.clientsServed ?? 0}</strong>
           </div>
         </div>
       )}
 
       {prefs.showSubmetrics && (
         <div className="metrics-subgrid" style={{ order: prefs.order.indexOf("showSubmetrics") }}>
-          <div className="submetric-card">
-            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Atendimentos pendentes</span>
-            <strong style={{ fontSize: "20px", fontWeight: 700, color: "var(--text-primary)" }}>{pending.length}</strong>
-          </div>
-          <div className="submetric-card">
-            <div>
-              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Cancelamentos hoje</span>
-              <div style={{ fontSize: "20px", fontWeight: 700, color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-primary)", marginTop: 2 }}>
-                {cancellationsToday}
+          <div className="submetric-card highlight-card">
+            <div className="submetric-top-row">
+              <div className="submetric-icon-box">
+                <Clock size={17} strokeWidth={2.4} />
               </div>
+              <strong className="submetric-val">{pending.length}</strong>
             </div>
-            <Ban size={18} style={{ color: cancellationsToday > 0 ? "var(--danger)" : "var(--text-secondary)" }} />
+            <span className="submetric-label">Atendimentos pendentes</span>
+          </div>
+
+          <div className="submetric-card highlight-card">
+            <div className="submetric-top-row">
+              <div className="submetric-icon-box">
+                <Ban size={17} strokeWidth={2.4} />
+              </div>
+              <strong className="submetric-val">{cancellationsToday}</strong>
+            </div>
+            <span className="submetric-label">Cancelamentos hoje</span>
           </div>
         </div>
       )}
