@@ -77,7 +77,7 @@ export default function EmployeeAgendaScreen() {
     .reduce((acc, a) => acc + (Number(a.total) || 0), 0);
 
   return (
-    <Screen header={<TopBar title="Minha Agenda" company={session?.company?.name} />} style={{ paddingTop: 16 }}>
+    <Screen header={<TopBar title="Minha Agenda" company={session?.company?.name} />}>
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary} size="large" />
@@ -93,7 +93,7 @@ export default function EmployeeAgendaScreen() {
         <FlatList
           data={appointments}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 32, gap: 14 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 32, gap: 14 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

@@ -620,10 +620,10 @@ export default function AgendaScreen() {
   };
 
   return (
-    <Screen header={<TopBar title="Agenda" company={companyName} />} style={{ paddingTop: 14 }}>
+    <Screen header={<TopBar title="Agenda" company={companyName} />}>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ gap: 14, paddingBottom: 30 }}
+        contentContainerStyle={{ gap: 14, paddingTop: 14, paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >

@@ -1029,11 +1029,10 @@ export default function LinkAgendamentoScreen() {
   return (
     <Screen
       header={<TopBar title="Link de agendamento" company={session?.company?.name} showBack={true} />}
-      style={{ paddingTop: 14 }}
     >
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ gap: 16, paddingBottom: 110, paddingHorizontal: 4 }}
+        contentContainerStyle={{ gap: 16, paddingTop: 14, paddingBottom: 110, paddingHorizontal: 4 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />

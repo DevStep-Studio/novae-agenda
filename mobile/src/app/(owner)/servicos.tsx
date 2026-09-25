@@ -1821,12 +1821,11 @@ export default function ServicosScreen() {
   return (
     <Screen
       header={<TopBar title="Serviços" company={session?.company.name} showBack={true} />}
-      style={{ paddingTop: 14 }}
     >
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ gap: 16, paddingBottom: 110 }}
+        contentContainerStyle={{ gap: 16, paddingTop: 14, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={primaryColor} />}
       >
         {/* 1. Header Section */}

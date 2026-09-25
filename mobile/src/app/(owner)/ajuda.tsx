@@ -109,8 +109,8 @@ export default function AjudaScreen() {
   };
 
   return (
-    <Screen header={<TopBar title="Ajuda & Suporte" company={companyName} showBack={true} />} style={{ paddingTop: 14 }}>
-      <ScrollView className="flex-1" contentContainerStyle={{ gap: 14, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+    <Screen header={<TopBar title="Ajuda & Suporte" company={companyName} showBack={true} />}>
+      <ScrollView className="flex-1" contentContainerStyle={{ gap: 14, paddingTop: 14, paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
         {/* Header da Página */}
         <PageHeader
           eyebrow="SUPORTE & ATENDIMENTO"
