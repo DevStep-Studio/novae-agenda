@@ -923,10 +923,6 @@ export function MyBookings({
                   </button>
                 </div>
                 <div className={b.detailHeroCompact}>
-                  <span className={b.detailBadge}>
-                    <CalendarDays size={13} />
-                    Seu próximo encontro
-                  </span>
                   <h1 className={b.detailTitle}>Detalhes do agendamento</h1>
                   <p className={b.detailSubtitle}>{current.company.name}</p>
                 </div>
