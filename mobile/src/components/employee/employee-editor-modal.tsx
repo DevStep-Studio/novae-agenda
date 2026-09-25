@@ -33,7 +33,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 
 import { useTheme, hexToRgba } from "@/hooks/use-theme";
-import { api } from "@/lib/api-client";
+import { api, resolveImageUrl } from "@/lib/api-client";
 import type { EmployeeDTO } from "@/lib/employees";
 import type { ServiceDTO } from "@/lib/services";
 
@@ -73,10 +73,11 @@ function maskPhone(value: string): string {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 }
 
-function getInitialLetter(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return "P";
-  return trimmed[0].toUpperCase();
+function getInitials(name: string): string {
+  const parts = name.trim().split(" ").filter(Boolean);
+  if (parts.length === 0) return "P";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export interface EmployeeEditorModalProps {
@@ -102,6 +103,7 @@ export function EmployeeEditorModal({
   const [jobTitle, setJobTitle] = useState("Profissional");
   const [phone, setPhone] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoLoadError, setPhotoLoadError] = useState(false);
   const [bannerUrl, setBannerUrl] = useState(BANNER_PRESETS[0].url);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
 
@@ -118,6 +120,7 @@ export function EmployeeEditorModal({
   useEffect(() => {
     if (!visible) return;
 
+    setPhotoLoadError(false);
     if (employee) {
       setName(employee.name || "");
       setJobTitle(employee.jobTitle || "Profissional");
@@ -325,9 +328,9 @@ export function EmployeeEditorModal({
                 borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              {photoUrl ? (
+              {photoUrl && !photoLoadError ? (
                 <Image
-                  source={{ uri: photoUrl }}
+                  source={{ uri: resolveImageUrl(photoUrl) || photoUrl }}
                   style={{
                     width: 60,
                     height: 60,
@@ -336,6 +339,7 @@ export function EmployeeEditorModal({
                     borderColor: "rgba(255, 255, 255, 0.15)",
                   }}
                   contentFit="cover"
+                  onError={() => setPhotoLoadError(true)}
                 />
               ) : (
                 <View
@@ -343,12 +347,12 @@ export function EmployeeEditorModal({
                   style={{
                     width: 60,
                     height: 60,
-                    backgroundColor: "#1c1d24",
-                    borderColor: "rgba(255, 255, 255, 0.12)",
+                    backgroundColor: primaryColor,
+                    borderColor: "rgba(255, 255, 255, 0.2)",
                   }}
                 >
-                  <Text style={{ color: primaryColor, fontSize: 22, fontWeight: "800" }}>
-                    {getInitialLetter(name)}
+                  <Text style={{ color: primaryForeground, fontSize: 20, fontWeight: "800", letterSpacing: 0.5 }}>
+                    {getInitials(name || "Profissional")}
                   </Text>
                 </View>
               )}
@@ -384,7 +388,10 @@ export function EmployeeEditorModal({
 
                   {Boolean(photoUrl) && (
                     <Pressable
-                      onPress={() => setPhotoUrl(null)}
+                      onPress={() => {
+                        setPhotoUrl(null);
+                        setPhotoLoadError(false);
+                      }}
                       className="flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-lg border"
                       style={{
                         backgroundColor: "rgba(239, 68, 68, 0.1)",
