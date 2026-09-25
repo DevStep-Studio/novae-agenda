@@ -10,6 +10,7 @@ import {
   Coffee,
   Copy,
   ExternalLink,
+  Eye,
   Film,
   Globe,
   Image as ImageIcon,
@@ -340,11 +341,11 @@ export default function LinkAgendamentoScreen() {
 
   // Preview Booking Page in-app
   const handlePreview = () => {
-    const targetSlug = slug || session?.company?.publicSlug || session?.company?.slug;
-    if (targetSlug) {
-      router.push(`/agendar/${encodeURIComponent(targetSlug)}`);
+    const rawSlug = (slug || session?.company?.publicSlug || session?.company?.slug || "").trim().replace(/^\/+/, "");
+    if (rawSlug) {
+      router.push(`/agendar/${encodeURIComponent(rawSlug)}` as any);
     } else {
-      Linking.openURL(publicUrl);
+      Alert.alert("Aviso", "Identificador do estabelecimento não configurado.");
     }
   };
 
@@ -1905,7 +1906,7 @@ export default function LinkAgendamentoScreen() {
                 </Pressable>
               </View>
 
-              {/* Action Buttons: Compartilhar | Visualizar | QR Code */}
+              {/* Action Buttons: Compartilhar | Visualizar no App | QR Code */}
               <View className="flex-row items-center gap-2">
                 <Pressable
                   onPress={handleCopyLink}
@@ -1913,13 +1914,13 @@ export default function LinkAgendamentoScreen() {
                   style={{
                     backgroundColor: "#1c1d24",
                     borderColor: "rgba(255, 255, 255, 0.1)",
-                    height: 40,
+                    height: 42,
                   }}
                 >
                   <Share2 size={14} color="#ffffff" />
                   <Text
                     numberOfLines={1}
-                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }}
+                    style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}
                   >
                     Compartilhar
                   </Text>
@@ -1929,17 +1930,17 @@ export default function LinkAgendamentoScreen() {
                   onPress={handlePreview}
                   className="flex-1 flex-row items-center justify-center gap-1.5 py-2.5 px-1.5 rounded-xl border"
                   style={{
-                    backgroundColor: "#1c1d24",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
-                    height: 40,
+                    backgroundColor: hexToRgba(primaryColor, 0.16),
+                    borderColor: hexToRgba(primaryColor, 0.4),
+                    height: 42,
                   }}
                 >
-                  <ExternalLink size={14} color="#ffffff" />
+                  <Eye size={15} color={primaryColor} />
                   <Text
                     numberOfLines={1}
-                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }}
+                    style={{ color: primaryColor, fontSize: 12, fontWeight: "700" }}
                   >
-                    Visualizar
+                    Visualizar no App
                   </Text>
                 </Pressable>
 
@@ -1949,13 +1950,13 @@ export default function LinkAgendamentoScreen() {
                   style={{
                     backgroundColor: "#1c1d24",
                     borderColor: "rgba(255, 255, 255, 0.1)",
-                    height: 40,
+                    height: 42,
                   }}
                 >
                   <QrCode size={14} color="#ffffff" />
                   <Text
                     numberOfLines={1}
-                    style={{ color: "#ffffff", fontSize: 11.5, fontWeight: "700" }}
+                    style={{ color: "#ffffff", fontSize: 12, fontWeight: "700" }}
                   >
                     QR Code
                   </Text>

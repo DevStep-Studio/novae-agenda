@@ -4,6 +4,7 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Eye,
   Fingerprint,
   Globe,
   MapPin,
@@ -37,6 +38,7 @@ import { TopBar } from "@/components/ui/top-bar";
 import { fontFamily, radius, typography } from "@/constants/design-tokens";
 import { useTheme } from "@/hooks/use-theme";
 import { ApiError } from "@/lib/api-client";
+import { useSession } from "@/lib/session-context";
 import {
   isBiometricsSupported,
   isBiometricsEnabled,
@@ -54,6 +56,7 @@ import {
 
 export default function ConfiguracoesScreen() {
   const router = useRouter();
+  const { session } = useSession();
   const { colors, primaryColor, primarySoft, primaryForeground, isDark } = useTheme();
   const [profile, setProfile] = useState<CompanyDTO | null>(null);
   const [settings, setSettings] = useState<CompanySettingsDTO | null>(null);
@@ -327,10 +330,11 @@ export default function ConfiguracoesScreen() {
 
               <Pressable
                 onPress={() => {
-                  if (profile?.publicSlug) {
-                    router.push(`/agendar/${encodeURIComponent(profile.publicSlug)}`);
+                  const rawSlug = (profile?.publicSlug || (profile as any)?.slug || session?.company?.publicSlug || session?.company?.slug || "").trim().replace(/^\/+/, "");
+                  if (rawSlug) {
+                    router.push(`/agendar/${encodeURIComponent(rawSlug)}` as any);
                   } else {
-                    Linking.openURL(publicUrl);
+                    Alert.alert("Aviso", "Identificador do estabelecimento não configurado.");
                   }
                 }}
                 style={{
@@ -346,9 +350,9 @@ export default function ConfiguracoesScreen() {
                   gap: 6,
                 }}
               >
-                <ExternalLink size={16} color={colors.textSecondary} />
+                <Eye size={16} color={colors.textSecondary} />
                 <Text style={{ color: colors.textSecondary, fontSize: 13, fontWeight: "600" }}>
-                  Abrir
+                  Visualizar no App
                 </Text>
               </Pressable>
             </View>
