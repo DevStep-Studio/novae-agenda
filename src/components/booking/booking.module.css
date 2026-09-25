@@ -1966,14 +1966,14 @@ button.outline:hover:not(:disabled),
   padding: 0 16px !important;
   border-radius: 10px !important;
   font-size: 13px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent) !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+  box-shadow: none !important;
+  transition: transform 0.15s ease, background 0.15s ease !important;
 }
 .bookingsPrimaryAction:hover {
   background: var(--accent-hover) !important;
   border-color: var(--accent-hover) !important;
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12), 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  box-shadow: none !important;
 }
 .bookingsSecondaryActions {
   display: flex;
@@ -1990,7 +1990,7 @@ button.outline:hover:not(:disabled),
   border: 1px solid var(--booking-border) !important;
   background: var(--booking-surface-secondary) !important;
   border-radius: 10px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: none !important;
   transition: all 0.15s ease !important;
 }
 .bookingsSecondaryBtn:hover {
