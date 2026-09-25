@@ -1594,12 +1594,12 @@ export function MyBookings({
                           </div>
 
                           <div className={b.ticketActions}>
-                            <button className={`${b.button} ${b.ticketBtnSecondary}`} onClick={() => setSelected(r.id)}>
+                            <button className={b.ticketBtnSecondary} onClick={() => setSelected(r.id)}>
                               Ver detalhes
                             </button>
                             {isUpcoming && (
                               <button
-                                className={`${b.button} ${b.ticketBtnSecondary}`}
+                                className={b.ticketBtnSecondary}
                                 disabled={busy}
                                 onClick={() => handleReschedule(r)}
                                 title="Remarcar para outra data ou horário"
@@ -1610,7 +1610,7 @@ export function MyBookings({
                             )}
                             {isUpcoming && (
                               <button
-                                className={`${b.button} ${b.ticketBtnDanger}`}
+                                className={b.ticketBtnDanger}
                                 disabled={busy}
                                 onClick={() => handleCancel(r)}
                                 title="Desmarcar este agendamento"
@@ -1619,7 +1619,7 @@ export function MyBookings({
                               </button>
                             )}
                             {r.status === "completed" && (
-                              <button className={`${b.button} ${b.ticketBtnPrimary}`} onClick={() => repeat(r)}>
+                              <button className={b.ticketBtnPrimary} onClick={() => repeat(r)}>
                                 <RotateCcw size={14} /> Agendar novamente
                               </button>
                             )}
