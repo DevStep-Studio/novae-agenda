@@ -2303,11 +2303,19 @@ export default function LinkAgendamentoScreen() {
                 <View className="gap-0.5">
                   <View className="flex-row items-center gap-2">
                     <RotateCcw size={15} color={primaryColor || themePrimaryColor} />
-                    <Text style={{ color: "#ffffff", fontSize: 14.5, fontWeight: "700" }}>
+                    <Text
+                      style={{
+                        color: "#ffffff",
+                        fontSize: 14,
+                        fontWeight: "700",
+                        flex: 1,
+                        flexShrink: 1,
+                      }}
+                    >
                       Prazo para cancelamento / remarcação
                     </Text>
                   </View>
-                  <Text style={{ color: "#8a8f98", fontSize: 12 }}>
+                  <Text style={{ color: "#8a8f98", fontSize: 12, flexShrink: 1, marginTop: 2 }}>
                     Tempo mínimo de antecedência para o cliente gerenciar online:
                   </Text>
                 </View>
@@ -2317,32 +2325,36 @@ export default function LinkAgendamentoScreen() {
                   {CANCELLATION_OPTIONS.map((opt) => {
                     const isSelected = String(opt.value) === cancellationHours;
                     const activeColor = primaryColor || themePrimaryColor;
+                    const isLong = opt.value === -1;
                     return (
                       <Pressable
                         key={opt.value}
                         onPress={() => setCancellationHours(String(opt.value))}
-                        className="flex-row items-center gap-1.5 py-2.5 px-3 rounded-xl border"
+                        className="flex-row items-center gap-1.5 py-2 px-2.5 rounded-xl border"
                         style={{
                           backgroundColor: isSelected
-                            ? hexToRgba(activeColor, isDark ? 0.14 : 0.22)
+                            ? hexToRgba(activeColor, isDark ? 0.16 : 0.22)
                             : "#1f2028",
                           borderColor: isSelected
                             ? activeColor
                             : "rgba(255, 255, 255, 0.08)",
+                          borderWidth: isSelected ? 1.5 : 1,
                           flexGrow: 1,
+                          flexShrink: 1,
                           justifyContent: "center",
-                          minWidth: "22%",
+                          minWidth: isLong ? "48%" : "22%",
                         }}
                       >
                         {isSelected && (
-                          <CheckCircle2 size={13} color={activeColor} />
+                          <CheckCircle2 size={12} color={activeColor} />
                         )}
                         <Text
                           style={{
                             color: isSelected ? activeColor : "#a1a1aa",
-                            fontSize: 12.5,
+                            fontSize: 12,
                             fontWeight: isSelected ? "700" : "500",
                           }}
+                          numberOfLines={1}
                         >
                           {opt.label}
                         </Text>
