@@ -265,13 +265,6 @@ export function PublicFrame({
               <ReserveiLogo size={24} />
             </Link>
 
-            {isClientPortal && (
-              <span className={styles.headerPortalBadge}>
-                <span className={styles.headerPortalDot} />
-                Área do Cliente
-              </span>
-            )}
-
             {company && (
               <>
                 <span className={styles.headerDivider}>/</span>
