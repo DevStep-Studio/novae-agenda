@@ -1253,8 +1253,8 @@ function ServiceEditorModal({
                 borderColor: "rgba(255, 255, 255, 0.08)",
               }}
             >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-1.5">
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flex: 1, minWidth: 0 }}>
                   <Users size={13} color={primaryColor} />
                   <Text
                     style={{
@@ -1264,13 +1264,23 @@ function ServiceEditorModal({
                       letterSpacing: 0.8,
                       textTransform: "uppercase",
                     }}
+                    numberOfLines={1}
                   >
-                    PROFISSIONAIS QUE REALIZAM
+                    PROFISSIONAIS
                   </Text>
                   {selectedEmployeeIds.length > 0 && (
-                    <Text style={{ color: "#6b7280", fontSize: 11 }}>
-                      ({selectedEmployeeIds.length})
-                    </Text>
+                    <View
+                      style={{
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                        borderRadius: 6,
+                        backgroundColor: primarySoft,
+                      }}
+                    >
+                      <Text style={{ color: primaryColor, fontSize: 10.5, fontWeight: "700" }}>
+                        {selectedEmployeeIds.length}/{activeEmployees.length}
+                      </Text>
+                    </View>
                   )}
                 </View>
 
@@ -1283,6 +1293,8 @@ function ServiceEditorModal({
                         setSelectedEmployeeIds(activeEmployees.map((e) => e.id));
                       }
                     }}
+                    hitSlop={8}
+                    style={{ flexShrink: 0, paddingVertical: 2, paddingLeft: 6 }}
                   >
                     <Text style={{ color: primaryColor, fontSize: 11.5, fontWeight: "600" }}>
                       {selectedEmployeeIds.length === activeEmployees.length ? "Desmarcar todos" : "Selecionar todos"}
@@ -1292,7 +1304,7 @@ function ServiceEditorModal({
               </View>
 
               {activeEmployees.length > 0 ? (
-                <View className="flex-row flex-wrap gap-2">
+                <View style={{ gap: 8 }}>
                   {activeEmployees.map((emp) => {
                     const isSelected = selectedEmployeeIds.includes(emp.id);
                     return (
@@ -1305,54 +1317,88 @@ function ServiceEditorModal({
                             setSelectedEmployeeIds((prev) => [...prev, emp.id]);
                           }
                         }}
-                        className="flex-row items-center px-2.5 py-2 rounded-xl border"
                         style={{
-                          width: "48.5%",
-                          backgroundColor: isSelected ? hexToRgba(primaryColor, 0.12) : "#1c1d24",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 12,
+                          backgroundColor: isSelected ? primarySoft : "#14151a",
                           borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.08)",
+                          borderWidth: isSelected ? 1.5 : 1,
                         }}
                       >
-                        <View
-                          className="items-center justify-center rounded-lg"
-                          style={{
-                            width: 28,
-                            height: 28,
-                            backgroundColor: isSelected ? primaryColor : "#252731",
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: isSelected ? primaryForeground : "#d1d5db",
-                              fontSize: 11,
-                              fontWeight: "700",
-                            }}
-                          >
-                            {getInitials(emp.name)}
-                          </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                          {emp.photoUrl ? (
+                            <Image
+                              source={{ uri: emp.photoUrl }}
+                              style={{ width: 34, height: 34, borderRadius: 10 }}
+                              contentFit="cover"
+                            />
+                          ) : (
+                            <View
+                              style={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: 10,
+                                backgroundColor: isSelected ? primaryColor : "#252731",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: isSelected ? primaryForeground : "#d1d5db",
+                                  fontSize: 12,
+                                  fontWeight: "700",
+                                }}
+                              >
+                                {getInitials(emp.name)}
+                              </Text>
+                            </View>
+                          )}
+
+                          <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                            <Text
+                              style={{
+                                color: "#ffffff",
+                                fontSize: 13,
+                                fontWeight: "700",
+                              }}
+                              numberOfLines={1}
+                            >
+                              {emp.name}
+                            </Text>
+                            {emp.jobTitle ? (
+                              <Text
+                                style={{
+                                  color: isSelected ? "#cbd5e1" : "#64748b",
+                                  fontSize: 11,
+                                }}
+                                numberOfLines={1}
+                              >
+                                {emp.jobTitle}
+                              </Text>
+                            ) : null}
+                          </View>
                         </View>
 
-                        <Text
-                          numberOfLines={1}
-                          className="flex-1 mx-2"
-                          style={{
-                            color: "#ffffff",
-                            fontSize: 12,
-                            fontWeight: "600",
-                          }}
-                        >
-                          {emp.name}
-                        </Text>
-
                         <View
-                          className="items-center justify-center rounded-full border"
                           style={{
-                            width: 18,
-                            height: 18,
-                            borderColor: isSelected ? primaryColor : "rgba(255, 255, 255, 0.25)",
+                            width: 20,
+                            height: 20,
+                            borderRadius: 10,
+                            borderWidth: isSelected ? 0 : 1.5,
+                            borderColor: "rgba(255, 255, 255, 0.25)",
                             backgroundColor: isSelected ? primaryColor : "transparent",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginLeft: 8,
+                            flexShrink: 0,
                           }}
                         >
-                          {isSelected && <Check size={11} color={primaryForeground} strokeWidth={3} />}
+                          {isSelected && <Check size={12} color={primaryForeground} strokeWidth={3} />}
                         </View>
                       </Pressable>
                     );
